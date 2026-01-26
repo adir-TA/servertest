@@ -207,7 +207,7 @@ function gem_rollAmount() :: integer:
 # ============================================================
 
 command /gems [<text>] [<integer>]:
-    permission: op
+    permission: gems.use
     trigger:
         if arg-1 = "give":
             if arg-2 is set:
