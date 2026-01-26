@@ -355,18 +355,24 @@ function mining_getAllDrops(block: item) :: items:
 
 function mining_giveDrops(p: player, block: item, fortuneLevel: integer = 0, multiplier: integer = 1):
     set {_drop} to mining_getRandomDrop({_block})
-    
+
     if {_drop} is air:
         stop
-    
+
     set {_amount} to item amount of {_drop}
     if {_fortuneLevel} > 0:
         set {_bonus} to random integer between 0 and {_fortuneLevel}
         add {_bonus} to {_amount}
-    
+
     set {_amount} to {_amount} * {_multiplier}
-    
+
+    # Apply drops multiplier (from pets, accessories, archetype)
+    set {_dropsMultiplier} to multiplier_getDrops({_p})
+    set {_amount} to round({_amount} * {_dropsMultiplier})
+    if {_amount} < 1:
+        set {_amount} to 1
+
     set {_finalDrop} to {_amount} of type of {_drop}
     give {_finalDrop} to {_p}
-    
+
     play sound "entity.item.pickup" with volume 0.5 and pitch 1.2 at {_p} for {_p}
