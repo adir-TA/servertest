@@ -39,8 +39,8 @@ function acc_getUnlockedSlots(p: player) :: number:
 
 function acc_meetsSlotPrestigeReq(p: player, slot: number) :: boolean:
     set {_req} to acc_getSlotPrestigeReq({_slot})
-    set {_minPrestige} to acc_getMinPrestige({_p})
-    if {_minPrestige} >= {_req}:
+    set {_totalPrestige} to acc_getTotalPrestige({_p})
+    if {_totalPrestige} >= {_req}:
         return true
     return false
 
