@@ -347,11 +347,8 @@ function pet_createItem(p: player, petId: text) :: item:
     # Set display name based on equipped status
     if pet_isEquipped({_p}, {_petId}) = true:
         set name of {_item} to "&a✔ %{_color}%%{_name}%"
-        enchant {_item} with unbreaking 1
-        # Hide enchant glint tooltip (1.20.5+ data components)
-        set {_nbt} to nbt of {_item}
-        set compound tag "minecraft:enchantments" of {_nbt} to nbt from "{levels:{""minecraft:unbreaking"":1},show_in_tooltip:0}"
-        set {_item} to {_item} with nbt {_nbt}
+        # Add enchant glint but hide tooltip (1.20.5+ data components)
+        set {_item} to {_item} with nbt from "{""minecraft:enchantments"":{levels:{""minecraft:unbreaking"":1},show_in_tooltip:0}}"
     else:
         set name of {_item} to "%{_color}%%{_name}%"
     
