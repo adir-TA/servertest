@@ -1,9 +1,10 @@
 # ============================================================
 # ACCESSORY SYSTEM - BAG GUI
 # ============================================================
-# Matches pet menu design
-# Row 1: Equipped slots (1-5)
-# Row 6: Controls
+# Compact 3-row design
+# Row 1: Equipped slots (1-5) + locked indicators
+# Row 2: Empty separator
+# Row 3: Controls
 # ============================================================
 
 command /accessories:
@@ -14,27 +15,27 @@ command /accessories:
 
 function acc_openBagGui(p: player):
     set {_uuid} to {_p}'s uuid
-    set {_menu} to chest inventory with 6 rows named "&6&lAccessories"
-    
+    set {_menu} to chest inventory with 3 rows named "&6&lAccessories"
+
     # Fill with glass
     set {_filler} to black stained glass pane named "&1"
-    loop 54 times:
+    loop 27 times:
         set slot loop-number - 1 of {_menu} to {_filler}
-    
+
     # ════════════════════════════════════════
-    # ROW 1: EQUIPPED SLOTS (slots 2-6)
+    # ROW 1: EQUIPPED SLOTS (slots 0-4) + LOCKED (slots 5-8)
     # ════════════════════════════════════════
-    
+
     set {_unlockedSlots} to acc_getUnlockedSlots({_p})
-    
+
     loop 5 times:
         set {_slotNum} to loop-number
-        set {_guiSlot} to loop-number + 1
-        
+        set {_guiSlot} to loop-number - 1
+
         if {_slotNum} <= {_unlockedSlots}:
             # Slot is unlocked
             set {_encoded} to acc_getBagSlot({_p}, {_slotNum})
-            
+
             if {_encoded} is set:
                 if {_encoded} is not "":
                     # Has accessory equipped
@@ -75,7 +76,7 @@ function acc_openBagGui(p: player):
             set {_locked} to red stained glass pane named "&c🔒 Locked Slot %{_slotNum}%"
             set {_prestigeReq} to acc_getSlotPrestigeReq({_slotNum})
             set {_cost} to acc_getSlotCost({_slotNum})
-            
+
             delete {_lockedLore::*}
             add "&8ᴀᴄᴄᴇssᴏʀʏ sʟᴏᴛ" to {_lockedLore::*}
             add "" to {_lockedLore::*}
@@ -83,12 +84,12 @@ function acc_openBagGui(p: player):
             add "&7more accessories!" to {_lockedLore::*}
             add "" to {_lockedLore::*}
             add "&6Requirements:" to {_lockedLore::*}
-            
+
             # Check prestige requirement
             if acc_meetsSlotPrestigeReq({_p}, {_slotNum}) is true:
-                add "&a  All prestiges ≥ %{_prestigeReq}%" to {_lockedLore::*}
+                add "&a  Total prestiges ≥ %{_prestigeReq}%" to {_lockedLore::*}
             else:
-                add "&c  All prestiges ≥ %{_prestigeReq}%" to {_lockedLore::*}
+                add "&c  Total prestiges ≥ %{_prestigeReq}%" to {_lockedLore::*}
 
             # Check money requirement
             set {_balance} to {data::balance::%{_uuid}%} ? 0
@@ -105,41 +106,21 @@ function acc_openBagGui(p: player):
                 set string tag "acc;action" of custom nbt of {_locked} to "unlock_slot"
             else:
                 add "&cRequirements not met" to {_lockedLore::*}
-            
+
             set lore of {_locked} to {_lockedLore::*}
             set slot {_guiSlot} of {_menu} to {_locked}
-    
+
+    # Fill remaining slots in row 1 with red glass (locked indicators)
+    loop 4 times:
+        set {_guiSlot} to 4 + loop-number
+        set {_lockedIndicator} to red stained glass pane named "&c🔒 Locked"
+        set slot {_guiSlot} of {_menu} to {_lockedIndicator}
+
     # ════════════════════════════════════════
-    # ROWS 2-5: INFO & BONUSES
+    # ROW 3: CONTROLS (slots 18-26)
     # ════════════════════════════════════════
-    
-    # Active bonuses display
-    set {_bonusItem} to book named "&dActive Bonuses"
-    delete {_bonusLore::*}
-    add "&8ᴀᴄᴄᴇssᴏʀɪᴇs" to {_bonusLore::*}
-    add "" to {_bonusLore::*}
-    
-    set {_hasBonus} to false
-    loop "mining_speed", "drops", "xp", "token" and "enchant_proc":
-        set {_stat} to loop-value
-        set {_bonus} to acc_getTotalBonus({_p}, {_stat})
-        if {_bonus} > 0:
-            set {_bonusPercent} to {_bonus} * 100
-            set {_statName} to acc_formatStatName({_stat})
-            add " &a+%{_bonusPercent}%%% &f%{_statName}%" to {_bonusLore::*}
-            set {_hasBonus} to true
-    
-    if {_hasBonus} is false:
-        add " &8No accessories equipped" to {_bonusLore::*}
-    
-    set lore of {_bonusItem} to {_bonusLore::*}
-    set slot 22 of {_menu} to {_bonusItem}
-    
-    # ════════════════════════════════════════
-    # ROW 6: CONTROLS
-    # ════════════════════════════════════════
-    
-    # Storage - Slot 47
+
+    # Storage - Slot 18
     set {_storageSize} to acc_getInventorySize({_p})
     set {_storageMax} to acc_getStorageMax()
     set {_storage} to chest named "&e&lAccessory Storage"
@@ -154,9 +135,31 @@ function acc_openBagGui(p: player):
     add "&eClick to open" to {_storageLore::*}
     set lore of {_storage} to {_storageLore::*}
     set string tag "acc;action" of custom nbt of {_storage} to "storage"
-    set slot 47 of {_menu} to {_storage}
-    
-    # Treasure Chests - Slot 51
+    set slot 18 of {_menu} to {_storage}
+
+    # Active bonuses display - Slot 19
+    set {_bonusItem} to book named "&dActive Bonuses"
+    delete {_bonusLore::*}
+    add "&8ᴀᴄᴄᴇssᴏʀɪᴇs" to {_bonusLore::*}
+    add "" to {_bonusLore::*}
+
+    set {_hasBonus} to false
+    loop "mining_speed", "drops", "xp", "token" and "enchant_proc":
+        set {_stat} to loop-value
+        set {_bonus} to acc_getTotalBonus({_p}, {_stat})
+        if {_bonus} > 0:
+            set {_bonusPercent} to {_bonus} * 100
+            set {_statName} to acc_formatStatName({_stat})
+            add " &a+%{_bonusPercent}%%% &f%{_statName}%" to {_bonusLore::*}
+            set {_hasBonus} to true
+
+    if {_hasBonus} is false:
+        add " &8No accessories equipped" to {_bonusLore::*}
+
+    set lore of {_bonusItem} to {_bonusLore::*}
+    set slot 19 of {_menu} to {_bonusItem}
+
+    # Treasure Chests - Slot 20
     set {_totalKeys} to acc_getTotalKeys({_p})
     set {_chests} to ender chest named "&d&lTreasure Chests"
     delete {_chestsLore::*}
@@ -170,14 +173,14 @@ function acc_openBagGui(p: player):
     add "&eClick to open" to {_chestsLore::*}
     set lore of {_chests} to {_chestsLore::*}
     set string tag "acc;action" of custom nbt of {_chests} to "chests"
-    set slot 51 of {_menu} to {_chests}
-    
-    # Close - Slot 53
-    set {_close} to barrier named "&c&lClose"
+    set slot 20 of {_menu} to {_chests}
+
+    # Close - Slot 21
+    set {_close} to red dye named "&c&lClose"
     set lore of {_close} to "&8ᴍᴇɴᴜ"
     set string tag "acc;action" of custom nbt of {_close} to "close"
-    set slot 53 of {_menu} to {_close}
-    
+    set slot 21 of {_menu} to {_close}
+
     open {_menu} to {_p}
     set {-acc::menu::%{_uuid}%} to "ACC_BAG"
 
