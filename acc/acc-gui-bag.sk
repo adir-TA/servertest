@@ -1,10 +1,10 @@
 # ============================================================
 # ACCESSORY SYSTEM - BAG GUI
 # ============================================================
-# Compact 3-row design
-# Row 1: Equipped slots (1-5) + locked indicators
-# Row 2: Empty separator
-# Row 3: Controls
+# Compact 4-row design
+# Row 1-2: 14 Equipped slots (7 per row)
+# Row 3: Empty separator
+# Row 4: Controls
 # ============================================================
 
 command /accessories:
@@ -15,22 +15,27 @@ command /accessories:
 
 function acc_openBagGui(p: player):
     set {_uuid} to {_p}'s uuid
-    set {_menu} to chest inventory with 3 rows named "&6&lAccessories"
+    set {_menu} to chest inventory with 4 rows named "&6&lAccessories"
 
     # Fill with glass
-    set {_filler} to black stained glass pane named "&1"
-    loop 27 times:
+    set {_filler} to black stained glass pane named "&7"
+    loop 36 times:
         set slot loop-number - 1 of {_menu} to {_filler}
 
     # ════════════════════════════════════════
-    # ROW 1: EQUIPPED SLOTS (slots 0-4) + LOCKED (slots 5-8)
+    # ROW 1-2: EQUIPPED SLOTS (14 total)
+    # Row 1: slots 1-7 (gui slots 1-7)
+    # Row 2: slots 8-14 (gui slots 10-16)
     # ════════════════════════════════════════
 
     set {_unlockedSlots} to acc_getUnlockedSlots({_p})
 
-    loop 5 times:
+    # Slot positions in GUI
+    set {_guiSlots::*} to 1, 2, 3, 4, 5, 6, 7, 10, 11, 12, 13, 14, 15 and 16
+
+    loop 14 times:
         set {_slotNum} to loop-number
-        set {_guiSlot} to loop-number - 1
+        set {_guiSlot} to {_guiSlots::%{_slotNum}%}
 
         if {_slotNum} <= {_unlockedSlots}:
             # Slot is unlocked
@@ -43,45 +48,34 @@ function acc_openBagGui(p: player):
                     set slot {_guiSlot} of {_menu} to {_item}
                 else:
                     # Empty unlocked slot
-                    set {_empty} to lime stained glass pane named "&a✦ Empty Slot"
+                    set {_empty} to lime stained glass pane named "&aEmpty Slot #%{_slotNum}%"
                     delete {_emptyLore::*}
                     add "&8ᴀᴄᴄᴇssᴏʀʏ sʟᴏᴛ" to {_emptyLore::*}
                     add "" to {_emptyLore::*}
-                    add "&7Slot &f#%{_slotNum}%" to {_emptyLore::*}
-                    add "" to {_emptyLore::*}
-                    add "&7Equip an accessory from" to {_emptyLore::*}
-                    add "&7your storage below!" to {_emptyLore::*}
-                    add "" to {_emptyLore::*}
-                    add "&eClick to select" to {_emptyLore::*}
+                    add "&7Click to equip an" to {_emptyLore::*}
+                    add "&7accessory from storage." to {_emptyLore::*}
                     set lore of {_empty} to {_emptyLore::*}
                     set int tag "acc;emptyslot" of custom nbt of {_empty} to {_slotNum}
                     set slot {_guiSlot} of {_menu} to {_empty}
             else:
                 # Empty unlocked slot
-                set {_empty} to lime stained glass pane named "&a✦ Empty Slot"
+                set {_empty} to lime stained glass pane named "&aEmpty Slot #%{_slotNum}%"
                 delete {_emptyLore::*}
                 add "&8ᴀᴄᴄᴇssᴏʀʏ sʟᴏᴛ" to {_emptyLore::*}
                 add "" to {_emptyLore::*}
-                add "&7Slot &f#%{_slotNum}%" to {_emptyLore::*}
-                add "" to {_emptyLore::*}
-                add "&7Equip an accessory from" to {_emptyLore::*}
-                add "&7your storage below!" to {_emptyLore::*}
-                add "" to {_emptyLore::*}
-                add "&eClick to select" to {_emptyLore::*}
+                add "&7Click to equip an" to {_emptyLore::*}
+                add "&7accessory from storage." to {_emptyLore::*}
                 set lore of {_empty} to {_emptyLore::*}
                 set int tag "acc;emptyslot" of custom nbt of {_empty} to {_slotNum}
                 set slot {_guiSlot} of {_menu} to {_empty}
         else:
             # Slot is locked
-            set {_locked} to red stained glass pane named "&c🔒 Locked Slot %{_slotNum}%"
+            set {_locked} to red stained glass pane named "&cLocked Slot #%{_slotNum}%"
             set {_prestigeReq} to acc_getSlotPrestigeReq({_slotNum})
             set {_cost} to acc_getSlotCost({_slotNum})
 
             delete {_lockedLore::*}
             add "&8ᴀᴄᴄᴇssᴏʀʏ sʟᴏᴛ" to {_lockedLore::*}
-            add "" to {_lockedLore::*}
-            add "&7Unlock this slot to equip" to {_lockedLore::*}
-            add "&7more accessories!" to {_lockedLore::*}
             add "" to {_lockedLore::*}
             add "&6Requirements:" to {_lockedLore::*}
 
@@ -104,23 +98,18 @@ function acc_openBagGui(p: player):
             if acc_canUnlockSlot({_p}, {_slotNum}) is true:
                 add "&aClick to unlock!" to {_lockedLore::*}
                 set string tag "acc;action" of custom nbt of {_locked} to "unlock_slot"
+                set int tag "acc;unlockslot" of custom nbt of {_locked} to {_slotNum}
             else:
                 add "&cRequirements not met" to {_lockedLore::*}
 
             set lore of {_locked} to {_lockedLore::*}
             set slot {_guiSlot} of {_menu} to {_locked}
 
-    # Fill remaining slots in row 1 with red glass (locked indicators)
-    loop 4 times:
-        set {_guiSlot} to 4 + loop-number
-        set {_lockedIndicator} to red stained glass pane named "&c🔒 Locked"
-        set slot {_guiSlot} of {_menu} to {_lockedIndicator}
-
     # ════════════════════════════════════════
-    # ROW 3: CONTROLS (slots 18-26)
+    # ROW 4: CONTROLS (slots 27-35)
     # ════════════════════════════════════════
 
-    # Storage - Slot 18
+    # Storage - Slot 30
     set {_storageSize} to acc_getInventorySize({_p})
     set {_storageMax} to acc_getStorageMax()
     set {_storage} to chest named "&e&lAccessory Storage"
@@ -135,9 +124,9 @@ function acc_openBagGui(p: player):
     add "&eClick to open" to {_storageLore::*}
     set lore of {_storage} to {_storageLore::*}
     set string tag "acc;action" of custom nbt of {_storage} to "storage"
-    set slot 18 of {_menu} to {_storage}
+    set slot 30 of {_menu} to {_storage}
 
-    # Active bonuses display - Slot 19
+    # Active bonuses display - Slot 31
     set {_bonusItem} to book named "&dActive Bonuses"
     delete {_bonusLore::*}
     add "&8ᴀᴄᴄᴇssᴏʀɪᴇs" to {_bonusLore::*}
@@ -157,9 +146,9 @@ function acc_openBagGui(p: player):
         add " &8No accessories equipped" to {_bonusLore::*}
 
     set lore of {_bonusItem} to {_bonusLore::*}
-    set slot 19 of {_menu} to {_bonusItem}
+    set slot 31 of {_menu} to {_bonusItem}
 
-    # Treasure Chests - Slot 20
+    # Treasure Chests - Slot 32
     set {_totalKeys} to acc_getTotalKeys({_p})
     set {_chests} to ender chest named "&d&lTreasure Chests"
     delete {_chestsLore::*}
@@ -173,13 +162,13 @@ function acc_openBagGui(p: player):
     add "&eClick to open" to {_chestsLore::*}
     set lore of {_chests} to {_chestsLore::*}
     set string tag "acc;action" of custom nbt of {_chests} to "chests"
-    set slot 20 of {_menu} to {_chests}
+    set slot 32 of {_menu} to {_chests}
 
-    # Close - Slot 21
+    # Close - Slot 35
     set {_close} to red dye named "&c&lClose"
     set lore of {_close} to "&8ᴍᴇɴᴜ"
     set string tag "acc;action" of custom nbt of {_close} to "close"
-    set slot 21 of {_menu} to {_close}
+    set slot 35 of {_menu} to {_close}
 
     open {_menu} to {_p}
     set {-acc::menu::%{_uuid}%} to "ACC_BAG"
