@@ -315,6 +315,8 @@ function enchant_getPlayerLevel(p: player, id: integer) :: integer:
 
 function enchant_setPlayerLevel(p: player, id: integer, value: integer):
     set {data::enchants::%{_p}'s uuid%::%{_id}%::level} to {_value}
+    # Re-apply Speed enchant if level changed while equipped
+    enchant_applySpeed({_p})
 
 function enchant_getIdByString(name: string) :: integer:
     return {-dataEnchantsByName::%{_name}%}
