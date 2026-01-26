@@ -22,7 +22,7 @@ function prestige_getFormattedPrestige(p: player, archetype: text) :: text:
     if {_prestige} = 0:
         return ""
     
-    set {_roman} to "%{_prestige} as roman numeral%"
+    set {_roman} to {_prestige} as roman numeral
     
     # Color based on prestige tier
     if {_prestige} <= 1:
