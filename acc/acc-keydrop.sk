@@ -183,7 +183,7 @@ function acc_playKeyDropAnimation(p: player, loc: location, tier: text):
     set {_textPos} to location({_bx}, {_hoverY} + 0.5, {_bz}, {_world})
     spawn fake text display at {_textPos} for {_p} with id {_textId}
     set {_m} to new metadata packet with id {_textId}:
-        display text: "%{_color}%&l✦ %{_keyName}% ✦"
+        display text: "%{_color}%&l%{_keyName}%"
         display billboard: center
         display scale: vector(0.01, 0.01, 0.01)
         display brightness block: 15
@@ -312,7 +312,7 @@ function acc_sendKeyFoundMessage(p: player, tier: text):
     set {_color} to acc_getTierColor({_tier})
     set {_name} to acc_getTierName({_tier})
     send "" to {_p}
-    send "&6&l★ &eYou found a %{_color}%%{_name}% Key&e!" to {_p}
+    send "&eYou found a %{_color}%%{_name}% Key&e!" to {_p}
     send "&7Open it in your &e/accessories &7menu!" to {_p}
     send "" to {_p}
 
