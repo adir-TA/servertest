@@ -172,7 +172,7 @@ function acc_openInventoryGui(p: player, page: number):
         set slot 50 of {_menu} to {_next}
     
     # Close - Slot 53
-    set {_close} to barrier named "&c&lClose"
+    set {_close} to red dye named "&c&lClose"
     set lore of {_close} to "&8ᴍᴇɴᴜ"
     set string tag "acc;action" of custom nbt of {_close} to "close"
     set slot 53 of {_menu} to {_close}
