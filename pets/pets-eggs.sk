@@ -1,0 +1,850 @@
+# ============================================================
+# PET EGG SYSTEM
+# ============================================================
+#
+# Handles egg purchasing, opening animation, and rolling
+#
+# Flow:
+#   1. Right-click beacon → Tier selection GUI
+#   2. Click tier → Amount selection (1/3/5)
+#   3. Confirm → Deduct money → Animation → Roll → Results
+#
+# ============================================================
+
+# ============================================================
+# ALTAR INTERACTION
+# ============================================================
+
+on right click on beacon:
+    cancel event
+    if player has permission "pets.use":
+        set {-pet::altar::%player's uuid%} to location of clicked block
+        pet_openTierMenu(player)
+
+
+# ============================================================
+# TIER SELECTION MENU
+# ============================================================
+
+function pet_openTierMenu(p: player):
+    set {_menu} to chest inventory with 3 rows named "&d&lEGG SHOP"
+    
+    # Fill with glass
+    set {_filler} to black stained glass pane named "&1"
+    loop 27 times:
+        set slot loop-number - 1 of {_menu} to {_filler}
+    
+    # Normal Tier - Slot 11
+    set {_normalEgg} to lime dye named "&a&lNORMAL EGG"
+    set {_cost} to pet_getTierDisplayCost("normal")
+    add menu_utils_getMenuItemFirstLoreLine() to {_normalLore::*}
+    add "" to {_normalLore::*}
+    add "&7Cost: &a%{_cost}% &7per egg" to {_normalLore::*}
+    add "" to {_normalLore::*}
+    add "&6Contains:" to {_normalLore::*}
+    loop {-pet::tier::normal::types::*}:
+        set {_name} to pet_getTypeName(loop-value)
+        add " &8• &f%{_name}%" to {_normalLore::*}
+    add "" to {_normalLore::*}
+    add "&7Legendary Chance: &6&l2%%" to {_normalLore::*}
+    add "" to {_normalLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ sᴇʟᴇᴄᴛ" to {_normalLore::*}
+    set lore of {_normalEgg} to {_normalLore::*}
+    set string tag "egg;tier" of custom nbt of {_normalEgg} to "normal"
+    set slot 11 of {_menu} to {_normalEgg}
+    
+    # Ultra Tier - Slot 13
+    set {_ultraEgg} to light blue dye named "&b&lULTRA EGG"
+    set {_cost} to pet_getTierDisplayCost("ultra")
+    add menu_utils_getMenuItemFirstLoreLine() to {_ultraLore::*}
+    add "" to {_ultraLore::*}
+    add "&7Cost: &b%{_cost}% &7per egg" to {_ultraLore::*}
+    add "" to {_ultraLore::*}
+    add "&6Contains:" to {_ultraLore::*}
+    loop {-pet::tier::ultra::types::*}:
+        set {_name} to pet_getTypeName(loop-value)
+        add " &8• &f%{_name}%" to {_ultraLore::*}
+    add "" to {_ultraLore::*}
+    add "&7Legendary Chance: &6&l1.5%%" to {_ultraLore::*}
+    add "" to {_ultraLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ sᴇʟᴇᴄᴛ" to {_ultraLore::*}
+    set lore of {_ultraEgg} to {_ultraLore::*}
+    set string tag "egg;tier" of custom nbt of {_ultraEgg} to "ultra"
+    set slot 13 of {_menu} to {_ultraEgg}
+    
+    # Divine Tier - Slot 15
+    set {_divineEgg} to magenta dye named "&d&lDIVINE EGG"
+    set {_cost} to pet_getTierDisplayCost("divine")
+    add menu_utils_getMenuItemFirstLoreLine() to {_divineLore::*}
+    add "" to {_divineLore::*}
+    add "&7Cost: &d%{_cost}% &7per egg" to {_divineLore::*}
+    add "" to {_divineLore::*}
+    add "&6Contains:" to {_divineLore::*}
+    loop {-pet::tier::divine::types::*}:
+        set {_name} to pet_getTypeName(loop-value)
+        add " &8• &f%{_name}%" to {_divineLore::*}
+    add "" to {_divineLore::*}
+    add "&7Legendary Chance: &6&l0.5%%" to {_divineLore::*}
+    add "" to {_divineLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ sᴇʟᴇᴄᴛ" to {_divineLore::*}
+    set lore of {_divineEgg} to {_divineLore::*}
+    set string tag "egg;tier" of custom nbt of {_divineEgg} to "divine"
+    set slot 15 of {_menu} to {_divineEgg}
+    
+    open {_menu} to {_p}
+    set {-pet::menu::%{_p}'s uuid%} to "TIER_SELECT"
+
+
+# ============================================================
+# AMOUNT SELECTION MENU
+# ============================================================
+
+function pet_openAmountMenu(p: player, tier: text):
+    set {_cost} to pet_getTierCost({_tier})
+    set {_displayCost} to pet_getTierDisplayCost({_tier})
+    
+    if {_tier} = "normal":
+        set {_tierColor} to "&a"
+        set {_tierName} to "NORMAL"
+    else if {_tier} = "ultra":
+        set {_tierColor} to "&b"
+        set {_tierName} to "ULTRA"
+    else:
+        set {_tierColor} to "&d"
+        set {_tierName} to "DIVINE"
+    
+    set {_menu} to chest inventory with 3 rows named "%{_tierColor}%&l%{_tierName}% EGGS"
+    
+    # Fill with glass
+    set {_filler} to black stained glass pane named "&1"
+    loop 27 times:
+        set slot loop-number - 1 of {_menu} to {_filler}
+    
+    set {_balance} to {data::balance::%{_p}'s uuid%} ? 0
+    set {_currentPets} to size of {pet::owned::%{_p}'s uuid%::*}
+    set {_spaceAvailable} to 50 - {_currentPets}
+    
+    # Storage info - Slot 4
+    set {_storageItem} to chest named "&ePet Storage"
+    add menu_utils_getMenuItemFirstLoreLine() to {_storageLore::*}
+    add "" to {_storageLore::*}
+    add "&7Storage: &8[&a%{_currentPets}%&8/&c50&8]" to {_storageLore::*}
+    add "&7Available: &a%{_spaceAvailable}% slots" to {_storageLore::*}
+    set lore of {_storageItem} to {_storageLore::*}
+    set slot 4 of {_menu} to {_storageItem}
+    
+    # Open 1 - Slot 11
+    set {_cost1} to {_cost}
+    set {_item1} to turtle egg named "%{_tierColor}%&lOPEN 1 EGG"
+    add menu_utils_getMenuItemFirstLoreLine() to {_lore1::*}
+    add "" to {_lore1::*}
+    add "&7Cost: %{_tierColor}%$%formatNum({_cost1})%" to {_lore1::*}
+    add "" to {_lore1::*}
+    if {_spaceAvailable} < 1:
+        add "&c✖ ɴᴏᴛ ᴇɴᴏᴜɢʜ sᴛᴏʀᴀɢᴇ!" to {_lore1::*}
+    else if {_balance} >= {_cost1}:
+        add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴘᴜʀᴄʜᴀsᴇ" to {_lore1::*}
+        set string tag "egg;tier" of custom nbt of {_item1} to {_tier}
+        set int tag "egg;amount" of custom nbt of {_item1} to 1
+    else:
+        add "&c✖ ɴᴏᴛ ᴇɴᴏᴜɢʜ ᴍᴏɴᴇʏ!" to {_lore1::*}
+        add "&7Balance: &c$%formatNum({_balance})%" to {_lore1::*}
+    set lore of {_item1} to {_lore1::*}
+    set slot 11 of {_menu} to {_item1}
+    
+    # Open 3 - Slot 13
+    set {_cost3} to {_cost} * 3
+    set {_item3} to 3 of turtle egg named "%{_tierColor}%&lOPEN 3 EGGS"
+    add menu_utils_getMenuItemFirstLoreLine() to {_lore3::*}
+    add "" to {_lore3::*}
+    add "&7Cost: %{_tierColor}%$%formatNum({_cost3})%" to {_lore3::*}
+    add "" to {_lore3::*}
+    if {_spaceAvailable} < 3:
+        add "&c✖ ɴᴏᴛ ᴇɴᴏᴜɢʜ sᴛᴏʀᴀɢᴇ!" to {_lore3::*}
+    else if {_balance} >= {_cost3}:
+        add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴘᴜʀᴄʜᴀsᴇ" to {_lore3::*}
+        set string tag "egg;tier" of custom nbt of {_item3} to {_tier}
+        set int tag "egg;amount" of custom nbt of {_item3} to 3
+    else:
+        add "&c✖ ɴᴏᴛ ᴇɴᴏᴜɢʜ ᴍᴏɴᴇʏ!" to {_lore3::*}
+        add "&7Balance: &c$%formatNum({_balance})%" to {_lore3::*}
+    set lore of {_item3} to {_lore3::*}
+    set slot 13 of {_menu} to {_item3}
+    
+    # Open 5 - Slot 15
+    set {_cost5} to {_cost} * 5
+    set {_item5} to 5 of turtle egg named "%{_tierColor}%&lOPEN 5 EGGS"
+    add menu_utils_getMenuItemFirstLoreLine() to {_lore5::*}
+    add "" to {_lore5::*}
+    add "&7Cost: %{_tierColor}%$%formatNum({_cost5})%" to {_lore5::*}
+    add "" to {_lore5::*}
+    if {_spaceAvailable} < 5:
+        add "&c✖ ɴᴏᴛ ᴇɴᴏᴜɢʜ sᴛᴏʀᴀɢᴇ!" to {_lore5::*}
+    else if {_balance} >= {_cost5}:
+        add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴘᴜʀᴄʜᴀsᴇ" to {_lore5::*}
+        set string tag "egg;tier" of custom nbt of {_item5} to {_tier}
+        set int tag "egg;amount" of custom nbt of {_item5} to 5
+    else:
+        add "&c✖ ɴᴏᴛ ᴇɴᴏᴜɢʜ ᴍᴏɴᴇʏ!" to {_lore5::*}
+        add "&7Balance: &c$%formatNum({_balance})%" to {_lore5::*}
+    set lore of {_item5} to {_lore5::*}
+    set slot 15 of {_menu} to {_item5}
+    
+    # Back button - Slot 22
+    set {_back} to arrow named "&c&lBACK"
+    add menu_utils_getMenuItemFirstLoreLine() to {_backLore::*}
+    add "" to {_backLore::*}
+    add "&7Return to tier selection" to {_backLore::*}
+    add "" to {_backLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ɢᴏ ʙᴀᴄᴋ" to {_backLore::*}
+    set lore of {_back} to {_backLore::*}
+    set string tag "egg;action" of custom nbt of {_back} to "back"
+    set slot 22 of {_menu} to {_back}
+    
+    open {_menu} to {_p}
+    set {-pet::menu::%{_p}'s uuid%} to "AMOUNT_SELECT"
+
+
+# ============================================================
+# MENU CLICK HANDLERS
+# ============================================================
+
+on inventory click:
+    set {_menu} to {-pet::menu::%player's uuid%}
+    
+    if {_menu} = "TIER_SELECT":
+        cancel event
+        
+        set {_nbt} to custom nbt of clicked slot
+        set {_tier} to string tag "egg;tier" of {_nbt}
+        
+        if {_tier} is set:
+            play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+            pet_openAmountMenu(player, {_tier})
+    
+    else if {_menu} = "AMOUNT_SELECT":
+        cancel event
+        
+        set {_nbt} to custom nbt of clicked slot
+        
+        # Check for back button
+        set {_action} to string tag "egg;action" of {_nbt}
+        if {_action} = "back":
+            play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+            pet_openTierMenu(player)
+            stop
+        
+        # Check for purchase
+        set {_tier} to string tag "egg;tier" of {_nbt}
+        set {_amount} to int tag "egg;amount" of {_nbt}
+        
+        if {_tier} is set:
+            if {_amount} is set:
+                close inventory of player
+                pet_purchaseAndOpen(player, {_tier}, {_amount})
+
+on inventory close:
+    if {-pet::menu::%player's uuid%} = "TIER_SELECT":
+        delete {-pet::menu::%player's uuid%}
+    else if {-pet::menu::%player's uuid%} = "AMOUNT_SELECT":
+        delete {-pet::menu::%player's uuid%}
+
+
+# ============================================================
+# PURCHASE AND OPENING
+# ============================================================
+
+function pet_purchaseAndOpen(p: player, tier: text, amount: number):
+    set {_uuid} to {_p}'s uuid
+    set {_costPer} to pet_getTierCost({_tier})
+    set {_totalCost} to {_costPer} * {_amount}
+    set {_balance} to {data::balance::%{_uuid}%} ? 0
+    
+    # Check pet storage space first
+    set {_currentPets} to size of {pet::owned::%{_uuid}%::*}
+    set {_spaceAvailable} to 50 - {_currentPets}
+    if {_spaceAvailable} < {_amount}:
+        send "&cNot enough pet storage space!" to {_p}
+        send "&7You have &e%{_currentPets}%/50 &7pets. Need space for &e%{_amount}%&7." to {_p}
+        play sound "entity.villager.no" with volume 0.8 and pitch 1 to {_p}
+        stop
+    
+    # Final balance check
+    if {_balance} < {_totalCost}:
+        send "&cNot enough money! Need &6$%formatNum({_totalCost})%" to {_p}
+        play sound "entity.villager.no" with volume 0.8 and pitch 1 to {_p}
+        stop
+    
+    # Deduct money
+    remove {_totalCost} from {data::balance::%{_uuid}%}
+    
+    # Get tier color
+    if {_tier} = "normal":
+        set {_tierColor} to "&a"
+    else if {_tier} = "ultra":
+        set {_tierColor} to "&b"
+    else:
+        set {_tierColor} to "&d"
+    
+    send "" to {_p}
+    send "%{_tierColor}%Opening %{_amount}% eggs..." to {_p}
+    send "&7Cost: &4$&c%formatNum({_totalCost})%" to {_p}
+    send "" to {_p}
+    
+    # Play opening animation and roll pets
+    set {_altarLoc} to {-pet::altar::%{_uuid}%}
+    delete {-pet::altar::%{_uuid}%}
+    pet_playOpeningSequence({_p}, {_tier}, {_amount}, {_altarLoc})
+
+
+# ============================================================
+# OPENING ANIMATION SEQUENCE (Display Entities) - ALL AT ONCE
+# ============================================================
+
+function pet_playOpeningSequence(p: player, tier: text, amount: number, altarLoc: location):
+    # Prevent duplicate opening
+    if {-pet::opening::%{_p}'s uuid%} is set:
+        send "&cAlready opening eggs!" to {_p}
+        stop
+    
+    set {-pet::opening::%{_p}'s uuid%} to true
+    
+    # Use altar location (beacon) as spawn point - centered on block
+    set {_centerX} to floor(x-coord of {_altarLoc}) + 0.5
+    set {_centerY} to floor(y-coord of {_altarLoc}) + 1.2
+    set {_centerZ} to floor(z-coord of {_altarLoc}) + 0.5
+    set {_loc} to {_altarLoc}
+    
+    # Fixed direction for egg arrangement (along X-axis) - always centered on block
+    set {_perpX} to 1
+    set {_perpZ} to 0
+    
+    # Hide the beacon block (show as air)
+    make {_p} see block at {_altarLoc} as air
+    
+    # Get tier color for glow
+    if {_tier} = "normal":
+        set {_glowColor} to rgb(85, 255, 85)
+        set {_eggItem} to turtle egg
+    else if {_tier} = "ultra":
+        set {_glowColor} to rgb(85, 255, 255)
+        set {_eggItem} to turtle egg
+    else:
+        set {_glowColor} to rgb(255, 85, 255)
+        set {_eggItem} to dragon egg
+    
+    # Base ID for all entities
+    set {_baseId} to random integer between 100000 and 9999999
+    
+    # Check if player has enough storage space
+    set {_currentPets} to size of {pet::owned::%{_p}'s uuid%::*}
+    set {_spaceNeeded} to {_amount}
+    set {_spaceAvailable} to 50 - {_currentPets}
+    
+    if {_spaceAvailable} < {_spaceNeeded}:
+        send "&cNot enough pet storage space!" to {_p}
+        send "&7You have &e%{_currentPets}%/50 &7pets. Need space for &e%{_spaceNeeded}%&7." to {_p}
+        send "&7Salvage some pets first!" to {_p}
+        make {_p} see block at {_altarLoc} as beacon
+        delete {-pet::opening::%{_p}'s uuid%}
+        stop
+    
+    # Roll all pets and setup data
+    loop {_amount} times:
+        set {_i} to loop-number
+        set {_rarity} to pet_rollRarity({_tier})
+        set {_type} to pet_rollType({_tier})
+        set {_petId} to pet_create({_p}, {_type}, {_rarity})
+        
+        set {_results::%{_i}%::type} to {_type}
+        set {_results::%{_i}%::rarity} to {_rarity}
+        set {_results::%{_i}%::petId} to {_petId}
+        
+        # Calculate offset position - perpendicular to player view
+        set {_offsetMult} to ({_i} - (({_amount} + 1) / 2)) * 1.0
+        set {_eggX::%{_i}%} to {_centerX} + ({_perpX} * {_offsetMult})
+        set {_eggY::%{_i}%} to {_centerY}
+        set {_eggZ::%{_i}%} to {_centerZ} + ({_perpZ} * {_offsetMult})
+        
+        # Assign entity IDs
+        set {_eggId::%{_i}%} to {_baseId} + ({_i} * 10)
+        set {_petId::%{_i}%} to {_baseId} + ({_i} * 10) + 1
+        set {_textId::%{_i}%} to {_baseId} + ({_i} * 10) + 2
+        
+        # Get pet data
+        set {_petIcon::%{_i}%} to pet_getTypeIcon({_type})
+        set {_petName::%{_i}%} to pet_getTypeName({_type})
+        set {_rarityColor::%{_i}%} to pet_getRarityColor({_rarity})
+        
+        # Get rarity glow color
+        if {_rarity} = "legendary":
+            set {_petGlow::%{_i}%} to rgb(255, 170, 0)
+        else if {_rarity} = "epic":
+            set {_petGlow::%{_i}%} to rgb(255, 85, 255)
+        else if {_rarity} = "rare":
+            set {_petGlow::%{_i}%} to rgb(85, 85, 255)
+        else if {_rarity} = "uncommon":
+            set {_petGlow::%{_i}%} to rgb(85, 255, 85)
+        else:
+            set {_petGlow::%{_i}%} to rgb(170, 170, 170)
+    
+    # ════════════════════════════════════════
+    # PHASE 1: All eggs appear and grow
+    # ════════════════════════════════════════
+    
+    loop {_amount} times:
+        set {_i} to loop-number
+        set {_spawnPos} to location({_eggX::%{_i}%}, {_eggY::%{_i}%}, {_eggZ::%{_i}%}, world of {_loc})
+        
+        spawn fake item display at {_spawnPos} for {_p} with id {_eggId::%{_i}%}
+        
+        set {_m} to new metadata packet with id {_eggId::%{_i}%}:
+            display item: {_eggItem}
+            display scale: vector(0.01, 0.01, 0.01)
+            display billboard: center
+            display brightness block: 15
+            display teleportduration: 2
+            display transformation: 3
+            display interpolation: 0
+            glowing: true
+            display glow: {_glowColor}
+        send packet {_m} to {_p}
+    
+    play sound "entity.item.pickup" with volume 0.7 and pitch 0.6 to {_p}
+    
+    wait 1 tick
+    
+    # Grow all eggs
+    loop {_amount} times:
+        set {_i} to loop-number
+        set {_m} to new metadata packet with id {_eggId::%{_i}%}:
+            display scale: vector(0.8, 0.8, 0.8)
+            display transformation: 4
+            display interpolation: 0
+        send packet {_m} to {_p}
+    
+    wait 4 ticks
+    
+    # ════════════════════════════════════════
+    # PHASE 2: All eggs wobble together
+    # ════════════════════════════════════════
+    
+    loop 3 times:
+        set {_wobble} to loop-number
+        
+        # Tilt all left
+        loop {_amount} times:
+            set {_i} to loop-number-2
+            set {_m} to new metadata packet with id {_eggId::%{_i}%}:
+                display rotation left: 0, 0, 0.15, 0.99
+                display transformation: 2
+                display interpolation: 0
+            send packet {_m} to {_p}
+        
+        play sound "block.wood.hit" with volume 0.5 and pitch 1.2 + ({_wobble} * 0.1) to {_p}
+        
+        wait 3 ticks
+        
+        # Tilt all right
+        loop {_amount} times:
+            set {_i} to loop-number-2
+            set {_m} to new metadata packet with id {_eggId::%{_i}%}:
+                display rotation left: 0, 0, -0.15, 0.99
+                display transformation: 2
+                display interpolation: 0
+            send packet {_m} to {_p}
+        
+        wait 3 ticks
+        
+        # Center all
+        loop {_amount} times:
+            set {_i} to loop-number-2
+            set {_m} to new metadata packet with id {_eggId::%{_i}%}:
+                display rotation left: 0, 0, 0, 1
+                display transformation: 2
+                display interpolation: 0
+            send packet {_m} to {_p}
+        
+        wait 2 ticks
+    
+    # ════════════════════════════════════════
+    # PHASE 3: All eggs shake and explode
+    # ════════════════════════════════════════
+    
+    # Quick shake all
+    loop 4 times:
+        loop {_amount} times:
+            set {_i} to loop-number-2
+            set {_shakeX} to random number between -0.08 and 0.08
+            set {_shakeLoc} to location({_eggX::%{_i}%} + {_shakeX}, {_eggY::%{_i}%}, {_eggZ::%{_i}%}, world of {_loc})
+            send teleport packet with id {_eggId::%{_i}%} with location {_shakeLoc} to {_p}
+        wait 1 tick
+    
+    # Expand all before pop
+    loop {_amount} times:
+        set {_i} to loop-number
+        set {_m} to new metadata packet with id {_eggId::%{_i}%}:
+            display scale: vector(1.2, 1.2, 1.2)
+            display transformation: 2
+            display interpolation: 0
+        send packet {_m} to {_p}
+    
+    wait 2 ticks
+    
+    # Pop sound - use best rarity sound
+    set {_bestRarity} to "common"
+    loop {_amount} times:
+        set {_i} to loop-number
+        set {_r} to {_results::%{_i}%::rarity}
+        if {_r} = "legendary":
+            set {_bestRarity} to "legendary"
+        else if {_r} = "epic":
+            if {_bestRarity} != "legendary":
+                set {_bestRarity} to "epic"
+    
+    if {_bestRarity} = "legendary":
+        play sound "ui.toast.challenge_complete" with volume 1.2 and pitch 1.2 to {_p}
+    else if {_bestRarity} = "epic":
+        play sound "entity.player.levelup" with volume 1 and pitch 1.5 to {_p}
+    else:
+        play sound "entity.chicken.egg" with volume 0.8 and pitch 0.8 to {_p}
+    
+    # Shrink and remove all eggs
+    loop {_amount} times:
+        set {_i} to loop-number
+        set {_m} to new metadata packet with id {_eggId::%{_i}%}:
+            display scale: vector(0.01, 0.01, 0.01)
+            display transformation: 1
+            display interpolation: 0
+        send packet {_m} to {_p}
+    
+    wait 1 tick
+    
+    loop {_amount} times:
+        set {_i} to loop-number
+        remove fake entity with id {_eggId::%{_i}%} for {_p}
+    
+    # ════════════════════════════════════════
+    # PHASE 4: All pets reveal together
+    # ════════════════════════════════════════
+    
+    loop {_amount} times:
+        set {_i} to loop-number
+        set {_revealLoc} to location({_eggX::%{_i}%}, {_eggY::%{_i}%}, {_eggZ::%{_i}%}, world of {_loc})
+        
+        spawn fake item display at {_revealLoc} for {_p} with id {_petId::%{_i}%}
+        
+        set {_m} to new metadata packet with id {_petId::%{_i}%}:
+            display item: {_petIcon::%{_i}%}
+            display scale: vector(0.01, 0.01, 0.01)
+            display billboard: center
+            display brightness block: 15
+            display teleportduration: 2
+            display transformation: 3
+            display interpolation: 0
+            glowing: true
+            display glow: {_petGlow::%{_i}%}
+        send packet {_m} to {_p}
+    
+    wait 1 tick
+    
+    # Pop out and grow all
+    loop {_amount} times:
+        set {_i} to loop-number
+        set {_m} to new metadata packet with id {_petId::%{_i}%}:
+            display scale: vector(0.6, 0.6, 0.6)
+            display transformation: 4
+            display interpolation: 0
+        send packet {_m} to {_p}
+        
+        set {_riseLoc} to location({_eggX::%{_i}%}, {_eggY::%{_i}%} + 0.8, {_eggZ::%{_i}%}, world of {_loc})
+        send teleport packet with id {_petId::%{_i}%} with location {_riseLoc} to {_p}
+    
+    wait 3 ticks
+    
+    # Spin animation all together (12 frames)
+    loop 12 times:
+        set {_frame} to loop-number - 1
+        set {_floatOffset} to sin({_frame} * 30) * 0.15
+        set {_angle} to {_frame} * 30
+        set {_qy} to sin({_angle} / 2)
+        set {_qw} to cos({_angle} / 2)
+        
+        loop {_amount} times:
+            set {_i} to loop-number-2
+            set {_spinLoc} to location({_eggX::%{_i}%}, {_eggY::%{_i}%} + 0.8 + {_floatOffset}, {_eggZ::%{_i}%}, world of {_loc})
+            send teleport packet with id {_petId::%{_i}%} with location {_spinLoc} to {_p}
+            
+            set {_m} to new metadata packet with id {_petId::%{_i}%}:
+                display rotation left: 0, {_qy}, 0, {_qw}
+                display transformation: 2
+                display interpolation: 0
+            send packet {_m} to {_p}
+        
+        wait 2 ticks
+    
+    # ════════════════════════════════════════
+    # PHASE 5: Show all result texts (fan/arc layout)
+    # ════════════════════════════════════════
+    
+    loop {_amount} times:
+        set {_i} to loop-number
+        set {_type} to {_results::%{_i}%::type}
+        set {_rarity} to {_results::%{_i}%::rarity}
+        
+        # Calculate arc position - center highest, edges lower (inverted arc)
+        set {_centerIndex} to ({_amount} + 1) / 2
+        set {_diff} to {_i} - {_centerIndex}
+        if {_diff} < 0:
+            set {_distFromCenter} to 0 - {_diff}
+        else:
+            set {_distFromCenter} to {_diff}
+        
+        # Arc height - center is highest, outer ones go lower
+        set {_arcHeight} to 2.0 - ({_distFromCenter} * 0.15)
+        
+        # Arc spread - tighter spread
+        set {_spreadMult} to 1 + ({_distFromCenter} * 0.4)
+        set {_offsetMult} to {_diff} * {_spreadMult} * 1.1
+        
+        set {_textX} to {_centerX} + ({_perpX} * {_offsetMult})
+        set {_textZ} to {_centerZ} + ({_perpZ} * {_offsetMult})
+        set {_textLoc} to location({_textX}, {_eggY::%{_i}%} + {_arcHeight}, {_textZ}, world of {_loc})
+        
+        # Store for later animation
+        set {_textArcHeight::%{_i}%} to {_arcHeight}
+        set {_textX::%{_i}%} to {_textX}
+        set {_textZ::%{_i}%} to {_textZ}
+        
+        spawn fake text display at {_textLoc} for {_p} with id {_textId::%{_i}%}
+        
+        set {_bonus} to pet_calculateBonus({_type}, {_rarity}) * 100
+        
+        # Build stats text - condensed format with proper formatting
+        set {_statCount} to pet_getTypeStatCount({_type})
+        if {_statCount} = 1:
+            set {_stat} to pet_getTypeStat({_type})
+            set {_statFormatted} to pet_formatStatName({_stat})
+            set {_statsText} to "&a+%{_bonus}%%% %{_statFormatted}%"
+        else:
+            # Multiple stats - show on one line
+            set {_statsList} to ""
+            loop pet_getTypeStats({_type}):
+                set {_stat} to loop-value-2
+                set {_statFormatted} to pet_formatStatName({_stat})
+                if {_statsList} != "":
+                    set {_statsList} to "%{_statsList}%, %{_statFormatted}%"
+                else:
+                    set {_statsList} to {_statFormatted}
+            set {_statsText} to "&a+%{_bonus}%%% &7%{_statsList}%"
+        
+        if {_rarity} = "legendary":
+            set {_displayText} to "&6&l✦ LEGENDARY ✦%nl%%{_rarityColor::%{_i}%}%&l%{_petName::%{_i}%}%%nl%%{_statsText}%"
+        else if {_rarity} = "epic":
+            set {_displayText} to "&d&l★ EPIC ★%nl%%{_rarityColor::%{_i}%}%%{_petName::%{_i}%}%%nl%%{_statsText}%"
+        else:
+            set {_displayText} to "%{_rarityColor::%{_i}%}%%{_petName::%{_i}%}%%nl%%{_statsText}%"
+        
+        set {_m} to new metadata packet with id {_textId::%{_i}%}:
+            display text: {_displayText}
+            display billboard: center
+            display brightness block: 15
+            display shadow: true
+            display defaultbackground: false
+            display scale: vector(0.01, 0.01, 0.01)
+            display teleportduration: 2
+        send packet {_m} to {_p}
+    
+    wait 1 tick
+    
+    # Scale up all texts and float up (maintaining arc)
+    loop {_amount} times:
+        set {_i} to loop-number
+        set {_m} to new metadata packet with id {_textId::%{_i}%}:
+            display scale: vector(0.75, 0.75, 0.75)
+            display transformation: 3
+            display interpolation: 0
+        send packet {_m} to {_p}
+        
+        set {_textEndLoc} to location({_textX::%{_i}%}, {_eggY::%{_i}%} + {_textArcHeight::%{_i}%} + 0.4, {_textZ::%{_i}%}, world of {_loc})
+        send teleport packet with id {_textId::%{_i}%} with location {_textEndLoc} to {_p}
+    
+    # ════════════════════════════════════════
+    # PHASE 6: All pets fly to player
+    # ════════════════════════════════════════
+    
+    wait 25 ticks
+    
+    # Shrink all texts
+    loop {_amount} times:
+        set {_i} to loop-number
+        set {_m} to new metadata packet with id {_textId::%{_i}%}:
+            display scale: vector(0.01, 0.01, 0.01)
+            display transformation: 3
+            display interpolation: 0
+        send packet {_m} to {_p}
+    
+    # All pets fly to player
+    set {_playerLoc} to location of {_p}
+    set {_playerLoc} to {_playerLoc} ~ vector(0, 1.2, 0)
+    
+    loop {_amount} times:
+        set {_i} to loop-number
+        set {_m} to new metadata packet with id {_petId::%{_i}%}:
+            display scale: vector(0.3, 0.3, 0.3)
+            display teleportduration: 4
+            display transformation: 3
+            display interpolation: 0
+        send packet {_m} to {_p}
+        
+        send teleport packet with id {_petId::%{_i}%} with location {_playerLoc} to {_p}
+    
+    wait 4 ticks
+    
+    # Shrink and collect all
+    loop {_amount} times:
+        set {_i} to loop-number
+        set {_m} to new metadata packet with id {_petId::%{_i}%}:
+            display scale: vector(0.01, 0.01, 0.01)
+            display transformation: 2
+            display interpolation: 0
+        send packet {_m} to {_p}
+    
+    play sound "entity.item.pickup" with volume 0.6 and pitch 1.2 to {_p}
+    
+    wait 3 ticks
+    
+    # Cleanup all
+    loop {_amount} times:
+        set {_i} to loop-number
+        remove fake entity with id {_petId::%{_i}%} for {_p}
+        remove fake entity with id {_textId::%{_i}%} for {_p}
+    
+    # Restore the beacon block
+    make {_p} see block at {_altarLoc} as beacon
+    
+    # Summary
+    send "" to {_p}
+    send "&aReceived %{_amount}% pets!" to {_p}
+    send "&7Use &e/pets &7to view and equip them!" to {_p}
+    send "" to {_p}
+    
+    delete {-pet::opening::%{_p}'s uuid%}
+
+
+# ============================================================
+# ROLLING FUNCTIONS
+# ============================================================
+
+# Roll rarity based on tier weights
+function pet_rollRarity(tier: text) :: text:
+    set {_roll} to random number between 0 and 100
+    
+    set {_wCommon} to pet_getTierWeight({_tier}, "common")
+    set {_wUncommon} to pet_getTierWeight({_tier}, "uncommon")
+    set {_wRare} to pet_getTierWeight({_tier}, "rare")
+    set {_wEpic} to pet_getTierWeight({_tier}, "epic")
+    
+    set {_threshold} to 0
+    
+    # Common
+    add {_wCommon} to {_threshold}
+    if {_roll} < {_threshold}:
+        return "common"
+    
+    # Uncommon
+    add {_wUncommon} to {_threshold}
+    if {_roll} < {_threshold}:
+        return "uncommon"
+    
+    # Rare
+    add {_wRare} to {_threshold}
+    if {_roll} < {_threshold}:
+        return "rare"
+    
+    # Epic
+    add {_wEpic} to {_threshold}
+    if {_roll} < {_threshold}:
+        return "epic"
+    
+    # Legendary
+    return "legendary"
+
+
+# Roll random pet type from tier
+function pet_rollType(tier: text) :: text:
+    set {_types::*} to {-pet::tier::%{_tier}%::types::*}
+    set {_count} to size of {_types::*}
+    
+    if {_count} = 0:
+        return "cow"
+    
+    set {_index} to random integer between 1 and {_count}
+    return {_types::%{_index}%}
+
+
+# ============================================================
+# DEBUG COMMANDS
+# ============================================================
+
+command /testegg <text> [<number=1>]:
+    permission: op
+    trigger:
+        set {_tier} to arg-1
+        set {_amount} to arg-2
+        
+        if {-pet::tier::%{_tier}%::cost} is not set:
+            send "&cInvalid tier: %{_tier}%"
+            send "&7Available: normal, ultra, divine"
+            stop
+        
+        if {_amount} < 1:
+            set {_amount} to 1
+        if {_amount} > 5:
+            set {_amount} to 5
+        
+        send "&aOpening %{_amount}% %{_tier}% eggs (FREE - debug mode)"
+        set {_loc} to location of targeted block
+        if {_loc} is not set:
+            set {_loc} to player's location
+        pet_playOpeningSequence(player, {_tier}, {_amount}, {_loc})
+
+command /testroll <text> [<number=100>]:
+    permission: op
+    trigger:
+        set {_tier} to arg-1
+        set {_rolls} to arg-2
+        
+        if {-pet::tier::%{_tier}%::cost} is not set:
+            send "&cInvalid tier: %{_tier}%"
+            stop
+        
+        set {_common} to 0
+        set {_uncommon} to 0
+        set {_rare} to 0
+        set {_epic} to 0
+        set {_legendary} to 0
+        
+        loop {_rolls} times:
+            set {_rarity} to pet_rollRarity({_tier})
+            if {_rarity} = "common":
+                add 1 to {_common}
+            else if {_rarity} = "uncommon":
+                add 1 to {_uncommon}
+            else if {_rarity} = "rare":
+                add 1 to {_rare}
+            else if {_rarity} = "epic":
+                add 1 to {_epic}
+            else if {_rarity} = "legendary":
+                add 1 to {_legendary}
+        
+        send ""
+        send "&6&l═══════════════════════════════════════"
+        send "&e&l🎲 ROLL TEST: %{_tier}% (%{_rolls}% rolls)"
+        send "&6&l═══════════════════════════════════════"
+        send "&7Common: &f%{_common}% &8(%round({_common} / {_rolls} * 100)%%%)"
+        send "&aUncommon: &f%{_uncommon}% &8(%round({_uncommon} / {_rolls} * 100)%%%)"
+        send "&9Rare: &f%{_rare}% &8(%round({_rare} / {_rolls} * 100)%%%)"
+        send "&dEpic: &f%{_epic}% &8(%round({_epic} / {_rolls} * 100)%%%)"
+        send "&6Legendary: &f%{_legendary}% &8(%round({_legendary} / {_rolls} * 100)%%%)"
+        send "&6&l═══════════════════════════════════════"

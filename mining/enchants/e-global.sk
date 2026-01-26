@@ -1,0 +1,423 @@
+# ============================================================
+# GLOBAL ARCHETYPE ENCHANTS
+# ============================================================
+
+# ============================================================
+# EXCAVATOR ENCHANT
+# ============================================================
+
+function excavator_getBaseTokens(hardness: number) :: integer:
+    if {_hardness} <= 1:
+        return 5
+    if {_hardness} <= 1.5:
+        return 10
+    if {_hardness} <= 2:
+        return 20
+    if {_hardness} <= 2.5:
+        return 30
+    return 5
+
+
+function excavator_getBonusTokens(level: integer) :: integer:
+    set {_maxBonus} to ceil({_level} / 5)
+    if {_maxBonus} < 1:
+        set {_maxBonus} to 5
+    if {_maxBonus} > 5:
+        set {_maxBonus} to 15
+    
+    return random integer between 5 and {_maxBonus}
+
+
+# Returns NEGATIVE if magnet procced, POSITIVE otherwise
+# Calling code should: check if result < 0 for magnetProc, then use abs()
+function enchant_procExcavator(p: player, hardness: number) :: integer:
+    set {_id} to enchant_getIdByString("Excavator")
+
+    set {_baseTokens} to excavator_getBaseTokens({_hardness})
+
+    if enchant_checkIfEquipped({_p}, {_id}) = false:
+        return {_baseTokens}
+    
+    set {_level} to enchant_getPlayerLevelByString({_p}, "Excavator")
+    
+    if {_level} < 1:
+        return {_baseTokens}
+    
+    set {_bonusTokens} to excavator_getBonusTokens({_level})
+    set {_totalTokens} to {_baseTokens} + {_bonusTokens}
+    
+    # Check if magnet is equipped and procs
+    set {_magnetID} to enchant_getIdByString("Magnet")
+    
+    if enchant_checkIfEquipped({_p}, {_magnetID}) = false:
+        return {_totalTokens}
+    
+    set {_magnetLevel} to enchant_getPlayerLevelByString({_p}, "Magnet")
+    
+    if {_magnetLevel} < 1:
+        return {_totalTokens}
+    
+    if enchant_rollChance({_p}, {_magnetLevel}) = false:
+        return {_totalTokens}
+    
+    # Magnet procced - return negative to signal this
+    return ({_totalTokens} * 2) * -1
+
+
+# ============================================================
+# MAGNET ENCHANT (kept for standalone use if needed)
+# ============================================================
+
+function enchant_procMagnet(p: player, tokens: integer) :: integer:
+    set {_id} to enchant_getIdByString("Magnet")
+    
+    if enchant_checkIfEquipped({_p}, {_id}) = false:
+        return {_tokens}
+    
+    set {_level} to enchant_getPlayerLevelByString({_p}, "Magnet")
+    
+    if {_level} < 1:
+        return {_tokens}
+    
+    if enchant_rollChance({_p}, {_level}) = false:
+        return {_tokens}
+    
+    return {_tokens} * 2
+
+
+# ============================================================
+# EXCAVATOR WITH TOKEN ACCUMULATOR
+# ============================================================
+
+function excavator_addTokens(p: player, loc: location, tokens: integer, magnetProc: boolean):
+    add {_tokens} to {-excavator::%{_p}'s uuid%::pending}
+    
+    if {_magnetProc} = true:
+        set {-excavator::%{_p}'s uuid%::magnet} to true
+    
+    set {-excavator::%{_p}'s uuid%::loc} to {_loc}
+    
+    if {-excavator::%{_p}'s uuid%::scheduled} is not set:
+        set {-excavator::%{_p}'s uuid%::scheduled} to true
+        excavator_flushTokens({_p})
+
+
+function excavator_flushTokens(p: player):
+    wait 5 ticks
+    
+    set {_tokens} to {-excavator::%{_p}'s uuid%::pending} ? 0
+    set {_magnetProc} to {-excavator::%{_p}'s uuid%::magnet} ? false
+    set {_loc} to {-excavator::%{_p}'s uuid%::loc}
+    
+    delete {-excavator::%{_p}'s uuid%::pending}
+    delete {-excavator::%{_p}'s uuid%::magnet}
+    delete {-excavator::%{_p}'s uuid%::scheduled}
+    
+    if {_tokens} <= 0:
+        stop
+    
+    excavator_playEffect({_p}, {_loc}, {_tokens}, {_magnetProc})
+
+
+function excavator_playEffect(p: player, loc: location, tokens: integer, magnetProc: boolean):
+    set {_id} to random integer between 100000 and 9999999
+    
+    set {_bx} to floor(x-coord of {_loc}) + 0.5
+    set {_by} to floor(y-coord of {_loc}) + 1.5
+    set {_bz} to floor(z-coord of {_loc}) + 0.5
+    set {_pos} to location({_bx}, {_by}, {_bz}, world of {_loc})
+    
+    if {_magnetProc} = true:
+        play sound "block.amethyst_block.chime" with volume 0.8 and pitch 1.5 to {_p}
+        set {_text} to "&6&l+%{_tokens}% &e✦ &d&lMAGNET!"
+    else:
+        play sound "entity.experience_orb.pickup" with volume 0.6 and pitch 1.8 to {_p}
+        set {_text} to "&6&l+%{_tokens}%"
+    
+    spawn fake text display at {_pos} for {_p} with id {_id}
+    
+    set {_m} to new metadata packet with id {_id}:
+        display text: {_text}
+        display billboard: center
+        display brightness block: 15
+        display shadow: true
+        display defaultbackground: false
+        display scale: vector(0.01, 0.01, 0.01)
+        display teleportduration: 2
+    send packet {_m} to {_p}
+    
+    wait 1 tick
+    
+    set {_m} to new metadata packet with id {_id}:
+        display scale: vector(1, 1, 1)
+        display transformation: 2
+        display interpolation: 0
+    send packet {_m} to {_p}
+    
+    set {_endPos} to location({_bx}, {_by} + 0.6, {_bz}, world of {_loc})
+    send teleport packet with id {_id} with location {_endPos} to {_p}
+    
+    wait 10 ticks
+    
+    set {_m} to new metadata packet with id {_id}:
+        display scale: vector(0.01, 0.01, 0.01)
+        display transformation: 3
+        display interpolation: 0
+    send packet {_m} to {_p}
+    
+    wait 4 ticks
+    
+    remove fake entity with id {_id} for {_p}
+
+
+# ============================================================
+# PROSPECTING ENCHANT (PRESTIGE-BASED GEMS)
+# ============================================================
+#
+# Gem Tiers based on player's MAX prestige:
+#   Tier 1: Jade      (Prestige 0)   - Lime Dye
+#   Tier 2: Topaz     (Prestige 1-2) - Orange Dye
+#   Tier 3: Sapphire  (Prestige 3-4) - Light Blue Dye
+#   Tier 4: Ruby      (Prestige 5-6) - Red Dye
+#   Tier 5: Amethyst  (Prestige 7+)  - Purple Dye
+#
+# ============================================================
+
+# Check if prospecting procs - returns true/false
+function enchant_checkProspectingProc(p: player) :: boolean:
+    set {_id} to enchant_getIdByString("Prospecting")
+    
+    if enchant_checkIfEquipped({_p}, {_id}) = false:
+        return false
+    
+    set {_level} to enchant_getPlayerLevelByString({_p}, "Prospecting")
+    
+    if {_level} < 1:
+        return false
+    
+    # Base chance scales with level (0.05% per level)
+    # Level 10 = 0.5%, Level 20 = 1%, Level 50 = 2.5%
+    set {_baseChance} to {_level} * 0.05
+    
+    # Apply enchant proc multiplier
+    set {_procMultiplier} to multiplier_getEnchantProc({_p})
+    set {_finalChance} to {_baseChance} * {_procMultiplier}
+    
+    # Roll for proc
+    set {_roll} to random number between 0 and 100
+    if {_roll} <= {_finalChance}:
+        return true
+    return false
+
+
+# Check if Lucky Miner doubles gems
+function enchant_checkLuckyMinerProc(p: player) :: boolean:
+    set {_luckyMinerID} to enchant_getIdByString("Lucky Miner")
+    
+    if enchant_checkIfEquipped({_p}, {_luckyMinerID}) = false:
+        return false
+    
+    set {_luckyMinerLevel} to enchant_getPlayerLevelByString({_p}, "Lucky Miner")
+    
+    if {_luckyMinerLevel} < 1:
+        return false
+    
+    set {_doubleChance} to {_luckyMinerLevel} * 0.65
+    set {_doubleRoll} to random number between 0 and 100
+    
+    if {_doubleRoll} <= {_doubleChance}:
+        return true
+    return false
+
+
+# Main prospecting handler - processes all drops and animations
+# Returns true if prospecting procced (so caller knows to skip block loot)
+function prospecting_process(p: player, loc: location, amplifyMultiplier: integer) :: boolean:
+    # Check if prospecting procs
+    if enchant_checkProspectingProc({_p}) = false:
+        return false
+    
+    # Prospecting procced! Roll which tiers drop
+    set {_droppedTiers::*} to gem_rollDrops({_p})
+    
+    # Check Lucky Miner once for all drops
+    set {_luckyProc} to enchant_checkLuckyMinerProc({_p})
+    
+    # Get drops multiplier
+    set {_dropsMultiplier} to multiplier_getDrops({_p})
+    
+    # Process each dropped tier
+    set {_index} to 0
+    loop {_droppedTiers::*}:
+        set {_tier} to loop-value
+        
+        # Roll base amount (3-5)
+        set {_baseAmount} to gem_rollAmount()
+        
+        # Apply multipliers
+        set {_amount} to round({_baseAmount} * {_dropsMultiplier})
+        if {_amount} < 1:
+            set {_amount} to 1
+        
+        # Apply amplify multiplier
+        set {_amount} to {_amount} * {_amplifyMultiplier}
+        
+        # Apply Lucky Miner double
+        if {_luckyProc} = true:
+            set {_amount} to {_amount} * 2
+        
+        # Give gems to player (stored in data)
+        gem_addGems({_p}, {_tier}, {_amount})
+        
+        # Play animation (staggered via async function)
+        set {_delay} to {_index} * 15
+        prospecting_playDelayedAnimation({_p}, {_loc}, {_tier}, {_amount}, {_luckyProc}, {_delay})
+        
+        add 1 to {_index}
+    
+    return true
+
+
+# Async animation player - handles delay without blocking return
+function prospecting_playDelayedAnimation(p: player, loc: location, tier: integer, amount: integer, luckyProc: boolean, delayTicks: integer):
+    if {_delayTicks} > 0:
+        wait "%{_delayTicks}% ticks" parsed as timespan
+    
+    # Use the existing pouch animation
+    packetPouchGems({_p}, {_loc}, {_tier}, {_amount}, {_luckyProc})
+
+
+# Get dye item for tier (used by packetPouchGems via gem_getItem)
+function prospecting_getDyeItem(tier: integer) :: item:
+    if {_tier} = 1:
+        return lime dye
+    if {_tier} = 2:
+        return orange dye
+    if {_tier} = 3:
+        return light blue dye
+    if {_tier} = 4:
+        return red dye
+    if {_tier} = 5:
+        return purple dye
+    return lime dye
+
+
+# ============================================================
+# LEGACY FUNCTIONS (for compatibility)
+# ============================================================
+
+# Old prospecting function - kept for any old code
+function enchant_procProspecting(p: player, hardness: number) :: integer:
+    set {_id} to enchant_getIdByString("Prospecting")
+    
+    if enchant_checkIfEquipped({_p}, {_id}) = false:
+        return 0
+    
+    set {_level} to enchant_getPlayerLevelByString({_p}, "Prospecting")
+    
+    if {_level} < 1:
+        return 0
+    
+    set {_baseChance} to {_level} * 0.05
+    set {_procMultiplier} to multiplier_getEnchantProc({_p})
+    set {_finalChance} to {_baseChance} * {_procMultiplier}
+    
+    set {_roll} to random number between 0 and 100
+    if {_roll} > {_finalChance}:
+        return 0
+    
+    set {_gems} to random integer between 3 and 5
+    
+    set {_luckyMinerID} to enchant_getIdByString("Lucky Miner")
+    
+    if enchant_checkIfEquipped({_p}, {_luckyMinerID}) = true:
+        set {_luckyMinerLevel} to enchant_getPlayerLevelByString({_p}, "Lucky Miner")
+        
+        if {_luckyMinerLevel} >= 1:
+            set {_doubleChance} to {_luckyMinerLevel} * 0.65
+            set {_doubleRoll} to random number between 0 and 100
+            
+            if {_doubleRoll} <= {_doubleChance}:
+                set {_gems} to {_gems} * 2
+                return {_gems} * -1
+    
+    return {_gems}
+
+
+# Old give gems function - now stores in data instead
+function prospecting_giveGems(p: player, hardness: number, amount: integer):
+    # Get tier from player's prestige (ignore hardness)
+    set {_tier} to gem_getPlayerTier({_p})
+    
+    # Apply drops multiplier
+    set {_dropsMultiplier} to multiplier_getDrops({_p})
+    set {_finalAmount} to round({_amount} * {_dropsMultiplier})
+    
+    if {_finalAmount} < 1:
+        set {_finalAmount} to 1
+    
+    # Store in data instead of giving physical item
+    gem_addGems({_p}, {_tier}, {_finalAmount})
+
+
+# ============================================================
+# TREASURE HUNTER ENCHANT (DEMOLITION)
+# ============================================================
+#
+# Gives a chance to find treasure keys while mining.
+# Keys are used to open treasure chests for accessories.
+#
+# Proc Chance: 0.05% per level (Level 50 = 2.5%)
+# Key tier based on player's total prestige (all archetypes)
+#
+# ============================================================
+
+function enchant_checkTreasureHunterProc(p: player) :: boolean:
+    set {_id} to enchant_getIdByString("Treasure Hunter")
+    
+    if enchant_checkIfEquipped({_p}, {_id}) = false:
+        return false
+    
+    set {_level} to enchant_getPlayerLevelByString({_p}, "Treasure Hunter")
+    
+    if {_level} < 1:
+        return false
+    
+    # 0.05% per level (Level 50 = 2.5%)
+    set {_baseChance} to {_level} * 0.05
+    
+    # Apply enchant proc multiplier
+    set {_procMultiplier} to multiplier_getEnchantProc({_p})
+    set {_chance} to {_baseChance} * {_procMultiplier}
+    
+    # Apply treasure_find bonus from accessories (if equipped)
+    set {_treasureFindBonus} to acc_getTreasureFindBonus({_p})
+    set {_chance} to {_chance} * (1 + {_treasureFindBonus})
+    
+    # Roll for proc
+    set {_roll} to random number between 0 and 100
+    if {_roll} <= {_chance}:
+        return true
+    return false
+
+
+function enchant_procTreasureHunter(p: player, loc: location) :: boolean:
+    if enchant_checkTreasureHunterProc({_p}) = false:
+        return false
+    
+    # Get total prestige for key tier
+    set {_totalPrestige} to acc_getTotalPrestige({_p})
+    
+    # Roll which treasure key tier
+    set {_treasureId} to acc_getTreasureForPrestige({_totalPrestige})
+    
+    # Give physical key item
+    acc_giveKey({_p}, {_treasureId})
+    
+    # Play animation
+    acc_playKeyDropAnimation({_p}, {_loc}, {_treasureId})
+    
+    # Chat notification
+    acc_sendKeyFoundMessage({_p}, {_treasureId})
+    
+    return true

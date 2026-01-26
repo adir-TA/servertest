@@ -1,0 +1,282 @@
+# ============================================================
+# ACCESSORY SYSTEM - CORE FUNCTIONS
+# ============================================================
+# Encoding: type|rarity (tier determined by type)
+# Supports 5 tiers: Basic, Advanced, Ultra, Divine, Mythic
+# ============================================================
+
+# ============================================================
+# PRESTIGE CALCULATION
+# ============================================================
+
+function acc_getMinPrestige(p: player) :: number:
+    set {_uuid} to {_p}'s uuid
+    set {_precision} to {mining::precision::%{_uuid}%::prestige} ? 0
+    set {_demolition} to {mining::demolition::%{_uuid}%::prestige} ? 0
+    set {_arcane} to {mining::arcane::%{_uuid}%::prestige} ? 0
+    set {_global} to {mining::global::%{_uuid}%::prestige} ? 0
+    return min({_precision}, {_demolition}, {_arcane}, {_global})
+
+
+function acc_getTotalPrestige(p: player) :: number:
+    set {_uuid} to {_p}'s uuid
+    set {_precision} to {mining::precision::%{_uuid}%::prestige} ? 0
+    set {_demolition} to {mining::demolition::%{_uuid}%::prestige} ? 0
+    set {_arcane} to {mining::arcane::%{_uuid}%::prestige} ? 0
+    set {_global} to {mining::global::%{_uuid}%::prestige} ? 0
+    return {_precision} + {_demolition} + {_arcane} + {_global}
+
+
+# ============================================================
+# SLOT MANAGEMENT
+# ============================================================
+
+function acc_getUnlockedSlots(p: player) :: number:
+    set {_uuid} to {_p}'s uuid
+    set {_unlocked} to {data::accessories::%{_uuid}%::slots} ? 1
+    return {_unlocked}
+
+
+function acc_meetsSlotPrestigeReq(p: player, slot: number) :: boolean:
+    set {_req} to acc_getSlotPrestigeReq({_slot})
+    set {_minPrestige} to acc_getMinPrestige({_p})
+    if {_minPrestige} >= {_req}:
+        return true
+    return false
+
+
+function acc_canUnlockSlot(p: player, slot: number) :: boolean:
+    set {_uuid} to {_p}'s uuid
+    
+    if acc_meetsSlotPrestigeReq({_p}, {_slot}) is false:
+        return false
+    
+    set {_cost} to acc_getSlotCost({_slot})
+    set {_balance} to {data::balance::%{_uuid}%} ? 0
+    if {_balance} < {_cost}:
+        return false
+    
+    return true
+
+
+function acc_unlockSlot(p: player) :: boolean:
+    set {_uuid} to {_p}'s uuid
+    set {_current} to acc_getUnlockedSlots({_p})
+    set {_next} to {_current} + 1
+    set {_max} to acc_getSlotsMax()
+    
+    if {_next} > {_max}:
+        return false
+    
+    if acc_canUnlockSlot({_p}, {_next}) is false:
+        return false
+    
+    set {_cost} to acc_getSlotCost({_next})
+    remove {_cost} from {data::balance::%{_uuid}%}
+    set {data::accessories::%{_uuid}%::slots} to {_next}
+    
+    return true
+
+
+function acc_findEmptyBagSlot(p: player) :: number:
+    set {_unlocked} to acc_getUnlockedSlots({_p})
+    loop integers from 1 to {_unlocked}:
+        set {_current} to acc_getBagSlot({_p}, loop-value)
+        if {_current} is not set:
+            return loop-value
+        if {_current} is "":
+            return loop-value
+    return 0
+
+
+# ============================================================
+# ACCESSORY ENCODING (type|rarity)
+# ============================================================
+
+function acc_parseAccessory(encoded: text) :: texts:
+    set {_parts::*} to {_encoded} split by "|"
+    return {_parts::*}
+
+
+function acc_encodeAccessory(type: text, rarity: text) :: text:
+    return "%{_type}%|%{_rarity}%"
+
+
+# ============================================================
+# BAG MANAGEMENT
+# ============================================================
+
+function acc_getBagSlot(p: player, slot: number) :: text:
+    return {data::accessories::%{_p}'s uuid%::bag::%{_slot}%}
+
+
+function acc_setBagSlot(p: player, slot: number, encoded: text):
+    set {_uuid} to {_p}'s uuid
+    if {_encoded} is "":
+        delete {data::accessories::%{_uuid}%::bag::%{_slot}%}
+    else if {_encoded} is "empty":
+        delete {data::accessories::%{_uuid}%::bag::%{_slot}%}
+    else:
+        set {data::accessories::%{_uuid}%::bag::%{_slot}%} to {_encoded}
+
+
+function acc_getEquipped(p: player) :: texts:
+    set {_uuid} to {_p}'s uuid
+    set {_unlocked} to acc_getUnlockedSlots({_p})
+    delete {_equipped::*}
+    loop integers from 1 to {_unlocked}:
+        set {_slot} to acc_getBagSlot({_p}, loop-value)
+        if {_slot} is set:
+            if {_slot} is not "":
+                add {_slot} to {_equipped::*}
+    return {_equipped::*}
+
+
+# ============================================================
+# INVENTORY MANAGEMENT
+# ============================================================
+
+function acc_getInventorySize(p: player) :: number:
+    return size of {data::accessories::%{_p}'s uuid%::inventory::*}
+
+
+function acc_hasInventorySpace(p: player) :: boolean:
+    set {_current} to acc_getInventorySize({_p})
+    set {_max} to acc_getStorageMax()
+    if {_current} < {_max}:
+        return true
+    return false
+
+
+function acc_addToInventory(p: player, encoded: text):
+    add {_encoded} to {data::accessories::%{_p}'s uuid%::inventory::*}
+
+
+function acc_getOwned(p: player) :: texts:
+    return {data::accessories::%{_p}'s uuid%::inventory::*}
+
+
+# ============================================================
+# EQUIP/UNEQUIP
+# ============================================================
+
+function acc_equipFromInventory(p: player, invIndex: number, bagSlot: number) :: boolean:
+    set {_uuid} to {_p}'s uuid
+    set {_unlocked} to acc_getUnlockedSlots({_p})
+    
+    if {_bagSlot} > {_unlocked}:
+        return false
+    
+    set {_encoded} to {data::accessories::%{_uuid}%::inventory::%{_invIndex}%}
+    if {_encoded} is not set:
+        return false
+    
+    # Get current in bag slot
+    set {_currentBag} to acc_getBagSlot({_p}, {_bagSlot})
+    
+    # Remove from inventory
+    remove {_encoded} from {data::accessories::%{_uuid}%::inventory::*}
+    
+    # If something was in bag, add to inventory
+    if {_currentBag} is set:
+        if {_currentBag} is not "":
+            add {_currentBag} to {data::accessories::%{_uuid}%::inventory::*}
+    
+    # Set bag slot
+    acc_setBagSlot({_p}, {_bagSlot}, {_encoded})
+    
+    return true
+
+
+function acc_unequipFromBag(p: player, bagSlot: number) :: boolean:
+    set {_encoded} to acc_getBagSlot({_p}, {_bagSlot})
+    if {_encoded} is not set:
+        return false
+    if {_encoded} is "":
+        return false
+    
+    if acc_hasInventorySpace({_p}) is false:
+        return false
+    
+    acc_setBagSlot({_p}, {_bagSlot}, "")
+    acc_addToInventory({_p}, {_encoded})
+    
+    return true
+
+
+# ============================================================
+# ITEM BUILDING
+# ============================================================
+
+function acc_createItem(p: player, encoded: text) :: item:
+    set {_parts::*} to acc_parseAccessory({_encoded})
+    set {_type} to {_parts::1}
+    set {_rarity} to {_parts::2}
+    
+    set {_name} to acc_getTypeName({_type})
+    set {_icon} to acc_getTypeIcon({_type})
+    set {_tier} to acc_getTypeTier({_type})
+    set {_stat} to acc_getTypeStat({_type})
+    set {_tierName} to acc_getTierName({_tier})
+    set {_tierColor} to acc_getTierColor({_tier})
+    set {_rarityName} to acc_getRarityName({_rarity})
+    set {_rarityColor} to acc_getRarityColor({_rarity})
+    
+    set {_item} to {_icon}
+    set name of {_item} to "%{_rarityColor}%%{_name}%"
+    
+    delete {_lore::*}
+    add "&8ᴀᴄᴄᴇssᴏʀʏ" to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Tier: %{_tierColor}%%{_tierName}%" to {_lore::*}
+    add "&7Rarity: %{_rarityColor}%%{_rarityName}%" to {_lore::*}
+    add "" to {_lore::*}
+    
+    set {_bonus} to acc_calculateBonus({_type}, {_rarity})
+    set {_statName} to acc_formatStatName({_stat})
+    add "&a+%{_bonus}%%% &f%{_statName}%" to {_lore::*}
+    add "" to {_lore::*}
+    
+    set {_salvageValue} to acc_getSalvageValue({_rarity})
+    add "&7Salvage: &6%{_salvageValue}% tokens" to {_lore::*}
+    add "" to {_lore::*}
+    add "&eClick to equip" to {_lore::*}
+    add "&cPress Q to salvage" to {_lore::*}
+    
+    set lore of {_item} to {_lore::*}
+    set string tag "acc;encoded" of custom nbt of {_item} to {_encoded}
+    
+    return {_item}
+
+
+# ============================================================
+# ADMIN FUNCTIONS
+# ============================================================
+
+function acc_giveRandom(p: player, tier: text):
+    set {_pool::*} to acc_getTierPool({_tier})
+    set {_size} to size of {_pool::*}
+    
+    if {_size} = 0:
+        stop
+    
+    set {_randIndex} to random integer between 1 and {_size}
+    set {_type} to {_pool::%{_randIndex}%}
+    set {_rarity} to acc_rollRarityDefault()
+    set {_encoded} to acc_encodeAccessory({_type}, {_rarity})
+    
+    acc_addToInventory({_p}, {_encoded})
+
+
+function acc_rollRarityDefault() :: text:
+    set {_roll} to random number between 0 and 100
+    
+    if {_roll} < 1:
+        return "legendary"
+    if {_roll} < 5:
+        return "epic"
+    if {_roll} < 15:
+        return "rare"
+    if {_roll} < 40:
+        return "uncommon"
+    return "common"

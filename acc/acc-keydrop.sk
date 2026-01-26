@@ -1,0 +1,337 @@
+# ============================================================
+# ACCESSORY SYSTEM - KEY DROP ANIMATION
+# ============================================================
+# Epic animation when player finds a treasure key while mining
+# Features: Ground crack, energy burst, key materializes, collects
+# Supports 5 tiers: Basic, Advanced, Ultra, Divine, Mythic
+# ============================================================
+
+function acc_playKeyDropAnimation(p: player, loc: location, tier: text):
+    # Get tier info
+    set {_color} to acc_getTierColor({_tier})
+    set {_name} to acc_getTierName({_tier})
+    set {_keyName} to "%{_name}% Key"
+    set {_keyIcon} to acc_getKeyIcon({_tier})
+    set {_dustColor} to acc_getKeyDustColor({_tier})
+    
+    # Center position
+    set {_bx} to floor(x-coord of {_loc}) + 0.5
+    set {_by} to floor(y-coord of {_loc}) + 0.5
+    set {_bz} to floor(z-coord of {_loc}) + 0.5
+    set {_world} to world of {_loc}
+    set {_center} to location({_bx}, {_by}, {_bz}, {_world})
+    
+    # Entity IDs
+    set {_keyId} to random integer between 100000 and 999999
+    set {_textId} to random integer between 100000 and 999999
+    set {_crackIds::1} to random integer between 100000 and 999999
+    set {_crackIds::2} to random integer between 100000 and 999999
+    set {_crackIds::3} to random integer between 100000 and 999999
+    set {_crackIds::4} to random integer between 100000 and 999999
+    
+    # ══════════════════════════════════════════════════════════════
+    # PHASE 1: GROUND CRACK EFFECT (1 second)
+    # ══════════════════════════════════════════════════════════════
+    
+    play sound "block.deepslate.break" with volume 0.8 and pitch 0.5 to {_p}
+    play sound "entity.warden.heartbeat" with volume 0.4 and pitch 1.5 to {_p}
+    
+    # Spawn crack lines radiating from center
+    set {_crackItem} to black concrete with nbt from "{""minecraft:attribute_modifiers"":{modifiers:[],show_in_tooltip:0}}"
+    
+    set {_crackPos::1} to location({_bx} + 0.3, {_by} + 0.01, {_bz}, {_world})
+    set {_crackPos::2} to location({_bx} - 0.3, {_by} + 0.01, {_bz}, {_world})
+    set {_crackPos::3} to location({_bx}, {_by} + 0.01, {_bz} + 0.3, {_world})
+    set {_crackPos::4} to location({_bx}, {_by} + 0.01, {_bz} - 0.3, {_world})
+    
+    loop 4 times:
+        spawn fake item display at {_crackPos::%loop-number%} for {_p} with id {_crackIds::%loop-number%}
+        set {_m} to new metadata packet with id {_crackIds::%loop-number%}:
+            display item: {_crackItem}
+            display billboard: fixed
+            display brightness block: 15
+            display scale: vector(0.01, 0.02, 0.01)
+            display teleportduration: 1
+        send packet {_m} to {_p}
+    
+    wait 1 tick
+    
+    # Cracks expand outward
+    loop 8 times:
+        set {_expand} to loop-number * 0.08
+        
+        set {_m} to new metadata packet with id {_crackIds::1}:
+            display scale: vector(0.03 + {_expand}, 0.02, 0.15)
+            display transformation: 2
+            display interpolation: 0
+        send packet {_m} to {_p}
+        send teleport packet with id {_crackIds::1} with location location({_bx} + 0.3 + ({_expand} * 2), {_by} + 0.01, {_bz}, {_world}) to {_p}
+        
+        set {_m} to new metadata packet with id {_crackIds::2}:
+            display scale: vector(0.03 + {_expand}, 0.02, 0.15)
+            display transformation: 2
+            display interpolation: 0
+        send packet {_m} to {_p}
+        send teleport packet with id {_crackIds::2} with location location({_bx} - 0.3 - ({_expand} * 2), {_by} + 0.01, {_bz}, {_world}) to {_p}
+        
+        set {_m} to new metadata packet with id {_crackIds::3}:
+            display scale: vector(0.15, 0.02, 0.03 + {_expand})
+            display transformation: 2
+            display interpolation: 0
+        send packet {_m} to {_p}
+        send teleport packet with id {_crackIds::3} with location location({_bx}, {_by} + 0.01, {_bz} + 0.3 + ({_expand} * 2), {_world}) to {_p}
+        
+        set {_m} to new metadata packet with id {_crackIds::4}:
+            display scale: vector(0.15, 0.02, 0.03 + {_expand})
+            display transformation: 2
+            display interpolation: 0
+        send packet {_m} to {_p}
+        send teleport packet with id {_crackIds::4} with location location({_bx}, {_by} + 0.01, {_bz} - 0.3 - ({_expand} * 2), {_world}) to {_p}
+        
+        # Dust particles along cracks
+        if mod(loop-number, 2) = 0:
+            draw 3 of dust using {_dustColor} at {_center} with offset vector(0.5, 0.1, 0.5) for {_p}
+        
+        wait 2 ticks
+    
+    play sound "block.amethyst_cluster.break" with volume 1 and pitch 1.5 to {_p}
+    
+    # ══════════════════════════════════════════════════════════════
+    # PHASE 2: ENERGY BURST FROM GROUND (1 second)
+    # ══════════════════════════════════════════════════════════════
+    
+    play sound "block.beacon.activate" with volume 0.6 and pitch 1.8 to {_p}
+    
+    # Particle burst upward
+    draw 20 of dust using {_dustColor} at {_center} with offset vector(0.3, 0.5, 0.3) for {_p}
+    draw 10 of end rod at {_center} with offset vector(0.2, 0.4, 0.2) for {_p}
+    
+    # Remove cracks
+    loop 4 times:
+        set {_m} to new metadata packet with id {_crackIds::%loop-number%}:
+            display scale: vector(0.01, 0.01, 0.01)
+            display transformation: 2
+            display interpolation: 0
+        send packet {_m} to {_p}
+    
+    wait 5 ticks
+    
+    loop 4 times:
+        remove fake entity with id {_crackIds::%loop-number%} for {_p}
+    
+    # ══════════════════════════════════════════════════════════════
+    # PHASE 3: KEY MATERIALIZES (1.5 seconds)
+    # ══════════════════════════════════════════════════════════════
+    
+    play sound "entity.allay.item_given" with volume 1 and pitch 1.2 to {_p}
+    play sound "block.amethyst_block.chime" with volume 0.8 and pitch 1.0 to {_p}
+    
+    # Spawn key at ground level
+    set {_keyPos} to location({_bx}, {_by} + 0.2, {_bz}, {_world})
+    
+    spawn fake item display at {_keyPos} for {_p} with id {_keyId}
+    set {_m} to new metadata packet with id {_keyId}:
+        display item: {_keyIcon}
+        display billboard: center
+        display brightness block: 15
+        display scale: vector(0.01, 0.01, 0.01)
+        display teleportduration: 2
+    send packet {_m} to {_p}
+    
+    wait 1 tick
+    
+    # Key grows and rises
+    set {_m} to new metadata packet with id {_keyId}:
+        display scale: vector(0.8, 0.8, 0.8)
+        display transformation: 5
+        display interpolation: 0
+    send packet {_m} to {_p}
+    
+    # Rise animation - 12 steps
+    loop 12 times:
+        set {_riseY} to {_by} + 0.2 + (loop-number * 0.08)
+        set {_wobbleX} to sin(loop-number * 30) * 0.05
+        set {_wobbleZ} to cos(loop-number * 30) * 0.05
+        
+        send teleport packet with id {_keyId} with location location({_bx} + {_wobbleX}, {_riseY}, {_bz} + {_wobbleZ}, {_world}) to {_p}
+        
+        # Trail particles
+        if mod(loop-number, 3) = 0:
+            draw 2 of dust using {_dustColor} at location({_bx}, {_riseY} - 0.2, {_bz}, {_world}) with offset vector(0.05, 0.05, 0.05) for {_p}
+        
+        wait 2 ticks
+    
+    # ══════════════════════════════════════════════════════════════
+    # PHASE 4: TEXT REVEAL + HOVER (1.5 seconds)
+    # ══════════════════════════════════════════════════════════════
+    
+    set {_hoverY} to {_by} + 1.2
+    set {_hoverPos} to location({_bx}, {_hoverY}, {_bz}, {_world})
+    
+    send teleport packet with id {_keyId} with location {_hoverPos} to {_p}
+    
+    # Final size
+    set {_m} to new metadata packet with id {_keyId}:
+        display scale: vector(0.7, 0.7, 0.7)
+        display transformation: 3
+        display interpolation: 0
+    send packet {_m} to {_p}
+    
+    play sound "entity.experience_orb.pickup" with volume 0.8 and pitch 1.5 to {_p}
+    
+    # Spawn text
+    set {_textPos} to location({_bx}, {_hoverY} + 0.5, {_bz}, {_world})
+    spawn fake text display at {_textPos} for {_p} with id {_textId}
+    set {_m} to new metadata packet with id {_textId}:
+        display text: "%{_color}%&l✦ %{_keyName}% ✦"
+        display billboard: center
+        display scale: vector(0.01, 0.01, 0.01)
+        display brightness block: 15
+        display shadow: true
+        display defaultbackground: false
+        display teleportduration: 2
+    send packet {_m} to {_p}
+    
+    wait 1 tick
+    
+    set {_m} to new metadata packet with id {_textId}:
+        display scale: vector(0.9, 0.9, 0.9)
+        display transformation: 4
+        display interpolation: 0
+    send packet {_m} to {_p}
+    
+    play sound "block.note_block.chime" with volume 0.7 and pitch 2 to {_p}
+    
+    # Gentle bob - 3 cycles
+    loop 3 times:
+        wait 5 ticks
+        send teleport packet with id {_keyId} with location location({_bx}, {_hoverY} + 0.08, {_bz}, {_world}) to {_p}
+        draw 2 of dust using {_dustColor} at {_hoverPos} with offset vector(0.15, 0.1, 0.15) for {_p}
+        wait 5 ticks
+        send teleport packet with id {_keyId} with location {_hoverPos} to {_p}
+    
+    # ══════════════════════════════════════════════════════════════
+    # PHASE 5: COLLECT TO PLAYER (1 second)
+    # ══════════════════════════════════════════════════════════════
+    
+    set {_playerLoc} to {_p}'s location
+    set {_px} to x-coord of {_playerLoc}
+    set {_py} to y-coord of {_playerLoc} + 1.0
+    set {_pz} to z-coord of {_playerLoc}
+    set {_collectPos} to location({_px}, {_py}, {_pz}, {_world})
+    
+    # Fade text
+    set {_m} to new metadata packet with id {_textId}:
+        display scale: vector(0.01, 0.01, 0.01)
+        display transformation: 2
+        display interpolation: 0
+    send packet {_m} to {_p}
+    
+    play sound "entity.allay.item_thrown" with volume 0.8 and pitch 1.5 to {_p}
+    
+    # Arc to player
+    set {_m} to new metadata packet with id {_keyId}:
+        display teleportduration: 1
+    send packet {_m} to {_p}
+    
+    loop 8 times:
+        set {_t} to loop-number / 8
+        set {_arcX} to {_bx} + ({_t} * ({_px} - {_bx}))
+        set {_arcZ} to {_bz} + ({_t} * ({_pz} - {_bz}))
+        set {_arcHeight} to 0.5 * (1 - ((2 * {_t} - 1) ^ 2))
+        set {_arcY} to {_hoverY} + ({_t} * ({_py} - {_hoverY})) + {_arcHeight}
+        
+        send teleport packet with id {_keyId} with location location({_arcX}, {_arcY}, {_arcZ}, {_world}) to {_p}
+        draw 2 of dust using {_dustColor} at location({_arcX}, {_arcY}, {_arcZ}, {_world}) with offset vector(0.02, 0.02, 0.02) for {_p}
+        
+        if loop-number >= 5:
+            set {_shrink} to 0.7 - ((loop-number - 4) * 0.15)
+            set {_m} to new metadata packet with id {_keyId}:
+                display scale: vector({_shrink}, {_shrink}, {_shrink})
+                display transformation: 2
+                display interpolation: 0
+            send packet {_m} to {_p}
+        
+        wait 1 tick
+    
+    # Collect burst
+    set {_m} to new metadata packet with id {_keyId}:
+        display scale: vector(0.01, 0.01, 0.01)
+        display transformation: 2
+        display interpolation: 0
+    send packet {_m} to {_p}
+    
+    play sound "entity.item.pickup" with volume 1 and pitch 1.3 to {_p}
+    play sound "block.amethyst_block.chime" with volume 0.5 and pitch 2 to {_p}
+    
+    draw 8 of dust using {_dustColor} at {_collectPos} with offset vector(0.15, 0.15, 0.15) for {_p}
+    
+    wait 2 ticks
+    
+    # Cleanup
+    remove fake entity with id {_keyId} for {_p}
+    remove fake entity with id {_textId} for {_p}
+    
+    # Send message at the END
+    acc_sendKeyFoundMessage({_p}, {_tier})
+
+
+# ══════════════════════════════════════════════════════════════
+# HELPER FUNCTIONS (5 tier support)
+# ══════════════════════════════════════════════════════════════
+
+function acc_getKeyDustColor(tier: text) :: dustoption:
+    if {_tier} is "basic":
+        return dustOption(rgb(170, 170, 170), 1.2)
+    if {_tier} is "advanced":
+        return dustOption(rgb(85, 255, 85), 1.2)
+    if {_tier} is "ultra":
+        return dustOption(rgb(85, 255, 255), 1.2)
+    if {_tier} is "divine":
+        return dustOption(rgb(255, 170, 0), 1.2)
+    if {_tier} is "mythic":
+        return dustOption(rgb(255, 85, 255), 1.2)
+    return dustOption(rgb(255, 255, 255), 1.2)
+
+
+function acc_getKeyIcon(tier: text) :: item:
+    if {_tier} is "basic":
+        return tripwire hook with nbt from "{""minecraft:attribute_modifiers"":{modifiers:[],show_in_tooltip:0}}"
+    if {_tier} is "advanced":
+        return tripwire hook with nbt from "{""minecraft:attribute_modifiers"":{modifiers:[],show_in_tooltip:0},""minecraft:enchantment_glint_override"":1}"
+    if {_tier} is "ultra":
+        return tripwire hook with nbt from "{""minecraft:attribute_modifiers"":{modifiers:[],show_in_tooltip:0},""minecraft:enchantment_glint_override"":1}"
+    if {_tier} is "divine":
+        return tripwire hook with nbt from "{""minecraft:attribute_modifiers"":{modifiers:[],show_in_tooltip:0},""minecraft:enchantment_glint_override"":1}"
+    if {_tier} is "mythic":
+        return tripwire hook with nbt from "{""minecraft:attribute_modifiers"":{modifiers:[],show_in_tooltip:0},""minecraft:enchantment_glint_override"":1}"
+    return tripwire hook
+
+
+function acc_sendKeyFoundMessage(p: player, tier: text):
+    set {_color} to acc_getTierColor({_tier})
+    set {_name} to acc_getTierName({_tier})
+    send "" to {_p}
+    send "&6&l★ &eYou found a %{_color}%%{_name}% Key&e!" to {_p}
+    send "&7Open it in your &e/accessories &7menu!" to {_p}
+    send "" to {_p}
+
+
+# ══════════════════════════════════════════════════════════════
+# TEST COMMAND
+# ══════════════════════════════════════════════════════════════
+
+command /testkeydrop <text>:
+    permission: op
+    trigger:
+        set {_tier} to arg-1
+        if acc_isValidTier({_tier}) is false:
+            send "&cInvalid tier! Use: basic, advanced, ultra, divine, mythic"
+            stop
+        
+        set {_loc} to target block's location
+        if {_loc} is not set:
+            set {_loc} to player's location
+        
+        acc_giveKey(player, {_tier})
+        acc_playKeyDropAnimation(player, {_loc}, {_tier})

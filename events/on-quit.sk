@@ -1,0 +1,4 @@
+on quit:
+    menu_deleteSession(player)
+
+    delete {-miningData::%player's uuid%::*}

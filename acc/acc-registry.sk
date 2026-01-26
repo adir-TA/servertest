@@ -1,0 +1,280 @@
+# ============================================================
+# ACCESSORY SYSTEM - REGISTRY
+# ============================================================
+# 100 accessories total (20 per tier x 5 tiers)
+# Tiers: Basic, Advanced, Ultra, Divine, Mythic
+# Stats: mining_speed, drops, xp, token, enchant_proc
+# ============================================================
+
+on script load:
+    wait 3 ticks
+    acc_registerAllTypes()
+
+
+function acc_registerAllTypes():
+    delete {-acc::type::*}
+    delete {-acc::pool::*}
+    
+    # ════════════════════════════════════════════════════════════
+    # BASIC TIER (20 accessories)
+    # Base values: 0.4-0.8%
+    # Simple, earthy mining items
+    # ════════════════════════════════════════════════════════════
+    
+    # Mining Speed (4)
+    acc_reg("stone_ring", "Stone Ring", cobblestone, "basic", "mining_speed", 0.6)
+    acc_reg("copper_loop", "Copper Loop", copper ingot, "basic", "mining_speed", 0.7)
+    acc_reg("rusty_band", "Rusty Band", iron nugget, "basic", "mining_speed", 0.5)
+    acc_reg("miners_stud", "Miner's Stud", coal, "basic", "mining_speed", 0.65)
+    
+    # Drops (4)
+    acc_reg("pebble_pouch", "Pebble Pouch", gravel, "basic", "drops", 0.5)
+    acc_reg("coal_sack", "Coal Sack", coal block, "basic", "drops", 0.6)
+    acc_reg("ore_flake", "Ore Flake", raw iron, "basic", "drops", 0.55)
+    acc_reg("dusty_locket", "Dusty Locket", chain, "basic", "drops", 0.65)
+    
+    # XP (4)
+    acc_reg("quartz_chip", "Quartz Chip", quartz, "basic", "xp", 0.6)
+    acc_reg("clay_bead", "Clay Bead", clay ball, "basic", "xp", 0.5)
+    acc_reg("flint_token", "Flint Token", flint, "basic", "xp", 0.55)
+    acc_reg("cave_pearl", "Cave Pearl", prismarine crystals, "basic", "xp", 0.7)
+    
+    # Token (4)
+    acc_reg("bronze_bit", "Bronze Bit", brick, "basic", "token", 0.55)
+    acc_reg("tin_penny", "Tin Penny", iron nugget, "basic", "token", 0.5)
+    acc_reg("traders_ring", "Trader's Ring", gold nugget, "basic", "token", 0.65)
+    acc_reg("lucky_stone", "Lucky Stone", smooth stone, "basic", "token", 0.6)
+    
+    # Enchant Proc (4)
+    acc_reg("glow_shard", "Glow Shard", glowstone dust, "basic", "enchant_proc", 0.4)
+    acc_reg("dim_crystal", "Dim Crystal", amethyst shard, "basic", "enchant_proc", 0.45)
+    acc_reg("old_charm", "Old Charm", leather, "basic", "enchant_proc", 0.35)
+    acc_reg("worn_rune", "Worn Rune", paper, "basic", "enchant_proc", 0.5)
+    
+    # ════════════════════════════════════════════════════════════
+    # ADVANCED TIER (20 accessories)
+    # Base values: 0.8-1.4%
+    # Better quality crafted items
+    # ════════════════════════════════════════════════════════════
+    
+    # Mining Speed (4)
+    acc_reg("iron_cuff", "Iron Cuff", iron ingot, "advanced", "mining_speed", 1.0)
+    acc_reg("steel_band", "Steel Band", heavy weighted pressure plate, "advanced", "mining_speed", 1.1)
+    acc_reg("pickhead_ring", "Pickhead Ring", stone pickaxe, "advanced", "mining_speed", 1.2)
+    acc_reg("diggers_loop", "Digger's Loop", rail, "advanced", "mining_speed", 1.0)
+    
+    # Drops (4)
+    acc_reg("nugget_sack", "Nugget Sack", gold nugget, "advanced", "drops", 0.9)
+    acc_reg("lode_charm", "Lode Charm", raw gold, "advanced", "drops", 1.0)
+    acc_reg("pocket_ore", "Pocket Ore", raw copper, "advanced", "drops", 0.95)
+    acc_reg("sifters_badge", "Sifter's Badge", hopper, "advanced", "drops", 1.1)
+    
+    # XP (4)
+    acc_reg("scholar_stone", "Scholar Stone", lapis lazuli, "advanced", "xp", 1.0)
+    acc_reg("knowledge_bead", "Knowledge Bead", experience bottle, "advanced", "xp", 1.2)
+    acc_reg("insight_chip", "Insight Chip", redstone, "advanced", "xp", 0.9)
+    acc_reg("study_ring", "Study Ring", book, "advanced", "xp", 1.1)
+    
+    # Token (4)
+    acc_reg("silver_coin", "Silver Coin", iron ingot, "advanced", "token", 1.0)
+    acc_reg("merchant_band", "Merchant Band", emerald, "advanced", "token", 1.15)
+    acc_reg("trade_mark", "Trade Mark", name tag, "advanced", "token", 0.95)
+    acc_reg("gold_flake", "Gold Flake", gold ingot, "advanced", "token", 1.1)
+    
+    # Enchant Proc (4)
+    acc_reg("spark_gem", "Spark Gem", prismarine shard, "advanced", "enchant_proc", 0.7)
+    acc_reg("magic_dust", "Magic Dust", blaze powder, "advanced", "enchant_proc", 0.75)
+    acc_reg("rune_stone", "Rune Stone", chiseled stone bricks, "advanced", "enchant_proc", 0.65)
+    acc_reg("power_bead", "Power Bead", prismarine crystals, "advanced", "enchant_proc", 0.8)
+    
+    # ════════════════════════════════════════════════════════════
+    # ULTRA TIER (20 accessories)
+    # Base values: 1.2-2.0%
+    # High quality rare items
+    # ════════════════════════════════════════════════════════════
+    
+    # Mining Speed (4)
+    acc_reg("diamond_loop", "Diamond Loop", diamond, "ultra", "mining_speed", 1.6)
+    acc_reg("precision_cuff", "Precision Cuff", clock, "ultra", "mining_speed", 1.8)
+    acc_reg("swift_pick", "Swift Pick", iron pickaxe, "ultra", "mining_speed", 1.7)
+    acc_reg("tunnel_ring", "Tunnel Ring", minecart, "ultra", "mining_speed", 1.5)
+    
+    # Drops (4)
+    acc_reg("fortune_charm", "Fortune Charm", lapis block, "ultra", "drops", 1.4)
+    acc_reg("collectors_pin", "Collector's Pin", compass, "ultra", "drops", 1.5)
+    acc_reg("hoarders_ring", "Hoarder's Ring", chest, "ultra", "drops", 1.6)
+    acc_reg("bounty_crest", "Bounty Crest", emerald block, "ultra", "drops", 1.7)
+    
+    # XP (4)
+    acc_reg("wisdom_core", "Wisdom Core", enchanted book, "ultra", "xp", 1.6)
+    acc_reg("mind_stone", "Mind Stone", amethyst cluster, "ultra", "xp", 1.8)
+    acc_reg("sage_band", "Sage Band", bookshelf, "ultra", "xp", 1.5)
+    acc_reg("lore_gem", "Lore Gem", ender pearl, "ultra", "xp", 1.7)
+    
+    # Token (4)
+    acc_reg("golden_seal", "Golden Seal", gold block, "ultra", "token", 1.6)
+    acc_reg("treasure_pin", "Treasure Pin", diamond, "ultra", "token", 1.8)
+    acc_reg("wealth_crest", "Wealth Crest", golden apple, "ultra", "token", 1.7)
+    acc_reg("profit_ring", "Profit Ring", emerald, "ultra", "token", 1.5)
+    
+    # Enchant Proc (4)
+    acc_reg("arcane_shard", "Arcane Shard", amethyst shard, "ultra", "enchant_proc", 1.1)
+    acc_reg("mystic_band", "Mystic Band", end rod, "ultra", "enchant_proc", 1.2)
+    acc_reg("spell_core", "Spell Core", enchanted book, "ultra", "enchant_proc", 1.0)
+    acc_reg("magic_seal", "Magic Seal", nether star, "ultra", "enchant_proc", 1.3)
+    
+    # ════════════════════════════════════════════════════════════
+    # DIVINE TIER (20 accessories)
+    # Base values: 1.8-2.8%
+    # Premium legendary items
+    # ════════════════════════════════════════════════════════════
+    
+    # Mining Speed (4)
+    acc_reg("void_cuff", "Void Cuff", obsidian, "divine", "mining_speed", 2.2)
+    acc_reg("obsidian_ring", "Obsidian Ring", crying obsidian, "divine", "mining_speed", 2.4)
+    acc_reg("bedrock_band", "Bedrock Band", bedrock, "divine", "mining_speed", 2.6)
+    acc_reg("titans_loop", "Titan's Loop", netherite ingot, "divine", "mining_speed", 2.5)
+    
+    # Drops (4)
+    acc_reg("dragon_scale", "Dragon Scale", dragon egg, "divine", "drops", 2.2)
+    acc_reg("phoenix_charm", "Phoenix Charm", fire charge, "divine", "drops", 2.0)
+    acc_reg("wither_pin", "Wither Pin", wither skeleton skull, "divine", "drops", 2.3)
+    acc_reg("ender_crest", "Ender Crest", ender chest, "divine", "drops", 2.5)
+    
+    # XP (4)
+    acc_reg("soul_gem", "Soul Gem", soul lantern, "divine", "xp", 2.2)
+    acc_reg("spirit_core", "Spirit Core", ghast tear, "divine", "xp", 2.4)
+    acc_reg("ancient_rune", "Ancient Rune", written book, "divine", "xp", 2.0)
+    acc_reg("elder_stone", "Elder Stone", beacon, "divine", "xp", 2.6)
+    
+    # Token (4)
+    acc_reg("crown_jewel", "Crown Jewel", totem of undying, "divine", "token", 2.4)
+    acc_reg("kings_signet", "King's Signet", enchanted golden apple, "divine", "token", 2.2)
+    acc_reg("pharaohs_eye", "Pharaoh's Eye", golden apple, "divine", "token", 2.5)
+    acc_reg("royal_crest", "Royal Crest", heart of the sea, "divine", "token", 2.3)
+    
+    # Enchant Proc (4)
+    acc_reg("celestial_shard", "Celestial Shard", nether star, "divine", "enchant_proc", 1.6)
+    acc_reg("star_core", "Star Core", end crystal, "divine", "enchant_proc", 1.8)
+    acc_reg("moon_band", "Moon Band", end stone, "divine", "enchant_proc", 1.5)
+    acc_reg("sun_rune", "Sun Rune", glowstone, "divine", "enchant_proc", 1.7)
+    
+    # ════════════════════════════════════════════════════════════
+    # MYTHIC TIER (20 accessories)
+    # Base values: 2.5-4.0%
+    # Ultimate endgame items
+    # ════════════════════════════════════════════════════════════
+    
+    # Mining Speed (4)
+    acc_reg("world_breaker", "World Breaker", netherite pickaxe, "mythic", "mining_speed", 3.2)
+    acc_reg("primordial_pick", "Primordial Pick", reinforced deepslate, "mythic", "mining_speed", 3.5)
+    acc_reg("eternal_ring", "Eternal Ring", netherite ingot, "mythic", "mining_speed", 3.0)
+    acc_reg("infinity_loop", "Infinity Loop", respawn anchor, "mythic", "mining_speed", 3.8)
+    
+    # Drops (4)
+    acc_reg("cosmos_charm", "Cosmos Charm", end crystal, "mythic", "drops", 3.0)
+    acc_reg("galaxy_core", "Galaxy Core", dragon egg, "mythic", "drops", 3.5)
+    acc_reg("nova_crest", "Nova Crest", beacon, "mythic", "drops", 3.2)
+    acc_reg("supernova_pin", "Supernova Pin", nether star, "mythic", "drops", 3.8)
+    
+    # XP (4)
+    acc_reg("omniscient_eye", "Omniscient Eye", ender eye, "mythic", "xp", 3.2)
+    acc_reg("allseeing_gem", "Allseeing Gem", conduit, "mythic", "xp", 3.5)
+    acc_reg("cosmic_mind", "Cosmic Mind", enchanted book, "mythic", "xp", 3.0)
+    acc_reg("universe_stone", "Universe Stone", beacon, "mythic", "xp", 3.8)
+    
+    # Token (4)
+    acc_reg("midas_touch", "Midas Touch", gold block, "mythic", "token", 3.2)
+    acc_reg("fortunes_heart", "Fortune's Heart", heart of the sea, "mythic", "token", 3.5)
+    acc_reg("wealth_eternal", "Wealth Eternal", emerald block, "mythic", "token", 3.0)
+    acc_reg("golden_dawn", "Golden Dawn", enchanted golden apple, "mythic", "token", 3.8)
+    
+    # Enchant Proc (4)
+    acc_reg("reality_shard", "Reality Shard", end crystal, "mythic", "enchant_proc", 2.2)
+    acc_reg("dimension_core", "Dimension Core", dragon egg, "mythic", "enchant_proc", 2.5)
+    acc_reg("chaos_rune", "Chaos Rune", crying obsidian, "mythic", "enchant_proc", 2.0)
+    acc_reg("void_essence", "Void Essence", shulker shell, "mythic", "enchant_proc", 2.8)
+
+
+# ============================================================
+# REGISTRATION FUNCTION
+# ============================================================
+
+function acc_reg(id: text, name: text, icon: item type, tier: text, stat: text, baseValue: number):
+    set {-acc::type::%{_id}%::name} to {_name}
+    set {-acc::type::%{_id}%::icon} to {_icon}
+    set {-acc::type::%{_id}%::tier} to {_tier}
+    set {-acc::type::%{_id}%::stat} to {_stat}
+    set {-acc::type::%{_id}%::base} to {_baseValue}
+    
+    add {_id} to {-acc::pool::%{_tier}%::*}
+    add {_id} to {-acc::allTypes::*}
+
+
+# ============================================================
+# TYPE GETTERS
+# ============================================================
+
+function acc_getTypeName(id: text) :: text:
+    return {-acc::type::%{_id}%::name} ? {_id}
+
+function acc_getTypeIcon(id: text) :: item type:
+    return {-acc::type::%{_id}%::icon} ? paper
+
+function acc_getTypeTier(id: text) :: text:
+    return {-acc::type::%{_id}%::tier} ? "basic"
+
+function acc_getTypeStat(id: text) :: text:
+    return {-acc::type::%{_id}%::stat} ? "mining_speed"
+
+function acc_getTypeBase(id: text) :: number:
+    return {-acc::type::%{_id}%::base} ? 1
+
+function acc_getTypeEffects(id: text) :: text:
+    return {-acc::type::%{_id}%::stat} ? ""
+
+function acc_getTierPool(tier: text) :: texts:
+    return {-acc::pool::%{_tier}%::*}
+
+function acc_getAllTypes() :: texts:
+    return {-acc::allTypes::*}
+
+
+# ============================================================
+# BONUS CALCULATION
+# ============================================================
+
+function acc_calculateBonus(typeId: text, rarity: text) :: number:
+    set {_base} to acc_getTypeBase({_typeId})
+    set {_mult} to acc_getRarityMultiplier({_rarity})
+    return {_base} * {_mult}
+
+
+function acc_getAccessoryEffectValue(encoded: text, stat: text) :: number:
+    set {_parts::*} to acc_parseAccessory({_encoded})
+    set {_type} to {_parts::1}
+    set {_rarity} to {_parts::2}
+    
+    set {_accStat} to acc_getTypeStat({_type})
+    if {_accStat} != {_stat}:
+        return 0
+    
+    return acc_calculateBonus({_type}, {_rarity}) / 100
+
+
+# ============================================================
+# STAT DISPLAY
+# ============================================================
+
+function acc_formatStatName(stat: text) :: text:
+    if {_stat} is "mining_speed":
+        return "Mining Speed"
+    if {_stat} is "drops":
+        return "Drop Rate"
+    if {_stat} is "xp":
+        return "XP Boost"
+    if {_stat} is "token":
+        return "Token Boost"
+    if {_stat} is "enchant_proc":
+        return "Enchant Proc"
+    return {_stat}

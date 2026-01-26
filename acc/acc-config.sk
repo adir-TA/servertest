@@ -1,0 +1,156 @@
+# ============================================================
+# ACCESSORY SYSTEM - CONFIGURATION
+# ============================================================
+# Tiers: Basic, Advanced, Ultra, Divine, Mythic (5 tiers like pets)
+# Rarities: Common, Uncommon, Rare, Epic, Legendary
+# ============================================================
+
+on script load:
+    acc_initConfig()
+
+function acc_initConfig():
+    # ════════════════════════════════════════
+    # TIER DEFINITIONS (5 tiers like pets)
+    # ════════════════════════════════════════
+    
+    set {-acc::tier::basic::name} to "Basic"
+    set {-acc::tier::basic::color} to "&7"
+    set {-acc::tier::basic::rank} to 1
+    
+    set {-acc::tier::advanced::name} to "Advanced"
+    set {-acc::tier::advanced::color} to "&a"
+    set {-acc::tier::advanced::rank} to 2
+    
+    set {-acc::tier::ultra::name} to "Ultra"
+    set {-acc::tier::ultra::color} to "&b"
+    set {-acc::tier::ultra::rank} to 3
+    
+    set {-acc::tier::divine::name} to "Divine"
+    set {-acc::tier::divine::color} to "&6"
+    set {-acc::tier::divine::rank} to 4
+    
+    set {-acc::tier::mythic::name} to "Mythic"
+    set {-acc::tier::mythic::color} to "&d"
+    set {-acc::tier::mythic::rank} to 5
+    
+    # ════════════════════════════════════════
+    # RARITY DEFINITIONS (matches pets)
+    # ════════════════════════════════════════
+    
+    set {-acc::rarity::common::name} to "Common"
+    set {-acc::rarity::common::multiplier} to 1.0
+    set {-acc::rarity::common::color} to "&f"
+    set {-acc::rarity::common::rank} to 1
+    
+    set {-acc::rarity::uncommon::name} to "Uncommon"
+    set {-acc::rarity::uncommon::multiplier} to 1.5
+    set {-acc::rarity::uncommon::color} to "&a"
+    set {-acc::rarity::uncommon::rank} to 2
+    
+    set {-acc::rarity::rare::name} to "Rare"
+    set {-acc::rarity::rare::multiplier} to 2.25
+    set {-acc::rarity::rare::color} to "&9"
+    set {-acc::rarity::rare::rank} to 3
+    
+    set {-acc::rarity::epic::name} to "Epic"
+    set {-acc::rarity::epic::multiplier} to 3.5
+    set {-acc::rarity::epic::color} to "&5"
+    set {-acc::rarity::epic::rank} to 4
+    
+    set {-acc::rarity::legendary::name} to "Legendary"
+    set {-acc::rarity::legendary::multiplier} to 5.5
+    set {-acc::rarity::legendary::color} to "&6"
+    set {-acc::rarity::legendary::rank} to 5
+    
+    # ════════════════════════════════════════
+    # SLOT CONFIGURATION
+    # ════════════════════════════════════════
+    
+    set {-acc::slots::base} to 1
+    set {-acc::slots::max} to 5
+    
+    # Slot unlock requirements (prestige, cost)
+    set {-acc::slot::2::prestige} to 1
+    set {-acc::slot::2::cost} to 5000
+    set {-acc::slot::3::prestige} to 3
+    set {-acc::slot::3::cost} to 25000
+    set {-acc::slot::4::prestige} to 5
+    set {-acc::slot::4::cost} to 100000
+    set {-acc::slot::5::prestige} to 10
+    set {-acc::slot::5::cost} to 500000
+    
+    # ════════════════════════════════════════
+    # STORAGE CONFIGURATION
+    # ════════════════════════════════════════
+    
+    set {-acc::storage::max} to 100
+    
+    # ════════════════════════════════════════
+    # SALVAGE VALUES (tokens)
+    # ════════════════════════════════════════
+    
+    set {-acc::salvage::common} to 10
+    set {-acc::salvage::uncommon} to 25
+    set {-acc::salvage::rare} to 75
+    set {-acc::salvage::epic} to 200
+    set {-acc::salvage::legendary} to 500
+
+
+# ============================================================
+# CONFIG GETTERS
+# ============================================================
+
+function acc_getTierName(tier: text) :: text:
+    return {-acc::tier::%{_tier}%::name} ? {_tier}
+
+function acc_getTierColor(tier: text) :: text:
+    return {-acc::tier::%{_tier}%::color} ? "&7"
+
+function acc_getTierRank(tier: text) :: number:
+    return {-acc::tier::%{_tier}%::rank} ? 1
+
+function acc_getRarityName(rarity: text) :: text:
+    return {-acc::rarity::%{_rarity}%::name} ? {_rarity}
+
+function acc_getRarityMultiplier(rarity: text) :: number:
+    return {-acc::rarity::%{_rarity}%::multiplier} ? 1
+
+function acc_getRarityColor(rarity: text) :: text:
+    return {-acc::rarity::%{_rarity}%::color} ? "&f"
+
+function acc_getRarityRank(rarity: text) :: number:
+    return {-acc::rarity::%{_rarity}%::rank} ? 1
+
+function acc_getSlotsBase() :: number:
+    return {-acc::slots::base} ? 1
+
+function acc_getSlotsMax() :: number:
+    return {-acc::slots::max} ? 5
+
+function acc_getSlotPrestigeReq(slot: number) :: number:
+    return {-acc::slot::%{_slot}%::prestige} ? 0
+
+function acc_getSlotCost(slot: number) :: number:
+    return {-acc::slot::%{_slot}%::cost} ? 0
+
+function acc_getStorageMax() :: number:
+    return {-acc::storage::max} ? 100
+
+function acc_getSalvageValue(rarity: text) :: number:
+    return {-acc::salvage::%{_rarity}%} ? 10
+
+function acc_getAllTiers() :: texts:
+    return "basic", "advanced", "ultra", "divine" and "mythic"
+
+function acc_isValidTier(tier: text) :: boolean:
+    if {_tier} is "basic":
+        return true
+    if {_tier} is "advanced":
+        return true
+    if {_tier} is "ultra":
+        return true
+    if {_tier} is "divine":
+        return true
+    if {_tier} is "mythic":
+        return true
+    return false

@@ -1,0 +1,361 @@
+# ============================================================
+# ARMOR CORE SYSTEM
+# ============================================================
+#
+# Data Structure:
+#   {data::armor::%uuid%::owned::%piece%::%tier%} = true (player owns this)
+#   {data::armor::%uuid%::equipped::%piece%} = tier (currently wearing, 0 = none)
+#
+# ============================================================
+
+on script load:
+    armor_registerAll()
+
+
+function armor_registerAll():
+    armor_clearRegistry()
+    
+    armor_registerTier(1, 0.04, 0.09)
+    armor_registerTier(2, 0.07, 0.12)
+    armor_registerTier(3, 0.10, 0.15)
+    armor_registerTier(4, 0.14, 0.19)
+    armor_registerTier(5, 0.18, 0.28)
+    
+    armor_registerPiece("helmet", 128)
+    armor_registerPiece("chestplate", 512)
+    armor_registerPiece("leggings", 256)
+    armor_registerPiece("boots", 64)
+
+
+function armor_clearRegistry():
+    delete {-dataArmor::*}
+
+
+function armor_registerTier(tier: integer, xpBonus: number, setBonus: number):
+    set {-dataArmor::tiers::%{_tier}%::xpBonus} to {_xpBonus}
+    set {-dataArmor::tiers::%{_tier}%::setBonus} to {_setBonus}
+    add {_tier} to {-dataArmor::tiers::list::*}
+
+
+function armor_registerPiece(piece: string, cost: integer):
+    set {-dataArmor::pieces::%{_piece}%::cost} to {_cost}
+    add {_piece} to {-dataArmor::pieces::list::*}
+
+
+# ============================================================
+# REGISTRY GETTERS
+# ============================================================
+
+function armor_getXPBonus(tier: integer) :: number:
+    return {-dataArmor::tiers::%{_tier}%::xpBonus} ? 0
+
+function armor_getSetBonus(tier: integer) :: number:
+    return {-dataArmor::tiers::%{_tier}%::setBonus} ? 0
+
+function armor_getPieceCost(piece: string) :: integer:
+    return {-dataArmor::pieces::%{_piece}%::cost} ? 0
+
+function armor_getAllPieces() :: strings:
+    return {-dataArmor::pieces::list::*}
+
+function armor_getAllTiers() :: integers:
+    return {-dataArmor::tiers::list::*}
+
+
+# ============================================================
+# OWNERSHIP
+# ============================================================
+
+function armor_ownsArmor(p: player, piece: string, tier: integer) :: boolean:
+    if {data::armor::%{_p}'s uuid%::owned::%{_piece}%::%{_tier}%} is true:
+        return true
+    return false
+
+function armor_setOwned(p: player, piece: string, tier: integer, owns: boolean):
+    set {data::armor::%{_p}'s uuid%::owned::%{_piece}%::%{_tier}%} to {_owns}
+
+function armor_getOwnedTiers(p: player, piece: string) :: integers:
+    loop armor_getAllTiers():
+        if armor_ownsArmor({_p}, {_piece}, loop-value) = true:
+            add loop-value to {_owned::*}
+    return {_owned::*}
+
+
+# ============================================================
+# EQUIPPED
+# ============================================================
+
+function armor_getEquipped(p: player, piece: string) :: integer:
+    return {data::armor::%{_p}'s uuid%::equipped::%{_piece}%} ? 0
+
+function armor_setEquipped(p: player, piece: string, tier: integer):
+    if {_tier} <= 0:
+        delete {data::armor::%{_p}'s uuid%::equipped::%{_piece}%}
+    else:
+        set {data::armor::%{_p}'s uuid%::equipped::%{_piece}%} to {_tier}
+    
+    multiplier_recalculate({_p})
+
+
+# ============================================================
+# EQUIP / UNEQUIP
+# ============================================================
+
+function armor_equip(p: player, piece: string, tier: integer):
+    if armor_ownsArmor({_p}, {_piece}, {_tier}) = false:
+        stop
+    
+    armor_setEquipped({_p}, {_piece}, {_tier})
+    armor_applyVisual({_p}, {_piece}, {_tier})
+
+
+function armor_unequip(p: player, piece: string):
+    armor_setEquipped({_p}, {_piece}, 0)
+    armor_removeVisual({_p}, {_piece})
+
+
+# ============================================================
+# VISUAL ARMOR ON PLAYER
+# ============================================================
+
+function armor_applyVisual(p: player, piece: string, tier: integer):
+    set {_item} to armor_getLeatherItem({_piece}, {_tier})
+    
+    # Make unbreakable + hide attributes
+    set {_nbt} to nbt of {_item}
+    set byte tag "Unbreakable" of {_nbt} to 1
+    set int tag "HideFlags" of {_nbt} to 255
+    set {_item} to {_item} with nbt {_nbt}
+    
+    if {_piece} = "helmet":
+        set helmet of {_p} to {_item}
+    else if {_piece} = "chestplate":
+        set chestplate of {_p} to {_item}
+    else if {_piece} = "leggings":
+        set leggings of {_p} to {_item}
+    else if {_piece} = "boots":
+        set boots of {_p} to {_item}
+
+
+function armor_removeVisual(p: player, piece: string):
+    if {_piece} = "helmet":
+        set helmet of {_p} to air
+    else if {_piece} = "chestplate":
+        set chestplate of {_p} to air
+    else if {_piece} = "leggings":
+        set leggings of {_p} to air
+    else if {_piece} = "boots":
+        set boots of {_p} to air
+
+
+function armor_applyAllVisuals(p: player):
+    loop armor_getAllPieces():
+        set {_piece} to loop-value
+        set {_tier} to armor_getEquipped({_p}, {_piece})
+        if {_tier} > 0:
+            armor_applyVisual({_p}, {_piece}, {_tier})
+        else:
+            armor_removeVisual({_p}, {_piece})
+
+
+# ============================================================
+# CRAFTING
+# ============================================================
+
+function armor_canCraft(p: player, piece: string, tier: integer) :: boolean:
+    set {_cost} to armor_getPieceCost({_piece})
+    if gem_hasGems({_p}, {_tier}, {_cost}) = true:
+        return true
+    return false
+
+function armor_craft(p: player, piece: string, tier: integer) :: boolean:
+    set {_cost} to armor_getPieceCost({_piece})
+    
+    if gem_hasGems({_p}, {_tier}, {_cost}) = false:
+        return false
+    
+    gem_removeGems({_p}, {_tier}, {_cost})
+    armor_setOwned({_p}, {_piece}, {_tier}, true)
+    
+    return true
+
+
+# ============================================================
+# BONUS CALCULATIONS
+# ============================================================
+
+function armor_getTotalBonus(p: player, type: string) :: number:
+    if {_type} != "xp":
+        return 0
+    
+    set {_totalBonus} to 0
+    set {_equippedCount} to 0
+    set {_firstTier} to 0
+    set {_allMatch} to true
+    
+    loop armor_getAllPieces():
+        set {_piece} to loop-value
+        set {_tier} to armor_getEquipped({_p}, {_piece})
+        
+        if {_tier} > 0:
+            add 1 to {_equippedCount}
+            add armor_getXPBonus({_tier}) to {_totalBonus}
+            
+            if {_firstTier} = 0:
+                set {_firstTier} to {_tier}
+            else if {_tier} != {_firstTier}:
+                set {_allMatch} to false
+    
+    if {_equippedCount} = 4:
+        if {_allMatch} = true:
+            add armor_getSetBonus({_firstTier}) to {_totalBonus}
+    
+    return {_totalBonus}
+
+
+function armor_getEquippedCountForTier(p: player, tier: integer) :: integer:
+    set {_count} to 0
+    loop armor_getAllPieces():
+        if armor_getEquipped({_p}, loop-value) = {_tier}:
+            add 1 to {_count}
+    return {_count}
+
+
+function armor_getFullSetTier(p: player) :: integer:
+    set {_firstTier} to 0
+    set {_count} to 0
+    
+    loop armor_getAllPieces():
+        set {_tier} to armor_getEquipped({_p}, loop-value)
+        if {_tier} > 0:
+            add 1 to {_count}
+            if {_firstTier} = 0:
+                set {_firstTier} to {_tier}
+            else if {_tier} != {_firstTier}:
+                return 0
+    
+    if {_count} = 4:
+        return {_firstTier}
+    return 0
+
+
+# ============================================================
+# HELPERS
+# ============================================================
+
+function armor_getPieceName(piece: string) :: string:
+    if {_piece} = "helmet":
+        return "Helmet"
+    if {_piece} = "chestplate":
+        return "Chestplate"
+    if {_piece} = "leggings":
+        return "Leggings"
+    if {_piece} = "boots":
+        return "Boots"
+    return "Unknown"
+
+function armor_getLeatherItem(piece: string, tier: integer) :: item:
+    set {_color} to armor_getDyeColor({_tier})
+    
+    if {_piece} = "helmet":
+        set {_item} to leather helmet
+    else if {_piece} = "chestplate":
+        set {_item} to leather chestplate
+    else if {_piece} = "leggings":
+        set {_item} to leather leggings
+    else:
+        set {_item} to leather boots
+    
+    dye {_item} {_color}
+    return {_item}
+
+function armor_getDyeColor(tier: integer) :: color:
+    if {_tier} = 1:
+        return rgb(85, 170, 85)      # Jade - green
+    if {_tier} = 2:
+        return rgb(255, 170, 0)      # Topaz - gold
+    if {_tier} = 3:
+        return rgb(85, 170, 255)     # Sapphire - blue
+    if {_tier} = 4:
+        return rgb(255, 85, 85)      # Ruby - red
+    if {_tier} = 5:
+        return rgb(170, 85, 255)     # Amethyst - purple
+    return rgb(200, 200, 200)
+
+
+# ============================================================
+# EVENTS
+# ============================================================
+
+on join:
+    armor_applyAllVisuals(player)
+
+on inventory click:
+    if clicked inventory = player's inventory:
+        set {_slot} to index of clicked slot
+        if {_slot} >= 36:
+            if {_slot} <= 39:
+                if {_slot} = 39:
+                    if armor_getEquipped(player, "helmet") > 0:
+                        cancel event
+                        send "&cUse /armor to manage your mining armor!" to player
+                if {_slot} = 38:
+                    if armor_getEquipped(player, "chestplate") > 0:
+                        cancel event
+                        send "&cUse /armor to manage your mining armor!" to player
+                if {_slot} = 37:
+                    if armor_getEquipped(player, "leggings") > 0:
+                        cancel event
+                        send "&cUse /armor to manage your mining armor!" to player
+                if {_slot} = 36:
+                    if armor_getEquipped(player, "boots") > 0:
+                        cancel event
+                        send "&cUse /armor to manage your mining armor!" to player
+
+
+# ============================================================
+# DEBUG COMMAND
+# ============================================================
+
+command /armortest [<text>] [<integer>]:
+    permission: op
+    trigger:
+        if arg-1 = "give":
+            if arg-2 is set:
+                armor_setOwned(player, "helmet", arg-2, true)
+                armor_setOwned(player, "chestplate", arg-2, true)
+                armor_setOwned(player, "leggings", arg-2, true)
+                armor_setOwned(player, "boots", arg-2, true)
+                send "&aGave ownership of tier %arg-2% armor!" to player
+            else:
+                send "&cUsage: /armortest give <tier>" to player
+            stop
+        
+        if arg-1 = "check":
+            if arg-2 is set:
+                send "&7Helmet: %armor_ownsArmor(player, ""helmet"", arg-2)%" to player
+                send "&7Chestplate: %armor_ownsArmor(player, ""chestplate"", arg-2)%" to player
+                send "&7Leggings: %armor_ownsArmor(player, ""leggings"", arg-2)%" to player
+                send "&7Boots: %armor_ownsArmor(player, ""boots"", arg-2)%" to player
+            stop
+        
+        if arg-1 = "equip":
+            if arg-2 is set:
+                armor_equip(player, "helmet", arg-2)
+                armor_equip(player, "chestplate", arg-2)
+                armor_equip(player, "leggings", arg-2)
+                armor_equip(player, "boots", arg-2)
+            stop
+        
+        if arg-1 = "clear":
+            armor_unequip(player, "helmet")
+            armor_unequip(player, "chestplate")
+            armor_unequip(player, "leggings")
+            armor_unequip(player, "boots")
+            send "&cCleared equipped armor!" to player
+            stop
+        
+        send "&e/armortest give <tier>" to player
+        send "&e/armortest check <tier>" to player
+        send "&e/armortest equip <tier>" to player
+        send "&e/armortest clear" to player

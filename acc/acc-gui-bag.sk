@@ -1,0 +1,291 @@
+# ============================================================
+# ACCESSORY SYSTEM - BAG GUI
+# ============================================================
+# Matches pet menu design
+# Row 1: Equipped slots (1-5)
+# Row 6: Controls
+# ============================================================
+
+command /accessories:
+    aliases: /acc, /accessory
+    trigger:
+        acc_openBagGui(player)
+
+
+function acc_openBagGui(p: player):
+    set {_uuid} to {_p}'s uuid
+    set {_menu} to chest inventory with 6 rows named "&6&lAccessories"
+    
+    # Fill with glass
+    set {_filler} to black stained glass pane named "&1"
+    loop 54 times:
+        set slot loop-number - 1 of {_menu} to {_filler}
+    
+    # ════════════════════════════════════════
+    # ROW 1: EQUIPPED SLOTS (slots 2-6)
+    # ════════════════════════════════════════
+    
+    set {_unlockedSlots} to acc_getUnlockedSlots({_p})
+    
+    loop 5 times:
+        set {_slotNum} to loop-number
+        set {_guiSlot} to loop-number + 1
+        
+        if {_slotNum} <= {_unlockedSlots}:
+            # Slot is unlocked
+            set {_encoded} to acc_getBagSlot({_p}, {_slotNum})
+            
+            if {_encoded} is set:
+                if {_encoded} is not "":
+                    # Has accessory equipped
+                    set {_item} to acc_createEquippedItem({_p}, {_encoded}, {_slotNum})
+                    set slot {_guiSlot} of {_menu} to {_item}
+                else:
+                    # Empty unlocked slot
+                    set {_empty} to lime stained glass pane named "&a✦ Empty Slot"
+                    delete {_emptyLore::*}
+                    add "&8ᴀᴄᴄᴇssᴏʀʏ sʟᴏᴛ" to {_emptyLore::*}
+                    add "" to {_emptyLore::*}
+                    add "&7Slot &f#%{_slotNum}%" to {_emptyLore::*}
+                    add "" to {_emptyLore::*}
+                    add "&7Equip an accessory from" to {_emptyLore::*}
+                    add "&7your storage below!" to {_emptyLore::*}
+                    add "" to {_emptyLore::*}
+                    add "&eClick to select" to {_emptyLore::*}
+                    set lore of {_empty} to {_emptyLore::*}
+                    set int tag "acc;emptyslot" of custom nbt of {_empty} to {_slotNum}
+                    set slot {_guiSlot} of {_menu} to {_empty}
+            else:
+                # Empty unlocked slot
+                set {_empty} to lime stained glass pane named "&a✦ Empty Slot"
+                delete {_emptyLore::*}
+                add "&8ᴀᴄᴄᴇssᴏʀʏ sʟᴏᴛ" to {_emptyLore::*}
+                add "" to {_emptyLore::*}
+                add "&7Slot &f#%{_slotNum}%" to {_emptyLore::*}
+                add "" to {_emptyLore::*}
+                add "&7Equip an accessory from" to {_emptyLore::*}
+                add "&7your storage below!" to {_emptyLore::*}
+                add "" to {_emptyLore::*}
+                add "&eClick to select" to {_emptyLore::*}
+                set lore of {_empty} to {_emptyLore::*}
+                set int tag "acc;emptyslot" of custom nbt of {_empty} to {_slotNum}
+                set slot {_guiSlot} of {_menu} to {_empty}
+        else:
+            # Slot is locked
+            set {_locked} to red stained glass pane named "&c🔒 Locked Slot %{_slotNum}%"
+            set {_prestigeReq} to acc_getSlotPrestigeReq({_slotNum})
+            set {_cost} to acc_getSlotCost({_slotNum})
+            
+            delete {_lockedLore::*}
+            add "&8ᴀᴄᴄᴇssᴏʀʏ sʟᴏᴛ" to {_lockedLore::*}
+            add "" to {_lockedLore::*}
+            add "&7Unlock this slot to equip" to {_lockedLore::*}
+            add "&7more accessories!" to {_lockedLore::*}
+            add "" to {_lockedLore::*}
+            add "&6Requirements:" to {_lockedLore::*}
+            
+            # Check prestige requirement
+            if acc_meetsSlotPrestigeReq({_p}, {_slotNum}) is true:
+                add "&a  ✔ &7All prestiges ≥ %{_prestigeReq}%" to {_lockedLore::*}
+            else:
+                add "&c  ✖ &7All prestiges ≥ %{_prestigeReq}%" to {_lockedLore::*}
+            
+            # Check money requirement
+            set {_balance} to {data::balance::%{_uuid}%} ? 0
+            if {_balance} >= {_cost}:
+                add "&a  ✔ &7$%{_cost}%" to {_lockedLore::*}
+            else:
+                add "&c  ✖ &7$%{_cost}%" to {_lockedLore::*}
+            
+            add "" to {_lockedLore::*}
+            
+            # Can unlock?
+            if acc_canUnlockSlot({_p}, {_slotNum}) is true:
+                add "&a▶ Click to unlock!" to {_lockedLore::*}
+                set string tag "acc;action" of custom nbt of {_locked} to "unlock_slot"
+            else:
+                add "&c▶ Requirements not met" to {_lockedLore::*}
+            
+            set lore of {_locked} to {_lockedLore::*}
+            set slot {_guiSlot} of {_menu} to {_locked}
+    
+    # ════════════════════════════════════════
+    # ROWS 2-5: INFO & BONUSES
+    # ════════════════════════════════════════
+    
+    # Active bonuses display
+    set {_bonusItem} to book named "&dActive Bonuses"
+    delete {_bonusLore::*}
+    add "&8ᴀᴄᴄᴇssᴏʀɪᴇs" to {_bonusLore::*}
+    add "" to {_bonusLore::*}
+    
+    set {_hasBonus} to false
+    loop "mining_speed", "drops", "xp", "token" and "enchant_proc":
+        set {_stat} to loop-value
+        set {_bonus} to acc_getTotalBonus({_p}, {_stat})
+        if {_bonus} > 0:
+            set {_bonusPercent} to {_bonus} * 100
+            set {_statName} to acc_formatStatName({_stat})
+            add " &a+%{_bonusPercent}%%% &f%{_statName}%" to {_bonusLore::*}
+            set {_hasBonus} to true
+    
+    if {_hasBonus} is false:
+        add " &8No accessories equipped" to {_bonusLore::*}
+    
+    set lore of {_bonusItem} to {_bonusLore::*}
+    set slot 22 of {_menu} to {_bonusItem}
+    
+    # ════════════════════════════════════════
+    # ROW 6: CONTROLS
+    # ════════════════════════════════════════
+    
+    # Storage - Slot 47
+    set {_storageSize} to acc_getInventorySize({_p})
+    set {_storageMax} to acc_getStorageMax()
+    set {_storage} to chest named "&e&lAccessory Storage"
+    delete {_storageLore::*}
+    add "&8ᴍᴇɴᴜ" to {_storageLore::*}
+    add "" to {_storageLore::*}
+    add "&7View your stored accessories" to {_storageLore::*}
+    add "&7and equip them." to {_storageLore::*}
+    add "" to {_storageLore::*}
+    add "&7Stored: &8[&a%{_storageSize}%&8/&c%{_storageMax}%&8]" to {_storageLore::*}
+    add "" to {_storageLore::*}
+    add "&eClick to open" to {_storageLore::*}
+    set lore of {_storage} to {_storageLore::*}
+    set string tag "acc;action" of custom nbt of {_storage} to "storage"
+    set slot 47 of {_menu} to {_storage}
+    
+    # Treasure Chests - Slot 51
+    set {_totalKeys} to acc_getTotalTierKeys({_p})
+    set {_chests} to ender chest named "&d&lTreasure Chests"
+    delete {_chestsLore::*}
+    add "&8ᴍᴇɴᴜ" to {_chestsLore::*}
+    add "" to {_chestsLore::*}
+    add "&7Open treasure chests to" to {_chestsLore::*}
+    add "&7obtain new accessories!" to {_chestsLore::*}
+    add "" to {_chestsLore::*}
+    add "&7Your Keys: &e%{_totalKeys}%" to {_chestsLore::*}
+    add "" to {_chestsLore::*}
+    add "&eClick to open" to {_chestsLore::*}
+    set lore of {_chests} to {_chestsLore::*}
+    set string tag "acc;action" of custom nbt of {_chests} to "chests"
+    set slot 51 of {_menu} to {_chests}
+    
+    # Close - Slot 53
+    set {_close} to barrier named "&c&lClose"
+    set lore of {_close} to "&8ᴍᴇɴᴜ"
+    set string tag "acc;action" of custom nbt of {_close} to "close"
+    set slot 53 of {_menu} to {_close}
+    
+    open {_menu} to {_p}
+    set {-acc::menu::%{_uuid}%} to "ACC_BAG"
+
+
+# ============================================================
+# EQUIPPED ITEM BUILDER
+# ============================================================
+
+function acc_createEquippedItem(p: player, encoded: text, slot: number) :: item:
+    set {_parts::*} to acc_parseAccessory({_encoded})
+    set {_type} to {_parts::1}
+    set {_rarity} to {_parts::2}
+    
+    set {_name} to acc_getTypeName({_type})
+    set {_icon} to acc_getTypeIcon({_type})
+    set {_tier} to acc_getTypeTier({_type})
+    set {_stat} to acc_getTypeStat({_type})
+    set {_tierName} to acc_getTierName({_tier})
+    set {_tierColor} to acc_getTierColor({_tier})
+    set {_rarityName} to acc_getRarityName({_rarity})
+    set {_rarityColor} to acc_getRarityColor({_rarity})
+    
+    set {_item} to {_icon}
+    set name of {_item} to "%{_rarityColor}%%{_name}%"
+    
+    delete {_lore::*}
+    add "&8ᴀᴄᴄᴇssᴏʀʏ" to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Tier: %{_tierColor}%%{_tierName}%" to {_lore::*}
+    add "&7Rarity: %{_rarityColor}%%{_rarityName}%" to {_lore::*}
+    add "" to {_lore::*}
+    
+    set {_bonus} to acc_calculateBonus({_type}, {_rarity})
+    set {_statName} to acc_formatStatName({_stat})
+    add "&a+%{_bonus}%%% &f%{_statName}%" to {_lore::*}
+    add "" to {_lore::*}
+    add "&eClick to unequip" to {_lore::*}
+    
+    set lore of {_item} to {_lore::*}
+    set int tag "acc;bagslot" of custom nbt of {_item} to {_slot}
+    set string tag "acc;encoded" of custom nbt of {_item} to {_encoded}
+    
+    return {_item}
+
+
+# ============================================================
+# CLICK HANDLER
+# ============================================================
+
+on inventory click:
+    set {_uuid} to player's uuid
+    
+    if {-acc::menu::%{_uuid}%} is "ACC_BAG":
+        cancel event
+        
+        set {_nbt} to custom nbt of clicked slot
+        set {_action} to string tag "acc;action" of {_nbt}
+        
+        # Actions
+        if {_action} is "close":
+            close inventory of player
+            stop
+        
+        if {_action} is "storage":
+            play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+            acc_openInventoryGui(player, 1)
+            stop
+        
+        if {_action} is "chests":
+            play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+            acc_openChestsGui(player)
+            stop
+        
+        if {_action} is "unlock_slot":
+            if acc_unlockSlot(player) is true:
+                play sound "entity.player.levelup" with volume 0.8 and pitch 1.2 to player
+                send "&aSlot unlocked!" to player
+            else:
+                play sound "entity.villager.no" with volume 0.5 and pitch 1 to player
+            acc_openBagGui(player)
+            stop
+        
+        # Empty slot - go to storage to select
+        set {_emptySlot} to int tag "acc;emptyslot" of {_nbt}
+        if {_emptySlot} is set:
+            play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+            set {-acc::equipTarget::%{_uuid}%} to {_emptySlot}
+            acc_openInventoryGui(player, 1)
+            stop
+        
+        # Equipped accessory - unequip
+        set {_bagSlot} to int tag "acc;bagslot" of {_nbt}
+        if {_bagSlot} is set:
+            if acc_unequipFromBag(player, {_bagSlot}) is true:
+                play sound "item.armor.unequip_leather" with volume 0.8 and pitch 1 to player
+                send "&eAccessory unequipped!" to player
+                acc_openBagGui(player)
+            else:
+                play sound "entity.villager.no" with volume 0.5 and pitch 1 to player
+                send "&cStorage full! Can't unequip." to player
+            stop
+
+
+on inventory close:
+    set {_uuid} to player's uuid
+    if {-acc::menu::%{_uuid}%} is set:
+        if {-acc::menu::%{_uuid}%} contains "ACC_":
+            delete {-acc::menu::%{_uuid}%}
+            delete {-acc::menu::%{_uuid}%::page}
+            delete {-acc::menu::%{_uuid}%::sort}
+            delete {-acc::equipTarget::%{_uuid}%}

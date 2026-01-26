@@ -1,0 +1,3 @@
+
+on join:
+    menu_deleteSession(player)
