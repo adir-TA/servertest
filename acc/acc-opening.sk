@@ -1,391 +1,20 @@
 # ============================================================
-# ACCESSORY SYSTEM - TREASURE OPENING ANIMATION
+# ACCESSORY SYSTEM - TREASURE OPENING
 # ============================================================
-# Epic chest opening animation with orbiting items
-# Supports opening 1, 3, or 5 at once
-# Supports 5 tiers: Basic, Advanced, Ultra, Divine, Mythic
+# Redirects to main animation in acc-altar.sk
+# Test command for debugging
 # ============================================================
 
+# Legacy function - redirects to altar animation
 function acc_openTreasures(p: player, tier: text, amount: integer):
-    if {-acc::opening::%{_p}'s uuid%} is set:
-        send "&cAlready opening treasures!" to {_p}
-        stop
-    
-    # Check keys
-    set {_hasKeys} to acc_getKeyCount({_p}, {_tier})
-    if {_hasKeys} < {_amount}:
-        send "&cYou need %{_amount}% keys! You have %{_hasKeys}%." to {_p}
-        stop
-    
-    # Use keys
-    loop {_amount} times:
-        acc_useKey({_p}, {_tier})
-    
-    set {-acc::opening::%{_p}'s uuid%} to true
-    
-    # Get tier info
-    set {_color} to acc_getTreasureColor({_tier})
-    set {_tierName} to acc_getTreasureName({_tier})
-    set {_dustColor} to acc_getOpenDustColor({_tier})
-
-    # Roll all rewards upfront
-    loop {_amount} times:
-        set {_rarity::%loop-number%} to acc_rollRarity({_tier})
-        set {_type::%loop-number%} to acc_rollType({_tier})
-        set {_encoded::%loop-number%} to acc_encodeAccessory({_type::%loop-number%}, {_rarity::%loop-number%})
-        set {_icon::%loop-number%} to acc_getTypeIcon({_type::%loop-number%})
-    
-    # Position above player
-    set {_playerLoc} to {_p}'s location
-    set {_cx} to x-coord of {_playerLoc}
-    set {_cy} to y-coord of {_playerLoc} + 2.0
-    set {_cz} to z-coord of {_playerLoc}
-    set {_world} to world of {_playerLoc}
-    set {_center} to location({_cx}, {_cy}, {_cz}, {_world})
-    
-    # Generate IDs
-    loop 5 times:
-        set {_itemIds::%loop-number%} to random integer between 100000 and 999999
-        set {_textIds::%loop-number%} to random integer between 100000 and 999999
-    set {_centerOrbId} to random integer between 100000 and 999999
-    
-    # ══════════════════════════════════════════════════════════════
-    # PHASE 1: ENERGY GATHERING (1.5 seconds)
-    # ══════════════════════════════════════════════════════════════
-    
-    play sound "block.beacon.activate" with volume 0.8 and pitch 1.5 to {_p}
-    play sound "block.portal.ambient" with volume 0.4 and pitch 1.8 to {_p}
-    
-    # Center orb
-    set {_orbItem} to nether star with nbt from "{""minecraft:attribute_modifiers"":{modifiers:[],show_in_tooltip:0}}"
-    
-    spawn fake item display at {_center} for {_p} with id {_centerOrbId}
-    set {_m} to new metadata packet with id {_centerOrbId}:
-        display item: {_orbItem}
-        display billboard: center
-        display brightness block: 15
-        display scale: vector(0.01, 0.01, 0.01)
-        display teleportduration: 1
-    send packet {_m} to {_p}
-    
-    wait 1 tick
-    
-    # Center orb grows
-    set {_m} to new metadata packet with id {_centerOrbId}:
-        display scale: vector(0.6, 0.6, 0.6)
-        display transformation: 5
-        display interpolation: 0
-    send packet {_m} to {_p}
-    
-    # Energy particles gathering
-    loop 10 times:
-        set {_gatherAngle} to random number between 0 and 360
-        set {_gatherRad} to {_gatherAngle} * 0.0174533
-        set {_gatherDist} to random number between 1.5 and 2.5
-        set {_gatherX} to {_cx} + ({_gatherDist} * cos({_gatherRad}))
-        set {_gatherZ} to {_cz} + ({_gatherDist} * sin({_gatherRad}))
-        set {_gatherY} to {_cy} + (random number between -0.5 and 0.5)
-        
-        draw 3 of dust using {_dustColor} at location({_gatherX}, {_gatherY}, {_gatherZ}, {_world}) with offset vector(0.1, 0.1, 0.1) for {_p}
-        
-        wait 2 ticks
-    
-    # ══════════════════════════════════════════════════════════════
-    # PHASE 2: ITEMS SPAWN AND ORBIT (1 second)
-    # ══════════════════════════════════════════════════════════════
-    
-    play sound "entity.allay.item_given" with volume 1 and pitch 1.2 to {_p}
-    
-    set {_orbitRadius} to 1.2
-    set {_angleStep} to 360 / {_amount}
-    
-    # Spawn items
-    loop {_amount} times:
-        set {_spawnAngle} to (loop-number - 1) * {_angleStep}
-        set {_spawnRad} to {_spawnAngle} * 0.0174533
-        set {_spawnX} to {_cx} + ({_orbitRadius} * cos({_spawnRad}))
-        set {_spawnZ} to {_cz} + ({_orbitRadius} * sin({_spawnRad}))
-        set {_spawnPos} to location({_spawnX}, {_cy}, {_spawnZ}, {_world})
-        
-        spawn fake item display at {_spawnPos} for {_p} with id {_itemIds::%loop-number%}
-        set {_m} to new metadata packet with id {_itemIds::%loop-number%}:
-            display item: {_icon::%loop-number%}
-            display billboard: center
-            display brightness block: 15
-            display scale: vector(0.01, 0.01, 0.01)
-            display teleportduration: 1
-        send packet {_m} to {_p}
-    
-    wait 1 tick
-    
-    # Items grow
-    loop {_amount} times:
-        set {_m} to new metadata packet with id {_itemIds::%loop-number%}:
-            display scale: vector(0.5, 0.5, 0.5)
-            display transformation: 3
-            display interpolation: 0
-        send packet {_m} to {_p}
-    
-    # Shrink center orb
-    set {_m} to new metadata packet with id {_centerOrbId}:
-        display scale: vector(0.3, 0.3, 0.3)
-        display transformation: 4
-        display interpolation: 0
-    send packet {_m} to {_p}
-    
-    wait 10 ticks
-    
-    # ══════════════════════════════════════════════════════════════
-    # PHASE 3: SLOW ORBIT (2 seconds)
-    # ══════════════════════════════════════════════════════════════
-    
-    play sound "block.amethyst_block.chime" with volume 0.6 and pitch 1.0 to {_p}
-    
-    set {_baseAngle} to 0
-    loop 16 times:
-        add 22.5 to {_baseAngle}
-        
-        set {_i} to 1
-        loop {_amount} times:
-            set {_itemAngle} to {_baseAngle} + (({_i} - 1) * {_angleStep})
-            set {_itemRad} to {_itemAngle} * 0.0174533
-            set {_itemX} to {_cx} + ({_orbitRadius} * cos({_itemRad}))
-            set {_itemZ} to {_cz} + ({_orbitRadius} * sin({_itemRad}))
-            
-            send teleport packet with id {_itemIds::%{_i}%} with location location({_itemX}, {_cy}, {_itemZ}, {_world}) to {_p}
-            add 1 to {_i}
-        
-        if mod(loop-number, 4) = 0:
-            draw 5 of dust using {_dustColor} at {_center} with offset vector(0.3, 0.1, 0.3) for {_p}
-        
-        wait 3 ticks
-    
-    # ══════════════════════════════════════════════════════════════
-    # PHASE 4: SPEED UP (2 seconds)
-    # ══════════════════════════════════════════════════════════════
-    
-    play sound "block.beacon.ambient" with volume 0.5 and pitch 1.8 to {_p}
-    
-    # Medium speed
-    loop 20 times:
-        add 36 to {_baseAngle}
-        
-        set {_i} to 1
-        loop {_amount} times:
-            set {_itemAngle} to {_baseAngle} + (({_i} - 1) * {_angleStep})
-            set {_itemRad} to {_itemAngle} * 0.0174533
-            set {_itemX} to {_cx} + ({_orbitRadius} * cos({_itemRad}))
-            set {_itemZ} to {_cz} + ({_orbitRadius} * sin({_itemRad}))
-            
-            send teleport packet with id {_itemIds::%{_i}%} with location location({_itemX}, {_cy}, {_itemZ}, {_world}) to {_p}
-            add 1 to {_i}
-        
-        wait 2 ticks
-    
-    play sound "block.note_block.chime" with volume 0.5 and pitch 1.5 to {_p}
-    
-    # Fast speed - shrinking radius
-    loop 30 times:
-        add 48 to {_baseAngle}
-        set {_currentRadius} to {_orbitRadius} - (loop-number * 0.025)
-        
-        set {_i} to 1
-        loop {_amount} times:
-            set {_itemAngle} to {_baseAngle} + (({_i} - 1) * {_angleStep})
-            set {_itemRad} to {_itemAngle} * 0.0174533
-            set {_itemX} to {_cx} + ({_currentRadius} * cos({_itemRad}))
-            set {_itemZ} to {_cz} + ({_currentRadius} * sin({_itemRad}))
-            
-            send teleport packet with id {_itemIds::%{_i}%} with location location({_itemX}, {_cy}, {_itemZ}, {_world}) to {_p}
-            add 1 to {_i}
-        
-        wait 1 tick
-    
-    # ══════════════════════════════════════════════════════════════
-    # PHASE 5: MERGE TO CENTER (1 second)
-    # ══════════════════════════════════════════════════════════════
-    
-    play sound "entity.firework_rocket.blast" with volume 0.8 and pitch 1.5 to {_p}
-    
-    # All items converge
-    loop {_amount} times:
-        send teleport packet with id {_itemIds::%loop-number%} with location {_center} to {_p}
-        set {_m} to new metadata packet with id {_itemIds::%loop-number%}:
-            display scale: vector(0.01, 0.01, 0.01)
-            display teleportduration: 3
-            display transformation: 3
-            display interpolation: 0
-        send packet {_m} to {_p}
-    
-    # Center orb pulses
-    set {_m} to new metadata packet with id {_centerOrbId}:
-        display scale: vector(0.8, 0.8, 0.8)
-        display transformation: 3
-        display interpolation: 0
-    send packet {_m} to {_p}
-    
-    draw 15 of dust using {_dustColor} at {_center} with offset vector(0.4, 0.4, 0.4) for {_p}
-    
-    wait 8 ticks
-    
-    # Explosion effect
-    play sound "entity.generic.explode" with volume 0.6 and pitch 1.8 to {_p}
-    draw 25 of dust using {_dustColor} at {_center} with offset vector(0.8, 0.8, 0.8) for {_p}
-    
-    # Remove center orb
-    set {_m} to new metadata packet with id {_centerOrbId}:
-        display scale: vector(0.01, 0.01, 0.01)
-        display transformation: 2
-        display interpolation: 0
-    send packet {_m} to {_p}
-    
-    wait 3 ticks
-    remove fake entity with id {_centerOrbId} for {_p}
-    
-    # ══════════════════════════════════════════════════════════════
-    # PHASE 6: DRAMATIC REVEAL (1.5 seconds)
-    # ══════════════════════════════════════════════════════════════
-    
-    play sound "ui.toast.challenge_complete" with volume 0.8 and pitch 1.2 to {_p}
-    play sound "entity.player.levelup" with volume 1 and pitch 1 to {_p}
-    
-    set {_revealRadius} to 0.8
-    set {_revealY} to {_cy} + 0.3
-    
-    loop {_amount} times:
-        set {_revealAngle} to (loop-number - 1) * {_angleStep}
-        set {_revealRad} to {_revealAngle} * 0.0174533
-        set {_revealX} to {_cx} + ({_revealRadius} * cos({_revealRad}))
-        set {_revealZ} to {_cz} + ({_revealRadius} * sin({_revealRad}))
-        set {_revealPos} to location({_revealX}, {_revealY}, {_revealZ}, {_world})
-        
-        send teleport packet with id {_itemIds::%loop-number%} with location {_revealPos} to {_p}
-        
-        set {_m} to new metadata packet with id {_itemIds::%loop-number%}:
-            display scale: vector(0.7, 0.7, 0.7)
-            display transformation: 4
-            display interpolation: 0
-        send packet {_m} to {_p}
-        
-        # Rarity particles
-        set {_rarityDust} to acc_getOpenRarityDust({_rarity::%loop-number%})
-        draw 8 of dust using {_rarityDust} at {_revealPos} with offset vector(0.2, 0.2, 0.2) for {_p}
-        
-        if {_rarity::%loop-number%} is "legendary":
-            draw 10 of totem of undying at {_revealPos} with offset vector(0.3, 0.3, 0.3) for {_p}
-        else if {_rarity::%loop-number%} is "epic":
-            draw 8 of dragon breath at {_revealPos} with offset vector(0.25, 0.25, 0.25) for {_p}
-    
-    wait 5 ticks
-    
-    # ══════════════════════════════════════════════════════════════
-    # PHASE 7: TEXT DISPLAY (2 seconds)
-    # ══════════════════════════════════════════════════════════════
-    
-    loop {_amount} times:
-        set {_revealAngle} to (loop-number - 1) * {_angleStep}
-        set {_revealRad} to {_revealAngle} * 0.0174533
-        set {_textX} to {_cx} + ({_revealRadius} * cos({_revealRad}))
-        set {_textZ} to {_cz} + ({_revealRadius} * sin({_revealRad}))
-        set {_textPos} to location({_textX}, {_revealY} - 0.4, {_textZ}, {_world})
-        
-        set {_rarityColor} to acc_getRarityColor({_rarity::%loop-number%})
-        set {_rarityName} to acc_getRarityName({_rarity::%loop-number%})
-        
-        spawn fake text display at {_textPos} for {_p} with id {_textIds::%loop-number%}
-        set {_m} to new metadata packet with id {_textIds::%loop-number%}:
-            display text: "%{_rarityColor}%%{_rarityName}%"
-            display billboard: center
-            display scale: vector(0.01, 0.01, 0.01)
-            display brightness block: 15
-            display shadow: true
-            display defaultbackground: false
-            display teleportduration: 1
-        send packet {_m} to {_p}
-        
-        wait 1 tick
-        
-        set {_m} to new metadata packet with id {_textIds::%loop-number%}:
-            display scale: vector(0.7, 0.7, 0.7)
-            display transformation: 3
-            display interpolation: 0
-        send packet {_m} to {_p}
-        
-        play sound "entity.experience_orb.pickup" with volume 0.5 and pitch (1.5 + (loop-number * 0.1)) to {_p}
-        
-        wait 3 ticks
-    
-    wait 25 ticks
-    
-    # ══════════════════════════════════════════════════════════════
-    # PHASE 8: COLLECT TO PLAYER
-    # ══════════════════════════════════════════════════════════════
-    
-    set {_playerLoc} to {_p}'s location
-    set {_px} to x-coord of {_playerLoc}
-    set {_py} to y-coord of {_playerLoc} + 1.0
-    set {_pz} to z-coord of {_playerLoc}
-    set {_collectPos} to location({_px}, {_py}, {_pz}, {_world})
-    
-    # Fade texts
-    loop {_amount} times:
-        set {_m} to new metadata packet with id {_textIds::%loop-number%}:
-            display scale: vector(0.01, 0.01, 0.01)
-            display transformation: 2
-            display interpolation: 0
-        send packet {_m} to {_p}
-    
-    wait 2 ticks
-    
-    # Items fly to player
-    loop {_amount} times:
-        send teleport packet with id {_itemIds::%loop-number%} with location {_collectPos} to {_p}
-        set {_m} to new metadata packet with id {_itemIds::%loop-number%}:
-            display scale: vector(0.01, 0.01, 0.01)
-            display teleportduration: 2
-            display transformation: 2
-            display interpolation: 0
-        send packet {_m} to {_p}
-        
-        play sound "entity.item.pickup" with volume 0.8 and pitch (1.2 + (loop-number * 0.1)) to {_p}
-        
-        # Give accessory
-        acc_addToInventory({_p}, {_encoded::%loop-number%})
-        
-        wait 3 ticks
-    
-    # Final burst
-    draw 10 of dust using {_dustColor} at {_collectPos} with offset vector(0.2, 0.2, 0.2) for {_p}
-    play sound "block.amethyst_block.chime" with volume 0.6 and pitch 1.8 to {_p}
-    
-    wait 2 ticks
-    
-    # Cleanup
-    loop {_amount} times:
-        remove fake entity with id {_itemIds::%loop-number%} for {_p}
-        remove fake entity with id {_textIds::%loop-number%} for {_p}
-    
-    # Chat summary
-    send "" to {_p}
-    send "&6&l★ TREASURES OPENED ★" to {_p}
-    send "%{_color}%%{_tierName}% Chest &7x%{_amount}%" to {_p}
-    send "" to {_p}
-    send "&7You obtained:" to {_p}
-    
-    loop {_amount} times:
-        set {_rarityColor} to acc_getRarityColor({_rarity::%loop-number%})
-        set {_rarityName} to acc_getRarityName({_rarity::%loop-number%})
-        set {_typeName} to acc_getTypeName({_type::%loop-number%})
-        send " %{_rarityColor}%✦ %{_rarityName}% %{_typeName}%" to {_p}
-    
-    send "" to {_p}
-    
-    delete {-acc::opening::%{_p}'s uuid%}
+    # Store player location as altar loc for animation
+    set {-acc::altar::loc::%{_p}'s uuid%} to {_p}'s location
+    acc_playTreasureAnimation({_p}, {_tier}, {_amount})
 
 
-# ══════════════════════════════════════════════════════════════
+# ============================================================
 # HELPER FUNCTIONS (5 tier support)
-# ══════════════════════════════════════════════════════════════
+# ============================================================
 
 function acc_getOpenDustColor(tier: text) :: dustoption:
     if {_tier} is "normal":
@@ -413,28 +42,30 @@ function acc_getOpenRarityDust(rarity: text) :: dustoption:
     return dustOption(rgb(200, 200, 200), 1.0)
 
 
-# ══════════════════════════════════════════════════════════════
+# ============================================================
 # TEST COMMAND
-# ══════════════════════════════════════════════════════════════
+# ============================================================
 
 command /testtreasure <text> [<integer=1>]:
     permission: op
     trigger:
         set {_tier} to arg-1
         set {_amount} to arg-2
-        
+
         if acc_isValidTreasure({_tier}) is false:
             send "&cInvalid tier! Use: normal, ultra, divine, mythic, celestial"
             stop
-        
+
         if {_amount} != 1:
             if {_amount} != 3:
                 if {_amount} != 5:
                     send "&cAmount must be 1, 3, or 5!"
                     stop
-        
+
         # Give keys for test
         loop {_amount} times:
             acc_giveKey(player, {_tier})
-        
-        acc_openTreasures(player, {_tier}, {_amount})
+
+        # Use altar animation at player location
+        set {-acc::altar::loc::%player's uuid%} to player's location
+        acc_playTreasureAnimation(player, {_tier}, {_amount})
