@@ -300,10 +300,14 @@ function enchant_checkIfEquipped(p: player, id: integer) :: boolean:
     return ({data::enchants::%{_p}'s uuid%::%{_id}%::isEquipped} ? false)
 
 function enchant_markAsEquipped(p: player, id: integer):
-    set {data::enchants::%{_p}'s uuid%::%{_id}%::isEquipped} to true 
+    set {data::enchants::%{_p}'s uuid%::%{_id}%::isEquipped} to true
+    # Apply Speed enchant if this is the Speed enchant
+    enchant_applySpeed({_p})
 
 function enchant_markAsUnequipped(p: player, id: integer):
     delete {data::enchants::%{_p}'s uuid%::%{_id}%::isEquipped}
+    # Re-check Speed enchant (removes if no longer equipped)
+    enchant_applySpeed({_p})
 
 function enchant_getPlayerLevel(p: player, id: integer) :: integer:
     set {_level} to ({data::enchants::%{_p}'s uuid%::%{_id}%::level} ? 0)

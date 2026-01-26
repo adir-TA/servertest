@@ -1,3 +1,5 @@
 
 on join:
     menu_deleteSession(player)
+    # Apply Speed enchant if equipped
+    enchant_applySpeed(player)

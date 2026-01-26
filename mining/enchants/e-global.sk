@@ -419,5 +419,91 @@ function enchant_procTreasureHunter(p: player, loc: location) :: boolean:
     
     # Chat notification
     acc_sendKeyFoundMessage({_p}, {_treasureId})
-    
+
     return true
+
+
+# ============================================================
+# SPEED ENCHANT
+# ============================================================
+#
+# Gives walking speed boost based on enchant level.
+# Max level 5 = Speed 5 effect
+# Applied when equipped, removed when unequipped
+#
+# ============================================================
+
+function enchant_applySpeed(p: player):
+    set {_id} to enchant_getIdByString("Speed")
+
+    if enchant_checkIfEquipped({_p}, {_id}) = false:
+        remove speed from {_p}
+        stop
+
+    set {_level} to enchant_getPlayerLevelByString({_p}, "Speed")
+
+    if {_level} < 1:
+        remove speed from {_p}
+        stop
+
+    # Apply speed effect (level 1-5)
+    remove speed from {_p}
+    apply speed {_level} to {_p} for 9999 minutes
+
+
+function enchant_removeSpeed(p: player):
+    remove speed from {_p}
+
+
+# ============================================================
+# AUTOSELL ENCHANT
+# ============================================================
+#
+# Automatically sells block drops instead of adding to inventory.
+# Returns true if autosell is active, false otherwise.
+#
+# ============================================================
+
+function enchant_hasAutosell(p: player) :: boolean:
+    set {_id} to enchant_getIdByString("Autosell")
+
+    if enchant_checkIfEquipped({_p}, {_id}) = false:
+        return false
+
+    set {_level} to enchant_getPlayerLevelByString({_p}, "Autosell")
+
+    if {_level} < 1:
+        return false
+
+    return true
+
+
+# Process autosell for a drop - returns money earned
+function enchant_autosellDrop(p: player, drop: item, amount: integer) :: number:
+    set {_type} to type of {_drop}
+    set {_price} to {mining.sellable::%{_type}%} ? 0
+
+    if {_price} <= 0:
+        return 0
+
+    set {_total} to {_price} * {_amount}
+    economy_addMoney({_p}, {_total})
+
+    return {_total}
+
+
+# Batched autosell display - shows total after short delay
+function autosell_flushEarnings(p: player):
+    wait 5 ticks
+
+    set {_total} to {-autosell::%{_p}'s uuid%::pending} ? 0
+
+    delete {-autosell::%{_p}'s uuid%::pending}
+    delete {-autosell::%{_p}'s uuid%::scheduled}
+
+    if {_total} <= 0:
+        stop
+
+    # Show autosell earnings in action bar suffix
+    set {_formatted} to formatNum({_total})
+    send action bar "&a+$%{_formatted}%" to {_p}
