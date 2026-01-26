@@ -102,11 +102,16 @@ command /accadmin <text> [<player>] [<text>] [<text>]:
             send ""
             send "&eStorage: &f%size of {data::accessories::%{_uuid}%::inventory::*}% items"
             send "&ePhysical Keys (in inventory):"
-            send "&a  Normal: &f%acc_getKeyCount({_target}, ""normal"")%"
-            send "&b  Ultra: &f%acc_getKeyCount({_target}, ""ultra"")%"
-            send "&d  Divine: &f%acc_getKeyCount({_target}, ""divine"")%"
-            send "&6  Mythic: &f%acc_getKeyCount({_target}, ""mythic"")%"
-            send "&c  Celestial: &f%acc_getKeyCount({_target}, ""celestial"")%"
+            set {_normalKeys} to acc_getKeyCount({_target}, "normal")
+            set {_ultraKeys} to acc_getKeyCount({_target}, "ultra")
+            set {_divineKeys} to acc_getKeyCount({_target}, "divine")
+            set {_mythicKeys} to acc_getKeyCount({_target}, "mythic")
+            set {_celestialKeys} to acc_getKeyCount({_target}, "celestial")
+            send "&a  Normal: &f%{_normalKeys}%"
+            send "&b  Ultra: &f%{_ultraKeys}%"
+            send "&d  Divine: &f%{_divineKeys}%"
+            send "&6  Mythic: &f%{_mythicKeys}%"
+            send "&c  Celestial: &f%{_celestialKeys}%"
             send "&6&l═══════════════════════════════════════"
             stop
 

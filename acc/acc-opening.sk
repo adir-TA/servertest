@@ -24,14 +24,14 @@ function acc_openTreasures(p: player, tier: text, amount: integer):
     set {-acc::opening::%{_p}'s uuid%} to true
     
     # Get tier info
-    set {_color} to acc_getTierColor({_tier})
-    set {_tierName} to acc_getTierName({_tier})
+    set {_color} to acc_getTreasureColor({_tier})
+    set {_tierName} to acc_getTreasureName({_tier})
     set {_dustColor} to acc_getOpenDustColor({_tier})
-    
+
     # Roll all rewards upfront
     loop {_amount} times:
-        set {_rarity::%loop-number%} to acc_rollRarityForTier({_tier})
-        set {_type::%loop-number%} to acc_rollTypeFromTier({_tier})
+        set {_rarity::%loop-number%} to acc_rollRarity({_tier})
+        set {_type::%loop-number%} to acc_rollType({_tier})
         set {_encoded::%loop-number%} to acc_encodeAccessory({_type::%loop-number%}, {_rarity::%loop-number%})
         set {_icon::%loop-number%} to acc_getTypeIcon({_type::%loop-number%})
     
@@ -388,16 +388,16 @@ function acc_openTreasures(p: player, tier: text, amount: integer):
 # ══════════════════════════════════════════════════════════════
 
 function acc_getOpenDustColor(tier: text) :: dustoption:
-    if {_tier} is "basic":
-        return dustOption(rgb(170, 170, 170), 1.2)
-    if {_tier} is "advanced":
+    if {_tier} is "normal":
         return dustOption(rgb(85, 255, 85), 1.2)
     if {_tier} is "ultra":
         return dustOption(rgb(85, 255, 255), 1.2)
     if {_tier} is "divine":
-        return dustOption(rgb(255, 170, 0), 1.2)
-    if {_tier} is "mythic":
         return dustOption(rgb(255, 85, 255), 1.2)
+    if {_tier} is "mythic":
+        return dustOption(rgb(255, 170, 0), 1.2)
+    if {_tier} is "celestial":
+        return dustOption(rgb(255, 85, 85), 1.2)
     return dustOption(rgb(255, 255, 255), 1.2)
 
 
@@ -423,8 +423,8 @@ command /testtreasure <text> [<integer=1>]:
         set {_tier} to arg-1
         set {_amount} to arg-2
         
-        if acc_isValidTier({_tier}) is false:
-            send "&cInvalid tier! Use: basic, advanced, ultra, divine, mythic"
+        if acc_isValidTreasure({_tier}) is false:
+            send "&cInvalid tier! Use: normal, ultra, divine, mythic, celestial"
             stop
         
         if {_amount} != 1:
