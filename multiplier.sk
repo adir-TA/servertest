@@ -337,7 +337,7 @@ command /multipliers:
 
         loop {-multiplier::types::*}:
             set {_type} to loop-value
-            set {_typeName} to replace all "_" with " " in {_type}
+            set {_typeName} to replace all "_" in {_type} with " "
             set {_typeName} to {_typeName} in strict proper case
             set {_val} to {-multiplier::%{_uuid}%::%{_type}%} ? 1
             set {_display} to round({_val} * 100) / 100
