@@ -7,6 +7,7 @@
 
 on script load:
     delete {-acc::treasure::list::*}
+    delete {-acc::treasure::pool::*}
     wait 2 ticks
 
     # ════════════════════════════════════════
@@ -19,6 +20,10 @@ on script load:
     acc_registerTreasure("divine", "Divine Chest", "divine", ender chest, prismarine shard, "&d", 40, 35, 17, 6, 2)
     acc_registerTreasure("mythic", "Mythic Chest", "mythic", barrel, amethyst shard, "&6", 28, 35, 24, 9, 4)
     acc_registerTreasure("celestial", "Celestial Chest", "celestial", respawn anchor, nether star, "&c", 18, 32, 30, 13, 7)
+
+    # Wait for accessory registry to load, then populate pools
+    wait 5 ticks
+    acc_initTreasurePools()
 
 
 function acc_registerTreasure(id: text, name: text, tier: text, chestIcon: item, keyIcon: item, color: text, chanceCommon: number, chanceUncommon: number, chanceRare: number, chanceEpic: number, chanceLegendary: number):
@@ -33,6 +38,50 @@ function acc_registerTreasure(id: text, name: text, tier: text, chestIcon: item,
     set {-acc::treasure::%{_id}%::chance::rare} to {_chanceRare}
     set {-acc::treasure::%{_id}%::chance::epic} to {_chanceEpic}
     set {-acc::treasure::%{_id}%::chance::legendary} to {_chanceLegendary}
+
+
+function acc_initTreasurePools():
+    # Map treasure tiers to accessory tiers
+    # normal → basic + advanced
+    # ultra → advanced + ultra
+    # divine → ultra + divine
+    # mythic → divine + mythic
+    # celestial → mythic only
+
+    # Get all accessory types from each tier
+    set {_basic::*} to acc_getTierPool("basic")
+    set {_advanced::*} to acc_getTierPool("advanced")
+    set {_ultra::*} to acc_getTierPool("ultra")
+    set {_divine::*} to acc_getTierPool("divine")
+    set {_mythic::*} to acc_getTierPool("mythic")
+
+    # Normal chest: basic + advanced accessories
+    loop {_basic::*}:
+        add loop-value to {-acc::treasure::normal::pool::*}
+    loop {_advanced::*}:
+        add loop-value to {-acc::treasure::normal::pool::*}
+
+    # Ultra chest: advanced + ultra accessories
+    loop {_advanced::*}:
+        add loop-value to {-acc::treasure::ultra::pool::*}
+    loop {_ultra::*}:
+        add loop-value to {-acc::treasure::ultra::pool::*}
+
+    # Divine chest: ultra + divine accessories
+    loop {_ultra::*}:
+        add loop-value to {-acc::treasure::divine::pool::*}
+    loop {_divine::*}:
+        add loop-value to {-acc::treasure::divine::pool::*}
+
+    # Mythic chest: divine + mythic accessories
+    loop {_divine::*}:
+        add loop-value to {-acc::treasure::mythic::pool::*}
+    loop {_mythic::*}:
+        add loop-value to {-acc::treasure::mythic::pool::*}
+
+    # Celestial chest: mythic accessories only (best tier)
+    loop {_mythic::*}:
+        add loop-value to {-acc::treasure::celestial::pool::*}
 
 
 # ============================================================
