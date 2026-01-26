@@ -122,10 +122,7 @@ function armor_applyVisual(p: player, piece: string, tier: integer):
     set {_item} to armor_getLeatherItem({_piece}, {_tier})
 
     # Make unbreakable + hide attributes (1.20.5+ data components)
-    set {_nbt} to nbt of {_item}
-    set compound tag "minecraft:unbreakable" of {_nbt} to nbt from "{show_in_tooltip:0}"
-    set compound tag "minecraft:attribute_modifiers" of {_nbt} to nbt from "{modifiers:[],show_in_tooltip:0}"
-    set {_item} to {_item} with nbt {_nbt}
+    set {_item} to {_item} with nbt from "{""minecraft:unbreakable"":{show_in_tooltip:0},""minecraft:attribute_modifiers"":{modifiers:[],show_in_tooltip:0}}"
 
     if {_piece} = "helmet":
         set helmet of {_p} to {_item}
