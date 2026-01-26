@@ -204,6 +204,9 @@ command /repair:
 # ============================================================
 
 function mining_finishBlock(p: player, l: location):
+    # Track blocks per second for anti-cheat
+    add 1 to {-blocksPerSecond::%{_p}'s uuid%}
+
     # Clear crack display
     if {-miningData::%{_p}'s uuid%::damageID::%{_l}%} is set:
         set {_id} to {-miningData::%{_p}'s uuid%::damageID::%{_l}%}
