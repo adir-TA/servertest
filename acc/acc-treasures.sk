@@ -214,21 +214,3 @@ command /givekey <text> [<number=1>]:
             acc_giveKey(player, {_id})
         send "&aGave %{_amount}%x %acc_getTreasureColor({_id})%%acc_getTreasureName({_id})% Key"
 
-
-command /mykeys:
-    trigger:
-        send ""
-        send "&6&l═══════════════════════════════════════"
-        send "&e&lYOUR TREASURE KEYS"
-        send "&6&l═══════════════════════════════════════"
-        set {_hasKeys} to false
-        loop acc_getTreasureList():
-            set {_count} to acc_getKeyCount(player, loop-value)
-            if {_count} > 0:
-                set {_hasKeys} to true
-                set {_name} to acc_getTreasureName(loop-value)
-                set {_color} to acc_getTreasureColor(loop-value)
-                send "%{_color}%  %{_name}% Key: &f%{_count}%"
-        if {_hasKeys} is false:
-            send "&7  No keys found!"
-        send "&6&l═══════════════════════════════════════"
