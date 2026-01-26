@@ -1,83 +1,84 @@
 # ============================================================
 # ACCESSORY SYSTEM - COMMANDS
 # ============================================================
-# Supports 5 tiers: Basic, Advanced, Ultra, Divine, Mythic
+# Tiers: Normal, Ultra, Divine, Mythic, Celestial
+# ALL keys are physical items only (no variable keys)
 # ============================================================
 
 command /accadmin <text> [<player>] [<text>] [<text>]:
     permission: op
     trigger:
         set {_action} to arg-1
-        
+
         # /accadmin give <player> <type> [rarity]
         if {_action} is "give":
             set {_target} to arg-2
             set {_type} to arg-3
             set {_rarity} to arg-4 ? "common"
-            
+
             if {_target} is not set:
                 send "&cUsage: /accadmin give <player> <type> [rarity]"
                 stop
-            
+
             if {-acc::type::%{_type}%::name} is not set:
                 send "&cInvalid accessory type: %{_type}%"
                 stop
-            
+
             set {_encoded} to acc_encodeAccessory({_type}, {_rarity})
             acc_addToInventory({_target}, {_encoded})
-            
+
             set {_name} to acc_getTypeName({_type})
             set {_rarityColor} to acc_getRarityColor({_rarity})
             set {_rarityName} to acc_getRarityName({_rarity})
-            
+
             send "&aGave %{_rarityColor}%%{_rarityName}% %{_name}% &ato &f%{_target}%"
             send "&aYou received: %{_rarityColor}%%{_rarityName}% %{_name}%" to {_target}
             stop
-        
-        # /accadmin givekey <player> <tier> [amount]
+
+        # /accadmin givekey <player> <treasure> [amount]
         if {_action} is "givekey":
             set {_target} to arg-2
-            set {_tier} to arg-3
+            set {_treasureId} to arg-3
             set {_amount} to arg-4 parsed as number ? 1
-            
+
             if {_target} is not set:
-                send "&cUsage: /accadmin givekey <player> <tier> [amount]"
+                send "&cUsage: /accadmin givekey <player> <treasure> [amount]"
                 stop
-            
-            if acc_isValidTier({_tier}) is false:
-                send "&cInvalid tier: %{_tier}%"
-                send "&7Available: basic, advanced, ultra, divine, mythic"
+
+            if acc_isValidTreasure({_treasureId}) is false:
+                send "&cInvalid treasure: %{_treasureId}%"
+                send "&7Available: normal, ultra, divine, mythic, celestial"
                 stop
-            
+
             loop {_amount} times:
-                acc_giveTierKey({_target}, {_tier})
-            
-            set {_color} to acc_getTierColor({_tier})
-            set {_name} to acc_getTierName({_tier})
+                acc_giveKey({_target}, {_treasureId})
+
+            set {_color} to acc_getTreasureColor({_treasureId})
+            set {_name} to acc_getTreasureName({_treasureId})
             send "&aGave %{_amount}%x %{_color}%%{_name}% Key &ato &f%{_target}%"
             send "&aYou received %{_amount}%x %{_color}%%{_name}% Key!" to {_target}
             stop
-        
+
         # /accadmin clear <player>
         if {_action} is "clear":
             set {_target} to arg-2
             if {_target} is not set:
                 send "&cUsage: /accadmin clear <player>"
                 stop
-            
+
             delete {data::accessories::%{_target}'s uuid%::*}
             send "&cCleared all accessories for &f%{_target}%"
             stop
-        
+
         # /accadmin view <player>
         if {_action} is "view":
             set {_target} to arg-2
             if {_target} is not set:
                 send "&cUsage: /accadmin view <player>"
                 stop
-            
+
             set {_uuid} to {_target}'s uuid
-            
+
             send ""
             send "&6&l═══════════════════════════════════════"
             send "&e&l%{_target}%'s Accessories"
@@ -100,24 +101,24 @@ command /accadmin <text> [<player>] [<text>] [<text>]:
                     send "&7  Slot %loop-number%: &8Empty"
             send ""
             send "&eStorage: &f%size of {data::accessories::%{_uuid}%::inventory::*}% items"
-            send "&eKeys:"
-            send "&7  Basic: &f%{data::accessories::%{_uuid}%::keys::basic} ? 0%"
-            send "&a  Advanced: &f%{data::accessories::%{_uuid}%::keys::advanced} ? 0%"
-            send "&b  Ultra: &f%{data::accessories::%{_uuid}%::keys::ultra} ? 0%"
-            send "&6  Divine: &f%{data::accessories::%{_uuid}%::keys::divine} ? 0%"
-            send "&d  Mythic: &f%{data::accessories::%{_uuid}%::keys::mythic} ? 0%"
+            send "&ePhysical Keys (in inventory):"
+            send "&a  Normal: &f%acc_getKeyCount({_target}, ""normal"")%"
+            send "&b  Ultra: &f%acc_getKeyCount({_target}, ""ultra"")%"
+            send "&d  Divine: &f%acc_getKeyCount({_target}, ""divine"")%"
+            send "&6  Mythic: &f%acc_getKeyCount({_target}, ""mythic"")%"
+            send "&c  Celestial: &f%acc_getKeyCount({_target}, ""celestial"")%"
             send "&6&l═══════════════════════════════════════"
             stop
-        
+
         # Help
         send ""
         send "&6&lAccessory Admin Commands"
         send "&e/accadmin give <player> <type> [rarity]"
-        send "&e/accadmin givekey <player> <tier> [amount]"
+        send "&e/accadmin givekey <player> <treasure> [amount]"
         send "&e/accadmin clear <player>"
         send "&e/accadmin view <player>"
         send ""
-        send "&7Tiers: basic, advanced, ultra, divine, mythic"
+        send "&7Treasures: normal, ultra, divine, mythic, celestial"
         send "&7Rarities: common, uncommon, rare, epic, legendary"
 
 
@@ -130,94 +131,78 @@ command /giveacc <text> [<text>]:
     trigger:
         set {_type} to arg-1
         set {_rarity} to arg-2 ? "common"
-        
+
         if {-acc::type::%{_type}%::name} is not set:
             send "&cInvalid accessory type!"
             send "&7Use /acclist to see all types"
             stop
-        
+
         set {_encoded} to acc_encodeAccessory({_type}, {_rarity})
         acc_addToInventory(player, {_encoded})
-        
+
         set {_name} to acc_getTypeName({_type})
         set {_rarityColor} to acc_getRarityColor({_rarity})
         set {_rarityName} to acc_getRarityName({_rarity})
-        
+
         send "&aReceived: %{_rarityColor}%%{_rarityName}% %{_name}%"
 
 
 command /giverandomacc [<text>] [<number=1>]:
     permission: op
     trigger:
-        set {_tier} to arg-1 ? "basic"
+        set {_treasureId} to arg-1 ? "normal"
         set {_amount} to arg-2
-        
-        if acc_isValidTier({_tier}) is false:
-            send "&cInvalid tier! Use: basic, advanced, ultra, divine, mythic"
-            stop
-        
-        loop {_amount} times:
-            acc_giveRandom(player, {_tier})
-        
-        send "&aReceived %{_amount}% random %{_tier}% accessories!"
 
-
-# Named /givetierkey to avoid conflict with acc-treasures.sk's /givekey
-command /givetierkey [<text>] [<number=1>]:
-    permission: op
-    trigger:
-        set {_tier} to arg-1 ? "basic"
-        set {_amount} to arg-2
-        
-        if acc_isValidTier({_tier}) is false:
-            send "&cInvalid tier! Use: basic, advanced, ultra, divine, mythic"
+        if acc_isValidTreasure({_treasureId}) is false:
+            send "&cInvalid treasure! Use: normal, ultra, divine, mythic, celestial"
             stop
-        
+
         loop {_amount} times:
-            acc_giveTierKey(player, {_tier})
-        
-        set {_color} to acc_getTierColor({_tier})
-        set {_name} to acc_getTierName({_tier})
-        send "&aReceived %{_amount}%x %{_color}%%{_name}% Key!"
+            set {_type} to acc_rollType({_treasureId})
+            set {_rarity} to acc_rollRarity({_treasureId})
+            set {_encoded} to acc_encodeAccessory({_type}, {_rarity})
+            acc_addToInventory(player, {_encoded})
+
+        send "&aReceived %{_amount}% random %{_treasureId}% accessories!"
 
 
 command /acclist [<text>]:
     permission: op
     trigger:
-        set {_filterTier} to arg-1
-        
+        set {_filterTreasure} to arg-1
+
         send ""
         send "&6&l═══════════════════════════════════════"
         send "&e&lACCESSORY TYPES"
         send "&6&l═══════════════════════════════════════"
-        
-        if {_filterTier} is not set:
-            send "&7Use /acclist <tier> for specific tier"
-            send "&7Tiers: basic, advanced, ultra, divine, mythic"
+
+        if {_filterTreasure} is not set:
+            send "&7Use /acclist <treasure> for specific treasure pool"
+            send "&7Treasures: normal, ultra, divine, mythic, celestial"
             send ""
-            send "&7&lBASIC: &f%size of {-acc::pool::basic::*}% accessories"
-            send "&a&lADVANCED: &f%size of {-acc::pool::advanced::*}% accessories"
-            send "&b&lULTRA: &f%size of {-acc::pool::ultra::*}% accessories"
-            send "&6&lDIVINE: &f%size of {-acc::pool::divine::*}% accessories"
-            send "&d&lMYTHIC: &f%size of {-acc::pool::mythic::*}% accessories"
+            loop acc_getTreasureList():
+                set {_color} to acc_getTreasureColor(loop-value)
+                set {_name} to acc_getTreasureName(loop-value)
+                set {_poolSize} to size of {-acc::treasure::%loop-value%::pool::*}
+                send "%{_color}%  %{_name}%: &f%{_poolSize}% accessories"
             send ""
-            send "&7Total: &e%size of {-acc::allTypes::*}% accessories"
+            send "&7Total registered: &e%size of {-acc::allTypes::*}% accessories"
         else:
-            if acc_isValidTier({_filterTier}) is false:
-                send "&cInvalid tier! Use: basic, advanced, ultra, divine, mythic"
+            if acc_isValidTreasure({_filterTreasure}) is false:
+                send "&cInvalid treasure! Use: normal, ultra, divine, mythic, celestial"
                 stop
-            
-            set {_color} to acc_getTierColor({_filterTier})
-            set {_name} to acc_getTierName({_filterTier})
-            
+
+            set {_color} to acc_getTreasureColor({_filterTreasure})
+            set {_name} to acc_getTreasureName({_filterTreasure})
+
             send ""
-            send "%{_color}%&l%{_name}% TIER:"
-            loop {-acc::pool::%{_filterTier}%::*}:
+            send "%{_color}%&l%{_name}% POOL:"
+            loop acc_getTreasurePool({_filterTreasure}):
                 set {_accName} to acc_getTypeName(loop-value)
                 set {_stat} to acc_getTypeStat(loop-value)
                 set {_base} to acc_getTypeBase(loop-value)
                 send "&7  - %loop-value% &f(%{_accName}%) &8[%{_stat}%: %{_base}%%%]"
-        
+
         send ""
         send "&6&l═══════════════════════════════════════"
 
@@ -232,12 +217,12 @@ command /accstats:
         send ""
         send "&7Total Accessories: &e%size of {-acc::allTypes::*}%"
         send ""
-        send "&7By Tier:"
-        send "&7  Basic: &f%size of {-acc::pool::basic::*}%"
-        send "&a  Advanced: &f%size of {-acc::pool::advanced::*}%"
-        send "&b  Ultra: &f%size of {-acc::pool::ultra::*}%"
-        send "&6  Divine: &f%size of {-acc::pool::divine::*}%"
-        send "&d  Mythic: &f%size of {-acc::pool::mythic::*}%"
+        send "&7By Treasure Pool:"
+        loop acc_getTreasureList():
+            set {_color} to acc_getTreasureColor(loop-value)
+            set {_name} to acc_getTreasureName(loop-value)
+            set {_poolSize} to size of {-acc::treasure::%loop-value%::pool::*}
+            send "%{_color}%  %{_name}%: &f%{_poolSize}%"
         send ""
         send "&7Rarity Multipliers:"
         send "&f  Common: &7x1.0"
