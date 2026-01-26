@@ -70,37 +70,40 @@ function acc_openBagGui(p: player):
                 set slot {_guiSlot} of {_menu} to {_empty}
         else:
             # Slot is locked
-            set {_locked} to red stained glass pane named "&cLocked Slot #%{_slotNum}%"
+            set {_locked} to red stained glass pane named "&c🔒 Locked Slot %{_slotNum}%"
             set {_prestigeReq} to acc_getSlotPrestigeReq({_slotNum})
             set {_cost} to acc_getSlotCost({_slotNum})
 
             delete {_lockedLore::*}
-            add "&8ᴀᴄᴄᴇssᴏʀʏ sʟᴏᴛ" to {_lockedLore::*}
+            add "&8ᴍᴇɴᴜ ɪᴛᴇᴍ" to {_lockedLore::*}
+            add "" to {_lockedLore::*}
+            add "&7Unlock this slot to equip" to {_lockedLore::*}
+            add "&7more accessories!" to {_lockedLore::*}
             add "" to {_lockedLore::*}
             add "&6Requirements:" to {_lockedLore::*}
 
             # Check prestige requirement
             if acc_meetsSlotPrestigeReq({_p}, {_slotNum}) is true:
-                add "&a  Total prestiges ≥ %{_prestigeReq}%" to {_lockedLore::*}
+                add "&a  ✔ Total prestiges ≥ %{_prestigeReq}%" to {_lockedLore::*}
             else:
-                add "&c  Total prestiges ≥ %{_prestigeReq}%" to {_lockedLore::*}
+                add "&c  ✖ Total prestiges ≥ %{_prestigeReq}%" to {_lockedLore::*}
 
             # Check money requirement
             set {_balance} to {data::balance::%{_uuid}%} ? 0
             if {_balance} >= {_cost}:
-                add "&a  $%{_cost}%" to {_lockedLore::*}
+                add "&a  ✔ $%{_cost}%" to {_lockedLore::*}
             else:
-                add "&c  $%{_cost}%" to {_lockedLore::*}
+                add "&c  ✖ $%{_cost}%" to {_lockedLore::*}
 
             add "" to {_lockedLore::*}
 
             # Can unlock?
             if acc_canUnlockSlot({_p}, {_slotNum}) is true:
-                add "&aClick to unlock!" to {_lockedLore::*}
+                add "&a▶ Click to unlock!" to {_lockedLore::*}
                 set string tag "acc;action" of custom nbt of {_locked} to "unlock_slot"
                 set int tag "acc;unlockslot" of custom nbt of {_locked} to {_slotNum}
             else:
-                add "&cRequirements not met" to {_lockedLore::*}
+                add "&c▶ Requirements not met" to {_lockedLore::*}
 
             set lore of {_locked} to {_lockedLore::*}
             set slot {_guiSlot} of {_menu} to {_locked}
