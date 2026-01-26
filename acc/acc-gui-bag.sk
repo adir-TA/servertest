@@ -283,9 +283,15 @@ on inventory click:
 
 on inventory close:
     set {_uuid} to player's uuid
-    if {-acc::menu::%{_uuid}%} is set:
-        if {-acc::menu::%{_uuid}%} contains "ACC_":
+    set {_menu} to {-acc::menu::%{_uuid}%}
+    if {_menu} is set:
+        # Clear all accessory menu states (ACC_BAG, ACC_INVENTORY, ACC_CHESTS, SALVAGE_*)
+        if {_menu} contains "ACC_":
             delete {-acc::menu::%{_uuid}%}
             delete {-acc::menu::%{_uuid}%::page}
             delete {-acc::menu::%{_uuid}%::sort}
             delete {-acc::equipTarget::%{_uuid}%}
+        else if {_menu} contains "SALVAGE":
+            delete {-acc::menu::%{_uuid}%}
+            delete {-acc::menu::%{_uuid}%::page}
+            delete {-acc::menu::%{_uuid}%::sort}
