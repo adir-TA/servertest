@@ -124,21 +124,27 @@ function mining_removeDurability(p: player) :: boolean:
         set {_unbreaking} to enchant_getPlayerLevelByString({_p}, "Unbreaking")
     else:
         set {_unbreaking} to 0
-    
+
     set {_reduction} to {_unbreaking} * 0.02
     if {_reduction} > 1:
         set {_reduction} to 1
-    
+
     set {_durabilityLoss} to 1 - {_reduction}
-    
+
+    # Apply durability multiplier (higher = less durability lost)
+    # e.g., 1.3 multiplier = 30% more durability = divide loss by 1.3
+    set {_durabilityMult} to multiplier_getDurability({_p})
+    if {_durabilityMult} > 0:
+        set {_durabilityLoss} to {_durabilityLoss} / {_durabilityMult}
+
     set {_current} to mining_getDurability({_p})
-    
+
     if {_current} <= 0:
         return false
-    
+
     set {_new} to {_current} - {_durabilityLoss}
     mining_setDurability({_p}, {_new})
-    
+
     return true
 
 function mining_getDurabilityPercent(p: player) :: number:
@@ -403,6 +409,14 @@ function miningHandler_main(p: player, l: location):
     set {_hardness} to mining_getHardness({_type})
 
     set {_damage} to {_baseDamage} / {_hardness}
+
+    # Apply mining speed multiplier (from pets, accessories, archetype)
+    set {_miningSpeedMult} to multiplier_getMiningSpeed({_p})
+    set {_damage} to {_damage} * {_miningSpeedMult}
+
+    # Apply damage multiplier (from pets, accessories, archetype)
+    set {_damageMult} to multiplier_getDamage({_p})
+    set {_damage} to {_damage} * {_damageMult}
     
     # Focus enchant - chance to double damage on swing
     # Critical Hit - chance to instantly add 25% progress (mutually exclusive with Focus)

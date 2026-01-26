@@ -277,4 +277,8 @@ function acc_formatStatName(stat: text) :: text:
         return "Token Boost"
     if {_stat} is "enchant_proc":
         return "Enchant Proc"
+    if {_stat} is "damage":
+        return "Damage"
+    if {_stat} is "durability":
+        return "Durability"
     return {_stat}
