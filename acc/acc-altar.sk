@@ -97,7 +97,8 @@ command /removeaccessorylocation:
 # ALTAR INTERACTION
 # ============================================================
 
-on right click on block:
+on right click:
+    clicked block is set
     if acc_isAtAltar(location of clicked block) is true:
         cancel event
         acc_openAltarTierMenu(player)
@@ -413,28 +414,6 @@ on inventory close:
         delete {-acc::altar::menu::%player's uuid%}
     else if {_menu} is "AMOUNT_SELECT":
         delete {-acc::altar::menu::%player's uuid%}
-
-
-# ============================================================
-# HELPER COMMAND - GIVE TIER KEYS (for testing)
-# ============================================================
-
-command /givetierkey <text> [<number=1>]:
-    permission: op
-    trigger:
-        set {_tier} to arg-1
-        set {_amount} to arg-2
-
-        if acc_isValidTier({_tier}) is false:
-            send "&cInvalid tier! Use: basic, advanced, ultra, divine, mythic"
-            stop
-
-        loop {_amount} times:
-            acc_giveTierKey(player, {_tier})
-
-        set {_color} to acc_getTierColor({_tier})
-        set {_name} to acc_getTierName({_tier})
-        send "&aGave %{_amount}%x %{_color}%%{_name}% Key"
 
 
 # ============================================================
