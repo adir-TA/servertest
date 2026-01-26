@@ -467,9 +467,17 @@ function acc_playTreasureAnimation(p: player, treasureId: text, amount: integer)
     set {_centerZ} to floor(z-coord of {_altarLoc}) + 0.5
     set {_world} to world of {_altarLoc}
 
-    # Fixed direction for chest arrangement (along X-axis) - always centered
-    set {_perpX} to 1
-    set {_perpZ} to 0
+    # Calculate direction to face player (perpendicular for lineup)
+    set {_playerX} to x-coord of {_p}'s location
+    set {_playerZ} to z-coord of {_p}'s location
+    set {_dirX} to {_playerX} - {_centerX}
+    set {_dirZ} to {_playerZ} - {_centerZ}
+    set {_length} to sqrt(({_dirX} * {_dirX}) + ({_dirZ} * {_dirZ}))
+    if {_length} < 0.1:
+        set {_length} to 1
+    # Perpendicular direction (rotate 90 degrees) for lineup
+    set {_perpX} to (0 - {_dirZ}) / {_length}
+    set {_perpZ} to {_dirX} / {_length}
 
     # Store and hide the altar block (show as air)
     set {_originalBlock} to type of block at {_altarLoc}
