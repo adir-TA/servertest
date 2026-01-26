@@ -701,30 +701,34 @@ function acc_playTreasureAnimation(p: player, treasureId: text, amount: integer)
         wait 2 ticks
 
     # ════════════════════════════════════════
-    # PHASE 4: Chests shake fast and burst
+    # PHASE 4: Chests shake fast and EXPLODE open
     # ════════════════════════════════════════
 
-    # Quick shake all
-    loop 4 times:
+    # Quick shake all - more intense
+    loop 6 times:
+        set {_intensity} to loop-number * 0.02
         loop {_amount} times:
             set {_i} to loop-number-2
-            set {_shakeX} to random number between -0.08 and 0.08
-            set {_shakeLoc} to location({_chestX::%{_i}%} + {_shakeX}, {_chestY::%{_i}%}, {_chestZ::%{_i}%}, {_world})
+            set {_shakeX} to random number between (0 - {_intensity}) and {_intensity}
+            set {_shakeZ} to random number between (0 - {_intensity}) and {_intensity}
+            set {_shakeLoc} to location({_chestX::%{_i}%} + {_shakeX}, {_chestY::%{_i}%}, {_chestZ::%{_i}%} + {_shakeZ}, {_world})
             send teleport packet with id {_chestId::%{_i}%} with location {_shakeLoc} to {_p}
+        play sound "block.anvil.land" with volume 0.2 and pitch 2 to {_p}
         wait 1 tick
 
     # Expand before pop
     loop {_amount} times:
         set {_i} to loop-number
         set {_m} to new metadata packet with id {_chestId::%{_i}%}:
-            display scale: vector(1.2, 1.2, 1.2)
+            display scale: vector(1.3, 1.3, 1.3)
             display transformation: 2
             display interpolation: 0
         send packet {_m} to {_p}
 
-    wait 2 ticks
+    play sound "block.respawn_anchor.charge" with volume 0.8 and pitch 1.5 to {_p}
+    wait 3 ticks
 
-    # Pop sound - use best rarity sound
+    # Determine best rarity for effects
     set {_bestRarity} to "common"
     loop {_amount} times:
         set {_i} to loop-number
@@ -735,14 +739,28 @@ function acc_playTreasureAnimation(p: player, treasureId: text, amount: integer)
             if {_bestRarity} != "legendary":
                 set {_bestRarity} to "epic"
 
+    # EXPLOSION! with golden particles
     if {_bestRarity} is "legendary":
-        play sound "ui.toast.challenge_complete" with volume 1.2 and pitch 1.2 to {_p}
+        play sound "ui.toast.challenge_complete" with volume 1.5 and pitch 1.0 to {_p}
+        play sound "entity.firework_rocket.twinkle" with volume 1 and pitch 1 to {_p}
     else if {_bestRarity} is "epic":
-        play sound "entity.player.levelup" with volume 1 and pitch 1.5 to {_p}
+        play sound "entity.player.levelup" with volume 1.2 and pitch 1.3 to {_p}
+        play sound "entity.firework_rocket.blast" with volume 0.8 and pitch 1.2 to {_p}
     else:
-        play sound "block.chest.open" with volume 1 and pitch 1.2 to {_p}
+        play sound "block.chest.open" with volume 1.2 and pitch 1.0 to {_p}
+        play sound "entity.firework_rocket.blast" with volume 0.5 and pitch 1.5 to {_p}
 
-    # Shrink and remove chests
+    # Golden treasure particles burst from each chest
+    loop {_amount} times:
+        set {_i} to loop-number
+        set {_burstLoc} to location({_chestX::%{_i}%}, {_chestY::%{_i}%}, {_chestZ::%{_i}%}, {_world})
+        draw 15 of dust using dustOption(rgb(255, 215, 0), 1.5) at {_burstLoc} with offset vector(0.5, 0.5, 0.5) for {_p}
+        if {_rarity::%{_i}%} is "legendary":
+            draw 8 of totem of undying at {_burstLoc} with offset vector(0.3, 0.5, 0.3) for {_p}
+        else if {_rarity::%{_i}%} is "epic":
+            draw 5 of dragon breath at {_burstLoc} with offset vector(0.3, 0.4, 0.3) for {_p}
+
+    # Shrink chests dramatically
     loop {_amount} times:
         set {_i} to loop-number
         set {_m} to new metadata packet with id {_chestId::%{_i}%}:
@@ -751,19 +769,22 @@ function acc_playTreasureAnimation(p: player, treasureId: text, amount: integer)
             display interpolation: 0
         send packet {_m} to {_p}
 
-    wait 1 tick
+    wait 2 ticks
 
     loop {_amount} times:
         set {_i} to loop-number
         remove fake entity with id {_chestId::%{_i}%} for {_p}
 
     # ════════════════════════════════════════
-    # PHASE 5: Accessories reveal together
+    # PHASE 5: Treasure items BURST upward
     # ════════════════════════════════════════
 
+    play sound "entity.allay.item_given" with volume 1 and pitch 0.8 to {_p}
+
+    # Items spawn at chest positions
     loop {_amount} times:
         set {_i} to loop-number
-        set {_revealLoc} to location({_chestX::%{_i}%}, {_chestY::%{_i}%}, {_chestZ::%{_i}%}, {_world})
+        set {_revealLoc} to location({_chestX::%{_i}%}, {_chestY::%{_i}%} - 0.2, {_chestZ::%{_i}%}, {_world})
 
         spawn fake item display at {_revealLoc} for {_p} with id {_itemId::%{_i}%}
 
@@ -772,8 +793,8 @@ function acc_playTreasureAnimation(p: player, treasureId: text, amount: integer)
             display scale: vector(0.01, 0.01, 0.01)
             display billboard: center
             display brightness block: 15
-            display teleportduration: 2
-            display transformation: 3
+            display teleportduration: 1
+            display transformation: 2
             display interpolation: 0
             glowing: true
             display glow: {_itemGlow::%{_i}%}
@@ -781,44 +802,54 @@ function acc_playTreasureAnimation(p: player, treasureId: text, amount: integer)
 
     wait 1 tick
 
-    # Pop out and grow all
+    # Items burst UPWARD dramatically
     loop {_amount} times:
         set {_i} to loop-number
         set {_m} to new metadata packet with id {_itemId::%{_i}%}:
-            display scale: vector(0.6, 0.6, 0.6)
-            display transformation: 4
+            display scale: vector(0.8, 0.8, 0.8)
+            display teleportduration: 3
+            display transformation: 3
             display interpolation: 0
         send packet {_m} to {_p}
 
-        set {_riseLoc} to location({_chestX::%{_i}%}, {_chestY::%{_i}%} + 0.8, {_chestZ::%{_i}%}, {_world})
-        send teleport packet with id {_itemId::%{_i}%} with location {_riseLoc} to {_p}
+        set {_burstY} to {_chestY::%{_i}%} + 1.2
+        set {_burstLoc} to location({_chestX::%{_i}%}, {_burstY}, {_chestZ::%{_i}%}, {_world})
+        send teleport packet with id {_itemId::%{_i}%} with location {_burstLoc} to {_p}
 
-    wait 3 ticks
+    play sound "entity.experience_orb.pickup" with volume 0.8 and pitch 0.6 to {_p}
+    wait 4 ticks
 
-    # Spin animation all together (12 frames)
-    loop 12 times:
+    # Floating sparkle animation
+    loop 15 times:
         set {_frame} to loop-number - 1
-        set {_floatOffset} to sin({_frame} * 30) * 0.15
-        set {_angle} to {_frame} * 30
-        set {_qy} to sin({_angle} / 2)
-        set {_qw} to cos({_angle} / 2)
+        set {_floatOffset} to sin({_frame} * 24) * 0.12
+        set {_spinAngle} to {_frame} * 24
 
         loop {_amount} times:
             set {_i} to loop-number-2
-            set {_spinLoc} to location({_chestX::%{_i}%}, {_chestY::%{_i}%} + 0.8 + {_floatOffset}, {_chestZ::%{_i}%}, {_world})
-            send teleport packet with id {_itemId::%{_i}%} with location {_spinLoc} to {_p}
+            set {_floatY} to {_chestY::%{_i}%} + 1.2 + {_floatOffset}
+            set {_floatLoc} to location({_chestX::%{_i}%}, {_floatY}, {_chestZ::%{_i}%}, {_world})
+            send teleport packet with id {_itemId::%{_i}%} with location {_floatLoc} to {_p}
 
+            set {_qy} to sin({_spinAngle} * 0.5 * 0.0174533)
+            set {_qw} to cos({_spinAngle} * 0.5 * 0.0174533)
             set {_m} to new metadata packet with id {_itemId::%{_i}%}:
                 display rotation left: 0, {_qy}, 0, {_qw}
-                display transformation: 2
+                display transformation: 1
                 display interpolation: 0
             send packet {_m} to {_p}
+
+            # Sparkle particles every few frames
+            if mod({_frame}, 3) = 0:
+                draw 2 of dust using dustOption(rgb(255, 223, 128), 0.8) at {_floatLoc} with offset vector(0.15, 0.15, 0.15) for {_p}
 
         wait 2 ticks
 
     # ════════════════════════════════════════
-    # PHASE 6: Show result texts (arc layout like pets)
+    # PHASE 6: Show detailed result cards
     # ════════════════════════════════════════
+
+    play sound "block.note_block.chime" with volume 0.7 and pitch 1.2 to {_p}
 
     loop {_amount} times:
         set {_i} to loop-number
@@ -834,11 +865,11 @@ function acc_playTreasureAnimation(p: player, treasureId: text, amount: integer)
             set {_distFromCenter} to {_diff}
 
         # Arc height - center is highest
-        set {_arcHeight} to 2.0 - ({_distFromCenter} * 0.15)
+        set {_arcHeight} to 2.2 - ({_distFromCenter} * 0.12)
 
         # Arc spread
-        set {_spreadMult} to 1 + ({_distFromCenter} * 0.4)
-        set {_offsetMult} to {_diff} * {_spreadMult} * 1.1
+        set {_spreadMult} to 1 + ({_distFromCenter} * 0.35)
+        set {_offsetMult} to {_diff} * {_spreadMult} * 1.2
 
         set {_textX} to {_centerX} + ({_perpX} * {_offsetMult})
         set {_textZ} to {_centerZ} + ({_perpZ} * {_offsetMult})
@@ -851,16 +882,25 @@ function acc_playTreasureAnimation(p: player, treasureId: text, amount: integer)
 
         spawn fake text display at {_textLoc} for {_p} with id {_textId::%{_i}%}
 
+        # Get display info
         set {_rarityColor} to acc_getRarityColor({_rarity})
         set {_rarityName} to acc_getRarityName({_rarity})
         set {_typeName} to acc_getTypeName({_type})
+        set {_stat} to acc_getTypeStat({_type})
+        set {_statName} to acc_formatStatName({_stat})
+        set {_bonus} to acc_calculateBonus({_type}, {_rarity})
 
+        # Build beautiful display text with stats
         if {_rarity} is "legendary":
-            set {_displayText} to "&6&l✦ LEGENDARY ✦%nl%%{_rarityColor}%&l%{_typeName}%"
+            set {_displayText} to "&6&l✦ LEGENDARY ✦%nl%%{_rarityColor}%&l%{_typeName}%%nl%&8━━━━━━━━━━━━%nl%&a+%{_bonus}%%% &f%{_statName}%"
         else if {_rarity} is "epic":
-            set {_displayText} to "&d&l★ EPIC ★%nl%%{_rarityColor}%%{_typeName}%"
+            set {_displayText} to "&d&l★ EPIC ★%nl%%{_rarityColor}%%{_typeName}%%nl%&8─────────%nl%&a+%{_bonus}%%% &7%{_statName}%"
+        else if {_rarity} is "rare":
+            set {_displayText} to "&9✧ Rare%nl%%{_rarityColor}%%{_typeName}%%nl%&a+%{_bonus}%%% &7%{_statName}%"
+        else if {_rarity} is "uncommon":
+            set {_displayText} to "&a○ Uncommon%nl%%{_rarityColor}%%{_typeName}%%nl%&a+%{_bonus}%%% &7%{_statName}%"
         else:
-            set {_displayText} to "%{_rarityColor}%%{_typeName}%"
+            set {_displayText} to "&7• Common%nl%%{_rarityColor}%%{_typeName}%%nl%&a+%{_bonus}%%% &7%{_statName}%"
 
         set {_m} to new metadata packet with id {_textId::%{_i}%}:
             display text: {_displayText}
@@ -874,17 +914,20 @@ function acc_playTreasureAnimation(p: player, treasureId: text, amount: integer)
 
     wait 1 tick
 
-    # Scale up all texts and float up (maintaining arc)
+    # Scale up texts with staggered timing for drama
     loop {_amount} times:
         set {_i} to loop-number
         set {_m} to new metadata packet with id {_textId::%{_i}%}:
-            display scale: vector(0.75, 0.75, 0.75)
-            display transformation: 3
+            display scale: vector(0.65, 0.65, 0.65)
+            display transformation: 4
             display interpolation: 0
         send packet {_m} to {_p}
 
-        set {_textEndLoc} to location({_textX::%{_i}%}, {_chestY::%{_i}%} + {_textArcHeight::%{_i}%} + 0.4, {_textZ::%{_i}%}, {_world})
+        set {_textEndLoc} to location({_textX::%{_i}%}, {_chestY::%{_i}%} + {_textArcHeight::%{_i}%} + 0.3, {_textZ::%{_i}%}, {_world})
         send teleport packet with id {_textId::%{_i}%} with location {_textEndLoc} to {_p}
+
+        play sound "entity.experience_orb.pickup" with volume 0.4 and pitch (1.2 + ({_i} * 0.15)) to {_p}
+        wait 2 ticks
 
     # ════════════════════════════════════════
     # PHASE 7: Items fly to player
