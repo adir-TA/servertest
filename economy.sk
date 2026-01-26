@@ -1,0 +1,111 @@
+# ============================================================
+# ECONOMY SYSTEM
+# ============================================================
+#
+# Variables:
+#   {data::balance::%uuid%}
+#   {data::tokens::%uuid%}
+#   {data::prestige::%uuid|}
+#   {data::prestige::points::%uuid%}
+#
+# ============================================================
+
+# ============================================================
+# TOKENS
+# ============================================================
+
+function economy_getTokens(p: player) :: number:
+    return {data::tokens::%{_p}'s uuid%} ? 0
+
+function economy_setTokens(p: player, amount: number):
+    set {data::tokens::%{_p}'s uuid%} to {_amount}
+
+function economy_addTokens(p: player, amount: number):
+    add {_amount} to {data::tokens::%{_p}'s uuid%}
+
+function economy_removeTokens(p: player, amount: number) :: boolean:
+    set {_current} to economy_getTokens({_p})
+    if {_current} < {_amount}:
+        return false
+    subtract {_amount} from {data::tokens::%{_p}'s uuid%}
+    return true
+
+function economy_hasTokens(p: player, amount: number) :: boolean:
+    if economy_getTokens({_p}) >= {_amount}:
+        return true
+    return false
+
+# ============================================================
+# MONEY
+# ============================================================
+
+function economy_getMoney(p: player) :: number:
+    return {data::balance::%{_p}'s uuid%} ? 0
+
+function economy_setMoney(p: player, amount: number):
+    set {data::balance::%{_p}'s uuid%} to {_amount}
+
+function economy_addMoney(p: player, amount: number):
+    add {_amount} to {data::balance::%{_p}'s uuid%}
+
+function economy_removeMoney(p: player, amount: number) :: boolean:
+    if {data::balance::%{_p}'s uuid%} < {_amount}:
+        return false
+    subtract {_amount} from {data::balance::%{_p}'s uuid%}
+    return true
+
+function economy_hasMoney(p: player, amount: number) :: boolean:
+    if economy_getMoney({_p}) >= {_amount}:
+        return true
+    return false
+
+# ============================================================
+# PRESTIGE POINTS
+# ============================================================
+
+function economy_getPrestigePoints(p: player) :: number:
+    return {data::prestige::points::%{_p}'s uuid%} ? 0
+
+function economy_setPrestigePoints(p: player, amount: number):
+    set {data::prestige::points::%{_p}'s uuid%} to {_amount}
+
+function economy_addPrestigePoints(p: player, amount: number):
+    add {_amount} to {data::prestige::points::%{_p}'s uuid%}
+
+function economy_removePrestigePoints(p: player, amount: number) :: boolean:
+    set {_current} to economy_getPrestigePoints({_p})
+    if {_current} < {_amount}:
+        return false
+    subtract {_amount} from {data::prestige::points::%{_p}'s uuid%}
+    return true
+
+function economy_hasPrestigePoints(p: player, amount: number) :: boolean:
+    if economy_getPrestigePoints({_p}) >= {_amount}:
+        return true
+    return false
+
+# ============================================================
+# TOTAL PRESTIGES
+# ============================================================
+
+function economy_getTotalPrestiges(p: player) :: number:
+    return {data::prestige::%{_p}'s uuid%} ? 0
+
+function economy_addTotalPrestige(p: player):
+    add 1 to {data::prestige::%{_p}'s uuid%}
+
+# ============================================================
+# FORMATTED DISPLAYS
+# ============================================================
+
+function economy_getFormattedMoney(p: player) :: text:
+    set {_bal} to economy_getMoney({_p})
+    return "&2$&a%formatNum({_bal})%"
+
+function economy_getFormattedTokens(p: player) :: text:
+    set {_tokens} to economy_getTokens({_p})
+    return "&6⛂&e%formatNum({_tokens})%"
+
+function economy_getFormattedPrestigePoints(p: player) :: text:
+    set {_points} to economy_getPrestigePoints({_p})
+    return "&d✦&5%formatNum({_points})%"

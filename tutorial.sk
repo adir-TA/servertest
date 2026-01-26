@@ -1,0 +1,764 @@
+# ============================================================
+# TUTORIAL SYSTEM
+# ============================================================
+#
+# Steps:
+#   0 = Not started OR completed
+#   1 = Mine 5 blocks
+#   2 = Equip efficiency
+#   3 = Mine 10 more blocks
+#   4 = Unlock slot 2 + equip Excavator
+#   5 = Select archetype
+#   6 = Reach level 2
+#   7 = Learn about /sell
+#   8 = Learn about prestige
+#   9 = Complete
+#
+# ============================================================
+
+
+# ============================================================
+# TUTORIAL STATE FUNCTIONS
+# ============================================================
+
+function tutorial_isComplete(p: player) :: boolean:
+    if {data::tutorial-complete::%{_p}'s uuid%} is set:
+        return true
+    return false
+
+function tutorial_markComplete(p: player):
+    set {data::tutorial-complete::%{_p}'s uuid%} to true
+    delete {-tutorial::%{_p}'s uuid%::*}
+
+function tutorial_getStep(p: player) :: integer:
+    return {-tutorial::%{_p}'s uuid%::step} ? 0
+
+function tutorial_setStep(p: player, step: integer):
+    set {-tutorial::%{_p}'s uuid%::step} to {_step}
+
+function tutorial_getBlocks(p: player) :: integer:
+    return {-tutorial::%{_p}'s uuid%::blocks} ? 0
+
+function tutorial_addBlock(p: player):
+    add 1 to {-tutorial::%{_p}'s uuid%::blocks}
+
+function tutorial_resetBlocks(p: player):
+    set {-tutorial::%{_p}'s uuid%::blocks} to 0
+
+function tutorial_getSubStep(p: player) :: integer:
+    return {-tutorial::%{_p}'s uuid%::substep} ? 0
+
+function tutorial_setSubStep(p: player, substep: integer):
+    set {-tutorial::%{_p}'s uuid%::substep} to {_substep}
+
+
+# ============================================================
+# SLOT UNLOCK CONTROL
+# ============================================================
+
+function tutorial_canUnlockSlot(p: player) :: boolean:
+    if tutorial_isComplete({_p}) = true:
+        return true
+    
+    set {_step} to tutorial_getStep({_p})
+    
+    # Only allow slot unlock at step 4 substep 1 (waiting for slot unlock)
+    if {_step} = 4:
+        if tutorial_getSubStep({_p}) = 1:
+            return true
+    
+    return false
+
+
+# ============================================================
+# ENCHANT UPGRADE CONTROL
+# ============================================================
+
+function tutorial_canUpgradeEnchant(p: player) :: boolean:
+    if tutorial_isComplete({_p}) = true:
+        return true
+    
+    set {_step} to tutorial_getStep({_p})
+    
+    # Block upgrades at step 2 (only equipping allowed)
+    if {_step} = 2:
+        return false
+    
+    # Block upgrades at step 4 substeps 1 and 3 (only slot unlock and equip allowed)
+    if {_step} = 4:
+        set {_substep} to tutorial_getSubStep({_p})
+        if {_substep} = 1:
+            return false
+        if {_substep} = 3:
+            return false
+    
+    return true
+
+
+# ============================================================
+# PERSISTENT TITLE SYSTEM
+# ============================================================
+
+function tutorial_showPersistentTitle(p: player, step: integer, title: text, subtitle: text):
+    set {-tutorial::%{_p}'s uuid%::titleStep} to {_step}
+    tutorial_titleLoop({_p}, {_step}, {_title}, {_subtitle})
+
+function tutorial_titleLoop(p: player, step: integer, title: text, subtitle: text):
+    while {-tutorial::%{_p}'s uuid%::titleStep} = {_step}:
+        if {_p} is not online:
+            stop
+        if tutorial_isComplete({_p}) = true:
+            stop
+        if tutorial_getStep({_p}) != {_step}:
+            stop
+        
+        send title {_title} with subtitle {_subtitle} to {_p} for 3 seconds
+        wait 2.5 seconds
+
+function tutorial_stopTitle(p: player):
+    delete {-tutorial::%{_p}'s uuid%::titleStep}
+    reset title of {_p}
+
+
+# ============================================================
+# MENU ACCESS CONTROL
+# ============================================================
+
+function tutorial_canOpenMenu(p: player) :: boolean:
+    if tutorial_isComplete({_p}) = true:
+        return true
+    
+    set {_step} to tutorial_getStep({_p})
+    
+    if {_step} = 0:
+        return true
+    
+    if {_step} = 1:
+        send "&c&l! &cFinish mining first!" to {_p}
+        play sound "entity.villager.no" with volume 0.5 and pitch 1 to {_p}
+        return false
+    
+    if {_step} = 3:
+        send "&c&l! &cFinish mining first!" to {_p}
+        play sound "entity.villager.no" with volume 0.5 and pitch 1 to {_p}
+        return false
+    
+    return true
+
+
+# ============================================================
+# PARTICLE EFFECTS
+# ============================================================
+
+function tutorial_particleBurst(p: player):
+    set {_loc} to location of {_p}
+    add 1 to y-coord of {_loc}
+    
+    loop 30 times:
+        set {_angle} to random number between 0 and 360
+        set {_rad} to {_angle} * 0.01745329
+        set {_dist} to random number between 0.5 and 2
+        set {_x} to cos({_rad}) * {_dist}
+        set {_z} to sin({_rad}) * {_dist}
+        set {_y} to random number between 0 and 2.5
+        
+        set {_particleLoc} to {_loc} ~ vector({_x}, {_y}, {_z})
+        draw 1 dust using dustOption(rgb(255, 200, 50), 1.5) at {_particleLoc}
+        draw 1 end rod at {_particleLoc}
+
+
+function tutorial_particleSuccess(p: player):
+    set {_loc} to location of {_p}
+    add 1.5 to y-coord of {_loc}
+    
+    draw 20 totem of undying at {_loc}
+    draw 15 happy villager at {_loc} with extra 1
+
+
+# ============================================================
+# STEP HANDLERS
+# ============================================================
+
+function tutorial_start(p: player):
+    tutorial_setStep({_p}, 1)
+    tutorial_resetBlocks({_p})
+    tutorial_setSubStep({_p}, 0)
+    
+    # Reset player to fresh state
+    enchant_clearEquipped({_p})
+    loop enchant_getAllEnchantsIds():
+        enchant_setPlayerLevel({_p}, loop-value, 0)
+    
+    # Reset slots to 1
+    slot_setUnlockedCount({_p}, 1)
+    
+    # Give efficiency level 3 (not equipped)
+    set {_efficiencyID} to enchant_getIdByString("Efficiency")
+    enchant_setPlayerLevel({_p}, {_efficiencyID}, 3)
+    
+    wait 1.5 seconds
+    
+    send title "&6&l⛏ WELCOME" with subtitle "&7to the mines" to {_p} for 4 seconds
+    play sound "block.note_block.chime" with volume 0.8 and pitch 1.2 to {_p}
+    
+    wait 4 seconds
+    
+    play sound "block.note_block.bell" with volume 0.5 and pitch 1.5 to {_p}
+    tutorial_showPersistentTitle({_p}, 1, "&e&lMINE 5 BLOCKS", "&7to get started")
+
+
+function tutorial_onBlockMined(p: player):
+    if tutorial_isComplete({_p}) = true:
+        stop
+    
+    set {_step} to tutorial_getStep({_p})
+    
+    if {_step} = 0:
+        stop
+    
+    # Step 1: Mining first 5 blocks
+    if {_step} = 1:
+        tutorial_addBlock({_p})
+        set {_count} to tutorial_getBlocks({_p})
+        set {_remaining} to 5 - {_count}
+        
+        if {_remaining} > 0:
+            play sound "block.note_block.hat" with volume 0.3 and pitch 1.5 to {_p}
+        else:
+            tutorial_step1Complete({_p})
+        stop
+    
+    # Step 3: Mining 10 more blocks
+    if {_step} = 3:
+        tutorial_addBlock({_p})
+        set {_count} to tutorial_getBlocks({_p})
+        set {_remaining} to 10 - {_count}
+        
+        if {_remaining} > 0:
+            if mod({_count}, 3) = 0:
+                play sound "block.note_block.hat" with volume 0.3 and pitch 1.5 to {_p}
+        else:
+            tutorial_step3Complete({_p})
+        stop
+
+
+function tutorial_step1Complete(p: player):
+    tutorial_setStep({_p}, 2)
+    tutorial_stopTitle({_p})
+    add 500 to {data::tokens::%{_p}'s uuid%}
+    
+    wait 10 ticks
+    
+    send title "&a&l+%formatNum(500)% TOKENS" with subtitle "&7You're earning already!" to {_p} for 3 seconds
+    play sound "entity.player.levelup" with volume 1 and pitch 1.2 to {_p}
+    tutorial_particleBurst({_p})
+    
+    wait 3.5 seconds
+    
+    send "" to {_p}
+    send "&a&l► &7Now let's equip your first enchantment!" to {_p}
+    send "&a&l► &eRight-click your &6pickaxe &eto open the menu." to {_p}
+    send "" to {_p}
+    play sound "block.note_block.bell" with volume 0.5 and pitch 1.2 to {_p}
+    
+    wait 1 second
+    
+    tutorial_showPersistentTitle({_p}, 2, "&b&lEQUIP EFFICIENCY", "&7Right-click your pickaxe")
+
+
+function tutorial_onMenuOpen(p: player):
+    if tutorial_isComplete({_p}) = true:
+        stop
+    
+    set {_step} to tutorial_getStep({_p})
+    
+    if {_step} = 2:
+        wait 15 ticks
+        send "" to {_p}
+        send "&a&l► &eClick the &aempty slot &eat the top row!" to {_p}
+        send "&a&l► &eThen select &6Efficiency &efrom the list." to {_p}
+        send "" to {_p}
+        play sound "block.note_block.pling" with volume 0.5 and pitch 1.5 to {_p}
+    
+    if {_step} = 4:
+        set {_substep} to tutorial_getSubStep({_p})
+        
+        # Substep 1: Unlock slot 2
+        if {_substep} = 1:
+            wait 15 ticks
+            send "" to {_p}
+            send "&a&l► &eClick the &c🔒 Locked Slot &eat position 2!" to {_p}
+            send "&a&l► &7This will unlock your second enchant slot." to {_p}
+            send "" to {_p}
+            play sound "block.note_block.pling" with volume 0.5 and pitch 1.5 to {_p}
+        
+        # Substep 2: Buy Excavator
+        else if {_substep} = 2:
+            wait 15 ticks
+            send "" to {_p}
+            send "&a&l► &eFind &6Excavator &ein the enchant list below." to {_p}
+            send "&a&l► &eClick it to upgrade it to level 1!" to {_p}
+            send "" to {_p}
+            play sound "block.note_block.pling" with volume 0.5 and pitch 1.5 to {_p}
+        
+        # Substep 3: Equip Excavator
+        else if {_substep} = 3:
+            wait 15 ticks
+            send "" to {_p}
+            send "&a&l► &eClick an &aempty slot &eat the top row." to {_p}
+            send "&a&l► &eThen select &6Excavator &eto equip it!" to {_p}
+            send "" to {_p}
+            play sound "block.note_block.pling" with volume 0.5 and pitch 1.5 to {_p}
+
+
+function tutorial_onEnchantEquip(p: player, enchantName: text):
+    if tutorial_isComplete({_p}) = true:
+        stop
+    
+    set {_step} to tutorial_getStep({_p})
+    
+    if {_step} = 2:
+        if {_enchantName} = "Efficiency":
+            tutorial_step2Complete({_p})
+    
+    if {_step} = 4:
+        if {_enchantName} = "Excavator":
+            if tutorial_getSubStep({_p}) = 3:
+                tutorial_step4Complete({_p})
+
+
+function tutorial_step2Complete(p: player):
+    tutorial_setStep({_p}, 3)
+    tutorial_resetBlocks({_p})
+    tutorial_stopTitle({_p})
+    
+    wait 5 ticks
+    
+    close {_p}'s inventory
+    
+    wait 10 ticks
+    
+    send title "&a&l⚡ EFFICIENCY EQUIPPED" with subtitle "&7You'll mine faster now!" to {_p} for 3 seconds
+    play sound "block.enchantment_table.use" with volume 1 and pitch 1.2 to {_p}
+    
+    wait 3.5 seconds
+    
+    send "" to {_p}
+    send "&a&l► &7Great job! Now let's see that speed boost in action." to {_p}
+    send "" to {_p}
+    play sound "block.note_block.bell" with volume 0.5 and pitch 1.2 to {_p}
+    
+    wait 1.5 seconds
+    
+    tutorial_showPersistentTitle({_p}, 3, "&e&lMINE 10 BLOCKS", "&7Feel the speed boost!")
+
+
+function tutorial_step3Complete(p: player):
+    tutorial_setStep({_p}, 4)
+    tutorial_setSubStep({_p}, 1)
+    tutorial_stopTitle({_p})
+    
+    # Give tokens for Excavator purchase
+    add 500 to {data::tokens::%{_p}'s uuid%}
+    
+    wait 10 ticks
+    
+    send title "&a&l+%formatNum(500)% TOKENS" with subtitle "&7Bonus reward!" to {_p} for 3 seconds
+    play sound "entity.player.levelup" with volume 1 and pitch 1 to {_p}
+    tutorial_particleBurst({_p})
+    
+    wait 3.5 seconds
+    
+    send title "&6&lUNLOCK MORE POWER" with subtitle "&7Time for a second enchantment!" to {_p} for 3 seconds
+    play sound "ui.toast.challenge_complete" with volume 0.8 and pitch 1 to {_p}
+    
+    wait 3.5 seconds
+    
+    send "" to {_p}
+    send "&6&l► &eYou can equip multiple enchantments at once!" to {_p}
+    send "&6&l► &7Open your pickaxe menu and unlock &cSlot 2&7." to {_p}
+    send "" to {_p}
+    play sound "block.note_block.bell" with volume 0.5 and pitch 1.2 to {_p}
+    
+    wait 1.5 seconds
+    
+    tutorial_showPersistentTitle({_p}, 4, "&c&lUNLOCK SLOT 2", "&7Click the locked slot!")
+
+
+function tutorial_onSlotUnlock(p: player, slotNum: integer):
+    if tutorial_isComplete({_p}) = true:
+        stop
+    
+    set {_step} to tutorial_getStep({_p})
+    
+    if {_step} = 4:
+        if {_slotNum} = 2:
+            if tutorial_getSubStep({_p}) = 1:
+                tutorial_step4_slotUnlocked({_p})
+
+
+function tutorial_step4_slotUnlocked(p: player):
+    tutorial_setSubStep({_p}, 2)
+    tutorial_stopTitle({_p})
+    
+    wait 5 ticks
+    
+    close {_p}'s inventory
+    
+    wait 10 ticks
+    
+    send title "&a&lSLOT 2 UNLOCKED!" with subtitle "&7Now let's fill it!" to {_p} for 3 seconds
+    play sound "entity.player.levelup" with volume 0.8 and pitch 1.2 to {_p}
+    tutorial_particleBurst({_p})
+    
+    wait 3.5 seconds
+    
+    send "" to {_p}
+    send "&a&l► &7Now you need to &eunlock &6Excavator&7!" to {_p}
+    send "&a&l► &7Open your pickaxe and click on &6Excavator &7to buy level 1." to {_p}
+    send "" to {_p}
+    play sound "block.note_block.bell" with volume 0.5 and pitch 1.2 to {_p}
+    
+    wait 1.5 seconds
+    
+    tutorial_showPersistentTitle({_p}, 4, "&6&lBUY EXCAVATOR", "&7Click it in your pickaxe menu!")
+
+
+function tutorial_onEnchantUpgrade(p: player, enchantName: text, newLevel: integer):
+    if tutorial_isComplete({_p}) = true:
+        stop
+    
+    set {_step} to tutorial_getStep({_p})
+    
+    if {_step} = 4:
+        if {_enchantName} = "Excavator":
+            if tutorial_getSubStep({_p}) = 2:
+                if {_newLevel} >= 1:
+                    tutorial_step4_excavatorBought({_p})
+
+
+function tutorial_step4_excavatorBought(p: player):
+    tutorial_setSubStep({_p}, 3)
+    tutorial_stopTitle({_p})
+    
+    wait 10 ticks
+    
+    send title "&a&lEXCAVATOR UNLOCKED!" with subtitle "&7Now equip it!" to {_p} for 3 seconds
+    play sound "entity.experience_orb.pickup" with volume 1 and pitch 1.2 to {_p}
+    
+    wait 3.5 seconds
+    
+    send "" to {_p}
+    send "&a&l► &7Almost there! Now &eequip &6Excavator&7!" to {_p}
+    send "&a&l► &7Click an empty slot, then select Excavator." to {_p}
+    send "" to {_p}
+    play sound "block.note_block.bell" with volume 0.5 and pitch 1.2 to {_p}
+    
+    wait 1.5 seconds
+    
+    tutorial_showPersistentTitle({_p}, 4, "&b&lEQUIP EXCAVATOR", "&7Click empty slot → Excavator")
+
+
+function tutorial_step4Complete(p: player):
+    tutorial_setStep({_p}, 5)
+    tutorial_setSubStep({_p}, 0)
+    tutorial_stopTitle({_p})
+    
+    wait 5 ticks
+    
+    close {_p}'s inventory
+    
+    wait 10 ticks
+    
+    send title "&a&l⚡ DUAL ENCHANTS!" with subtitle "&7You're getting stronger!" to {_p} for 3 seconds
+    play sound "block.enchantment_table.use" with volume 1 and pitch 1.2 to {_p}
+    tutorial_particleBurst({_p})
+    
+    wait 3.5 seconds
+    
+    send title "&6&lCHOOSE YOUR PATH" with subtitle "&7Each archetype has unique strengths" to {_p} for 4 seconds
+    play sound "ui.toast.challenge_complete" with volume 1 and pitch 0.8 to {_p}
+    
+    wait 4.5 seconds
+    
+    send "" to {_p}
+    send "&d&l► &7Now it's time to pick your playstyle!" to {_p}
+    send "" to {_p}
+    send "   &bPrecision &8- &7Fast mining, more tokens/XP" to {_p}
+    send "   &cDemolition &8- &7Tanky, AOE explosions" to {_p}
+    send "   &dArcane &8- &7Risky, more drops" to {_p}
+    send "" to {_p}
+    play sound "block.note_block.bell" with volume 0.5 and pitch 1.2 to {_p}
+    
+    wait 2 seconds
+    
+    archetype_menu_selection({_p})
+    
+    wait 1 second
+    
+    tutorial_showPersistentTitle({_p}, 5, "&d&lPICK AN ARCHETYPE", "&7Choose your playstyle")
+
+
+function tutorial_onArchetypeSelected(p: player, archetypeId: integer):
+    if tutorial_isComplete({_p}) = true:
+        stop
+    
+    set {_step} to tutorial_getStep({_p})
+    
+    if {_step} = 5:
+        tutorial_step5Complete({_p}, {_archetypeId})
+
+
+function tutorial_step5Complete(p: player, archetypeId: integer):
+    tutorial_setStep({_p}, 6)
+    tutorial_stopTitle({_p})
+    
+    wait 10 ticks
+    
+    if {_archetypeId} = 2:
+        set {_color} to "&b"
+        set {_name} to "PRECISION"
+    else if {_archetypeId} = 3:
+        set {_color} to "&c"
+        set {_name} to "DEMOLITION"
+    else if {_archetypeId} = 4:
+        set {_color} to "&d"
+        set {_name} to "ARCANE"
+    else:
+        set {_color} to "&f"
+        set {_name} to "MINER"
+    
+    send title "%{_color}%&l%{_name}%" with subtitle "&7Great choice!" to {_p} for 3 seconds
+    play sound "ui.toast.challenge_complete" with volume 1 and pitch 1 to {_p}
+    tutorial_particleBurst({_p})
+    
+    wait 3.5 seconds
+    
+    send "" to {_p}
+    send "&a&l► &7Now level up your archetype by mining!" to {_p}
+    send "&a&l► &7Each level makes you more powerful." to {_p}
+    send "" to {_p}
+    play sound "block.note_block.bell" with volume 0.5 and pitch 1.2 to {_p}
+    
+    wait 1.5 seconds
+    
+    tutorial_showPersistentTitle({_p}, 6, "&e&lREACH LEVEL 2", "&7Keep mining to level up!")
+
+
+function tutorial_onLevelUp(p: player, archetype: text, level: integer):
+    if tutorial_isComplete({_p}) = true:
+        stop
+    
+    set {_step} to tutorial_getStep({_p})
+    
+    if {_step} = 6:
+        if {_level} >= 2:
+            tutorial_step6Complete({_p})
+
+
+function tutorial_step6Complete(p: player):
+    tutorial_setStep({_p}, 7)
+    tutorial_stopTitle({_p})
+    
+    wait 10 ticks
+    
+    send title "&a&lLEVEL UP!" with subtitle "&7You're getting stronger!" to {_p} for 3 seconds
+    play sound "entity.player.levelup" with volume 1 and pitch 1 to {_p}
+    tutorial_particleBurst({_p})
+    
+    wait 3.5 seconds
+    
+    send "" to {_p}
+    send "&6&l► &eYou've been collecting ores while mining!" to {_p}
+    send "&6&l► &eType &f/sell &eto sell them for &amoney&e!" to {_p}
+    send "" to {_p}
+    play sound "block.note_block.bell" with volume 0.5 and pitch 1.2 to {_p}
+    
+    wait 1.5 seconds
+    
+    tutorial_showPersistentTitle({_p}, 7, "&6&lSELL YOUR DROPS", "&7Use /sell to get money!")
+
+
+function tutorial_onSell(p: player):
+    if tutorial_isComplete({_p}) = true:
+        stop
+    
+    set {_step} to tutorial_getStep({_p})
+    
+    if {_step} = 7:
+        tutorial_step7Complete({_p})
+
+
+function tutorial_step7Complete(p: player):
+    tutorial_setStep({_p}, 8)
+    tutorial_stopTitle({_p})
+    
+    wait 10 ticks
+    
+    send title "&a&lNICE!" with subtitle "&7Money earned!" to {_p} for 3 seconds
+    play sound "entity.experience_orb.pickup" with volume 1 and pitch 1 to {_p}
+    
+    wait 3.5 seconds
+    
+    send title "&5&lPRESTIGE SYSTEM" with subtitle "&7Reset for permanent bonuses!" to {_p} for 4 seconds
+    play sound "block.note_block.bell" with volume 0.5 and pitch 1.2 to {_p}
+    
+    wait 4.5 seconds
+    
+    send "" to {_p}
+    send "&5&l► &dWhen you reach max level, you can &5PRESTIGE&d!" to {_p}
+    send "" to {_p}
+    send "&5&l► &7Prestiging resets your level but:" to {_p}
+    send "   &7• Increases your max level cap" to {_p}
+    send "   &7• Grants permanent bonuses" to {_p}
+    send "   &7• Earns prestige points for upgrades" to {_p}
+    send "" to {_p}
+    send "&5&l► &7Check your progress with &f/prestige" to {_p}
+    send "" to {_p}
+    play sound "block.note_block.chime" with volume 0.5 and pitch 1 to {_p}
+    
+    wait 6 seconds
+    
+    tutorial_step8Complete({_p})
+
+
+function tutorial_step8Complete(p: player):
+    tutorial_setStep({_p}, 9)
+    
+    wait 10 ticks
+    
+    send title "&a&l✓ TUTORIAL COMPLETE" with subtitle "&7Good luck, miner!" to {_p} for 4 seconds
+    play sound "ui.toast.challenge_complete" with volume 1 and pitch 1 to {_p}
+    play sound "entity.ender_dragon.growl" with volume 0.3 and pitch 1.5 to {_p}
+    tutorial_particleSuccess({_p})
+    
+    wait 4.5 seconds
+    
+    send "" to {_p}
+    send "&a&m                                                   " to {_p}
+    send "" to {_p}
+    send "   &a&l✓ &fYou're ready to start mining!" to {_p}
+    send "" to {_p}
+    send "   &7Quick tips:" to {_p}
+    send "   &8• &7Unlock more slots as you progress" to {_p}
+    send "   &8• &7Try different archetype enchantments" to {_p}
+    send "   &8• &7Prestige when you hit max level" to {_p}
+    send "" to {_p}
+    send "   &7Join our Discord: &b/discord" to {_p}
+    send "" to {_p}
+    send "   &8&oNote: This server is currently in &c&oBETA" to {_p}
+    send "   &8&oExpect bugs and frequent updates!" to {_p}
+    send "" to {_p}
+    send "&a&m                                                   " to {_p}
+    send "" to {_p}
+    
+    tutorial_markComplete({_p})
+
+
+# ============================================================
+# EVENTS
+# ============================================================
+
+on join:
+    wait 5 ticks
+    console command "attribute %player% minecraft:block_break_speed base set 0"
+    if tutorial_isComplete(player) = false:
+        if tutorial_getStep(player) = 0:
+            tutorial_start(player)
+        else:
+            wait 1.5 seconds
+            set {_step} to tutorial_getStep(player)
+            
+            if {_step} = 1:
+                set {_remaining} to 5 - tutorial_getBlocks(player)
+                tutorial_showPersistentTitle(player, 1, "&e&lMINE %{_remaining}% BLOCKS", "&7to continue")
+            
+            else if {_step} = 2:
+                tutorial_showPersistentTitle(player, 2, "&b&lEQUIP EFFICIENCY", "&7Right-click your pickaxe")
+            
+            else if {_step} = 3:
+                set {_remaining} to 10 - tutorial_getBlocks(player)
+                tutorial_showPersistentTitle(player, 3, "&e&lMINE %{_remaining}% BLOCKS", "&7to continue")
+            
+            else if {_step} = 4:
+                set {_substep} to tutorial_getSubStep(player)
+                if {_substep} = 1:
+                    tutorial_showPersistentTitle(player, 4, "&c&lUNLOCK SLOT 2", "&7Click the locked slot!")
+                else if {_substep} = 2:
+                    tutorial_showPersistentTitle(player, 4, "&6&lBUY EXCAVATOR", "&7Click it in your pickaxe menu!")
+                else if {_substep} = 3:
+                    tutorial_showPersistentTitle(player, 4, "&b&lEQUIP EXCAVATOR", "&7Click empty slot → Excavator")
+            
+            else if {_step} = 5:
+                tutorial_showPersistentTitle(player, 5, "&d&lPICK AN ARCHETYPE", "&7Use /arc")
+            
+            else if {_step} = 6:
+                tutorial_showPersistentTitle(player, 6, "&e&lREACH LEVEL 2", "&7Keep mining!")
+            
+            else if {_step} = 7:
+                tutorial_showPersistentTitle(player, 7, "&6&lSELL YOUR DROPS", "&7Use /sell")
+
+
+on quit:
+    tutorial_stopTitle(player)
+
+
+# ============================================================
+# ADMIN COMMANDS
+# ============================================================
+
+command /tutorial [<text>] [<integer>]:
+    permission: op
+    trigger:
+        if arg-1 = "reset":
+            tutorial_stopTitle(player)
+            enchant_clearEquipped(player)
+            loop enchant_getAllEnchantsIds():
+                enchant_setPlayerLevel(player, loop-value, 0)
+            slot_setUnlockedCount(player, 1)
+            delete {data::tutorial-complete::%player's uuid%}
+            delete {-tutorial::%player's uuid%::*}
+            send "&aTutorial reset! Rejoin to start fresh."
+        else if arg-1 = "skip":
+            tutorial_stopTitle(player)
+            slot_setUnlockedCount(player, 2)
+            tutorial_markComplete(player)
+            send "&aTutorial skipped and marked complete."
+        else if arg-1 = "step":
+            send "&7Current step: &e%tutorial_getStep(player)%"
+            send "&7Sub-step: &e%tutorial_getSubStep(player)%"
+            send "&7Blocks mined: &e%tutorial_getBlocks(player)%"
+            send "&7Complete: &e%tutorial_isComplete(player)%"
+            send "&7Slots unlocked: &e%slot_getUnlockedCount(player)%"
+        else if arg-1 = "setstep":
+            if arg-2 is set:
+                tutorial_setStep(player, arg-2)
+                send "&aSet tutorial step to %arg-2%"
+            else:
+                send "&cUsage: /tutorial setstep <number>"
+        else if arg-1 = "setsubstep":
+            if arg-2 is set:
+                tutorial_setSubStep(player, arg-2)
+                send "&aSet tutorial substep to %arg-2%"
+            else:
+                send "&cUsage: /tutorial setsubstep <number>"
+        else:
+            send "&e/tutorial reset &8- &7Reset your tutorial"
+            send "&e/tutorial skip &8- &7Skip tutorial"
+            send "&e/tutorial step &8- &7Check current progress"
+            send "&e/tutorial setstep <n> &8- &7Set step"
+            send "&e/tutorial setsubstep <n> &8- &7Set substep"
+
+
+command /discord:
+    trigger:
+        set {_t} to text component from "&fJoin to our discord &bhttps://discord.gg/NpnDrBm3Yu"
+        add hover event showing "suggest and report bugs at our discord, click here!" to {_t}
+        add click event to open url "https://discord.gg/NpnDrBm3Yu" to {_t}
+
+        send "&3&m                                                   "
+        send component {_t} to player
+        send "&3&m                                                   "
+
+every 15 minutes:
+    broadcast "&8[&6Beta&8] &eReport bugs and suggest features in our /discord!"

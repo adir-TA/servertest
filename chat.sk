@@ -1,0 +1,89 @@
+
+function chatFormat(p: player, x: text, hover: boolean = false) :: text:
+    
+    set {_name} to "%{_p}%"
+    set {_message} to {_x}
+
+    # discordLogMessage({_p}, "%{_p}% said: %{_x}%", "Chat", 1361402745340297233)
+
+    set {_id} to player_getArchetype({_p})
+    set {_color} to archetype_getColorTitle({_id})
+    set {_short} to archetype_getShortName({_id})
+    set {_archetype.name} to pickaxe_getArchetypeNameByID({_id})
+
+    set {_level} to prestige_getFormattedLevel({_p}, {_archetype.name})
+    set {_prestige} to prestige_getFormattedPrestige({_p}, {_archetype.name})
+
+    return "%{_prestige}%&f[&f&k!%{_color}%&l%{_short}%&f. %{_level}%&f&k!&f] %{_p}'s prefix%&7%{_name}%%{tag::%{_p}'s uuid%} ? ""% &7▶ &f%{_message}%"
+
+command /clearchat:
+    permission: staff.clearchat
+    permission message: &4&l[!] &cYou don't have enough permissions to execute this command!
+    trigger:
+        set {_count} to 0
+        loop 300 times:
+            broadcast formatted "&%{_count}%"
+            if {_count} = 9:
+                set {_count} to 0
+            add 1 to {_count}
+
+
+function staffChatMessage(p: player, message: text):
+    send "&4&l[&cStaff&4&l] &f%{_p}%: %{_message}%" to all players where [input has permission "staff.chat"]
+
+command staffchat [<text>]:
+    aliases: sc
+    permission: staff.chat
+    permission message: &4&l[!] &cYou don't have access for this command!
+    trigger:
+        if arg-1 isn't set:
+            if metadata tag "staffchat" of player is set:
+                delete metadata tag "staffchat" of player
+            else:
+                set metadata tag "staffchat" of player to "&aenabled"
+            set {_check} to metadata tag "staffchat" of player
+            send "&4&l[&cStaff&4&l] &cYou %{_check} ? "&4disabled"% &cstaffchat." to player
+            stop
+        staffChatMessage(player, arg-1)
+
+on chat:
+    if metadata tag "staffchat" of player is set:
+        cancel event
+        staffChatMessage(player, uncolored message)
+        stop
+
+    set {_msg} to uncolored message
+
+    if {_msg} contains "[item]":
+        set {_check} to "[item]"
+        set {_type} to "flex"
+    else if {_msg} contains "[i]":
+        set {_check} to "[i]"
+        set {_type} to "flex"
+    else if {_msg} contains "[hand]":
+        set {_check} to "[hand]"
+        set {_type} to "flex"
+    
+
+    if {_check} is set:
+        cancel event
+
+        if {_type} = "flex":
+
+            set {_x} to {_msg}
+            set {_split::*} to split {_x} at {_check}
+
+            set {_before} to {_split::1}
+            set {_after} to {_split::2}
+
+            set {_message} to "%{_before} ? ""%&8[<##FFFFFD>&lHOVER&8]&f%{_after} ? ""%"
+
+            set {_component} to text component of chatFormat(player, {_message}, true)
+            set {_name} to tool's name
+            if {_name} isn't set:
+                set {_name} to "%type of tool%" in strict proper case
+            set {_lore::*} to "%{_name}% &8(&7x%amount of tool in player's inventory%&8)" and tool's lore
+            set hover event of {_component} to hover event showing {_lore::*}
+            send component {_component} to all players
+        stop
+    set the chat format to chatFormat(player, {_msg})
