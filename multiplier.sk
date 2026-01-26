@@ -313,10 +313,9 @@ function multiplier_startLoop(p: player):
 # ============================================================
 
 command /multipliers:
-    permission: op
     trigger:
         set {_uuid} to player's uuid
-        
+
         # Get archetype name
         set {_archetypeId} to player_getArchetype(player)
         if {_archetypeId} = 2:
@@ -327,7 +326,7 @@ command /multipliers:
             set {_archName} to "&dArcane"
         else:
             set {_archName} to "&7Global"
-        
+
         send ""
         send "&6&m                                "
         send "&e&lYOUR MULTIPLIERS"
@@ -335,21 +334,23 @@ command /multipliers:
         send ""
         send "&7Archetype: %{_archName}%"
         send ""
-        
+
         loop {-multiplier::types::*}:
             set {_type} to loop-value
+            set {_typeName} to replace all "_" with " " in {_type}
+            set {_typeName} to {_typeName} in strict proper case
             set {_val} to {-multiplier::%{_uuid}%::%{_type}%} ? 1
             set {_display} to round({_val} * 100) / 100
-            
+
             # Get pet bonus for breakdown
             set {_petBonus} to pet_getTotalBonus(player, {_type})
-            
+
             # Get armor bonus for breakdown
             set {_armorBonus} to armor_getTotalBonus(player, {_type})
-            
+
             # Get accessory bonus for breakdown
             set {_accBonus} to acc_getTotalBonus(player, {_type})
-            
+
             if {_val} > 1:
                 set {_breakdown} to ""
                 if {_petBonus} > 0:
@@ -361,15 +362,15 @@ command /multipliers:
                 if {_accBonus} > 0:
                     set {_accPercent} to round({_accBonus} * 100 * 100) / 100
                     set {_breakdown} to "%{_breakdown}%+%{_accPercent}%%% acc"
-                
+
                 if {_breakdown} != "":
-                    send "&7%{_type}%: &a%{_display}%x &8(%{_breakdown}%)" to player
+                    send "&7%{_typeName}%: &a%{_display}%x &8(%{_breakdown}%)" to player
                 else:
-                    send "&7%{_type}%: &a%{_display}%x" to player
+                    send "&7%{_typeName}%: &a%{_display}%x" to player
             else if {_val} < 1:
-                send "&7%{_type}%: &c%{_display}%x" to player
+                send "&7%{_typeName}%: &c%{_display}%x" to player
             else:
-                send "&7%{_type}%: &f1.0x" to player
+                send "&7%{_typeName}%: &f1.0x" to player
         
         send ""
         send "&6&m                                "
