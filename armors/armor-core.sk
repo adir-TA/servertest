@@ -120,12 +120,10 @@ function armor_unequip(p: player, piece: string):
 
 function armor_applyVisual(p: player, piece: string, tier: integer):
     set {_item} to armor_getLeatherItem({_piece}, {_tier})
-    
-    # Make unbreakable + hide attributes
-    set {_nbt} to nbt of {_item}
-    set byte tag "Unbreakable" of {_nbt} to 1
-    set int tag "HideFlags" of {_nbt} to 255
-    set {_item} to {_item} with nbt {_nbt}
+
+    # Make unbreakable + hide attributes (1.20.5+ data components)
+    set unbreakable component of {_item} to unbreakable with hidden in tooltip
+    set attribute modifiers component of {_item} to attribute modifiers with hidden in tooltip
     
     if {_piece} = "helmet":
         set helmet of {_p} to {_item}
