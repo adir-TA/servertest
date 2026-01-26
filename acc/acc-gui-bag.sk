@@ -90,9 +90,9 @@ function acc_openBagGui(p: player):
             # Check money requirement
             set {_balance} to {data::balance::%{_uuid}%} ? 0
             if {_balance} >= {_cost}:
-                add "&a  ✔ &7$%{_cost}%" to {_lockedLore::*}
+                add "&a  ✔ &7$%formatNum({_cost})%" to {_lockedLore::*}
             else:
-                add "&c  ✖ &7$%{_cost}%" to {_lockedLore::*}
+                add "&c  ✖ &7$%formatNum({_cost})%" to {_lockedLore::*}
 
             add "" to {_lockedLore::*}
 
