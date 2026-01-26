@@ -380,6 +380,7 @@ on quit:
     delete {-shockwave::%player's uuid%::*}
     delete {-lightning::%player's uuid%::*}
     delete {-earthquake::%player's uuid%::*}
+    delete {-autosell::%player's uuid%::*}
     amplify_clearAll(player)
     overcharge_clearAll(player)
 

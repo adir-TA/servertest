@@ -372,6 +372,17 @@ function mining_giveDrops(p: player, block: item, fortuneLevel: integer = 0, mul
     if {_amount} < 1:
         set {_amount} to 1
 
+    # Check for Autosell enchant
+    if enchant_hasAutosell({_p}) = true:
+        set {_earned} to enchant_autosellDrop({_p}, {_drop}, {_amount})
+        if {_earned} > 0:
+            # Add to pending autosell earnings for batched display
+            add {_earned} to {-autosell::%{_p}'s uuid%::pending}
+            if {-autosell::%{_p}'s uuid%::scheduled} is not set:
+                set {-autosell::%{_p}'s uuid%::scheduled} to true
+                autosell_flushEarnings({_p})
+            stop
+
     set {_finalDrop} to {_amount} of type of {_drop}
     give {_finalDrop} to {_p}
 
