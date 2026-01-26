@@ -63,21 +63,41 @@ function acc_initConfig():
     set {-acc::rarity::legendary::rank} to 5
     
     # ════════════════════════════════════════
-    # SLOT CONFIGURATION
+    # SLOT CONFIGURATION (14 slots total)
+    # Slot 1 = free, each slot +2 total prestiges
     # ════════════════════════════════════════
-    
+
     set {-acc::slots::base} to 1
-    set {-acc::slots::max} to 5
-    
-    # Slot unlock requirements (prestige, cost)
-    set {-acc::slot::2::prestige} to 1
+    set {-acc::slots::max} to 14
+
+    # Slot unlock requirements (prestige = total prestiges required, cost)
+    # Slot 1 is free (no requirements)
+    set {-acc::slot::2::prestige} to 2
     set {-acc::slot::2::cost} to 5000
-    set {-acc::slot::3::prestige} to 3
-    set {-acc::slot::3::cost} to 25000
-    set {-acc::slot::4::prestige} to 5
-    set {-acc::slot::4::cost} to 100000
-    set {-acc::slot::5::prestige} to 10
-    set {-acc::slot::5::cost} to 500000
+    set {-acc::slot::3::prestige} to 4
+    set {-acc::slot::3::cost} to 10000
+    set {-acc::slot::4::prestige} to 6
+    set {-acc::slot::4::cost} to 20000
+    set {-acc::slot::5::prestige} to 8
+    set {-acc::slot::5::cost} to 35000
+    set {-acc::slot::6::prestige} to 10
+    set {-acc::slot::6::cost} to 50000
+    set {-acc::slot::7::prestige} to 12
+    set {-acc::slot::7::cost} to 75000
+    set {-acc::slot::8::prestige} to 14
+    set {-acc::slot::8::cost} to 100000
+    set {-acc::slot::9::prestige} to 16
+    set {-acc::slot::9::cost} to 150000
+    set {-acc::slot::10::prestige} to 18
+    set {-acc::slot::10::cost} to 200000
+    set {-acc::slot::11::prestige} to 20
+    set {-acc::slot::11::cost} to 300000
+    set {-acc::slot::12::prestige} to 22
+    set {-acc::slot::12::cost} to 400000
+    set {-acc::slot::13::prestige} to 24
+    set {-acc::slot::13::cost} to 500000
+    set {-acc::slot::14::prestige} to 26
+    set {-acc::slot::14::cost} to 750000
     
     # ════════════════════════════════════════
     # STORAGE CONFIGURATION
