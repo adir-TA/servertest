@@ -1,20 +1,24 @@
 # ============================================================
-# ACCESSORY SYSTEM - TREASURES (PHYSICAL KEYS)
+# ACCESSORY SYSTEM - TREASURES (PHYSICAL KEYS ONLY)
+# ============================================================
+# Tiers match pet eggs: Normal, Ultra, Divine, Mythic, Celestial
+# ALL keys are physical items in player inventory
 # ============================================================
 
 on script load:
     delete {-acc::treasure::list::*}
     wait 2 ticks
-    
+
     # ════════════════════════════════════════
-    # REGISTER TREASURES
+    # REGISTER TREASURES (matching pet egg tiers)
+    # ID, Name, Tier, ChestIcon, KeyIcon, Color, Common%, Uncommon%, Rare%, Epic%, Legendary%
     # ════════════════════════════════════════
-    
-    acc_registerTreasure("rustic", "Rustic Treasure", "beginner", chest, tripwire hook, "&7", 55, 28, 12, 4, 1)
-    acc_registerTreasure("gilded", "Gilded Treasure", "intermediate", trapped chest, gold nugget, "&e", 48, 30, 14, 6, 2)
-    acc_registerTreasure("arcane", "Arcane Treasure", "advanced", barrel, prismarine shard, "&b", 42, 32, 16, 7.5, 2.5)
-    acc_registerTreasure("ethereal", "Ethereal Treasure", "expert", ender chest, amethyst shard, "&d", 35, 33, 19, 9.5, 3.5)
-    acc_registerTreasure("celestial", "Celestial Treasure", "master", respawn anchor, nether star, "&6", 28, 32, 22, 12, 6)
+
+    acc_registerTreasure("normal", "Normal Chest", "normal", chest, tripwire hook, "&a", 60, 28, 9, 2.5, 0.5)
+    acc_registerTreasure("ultra", "Ultra Chest", "ultra", trapped chest, gold nugget, "&b", 50, 32, 13, 4, 1)
+    acc_registerTreasure("divine", "Divine Chest", "divine", ender chest, prismarine shard, "&d", 40, 35, 17, 6, 2)
+    acc_registerTreasure("mythic", "Mythic Chest", "mythic", barrel, amethyst shard, "&6", 28, 35, 24, 9, 4)
+    acc_registerTreasure("celestial", "Celestial Chest", "celestial", respawn anchor, nether star, "&c", 18, 32, 30, 13, 7)
 
 
 function acc_registerTreasure(id: text, name: text, tier: text, chestIcon: item, keyIcon: item, color: text, chanceCommon: number, chanceUncommon: number, chanceRare: number, chanceEpic: number, chanceLegendary: number):
@@ -39,7 +43,7 @@ function acc_getTreasureName(id: text) :: text:
     return {-acc::treasure::%{_id}%::name} ? {_id}
 
 function acc_getTreasureTier(id: text) :: text:
-    return {-acc::treasure::%{_id}%::tier} ? "beginner"
+    return {-acc::treasure::%{_id}%::tier} ? "normal"
 
 function acc_getTreasureChestIcon(id: text) :: item:
     return {-acc::treasure::%{_id}%::chestIcon} ? chest
@@ -59,6 +63,11 @@ function acc_getTreasurePool(id: text) :: texts:
 function acc_getTreasureList() :: texts:
     return {-acc::treasure::list::*}
 
+function acc_isValidTreasure(id: text) :: boolean:
+    if {-acc::treasure::%{_id}%::name} is set:
+        return true
+    return false
+
 
 # ============================================================
 # RARITY ROLLING
@@ -67,23 +76,23 @@ function acc_getTreasureList() :: texts:
 function acc_rollRarity(treasureId: text) :: text:
     set {_roll} to random number between 0 and 100
     set {_threshold} to 0
-    
+
     add acc_getTreasureChance({_treasureId}, "common") to {_threshold}
     if {_roll} < {_threshold}:
         return "common"
-    
+
     add acc_getTreasureChance({_treasureId}, "uncommon") to {_threshold}
     if {_roll} < {_threshold}:
         return "uncommon"
-    
+
     add acc_getTreasureChance({_treasureId}, "rare") to {_threshold}
     if {_roll} < {_threshold}:
         return "rare"
-    
+
     add acc_getTreasureChance({_treasureId}, "epic") to {_threshold}
     if {_roll} < {_threshold}:
         return "epic"
-    
+
     return "legendary"
 
 
@@ -91,43 +100,43 @@ function acc_rollType(treasureId: text) :: text:
     set {_pool::*} to acc_getTreasurePool({_treasureId})
     set {_count} to size of {_pool::*}
     if {_count} = 0:
-        return "rusty_ring"
+        return "stone_ring"
     set {_index} to random integer between 1 and {_count}
     return {_pool::%{_index}%}
 
 
 function acc_getTreasureForPrestige(totalPrestige: number) :: text:
     set {_roll} to random number between 0 and 100
-    
+
     if {_totalPrestige} < 5:
-        return "rustic"
+        return "normal"
     else if {_totalPrestige} < 10:
         if {_roll} < 70:
-            return "rustic"
-        return "gilded"
+            return "normal"
+        return "ultra"
     else if {_totalPrestige} < 15:
         if {_roll} < 50:
-            return "rustic"
+            return "normal"
         if {_roll} < 85:
-            return "gilded"
-        return "arcane"
+            return "ultra"
+        return "divine"
     else if {_totalPrestige} < 20:
         if {_roll} < 30:
-            return "rustic"
+            return "normal"
         if {_roll} < 65:
-            return "gilded"
+            return "ultra"
         if {_roll} < 90:
-            return "arcane"
-        return "ethereal"
+            return "divine"
+        return "mythic"
     else:
         if {_roll} < 20:
-            return "rustic"
+            return "normal"
         if {_roll} < 45:
-            return "gilded"
+            return "ultra"
         if {_roll} < 70:
-            return "arcane"
+            return "divine"
         if {_roll} < 90:
-            return "ethereal"
+            return "mythic"
         return "celestial"
 
 
@@ -139,25 +148,20 @@ function acc_buildKeyItem(treasureId: text) :: item:
     set {_icon} to acc_getTreasureKeyIcon({_treasureId})
     set {_name} to acc_getTreasureName({_treasureId})
     set {_color} to acc_getTreasureColor({_treasureId})
-    set {_tier} to acc_getTreasureTier({_treasureId})
-    set {_tierName} to acc_getTierName({_tier})
-    set {_tierColor} to acc_getTierColor({_tier})
-    
+
     set {_item} to {_icon}
     set name of {_item} to "%{_color}%%{_name}% Key"
-    
-    set {_lore::*} to ""
+
     delete {_lore::*}
     add "&8ᴛʀᴇᴀsᴜʀᴇ ᴋᴇʏ" to {_lore::*}
     add "" to {_lore::*}
     add "&7Opens: %{_color}%%{_name}%" to {_lore::*}
-    add "&7Tier: %{_tierColor}%%{_tierName}%" to {_lore::*}
     add "" to {_lore::*}
-    add "&eUse at the &6Treasure Chest&e!" to {_lore::*}
-    
+    add "&eUse at the &6Treasure Altar&e!" to {_lore::*}
+
     set lore of {_item} to {_lore::*}
     set string tag "TreasureKey" of custom nbt of {_item} to {_treasureId}
-    
+
     return {_item}
 
 
@@ -195,7 +199,7 @@ function acc_getTotalKeys(p: player) :: number:
 
 
 # ============================================================
-# COMMANDS
+# COMMANDS (Physical Keys Only)
 # ============================================================
 
 command /givekey <text> [<number=1>]:
@@ -203,8 +207,8 @@ command /givekey <text> [<number=1>]:
     trigger:
         set {_id} to arg-1
         set {_amount} to arg-2
-        if {-acc::treasure::%{_id}%::name} is not set:
-            send "&cInvalid treasure! Use: rustic, gilded, arcane, ethereal, celestial"
+        if acc_isValidTreasure({_id}) is false:
+            send "&cInvalid treasure! Use: normal, ultra, divine, mythic, celestial"
             stop
         loop {_amount} times:
             acc_giveKey(player, {_id})

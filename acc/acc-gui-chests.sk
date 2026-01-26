@@ -1,165 +1,159 @@
 # ============================================================
 # ACCESSORY SYSTEM - TREASURE CHESTS GUI
 # ============================================================
-# Tiers: Basic, Advanced, Ultra, Divine, Mythic
-# Uses tier-based keys (separate from physical treasure keys)
-# Function names prefixed to avoid conflicts with acc-treasures.sk
+# Tiers: Normal, Ultra, Divine, Mythic, Celestial
+# Uses PHYSICAL KEYS from inventory only (no variable keys)
 # ============================================================
 
 function acc_openChestsGui(p: player):
     set {_uuid} to {_p}'s uuid
     set {_menu} to chest inventory with 5 rows named "&6&lTreasure Chests"
-    
+
     # Fill background
     set {_filler} to black stained glass pane named "&1"
     loop 45 times:
         set slot loop-number - 1 of {_menu} to {_filler}
-    
+
     # Title
-    set slot 4 of {_menu} to ender chest named "&6&lTreasure Chests" with lore "&8ᴍᴇɴᴜ", "", "&7Open treasure chests", "&7to obtain accessories!", "", "&7Total Keys: &e%acc_getTotalTierKeys({_p})%"
-    
+    set slot 4 of {_menu} to ender chest named "&6&lTreasure Chests" with lore "&8ᴍᴇɴᴜ", "", "&7Open treasure chests", "&7to obtain accessories!", "", "&7Total Keys: &e%acc_getTotalKeys({_p})%"
+
     # ════════════════════════════════════════
     # TREASURE CHESTS (Row 2: slots 11-15)
     # ════════════════════════════════════════
-    
-    # Basic Chest - Slot 11
-    set {_basicKeys} to {data::accessories::%{_uuid}%::keys::basic} ? 0
-    set {_basicChest} to chest named "&7&lBasic Chest"
-    delete {_basicLore::*}
-    add "&8ᴛʀᴇᴀsᴜʀᴇ ᴄʜᴇsᴛ" to {_basicLore::*}
-    add "" to {_basicLore::*}
-    add "&7Tier: &7Basic" to {_basicLore::*}
-    add "&7Your Keys: &e%{_basicKeys}%" to {_basicLore::*}
-    add "" to {_basicLore::*}
-    add "&7Drop Rates:" to {_basicLore::*}
-    add "  &fCommon: &760%%" to {_basicLore::*}
-    add "  &aUncommon: &728%%" to {_basicLore::*}
-    add "  &9Rare: &79%%" to {_basicLore::*}
-    add "  &5Epic: &72.5%%" to {_basicLore::*}
-    add "  &6Legendary: &70.5%%" to {_basicLore::*}
-    add "" to {_basicLore::*}
-    if {_basicKeys} > 0:
-        add "&aClick to open!" to {_basicLore::*}
+
+    # Normal Chest - Slot 11
+    set {_normalKeys} to acc_getKeyCount({_p}, "normal")
+    set {_normalChest} to acc_getTreasureChestIcon("normal") named "&a&lNormal Chest"
+    delete {_normalLore::*}
+    add "&8ᴛʀᴇᴀsᴜʀᴇ ᴄʜᴇsᴛ" to {_normalLore::*}
+    add "" to {_normalLore::*}
+    add "&7Your Keys: &e%{_normalKeys}%" to {_normalLore::*}
+    add "" to {_normalLore::*}
+    add "&7Drop Rates:" to {_normalLore::*}
+    add "  &fCommon: &760%%" to {_normalLore::*}
+    add "  &aUncommon: &728%%" to {_normalLore::*}
+    add "  &9Rare: &79%%" to {_normalLore::*}
+    add "  &5Epic: &72.5%%" to {_normalLore::*}
+    add "  &6Legendary: &70.5%%" to {_normalLore::*}
+    add "" to {_normalLore::*}
+    if {_normalKeys} > 0:
+        add "&aClick to open!" to {_normalLore::*}
+        set string tag "acc;treasure" of custom nbt of {_normalChest} to "normal"
     else:
-        add "&cNo keys available!" to {_basicLore::*}
-    set lore of {_basicChest} to {_basicLore::*}
-    set string tag "acc;tier" of custom nbt of {_basicChest} to "basic"
-    set slot 11 of {_menu} to {_basicChest}
-    
-    # Advanced Chest - Slot 12
-    set {_advancedKeys} to {data::accessories::%{_uuid}%::keys::advanced} ? 0
-    set {_advancedChest} to trapped chest named "&a&lAdvanced Chest"
-    delete {_advancedLore::*}
-    add "&8ᴛʀᴇᴀsᴜʀᴇ ᴄʜᴇsᴛ" to {_advancedLore::*}
-    add "" to {_advancedLore::*}
-    add "&7Tier: &aAdvanced" to {_advancedLore::*}
-    add "&7Your Keys: &e%{_advancedKeys}%" to {_advancedLore::*}
-    add "" to {_advancedLore::*}
-    add "&7Drop Rates:" to {_advancedLore::*}
-    add "  &fCommon: &750%%" to {_advancedLore::*}
-    add "  &aUncommon: &732%%" to {_advancedLore::*}
-    add "  &9Rare: &713%%" to {_advancedLore::*}
-    add "  &5Epic: &74%%" to {_advancedLore::*}
-    add "  &6Legendary: &71%%" to {_advancedLore::*}
-    add "" to {_advancedLore::*}
-    if {_advancedKeys} > 0:
-        add "&aClick to open!" to {_advancedLore::*}
-    else:
-        add "&cNo keys available!" to {_advancedLore::*}
-    set lore of {_advancedChest} to {_advancedLore::*}
-    set string tag "acc;tier" of custom nbt of {_advancedChest} to "advanced"
-    set slot 12 of {_menu} to {_advancedChest}
-    
-    # Ultra Chest - Slot 13
-    set {_ultraKeys} to {data::accessories::%{_uuid}%::keys::ultra} ? 0
-    set {_ultraChest} to ender chest named "&b&lUltra Chest"
+        add "&cNo keys available!" to {_normalLore::*}
+    set lore of {_normalChest} to {_normalLore::*}
+    set slot 11 of {_menu} to {_normalChest}
+
+    # Ultra Chest - Slot 12
+    set {_ultraKeys} to acc_getKeyCount({_p}, "ultra")
+    set {_ultraChest} to acc_getTreasureChestIcon("ultra") named "&b&lUltra Chest"
     delete {_ultraLore::*}
     add "&8ᴛʀᴇᴀsᴜʀᴇ ᴄʜᴇsᴛ" to {_ultraLore::*}
     add "" to {_ultraLore::*}
-    add "&7Tier: &bUltra" to {_ultraLore::*}
     add "&7Your Keys: &e%{_ultraKeys}%" to {_ultraLore::*}
     add "" to {_ultraLore::*}
     add "&7Drop Rates:" to {_ultraLore::*}
-    add "  &fCommon: &740%%" to {_ultraLore::*}
-    add "  &aUncommon: &735%%" to {_ultraLore::*}
-    add "  &9Rare: &717%%" to {_ultraLore::*}
-    add "  &5Epic: &76%%" to {_ultraLore::*}
-    add "  &6Legendary: &72%%" to {_ultraLore::*}
+    add "  &fCommon: &750%%" to {_ultraLore::*}
+    add "  &aUncommon: &732%%" to {_ultraLore::*}
+    add "  &9Rare: &713%%" to {_ultraLore::*}
+    add "  &5Epic: &74%%" to {_ultraLore::*}
+    add "  &6Legendary: &71%%" to {_ultraLore::*}
     add "" to {_ultraLore::*}
     if {_ultraKeys} > 0:
         add "&aClick to open!" to {_ultraLore::*}
+        set string tag "acc;treasure" of custom nbt of {_ultraChest} to "ultra"
     else:
         add "&cNo keys available!" to {_ultraLore::*}
     set lore of {_ultraChest} to {_ultraLore::*}
-    set string tag "acc;tier" of custom nbt of {_ultraChest} to "ultra"
-    set slot 13 of {_menu} to {_ultraChest}
-    
-    # Divine Chest - Slot 14
-    set {_divineKeys} to {data::accessories::%{_uuid}%::keys::divine} ? 0
-    set {_divineChest} to barrel named "&6&lDivine Chest"
+    set slot 12 of {_menu} to {_ultraChest}
+
+    # Divine Chest - Slot 13
+    set {_divineKeys} to acc_getKeyCount({_p}, "divine")
+    set {_divineChest} to acc_getTreasureChestIcon("divine") named "&d&lDivine Chest"
     delete {_divineLore::*}
     add "&8ᴛʀᴇᴀsᴜʀᴇ ᴄʜᴇsᴛ" to {_divineLore::*}
     add "" to {_divineLore::*}
-    add "&7Tier: &6Divine" to {_divineLore::*}
     add "&7Your Keys: &e%{_divineKeys}%" to {_divineLore::*}
     add "" to {_divineLore::*}
     add "&7Drop Rates:" to {_divineLore::*}
-    add "  &fCommon: &728%%" to {_divineLore::*}
+    add "  &fCommon: &740%%" to {_divineLore::*}
     add "  &aUncommon: &735%%" to {_divineLore::*}
-    add "  &9Rare: &724%%" to {_divineLore::*}
-    add "  &5Epic: &79%%" to {_divineLore::*}
-    add "  &6Legendary: &74%%" to {_divineLore::*}
+    add "  &9Rare: &717%%" to {_divineLore::*}
+    add "  &5Epic: &76%%" to {_divineLore::*}
+    add "  &6Legendary: &72%%" to {_divineLore::*}
     add "" to {_divineLore::*}
     if {_divineKeys} > 0:
         add "&aClick to open!" to {_divineLore::*}
+        set string tag "acc;treasure" of custom nbt of {_divineChest} to "divine"
     else:
         add "&cNo keys available!" to {_divineLore::*}
     set lore of {_divineChest} to {_divineLore::*}
-    set string tag "acc;tier" of custom nbt of {_divineChest} to "divine"
-    set slot 14 of {_menu} to {_divineChest}
-    
-    # Mythic Chest - Slot 15
-    set {_mythicKeys} to {data::accessories::%{_uuid}%::keys::mythic} ? 0
-    set {_mythicChest} to shulker box named "&d&lMythic Chest"
+    set slot 13 of {_menu} to {_divineChest}
+
+    # Mythic Chest - Slot 14
+    set {_mythicKeys} to acc_getKeyCount({_p}, "mythic")
+    set {_mythicChest} to acc_getTreasureChestIcon("mythic") named "&6&lMythic Chest"
     delete {_mythicLore::*}
     add "&8ᴛʀᴇᴀsᴜʀᴇ ᴄʜᴇsᴛ" to {_mythicLore::*}
     add "" to {_mythicLore::*}
-    add "&7Tier: &dMythic" to {_mythicLore::*}
     add "&7Your Keys: &e%{_mythicKeys}%" to {_mythicLore::*}
     add "" to {_mythicLore::*}
     add "&7Drop Rates:" to {_mythicLore::*}
-    add "  &fCommon: &718%%" to {_mythicLore::*}
-    add "  &aUncommon: &732%%" to {_mythicLore::*}
-    add "  &9Rare: &730%%" to {_mythicLore::*}
-    add "  &5Epic: &713%%" to {_mythicLore::*}
-    add "  &6Legendary: &77%%" to {_mythicLore::*}
+    add "  &fCommon: &728%%" to {_mythicLore::*}
+    add "  &aUncommon: &735%%" to {_mythicLore::*}
+    add "  &9Rare: &724%%" to {_mythicLore::*}
+    add "  &5Epic: &79%%" to {_mythicLore::*}
+    add "  &6Legendary: &74%%" to {_mythicLore::*}
     add "" to {_mythicLore::*}
     if {_mythicKeys} > 0:
         add "&aClick to open!" to {_mythicLore::*}
+        set string tag "acc;treasure" of custom nbt of {_mythicChest} to "mythic"
     else:
         add "&cNo keys available!" to {_mythicLore::*}
     set lore of {_mythicChest} to {_mythicLore::*}
-    set string tag "acc;tier" of custom nbt of {_mythicChest} to "mythic"
-    set slot 15 of {_menu} to {_mythicChest}
-    
+    set slot 14 of {_menu} to {_mythicChest}
+
+    # Celestial Chest - Slot 15
+    set {_celestialKeys} to acc_getKeyCount({_p}, "celestial")
+    set {_celestialChest} to acc_getTreasureChestIcon("celestial") named "&c&lCelestial Chest"
+    delete {_celestialLore::*}
+    add "&8ᴛʀᴇᴀsᴜʀᴇ ᴄʜᴇsᴛ" to {_celestialLore::*}
+    add "" to {_celestialLore::*}
+    add "&7Your Keys: &e%{_celestialKeys}%" to {_celestialLore::*}
+    add "" to {_celestialLore::*}
+    add "&7Drop Rates:" to {_celestialLore::*}
+    add "  &fCommon: &718%%" to {_celestialLore::*}
+    add "  &aUncommon: &732%%" to {_celestialLore::*}
+    add "  &9Rare: &730%%" to {_celestialLore::*}
+    add "  &5Epic: &713%%" to {_celestialLore::*}
+    add "  &6Legendary: &77%%" to {_celestialLore::*}
+    add "" to {_celestialLore::*}
+    if {_celestialKeys} > 0:
+        add "&aClick to open!" to {_celestialLore::*}
+        set string tag "acc;treasure" of custom nbt of {_celestialChest} to "celestial"
+    else:
+        add "&cNo keys available!" to {_celestialLore::*}
+    set lore of {_celestialChest} to {_celestialLore::*}
+    set slot 15 of {_menu} to {_celestialChest}
+
     # ════════════════════════════════════════
     # ROW 3: Key summary
     # ════════════════════════════════════════
-    
+
     set {_keyInfo} to tripwire hook named "&e&lYour Keys"
     delete {_keyLore::*}
     add "&8ɪɴᴠᴇɴᴛᴏʀʏ" to {_keyLore::*}
     add "" to {_keyLore::*}
-    add "&7Basic: &f%{_basicKeys}%" to {_keyLore::*}
-    add "&aAdvanced: &f%{_advancedKeys}%" to {_keyLore::*}
+    add "&aNormal: &f%{_normalKeys}%" to {_keyLore::*}
     add "&bUltra: &f%{_ultraKeys}%" to {_keyLore::*}
-    add "&6Divine: &f%{_divineKeys}%" to {_keyLore::*}
-    add "&dMythic: &f%{_mythicKeys}%" to {_keyLore::*}
+    add "&dDivine: &f%{_divineKeys}%" to {_keyLore::*}
+    add "&6Mythic: &f%{_mythicKeys}%" to {_keyLore::*}
+    add "&cCelestial: &f%{_celestialKeys}%" to {_keyLore::*}
     add "" to {_keyLore::*}
-    add "&7Total: &e%acc_getTotalTierKeys({_p})%" to {_keyLore::*}
+    add "&7Total: &e%acc_getTotalKeys({_p})%" to {_keyLore::*}
     set lore of {_keyInfo} to {_keyLore::*}
     set slot 22 of {_menu} to {_keyInfo}
-    
+
     # Back button - Slot 40
     set {_back} to arrow named "&c&lBack"
     delete {_backLore::*}
@@ -171,165 +165,60 @@ function acc_openChestsGui(p: player):
     set lore of {_back} to {_backLore::*}
     set string tag "acc;action" of custom nbt of {_back} to "back"
     set slot 40 of {_menu} to {_back}
-    
+
     open {_menu} to {_p}
     set {-acc::menu::%{_uuid}%} to "ACC_CHESTS"
 
 
 # ============================================================
-# CLICK HANDLER
+# CLICK HANDLER (Physical Keys)
 # ============================================================
 
 on inventory click:
     set {_uuid} to player's uuid
-    
+
     if {-acc::menu::%{_uuid}%} is "ACC_CHESTS":
         cancel event
-        
+
         set {_nbt} to custom nbt of clicked slot
         set {_action} to string tag "acc;action" of {_nbt}
-        set {_tier} to string tag "acc;tier" of {_nbt}
-        
+        set {_treasureId} to string tag "acc;treasure" of {_nbt}
+
         if {_action} is "back":
             play sound "ui.button.click" with volume 0.5 and pitch 1 to player
             acc_openBagGui(player)
             stop
-        
-        if {_tier} is set:
-            set {_keys} to {data::accessories::%{_uuid}%::keys::%{_tier}%} ? 0
-            
+
+        if {_treasureId} is set:
+            set {_keys} to acc_getKeyCount(player, {_treasureId})
+
             if {_keys} <= 0:
                 play sound "entity.villager.no" with volume 0.5 and pitch 1 to player
-                send "&cYou don't have any %{_tier}% keys!" to player
+                send "&cYou don't have any keys for this chest!" to player
                 stop
-            
-            # Use key
-            remove 1 from {data::accessories::%{_uuid}%::keys::%{_tier}%}
-            
+
+            # Use physical key from inventory
+            acc_useKey(player, {_treasureId})
+
             # Roll accessory
-            set {_type} to acc_rollTypeFromTier({_tier})
-            set {_rarity} to acc_rollRarityForTier({_tier})
+            set {_type} to acc_rollType({_treasureId})
+            set {_rarity} to acc_rollRarity({_treasureId})
             set {_encoded} to acc_encodeAccessory({_type}, {_rarity})
-            
+
             # Add to inventory
             acc_addToInventory(player, {_encoded})
-            
+
             # Display
             set {_name} to acc_getTypeName({_type})
             set {_rarityColor} to acc_getRarityColor({_rarity})
             set {_rarityName} to acc_getRarityName({_rarity})
-            
+
             play sound "entity.player.levelup" with volume 1 and pitch 1.2 to player
-            
+
             send "" to player
             send "&6&l★ TREASURE OPENED ★" to player
             send "&7You obtained: %{_rarityColor}%%{_rarityName}% %{_name}%" to player
             send "" to player
-            
+
             acc_openChestsGui(player)
             stop
-
-
-# ============================================================
-# ROLL FUNCTIONS (unique names to avoid conflicts)
-# ============================================================
-
-function acc_rollTypeFromTier(tier: text) :: text:
-    set {_pool::*} to acc_getTierPool({_tier})
-    set {_size} to size of {_pool::*}
-    
-    if {_size} = 0:
-        return "stone_ring"
-    
-    set {_rand} to random integer between 1 and {_size}
-    return {_pool::%{_rand}%}
-
-
-function acc_rollRarityForTier(tier: text) :: text:
-    set {_roll} to random number between 0 and 100
-    
-    if {_tier} is "basic":
-        if {_roll} < 0.5:
-            return "legendary"
-        if {_roll} < 3:
-            return "epic"
-        if {_roll} < 12:
-            return "rare"
-        if {_roll} < 40:
-            return "uncommon"
-        return "common"
-    
-    if {_tier} is "advanced":
-        if {_roll} < 1:
-            return "legendary"
-        if {_roll} < 5:
-            return "epic"
-        if {_roll} < 18:
-            return "rare"
-        if {_roll} < 50:
-            return "uncommon"
-        return "common"
-    
-    if {_tier} is "ultra":
-        if {_roll} < 2:
-            return "legendary"
-        if {_roll} < 8:
-            return "epic"
-        if {_roll} < 25:
-            return "rare"
-        if {_roll} < 60:
-            return "uncommon"
-        return "common"
-    
-    if {_tier} is "divine":
-        if {_roll} < 4:
-            return "legendary"
-        if {_roll} < 13:
-            return "epic"
-        if {_roll} < 37:
-            return "rare"
-        if {_roll} < 72:
-            return "uncommon"
-        return "common"
-    
-    if {_tier} is "mythic":
-        if {_roll} < 7:
-            return "legendary"
-        if {_roll} < 20:
-            return "epic"
-        if {_roll} < 50:
-            return "rare"
-        if {_roll} < 82:
-            return "uncommon"
-        return "common"
-    
-    return "common"
-
-
-# ============================================================
-# TIER KEY FUNCTIONS (unique names to avoid conflicts with acc-treasures.sk)
-# ============================================================
-
-function acc_giveTierKey(p: player, tier: text):
-    set {_uuid} to {_p}'s uuid
-    add 1 to {data::accessories::%{_uuid}%::keys::%{_tier}%}
-
-
-function acc_getTierKeyCount(p: player, tier: text) :: number:
-    return {data::accessories::%{_p}'s uuid%::keys::%{_tier}%} ? 0
-
-
-function acc_useTierKey(p: player, tier: text):
-    set {_uuid} to {_p}'s uuid
-    remove 1 from {data::accessories::%{_uuid}%::keys::%{_tier}%}
-
-
-function acc_getTotalTierKeys(p: player) :: number:
-    set {_uuid} to {_p}'s uuid
-    set {_total} to 0
-    add {data::accessories::%{_uuid}%::keys::basic} ? 0 to {_total}
-    add {data::accessories::%{_uuid}%::keys::advanced} ? 0 to {_total}
-    add {data::accessories::%{_uuid}%::keys::ultra} ? 0 to {_total}
-    add {data::accessories::%{_uuid}%::keys::divine} ? 0 to {_total}
-    add {data::accessories::%{_uuid}%::keys::mythic} ? 0 to {_total}
-    return {_total}
