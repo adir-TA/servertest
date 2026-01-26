@@ -66,8 +66,7 @@ on load:
     enchant_register(1, "Excavator", 103, brush with nbt from "{""minecraft:attribute_modifiers"":{modifiers:[],show_in_tooltip:0}}", (100), 50, 30, 75, 150, "Gives a chance to earn tokens when breaking blocks.")
     enchant_register(1, "Prospecting", 104, amethyst shard with nbt from "{""minecraft:attribute_modifiers"":{modifiers:[],show_in_tooltip:0}}", (100), 45, 25, 65, 130, "Gives a chance to find gemstones while mining blocks.")
     enchant_register(1, "Speed", 105, feather with nbt from "{""minecraft:attribute_modifiers"":{modifiers:[],show_in_tooltip:0}}", (5), 100, 50, 100, 200, "Increases your walking speed while in the mine. Higher levels = faster movement.")
-    set {_autosellIcon} to hopper minecart with nbt from "{""minecraft:attribute_modifiers"":{modifiers:[],show_in_tooltip:0}}"
-    enchant_register(1, "Autosell", 106, {_autosellIcon}, (1), 500, 0, 0, 0, "Automatically sells block drops for money instead of adding them to your inventory.")
+    enchant_register(1, "Autosell", 106, hopper minecart, (1), 500, 0, 0, 0, "Automatically sells block drops for money instead of adding them to your inventory.")
 
 
     enchant_register(2, "Focus", 201, ender pearl with nbt from "{""minecraft:attribute_modifiers"":{modifiers:[],show_in_tooltip:0}}", (30), 35, 20, 55, 110, "Chance to deal double mining damage when swinging.")
