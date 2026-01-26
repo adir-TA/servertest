@@ -41,14 +41,20 @@ function acc_openInventoryGui(p: player, page: number):
     
     set {_displayIndex} to 1
     set {_loopIndex} to 0
-    
+
     loop {_sortedList::*}:
         add 1 to {_loopIndex}
         if {_loopIndex} >= {_startIndex}:
             if {_loopIndex} <= {_endIndex}:
-                set {_encoded} to loop-value
+                # Parse format: "originalIndex;encoded"
+                set {_sortedData::*} to loop-value split by ";"
+                set {_origIndex} to {_sortedData::1}
+                set {_encoded} to {_sortedData::2}
                 set {_item} to acc_createItem({_p}, {_encoded})
-                
+
+                # Store original inventory index in NBT for proper equipping
+                set int tag "acc;invIndex" of custom nbt of {_item} to {_origIndex} parsed as number
+
                 set {_guiSlot} to {_displaySlots::%{_displayIndex}%}
                 set slot {_guiSlot} of {_menu} to {_item}
                 add 1 to {_displayIndex}
@@ -260,30 +266,30 @@ function acc_openSalvageAllConfirm(p: player):
 # SINGLE SALVAGE CONFIRMATION
 # ============================================================
 
-function acc_openSalvageConfirm(p: player, encoded: text):
+function acc_openSalvageConfirm(p: player, encoded: text, invIndex: number):
     set {_uuid} to {_p}'s uuid
     set {_parts::*} to acc_parseAccessory({_encoded})
     set {_type} to {_parts::1}
     set {_rarity} to {_parts::2}
-    
+
     set {_name} to acc_getTypeName({_type})
     set {_rarityColor} to acc_getRarityColor({_rarity})
     set {_rarityName} to acc_getRarityName({_rarity})
     set {_tokens} to acc_getSalvageValue({_rarity})
-    
+
     set {_menu} to chest inventory with 3 rows named "&c&lConfirm Salvage"
-    
+
     set {_filler} to black stained glass pane named "&1"
     loop 27 times:
         set slot loop-number - 1 of {_menu} to {_filler}
-    
+
     set {_warning} to red stained glass pane named "&1"
     set slot 3, 4, 5, 12, 14, 21, 22 and 23 of {_menu} to {_warning}
-    
+
     # Item preview - Slot 13
     set {_preview} to acc_createItem({_p}, {_encoded})
     set slot 13 of {_menu} to {_preview}
-    
+
     # Confirm - Slot 11
     set {_confirm} to lime dye named "&a&lConfirm"
     delete {_confirmLore::*}
@@ -299,6 +305,7 @@ function acc_openSalvageConfirm(p: player, encoded: text):
     set lore of {_confirm} to {_confirmLore::*}
     set string tag "acc;action" of custom nbt of {_confirm} to "confirm_salvage"
     set string tag "acc;encoded" of custom nbt of {_confirm} to {_encoded}
+    set int tag "acc;invIndex" of custom nbt of {_confirm} to {_invIndex}
     set slot 11 of {_menu} to {_confirm}
     
     # Cancel - Slot 15
@@ -337,13 +344,16 @@ on inventory click:
             # Q key = salvage
             if click type is drop key:
                 play sound "ui.button.click" with volume 0.5 and pitch 1 to player
-                acc_openSalvageConfirm(player, {_encoded})
+                # Get original index for salvage too
+                set {_invIndex} to int tag "acc;invIndex" of {_nbt}
+                acc_openSalvageConfirm(player, {_encoded}, {_invIndex})
                 stop
-            
+
             # Normal click = equip
             set {_targetSlot} to acc_findEmptyBagSlot(player)
             if {_targetSlot} > 0:
-                set {_invIndex} to acc_findInventoryIndex(player, {_encoded})
+                # Use stored original index instead of searching by value
+                set {_invIndex} to int tag "acc;invIndex" of {_nbt}
                 if {_invIndex} > 0:
                     acc_equipFromInventory(player, {_invIndex}, {_targetSlot})
                     play sound "item.armor.equip_diamond" with volume 0.8 and pitch 1.2 to player
@@ -420,24 +430,26 @@ on inventory click:
     
     else if {_menuType} is "SALVAGE_CONFIRM":
         cancel event
-        
+
         set {_nbt} to custom nbt of clicked slot
         set {_action} to string tag "acc;action" of {_nbt}
-        
+
         if {_action} is "confirm_salvage":
             set {_encoded} to string tag "acc;encoded" of {_nbt}
-            set {_invIndex} to acc_findInventoryIndex(player, {_encoded})
-            
+            # Use stored index instead of searching by value
+            set {_invIndex} to int tag "acc;invIndex" of {_nbt}
+
             if {_invIndex} > 0:
                 set {_parts::*} to acc_parseAccessory({_encoded})
                 set {_tokens} to acc_getSalvageValue({_parts::2})
-                
-                remove {_encoded} from {data::accessories::%{_uuid}%::inventory::*}
+
+                # Delete by index instead of removing by value
+                delete {data::accessories::%{_uuid}%::inventory::%{_invIndex}%}
                 mining_giveTokens(player, {_tokens})
-                
+
                 play sound "entity.item.break" with volume 0.8 and pitch 1 to player
                 send "&cSalvaged for &6+%{_tokens}% tokens" to player
-            
+
             set {_page} to {-acc::menu::%{_uuid}%::page} ? 1
             set {_sort} to {-acc::menu::%{_uuid}%::sort} ? "tier"
             acc_openInventoryGui(player, {_page})
@@ -456,39 +468,44 @@ on inventory click:
 function acc_getSortedInventory(p: player, sortBy: text) :: texts:
     set {_uuid} to {_p}'s uuid
     set {_inventory::*} to {data::accessories::%{_uuid}%::inventory::*}
-    
+
     if size of {_inventory::*} <= 1:
+        # Return with index prefix even for single items
+        if size of {_inventory::*} = 1:
+            return "1;%{_inventory::1}%"
         return {_inventory::*}
-    
+
     set {_count} to 0
     loop {_inventory::*}:
         add 1 to {_count}
         set {_encoded} to loop-value
+        set {_origIndex} to loop-index
         set {_parts::*} to acc_parseAccessory({_encoded})
         set {_type} to {_parts::1}
         set {_rarity} to {_parts::2}
         set {_tier} to acc_getTypeTier({_type})
-        
+
         set {_sortValue} to 0
-        
+
         if {_sortBy} is "tier":
             set {_tierRank} to acc_getTierRank({_tier})
             set {_rarityRank} to acc_getRarityRank({_rarity})
             set {_sortValue} to ({_tierRank} * 100) + {_rarityRank}
-        
+
         else if {_sortBy} is "bonus":
             set {_bonus} to acc_calculateBonus({_type}, {_rarity})
             set {_sortValue} to {_bonus} * 100
-        
+
         else if {_sortBy} is "stat":
             set {_stat} to acc_getTypeStat({_type})
             set {_statRank} to acc_getStatRank({_stat})
             set {_tierRank} to acc_getTierRank({_tier})
             set {_sortValue} to ({_statRank} * 1000) + ({_tierRank} * 10)
-        
+
         set {_data::%{_count}%::enc} to {_encoded}
+        set {_data::%{_count}%::idx} to {_origIndex}
         set {_data::%{_count}%::val} to {_sortValue}
-    
+
     # Bubble sort descending
     loop {_count} times:
         set {_outer} to loop-number
@@ -497,17 +514,21 @@ function acc_getSortedInventory(p: player, sortBy: text) :: texts:
             set {_j2} to {_j} + 1
             if {_data::%{_j}%::val} < {_data::%{_j2}%::val}:
                 set {_tEnc} to {_data::%{_j}%::enc}
+                set {_tIdx} to {_data::%{_j}%::idx}
                 set {_tVal} to {_data::%{_j}%::val}
                 set {_data::%{_j}%::enc} to {_data::%{_j2}%::enc}
+                set {_data::%{_j}%::idx} to {_data::%{_j2}%::idx}
                 set {_data::%{_j}%::val} to {_data::%{_j2}%::val}
                 set {_data::%{_j2}%::enc} to {_tEnc}
+                set {_data::%{_j2}%::idx} to {_tIdx}
                 set {_data::%{_j2}%::val} to {_tVal}
             add 1 to {_j}
-    
+
     delete {_result::*}
     loop {_count} times:
-        add {_data::%loop-number%::enc} to {_result::*}
-    
+        # Return format: "originalIndex;encoded"
+        add "%{_data::%loop-number%::idx}%;%{_data::%loop-number%::enc}%" to {_result::*}
+
     return {_result::*}
 
 
