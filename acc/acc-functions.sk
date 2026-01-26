@@ -163,28 +163,28 @@ function acc_getOwned(p: player) :: texts:
 function acc_equipFromInventory(p: player, invIndex: number, bagSlot: number) :: boolean:
     set {_uuid} to {_p}'s uuid
     set {_unlocked} to acc_getUnlockedSlots({_p})
-    
+
     if {_bagSlot} > {_unlocked}:
         return false
-    
+
     set {_encoded} to {data::accessories::%{_uuid}%::inventory::%{_invIndex}%}
     if {_encoded} is not set:
         return false
-    
+
     # Get current in bag slot
     set {_currentBag} to acc_getBagSlot({_p}, {_bagSlot})
-    
-    # Remove from inventory
-    remove {_encoded} from {data::accessories::%{_uuid}%::inventory::*}
-    
+
+    # Remove from inventory by index (not by value, to handle duplicates)
+    delete {data::accessories::%{_uuid}%::inventory::%{_invIndex}%}
+
     # If something was in bag, add to inventory
     if {_currentBag} is set:
         if {_currentBag} is not "":
             add {_currentBag} to {data::accessories::%{_uuid}%::inventory::*}
-    
+
     # Set bag slot
     acc_setBagSlot({_p}, {_bagSlot}, {_encoded})
-    
+
     return true
 
 
