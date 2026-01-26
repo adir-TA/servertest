@@ -311,10 +311,7 @@ function acc_getKeyIcon(tier: text) :: item:
 function acc_sendKeyFoundMessage(p: player, tier: text):
     set {_color} to acc_getTierColor({_tier})
     set {_name} to acc_getTierName({_tier})
-    send "" to {_p}
-    send "&eYou found a %{_color}%%{_name}% Key&e!" to {_p}
-    send "&7Open it in your &e/accessories &7menu!" to {_p}
-    send "" to {_p}
+    send title "&6&lKEY FOUND!" with subtitle "%{_color}%%{_name}% Key" to {_p} for 2 seconds
 
 
 # ══════════════════════════════════════════════════════════════

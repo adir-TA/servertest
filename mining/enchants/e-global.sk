@@ -383,8 +383,8 @@ function enchant_checkTreasureHunterProc(p: player) :: boolean:
     if {_level} < 1:
         return false
     
-    # 0.05% per level (Level 50 = 2.5%)
-    set {_baseChance} to {_level} * 0.05
+    # 0.025% per level (Level 50 = 1.25%)
+    set {_baseChance} to {_level} * 0.025
     
     # Apply enchant proc multiplier
     set {_procMultiplier} to multiplier_getEnchantProc({_p})
