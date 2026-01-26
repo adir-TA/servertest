@@ -539,6 +539,21 @@ on inventory click:
             pet_openMainMenu(player, {_page}, {_sort})
 
 
+on inventory close:
+    set {_uuid} to player's uuid
+    set {_menu} to {-pet::menu::%{_uuid}%}
+    if {_menu} is set:
+        # Clear all pet menu states (PET_MAIN, SALVAGE_*)
+        if {_menu} is "PET_MAIN":
+            delete {-pet::menu::%{_uuid}%}
+            delete {-pet::menu::%{_uuid}%::page}
+            delete {-pet::menu::%{_uuid}%::sort}
+        else if {_menu} contains "SALVAGE":
+            delete {-pet::menu::%{_uuid}%}
+            delete {-pet::menu::%{_uuid}%::page}
+            delete {-pet::menu::%{_uuid}%::sort}
+
+
 # ============================================================
 # SORTING FUNCTIONS
 # ============================================================
