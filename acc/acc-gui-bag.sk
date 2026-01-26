@@ -157,7 +157,7 @@ function acc_openBagGui(p: player):
     set slot 47 of {_menu} to {_storage}
     
     # Treasure Chests - Slot 51
-    set {_totalKeys} to acc_getTotalTierKeys({_p})
+    set {_totalKeys} to acc_getTotalKeys({_p})
     set {_chests} to ender chest named "&d&lTreasure Chests"
     delete {_chestsLore::*}
     add "&8ᴍᴇɴᴜ" to {_chestsLore::*}
