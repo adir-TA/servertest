@@ -149,7 +149,7 @@ function acc_openAltarTierMenu(p: player):
         add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ sᴇʟᴇᴄᴛ" to {_normalLore::*}
         set string tag "altar;treasure" of custom nbt of {_normalItem} to "normal"
     else:
-        add "&c✖ ɴᴏ ᴋᴇʏs ᴀᴠᴀɪʟᴀʙʟᴇ" to {_normalLore::*}
+        add "&cɴᴏ ᴋᴇʏs ᴀᴠᴀɪʟᴀʙʟᴇ" to {_normalLore::*}
     set lore of {_normalItem} to {_normalLore::*}
     set slot 10 of {_menu} to {_normalItem}
 
@@ -172,7 +172,7 @@ function acc_openAltarTierMenu(p: player):
         add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ sᴇʟᴇᴄᴛ" to {_ultraLore::*}
         set string tag "altar;treasure" of custom nbt of {_ultraItem} to "ultra"
     else:
-        add "&c✖ ɴᴏ ᴋᴇʏs ᴀᴠᴀɪʟᴀʙʟᴇ" to {_ultraLore::*}
+        add "&cɴᴏ ᴋᴇʏs ᴀᴠᴀɪʟᴀʙʟᴇ" to {_ultraLore::*}
     set lore of {_ultraItem} to {_ultraLore::*}
     set slot 11 of {_menu} to {_ultraItem}
 
@@ -195,7 +195,7 @@ function acc_openAltarTierMenu(p: player):
         add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ sᴇʟᴇᴄᴛ" to {_divineLore::*}
         set string tag "altar;treasure" of custom nbt of {_divineItem} to "divine"
     else:
-        add "&c✖ ɴᴏ ᴋᴇʏs ᴀᴠᴀɪʟᴀʙʟᴇ" to {_divineLore::*}
+        add "&cɴᴏ ᴋᴇʏs ᴀᴠᴀɪʟᴀʙʟᴇ" to {_divineLore::*}
     set lore of {_divineItem} to {_divineLore::*}
     set slot 13 of {_menu} to {_divineItem}
 
@@ -218,7 +218,7 @@ function acc_openAltarTierMenu(p: player):
         add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ sᴇʟᴇᴄᴛ" to {_mythicLore::*}
         set string tag "altar;treasure" of custom nbt of {_mythicItem} to "mythic"
     else:
-        add "&c✖ ɴᴏ ᴋᴇʏs ᴀᴠᴀɪʟᴀʙʟᴇ" to {_mythicLore::*}
+        add "&cɴᴏ ᴋᴇʏs ᴀᴠᴀɪʟᴀʙʟᴇ" to {_mythicLore::*}
     set lore of {_mythicItem} to {_mythicLore::*}
     set slot 15 of {_menu} to {_mythicItem}
 
@@ -241,7 +241,7 @@ function acc_openAltarTierMenu(p: player):
         add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ sᴇʟᴇᴄᴛ" to {_celestialLore::*}
         set string tag "altar;treasure" of custom nbt of {_celestialItem} to "celestial"
     else:
-        add "&c✖ ɴᴏ ᴋᴇʏs ᴀᴠᴀɪʟᴀʙʟᴇ" to {_celestialLore::*}
+        add "&cɴᴏ ᴋᴇʏs ᴀᴠᴀɪʟᴀʙʟᴇ" to {_celestialLore::*}
     set lore of {_celestialItem} to {_celestialLore::*}
     set slot 16 of {_menu} to {_celestialItem}
 
@@ -305,7 +305,7 @@ function acc_openAltarAmountMenu(p: player, treasureId: text):
         set string tag "altar;treasure" of custom nbt of {_item1} to {_treasureId}
         set int tag "altar;amount" of custom nbt of {_item1} to 1
     else:
-        add "&c✖ ɴᴏᴛ ᴇɴᴏᴜɢʜ ᴋᴇʏs!" to {_lore1::*}
+        add "&cɴᴏᴛ ᴇɴᴏᴜɢʜ ᴋᴇʏs!" to {_lore1::*}
     set lore of {_item1} to {_lore1::*}
     set slot 11 of {_menu} to {_item1}
 
@@ -321,7 +321,7 @@ function acc_openAltarAmountMenu(p: player, treasureId: text):
         set string tag "altar;treasure" of custom nbt of {_item3} to {_treasureId}
         set int tag "altar;amount" of custom nbt of {_item3} to 3
     else:
-        add "&c✖ ɴᴏᴛ ᴇɴᴏᴜɢʜ ᴋᴇʏs!" to {_lore3::*}
+        add "&cɴᴏᴛ ᴇɴᴏᴜɢʜ ᴋᴇʏs!" to {_lore3::*}
         add "&7You need &e3 &7keys (have &c%{_keys}%&7)" to {_lore3::*}
     set lore of {_item3} to {_lore3::*}
     set slot 13 of {_menu} to {_item3}
@@ -338,7 +338,7 @@ function acc_openAltarAmountMenu(p: player, treasureId: text):
         set string tag "altar;treasure" of custom nbt of {_item5} to {_treasureId}
         set int tag "altar;amount" of custom nbt of {_item5} to 5
     else:
-        add "&c✖ ɴᴏᴛ ᴇɴᴏᴜɢʜ ᴋᴇʏs!" to {_lore5::*}
+        add "&cɴᴏᴛ ᴇɴᴏᴜɢʜ ᴋᴇʏs!" to {_lore5::*}
         add "&7You need &e5 &7keys (have &c%{_keys}%&7)" to {_lore5::*}
     set lore of {_item5} to {_lore5::*}
     set slot 15 of {_menu} to {_item5}
@@ -906,15 +906,15 @@ function acc_playTreasureAnimation(p: player, treasureId: text, amount: integer)
 
         # Build beautiful display text with stats
         if {_rarity} is "legendary":
-            set {_displayText} to "&6&l✦ LEGENDARY ✦%nl%%{_rarityColor}%&l%{_typeName}%%nl%&8━━━━━━━━━━━━%nl%&a+%{_bonus}%%% &f%{_statName}%"
+            set {_displayText} to "&6&lLEGENDARY%nl%%{_rarityColor}%&l%{_typeName}%%nl%&8━━━━━━━━━━━━%nl%&a+%{_bonus}%%% &f%{_statName}%"
         else if {_rarity} is "epic":
-            set {_displayText} to "&d&l★ EPIC ★%nl%%{_rarityColor}%%{_typeName}%%nl%&8─────────%nl%&a+%{_bonus}%%% &7%{_statName}%"
+            set {_displayText} to "&d&lEPIC%nl%%{_rarityColor}%%{_typeName}%%nl%&8─────────%nl%&a+%{_bonus}%%% &7%{_statName}%"
         else if {_rarity} is "rare":
-            set {_displayText} to "&9✧ Rare%nl%%{_rarityColor}%%{_typeName}%%nl%&a+%{_bonus}%%% &7%{_statName}%"
+            set {_displayText} to "&9Rare%nl%%{_rarityColor}%%{_typeName}%%nl%&a+%{_bonus}%%% &7%{_statName}%"
         else if {_rarity} is "uncommon":
-            set {_displayText} to "&a○ Uncommon%nl%%{_rarityColor}%%{_typeName}%%nl%&a+%{_bonus}%%% &7%{_statName}%"
+            set {_displayText} to "&aUncommon%nl%%{_rarityColor}%%{_typeName}%%nl%&a+%{_bonus}%%% &7%{_statName}%"
         else:
-            set {_displayText} to "&7• Common%nl%%{_rarityColor}%%{_typeName}%%nl%&a+%{_bonus}%%% &7%{_statName}%"
+            set {_displayText} to "&7Common%nl%%{_rarityColor}%%{_typeName}%%nl%&a+%{_bonus}%%% &7%{_statName}%"
 
         set {_m} to new metadata packet with id {_textId::%{_i}%}:
             display text: {_displayText}
@@ -1004,7 +1004,7 @@ function acc_playTreasureAnimation(p: player, treasureId: text, amount: integer)
 
     # Send summary
     send "" to {_p}
-    send "&6&l★ TREASURES OPENED ★" to {_p}
+    send "&6&lTREASURES OPENED" to {_p}
     send "%{_color}%%{_treasureName}% &7x%{_amount}%" to {_p}
     send "" to {_p}
     send "&7You obtained:" to {_p}
@@ -1014,7 +1014,7 @@ function acc_playTreasureAnimation(p: player, treasureId: text, amount: integer)
         set {_rarityColor} to acc_getRarityColor({_rarity::%{_i}%})
         set {_rarityName} to acc_getRarityName({_rarity::%{_i}%})
         set {_typeName} to acc_getTypeName({_type::%{_i}%})
-        send " %{_rarityColor}%✦ %{_rarityName}% %{_typeName}%" to {_p}
+        send " %{_rarityColor}%%{_rarityName}% %{_typeName}%" to {_p}
 
     send "" to {_p}
 

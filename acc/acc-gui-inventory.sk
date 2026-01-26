@@ -125,17 +125,17 @@ function acc_openInventoryGui(p: player, page: number):
     add "" to {_sortLore::*}
     add "&6Sort Mode:" to {_sortLore::*}
     if {_sortBy} is "tier":
-        add " &a▶ By Tier" to {_sortLore::*}
+        add " &a> By Tier" to {_sortLore::*}
         add " &7  By Bonus Amount" to {_sortLore::*}
         add " &7  By Stat Type" to {_sortLore::*}
     else if {_sortBy} is "bonus":
         add " &7  By Tier" to {_sortLore::*}
-        add " &a▶ By Bonus Amount" to {_sortLore::*}
+        add " &a> By Bonus Amount" to {_sortLore::*}
         add " &7  By Stat Type" to {_sortLore::*}
     else:
         add " &7  By Tier" to {_sortLore::*}
         add " &7  By Bonus Amount" to {_sortLore::*}
-        add " &a▶ By Stat Type" to {_sortLore::*}
+        add " &a> By Stat Type" to {_sortLore::*}
     add "" to {_sortLore::*}
     add "&eClick to cycle" to {_sortLore::*}
     set lore of {_sort} to {_sortLore::*}
@@ -222,7 +222,7 @@ function acc_openSalvageAllConfirm(p: player):
     add " &7Items: &e%{_count}%" to {_infoLore::*}
     add " &7Tokens: &6%{_totalTokens}%" to {_infoLore::*}
     add "" to {_infoLore::*}
-    add "&c⚠ ᴛʜɪs ᴄᴀɴɴᴏᴛ ʙᴇ ᴜɴᴅᴏɴᴇ!" to {_infoLore::*}
+    add "&cᴛʜɪs ᴄᴀɴɴᴏᴛ ʙᴇ ᴜɴᴅᴏɴᴇ!" to {_infoLore::*}
     set lore of {_info} to {_infoLore::*}
     set slot 13 of {_menu} to {_info}
     
@@ -293,7 +293,7 @@ function acc_openSalvageConfirm(p: player, encoded: text):
     add " &7Salvage: %{_rarityColor}%%{_name}%" to {_confirmLore::*}
     add " &7Receive: &6%{_tokens}% Tokens" to {_confirmLore::*}
     add "" to {_confirmLore::*}
-    add "&c⚠ This cannot be undone!" to {_confirmLore::*}
+    add "&cThis cannot be undone!" to {_confirmLore::*}
     add "" to {_confirmLore::*}
     add "&aClick to confirm" to {_confirmLore::*}
     set lore of {_confirm} to {_confirmLore::*}

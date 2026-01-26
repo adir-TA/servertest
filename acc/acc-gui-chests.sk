@@ -216,7 +216,7 @@ on inventory click:
             play sound "entity.player.levelup" with volume 1 and pitch 1.2 to player
 
             send "" to player
-            send "&6&l★ TREASURE OPENED ★" to player
+            send "&6&lTREASURE OPENED" to player
             send "&7You obtained: %{_rarityColor}%%{_rarityName}% %{_name}%" to player
             send "" to player
 

@@ -86,25 +86,25 @@ function acc_openBagGui(p: player):
             
             # Check prestige requirement
             if acc_meetsSlotPrestigeReq({_p}, {_slotNum}) is true:
-                add "&a  ✔ &7All prestiges ≥ %{_prestigeReq}%" to {_lockedLore::*}
+                add "&a  All prestiges ≥ %{_prestigeReq}%" to {_lockedLore::*}
             else:
-                add "&c  ✖ &7All prestiges ≥ %{_prestigeReq}%" to {_lockedLore::*}
-            
+                add "&c  All prestiges ≥ %{_prestigeReq}%" to {_lockedLore::*}
+
             # Check money requirement
             set {_balance} to {data::balance::%{_uuid}%} ? 0
             if {_balance} >= {_cost}:
-                add "&a  ✔ &7$%{_cost}%" to {_lockedLore::*}
+                add "&a  $%{_cost}%" to {_lockedLore::*}
             else:
-                add "&c  ✖ &7$%{_cost}%" to {_lockedLore::*}
-            
+                add "&c  $%{_cost}%" to {_lockedLore::*}
+
             add "" to {_lockedLore::*}
-            
+
             # Can unlock?
             if acc_canUnlockSlot({_p}, {_slotNum}) is true:
-                add "&a▶ Click to unlock!" to {_lockedLore::*}
+                add "&aClick to unlock!" to {_lockedLore::*}
                 set string tag "acc;action" of custom nbt of {_locked} to "unlock_slot"
             else:
-                add "&c▶ Requirements not met" to {_lockedLore::*}
+                add "&cRequirements not met" to {_lockedLore::*}
             
             set lore of {_locked} to {_lockedLore::*}
             set slot {_guiSlot} of {_menu} to {_locked}
