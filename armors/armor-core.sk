@@ -333,10 +333,14 @@ command /armortest [<text>] [<integer>]:
         
         if arg-1 = "check":
             if arg-2 is set:
-                send "&7Helmet: %armor_ownsArmor(player, ""helmet"", arg-2)%" to player
-                send "&7Chestplate: %armor_ownsArmor(player, ""chestplate"", arg-2)%" to player
-                send "&7Leggings: %armor_ownsArmor(player, ""leggings"", arg-2)%" to player
-                send "&7Boots: %armor_ownsArmor(player, ""boots"", arg-2)%" to player
+                set {_h} to armor_ownsArmor(player, "helmet", arg-2)
+                set {_c} to armor_ownsArmor(player, "chestplate", arg-2)
+                set {_l} to armor_ownsArmor(player, "leggings", arg-2)
+                set {_b} to armor_ownsArmor(player, "boots", arg-2)
+                send "&7Helmet: %{_h}%" to player
+                send "&7Chestplate: %{_c}%" to player
+                send "&7Leggings: %{_l}%" to player
+                send "&7Boots: %{_b}%" to player
             stop
         
         if arg-1 = "equip":
