@@ -355,9 +355,12 @@ on inventory click:
                 # Use stored original index instead of searching by value
                 set {_invIndex} to int tag "acc;invIndex" of {_nbt}
                 if {_invIndex} > 0:
-                    acc_equipFromInventory(player, {_invIndex}, {_targetSlot})
-                    play sound "item.armor.equip_diamond" with volume 0.8 and pitch 1.2 to player
-                    send "&aAccessory equipped to slot #%{_targetSlot}%!" to player
+                    set {_result} to acc_equipFromInventory(player, {_invIndex}, {_targetSlot})
+                    if {_result} is true:
+                        play sound "item.armor.equip_diamond" with volume 0.8 and pitch 1.2 to player
+                        send "&aAccessory equipped to slot #%{_targetSlot}%!" to player
+                    else:
+                        play sound "entity.villager.no" with volume 0.5 and pitch 1 to player
                     set {_page} to {-acc::menu::%{_uuid}%::page} ? 1
                     set {_sort} to {-acc::menu::%{_uuid}%::sort} ? "tier"
                     acc_openInventoryGui(player, {_page})
@@ -440,15 +443,18 @@ on inventory click:
             set {_invIndex} to int tag "acc;invIndex" of {_nbt}
 
             if {_invIndex} > 0:
-                set {_parts::*} to acc_parseAccessory({_encoded})
-                set {_tokens} to acc_getSalvageValue({_parts::2})
+                # Verify item still exists at this index (prevents double-salvage from rapid clicks)
+                set {_existing} to {data::accessories::%{_uuid}%::inventory::%{_invIndex}%}
+                if {_existing} is set:
+                    set {_parts::*} to acc_parseAccessory({_encoded})
+                    set {_tokens} to acc_getSalvageValue({_parts::2})
 
-                # Delete by index instead of removing by value
-                delete {data::accessories::%{_uuid}%::inventory::%{_invIndex}%}
-                mining_giveTokens(player, {_tokens})
+                    # Delete by index instead of removing by value
+                    delete {data::accessories::%{_uuid}%::inventory::%{_invIndex}%}
+                    mining_giveTokens(player, {_tokens})
 
-                play sound "entity.item.break" with volume 0.8 and pitch 1 to player
-                send "&cSalvaged for &6+%{_tokens}% tokens" to player
+                    play sound "entity.item.break" with volume 0.8 and pitch 1 to player
+                    send "&cSalvaged for &6+%{_tokens}% tokens" to player
 
             set {_page} to {-acc::menu::%{_uuid}%::page} ? 1
             set {_sort} to {-acc::menu::%{_uuid}%::sort} ? "tier"
