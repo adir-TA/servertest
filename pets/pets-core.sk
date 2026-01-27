@@ -218,10 +218,14 @@ function pet_equip(p: player, petId: text) :: boolean:
     
     send "&a✓ Equipped %{_color}%%{_name}%&a!" to {_p}
     play sound "entity.armor_stand.place" with volume 0.8 and pitch 1.2 to {_p}
-    
+
     # Recalculate multipliers
     multiplier_recalculate({_p})
-    
+
+    # Spawn follow display
+    petFollow_spawn({_p}, {_petId})
+    petFollow_startLoop({_p})
+
     return true
 
 # Unequip a pet
@@ -243,10 +247,13 @@ function pet_unequip(p: player, petId: text) :: boolean:
     
     send "&c✗ Unequipped %{_color}%%{_name}%&c!" to {_p}
     play sound "entity.armor_stand.break" with volume 0.8 and pitch 0.8 to {_p}
-    
+
+    # Remove follow display
+    petFollow_despawn({_p}, {_petId})
+
     # Recalculate multipliers
     multiplier_recalculate({_p})
-    
+
     return true
 
 
