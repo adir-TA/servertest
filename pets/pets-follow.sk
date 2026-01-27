@@ -51,7 +51,7 @@ function petFollow_spawn(p: player, petId: text):
     set {_loc} to {_p}'s location
     set {_yaw} to yaw of {_loc}
     set {_behindX} to x-coord of {_loc} + (1.5 * sin({_yaw}))
-    set {_behindZ} to z-coord of {_loc} - (1.5 * cos({_yaw}))
+    set {_behindZ} to z-coord of {_loc} + (1.5 * cos({_yaw}))
     set {_spawnLoc} to location({_behindX}, y-coord of {_loc} + 0.5, {_behindZ}, world of {_loc})
 
     # Spawn pet display
@@ -127,11 +127,14 @@ function petFollow_despawnAll(p: player):
 function petFollow_startLoop(p: player):
     set {_uuid} to {_p}'s uuid
 
+    # Always ensure loop flag is true so an existing loop won't stop
+    # (handles quick unequip→equip before the loop wakes up)
+    set {-pet::follow::%{_uuid}%::loop} to true
+
     # Guard - only one loop per player
     {-guard::pet-follow::%{_uuid}%} is not set
     set {-guard::pet-follow::%{_uuid}%} to a random uuid
 
-    set {-pet::follow::%{_uuid}%::loop} to true
     set {-pet::follow::%{_uuid}%::tick} to 0
 
     while {-pet::follow::%{_uuid}%::loop} is true:
@@ -179,15 +182,15 @@ function petFollow_startLoop(p: player):
             if {_displayId} is set:
                 # Calculate position in arc behind player
                 if {_count} = 1:
-                    set {_angle} to {_pYaw} + 180
+                    set {_angle} to {_pYaw}
                 else:
                     set {_halfArc} to {_arcSpread} / 2
                     set {_step} to {_arcSpread} / ({_count} - 1)
-                    set {_angle} to {_pYaw} + 180 - {_halfArc} + ({_petIndex} * {_step})
+                    set {_angle} to {_pYaw} - {_halfArc} + ({_petIndex} * {_step})
 
-                # Convert to position
+                # Convert to position (sin/cos with raw yaw = behind player in MC)
                 set {_targetX} to {_pX} + ({_radius} * sin({_angle}))
-                set {_targetZ} to {_pZ} - ({_radius} * cos({_angle}))
+                set {_targetZ} to {_pZ} + ({_radius} * cos({_angle}))
 
                 # Bobbing offset unique per pet
                 set {_bobPhase} to ({_tick} * 72) + ({_petIndex} * 60)
