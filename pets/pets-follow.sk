@@ -66,9 +66,7 @@ function petFollow_spawn(p: player, petId: text):
         display item: {_icon}
         display scale: vector(0.55, 0.55, 0.55)
         display brightness block: 15
-        display teleportduration: 15
-        display transformation: 3
-        display interpolation: 0
+        display teleportduration: 20
         display rotation left: 0, {_qy}, 0, {_qw}
         glowing: true
         display glow: {_glow}
@@ -85,7 +83,7 @@ function petFollow_spawn(p: player, petId: text):
         display shadow: true
         display defaultbackground: false
         display scale: vector(0.6, 0.6, 0.6)
-        display teleportduration: 15
+        display teleportduration: 20
     send packet {_m} to {_p}
 
 
@@ -207,8 +205,6 @@ function petFollow_startLoop(p: player):
 
                 set {_m} to new metadata packet with id {_displayId}:
                     display rotation left: 0, {_qy}, 0, {_qw}
-                    display transformation: 2
-                    display interpolation: 0
                 send packet {_m} to {_p}
 
                 # Teleport nametag above pet
@@ -229,7 +225,7 @@ function petFollow_startLoop(p: player):
 function petFollow_calcYaw(fromX: number, fromZ: number, toX: number, toZ: number) :: number:
     set {_dx} to {_toX} - {_fromX}
     set {_dz} to {_toZ} - {_fromZ}
-    return atan2({_dx}, {_dz}) * -1
+    return (atan2({_dx}, {_dz}) * -1) - 90
 
 
 # Get glow color by rarity
