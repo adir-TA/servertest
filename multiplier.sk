@@ -1,5 +1,5 @@
 # ============================================================
-# MULTIPLIER SYSTEM (UPDATED WITH ARMOR + ACCESSORY BONUSES)
+# MULTIPLIER SYSTEM (UPDATED WITH ARMOR + ACCESSORY + SKILL TREE BONUSES)
 # ============================================================
 #
 # Cached multipliers - recalculated every 15 seconds or on stat change
@@ -223,7 +223,12 @@ function multiplier_calculateType(p: player, type: text) :: number:
     # ACCESSORY BONUSES
     # ──────────────────────────────────────────
     add acc_getTotalBonus({_p}, {_type}) to {_total}
-    
+
+    # ──────────────────────────────────────────
+    # SKILL TREE BONUSES
+    # ──────────────────────────────────────────
+    add skilltree_getTotalBonus({_p}, {_type}) to {_total}
+
     # ──────────────────────────────────────────
     # ADD MORE BONUS SOURCES HERE IN THE FUTURE
     # e.g., boosters, ranks, etc.
@@ -352,6 +357,9 @@ command /multipliers:
             # Get accessory bonus for breakdown
             set {_accBonus} to acc_getTotalBonus(player, {_type})
 
+            # Get skill tree bonus for breakdown
+            set {_skillBonus} to skilltree_getTotalBonus(player, {_type})
+
             if {_val} > 1:
                 set {_breakdown} to ""
                 if {_petBonus} > 0:
@@ -362,7 +370,10 @@ command /multipliers:
                     set {_breakdown} to "%{_breakdown}%+%{_armorPercent}%%% armor "
                 if {_accBonus} > 0:
                     set {_accPercent} to round({_accBonus} * 100 * 100) / 100
-                    set {_breakdown} to "%{_breakdown}%+%{_accPercent}%%% acc"
+                    set {_breakdown} to "%{_breakdown}%+%{_accPercent}%%% acc "
+                if {_skillBonus} > 0:
+                    set {_skillPercent} to round({_skillBonus} * 100)
+                    set {_breakdown} to "%{_breakdown}%+%{_skillPercent}%%% skills"
 
                 if {_breakdown} != "":
                     send "&7%{_typeName}%: &a%{_display}%x &8(%{_breakdown}%)" to player
