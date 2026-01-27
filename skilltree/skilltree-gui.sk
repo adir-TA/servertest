@@ -196,9 +196,10 @@ function skilltree_renderVRow(p: player, menu: inventory, vrow: number, baseSlot
         stop
 
     # Even row = nodes, odd row = connectors
-    if {_vrow} mod 2 = 0:
+    set {_remainder} to mod({_vrow}, 2)
+    if {_remainder} = 0:
         # Node row
-        set {_nodeNum} to {_vrow} / 2 + 1
+        set {_nodeNum} to floor({_vrow} / 2) + 1
 
         # Power
         set {_pCol} to {-skilltree::layout::power::%{_nodeNum}%} ? 1
@@ -217,7 +218,7 @@ function skilltree_renderVRow(p: player, menu: inventory, vrow: number, baseSlot
 
     else:
         # Connector row - connects node N to node N+1
-        set {_fromNum} to ({_vrow} - 1) / 2 + 1
+        set {_fromNum} to floor(({_vrow} - 1) / 2) + 1
         set {_toNum} to {_fromNum} + 1
         if {_toNum} > 6:
             stop
