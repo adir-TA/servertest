@@ -1,0 +1,404 @@
+# ============================================================
+# SKILL TREE - GUI SYSTEM
+# ============================================================
+#
+# Layout (6 rows, 54 slots):
+#   Row 1: Header - Branch labels
+#   Row 2-5: Nodes (2 per row per branch, 3 columns)
+#   Row 6: Controls (info, respec, close)
+#
+# Branch columns:
+#   Power:      slots 1, 10, 19, 28 (and connectors)
+#   Fortune:    slots 4, 13, 22, 31
+#   Efficiency: slots 7, 16, 25, 34
+#
+# ============================================================
+
+# ============================================================
+# COMMAND
+# ============================================================
+
+command /skilltree:
+    aliases: /st, /skills
+    trigger:
+        skilltree_openMenu(player)
+
+
+# ============================================================
+# MAIN MENU
+# ============================================================
+
+function skilltree_openMenu(p: player):
+    set {_uuid} to {_p}'s uuid
+    set {_menu} to chest inventory with 6 rows named "&d&lSkill Tree"
+
+    # Fill with glass
+    set {_filler} to black stained glass pane named "&1"
+    loop 54 times:
+        set slot loop-number - 1 of {_menu} to {_filler}
+
+    # ════════════════════════════════════════
+    # ROW 1: BRANCH HEADERS (slots 0-8)
+    # ════════════════════════════════════════
+
+    # Power header - slot 1
+    set {_powerHeader} to red stained glass pane named "&c&lPower Branch"
+    set lore of {_powerHeader} to "&8ᴅᴀᴍᴀɢᴇ · sᴘᴇᴇᴅ · ᴅᴜʀᴀʙɪʟɪᴛʏ"
+    set slot 1 of {_menu} to {_powerHeader}
+
+    # Fortune header - slot 4
+    set {_fortuneHeader} to orange stained glass pane named "&6&lFortune Branch"
+    set lore of {_fortuneHeader} to "&8ᴅʀᴏᴘs · ᴋᴇʏs · ᴛᴏᴋᴇɴs"
+    set slot 4 of {_menu} to {_fortuneHeader}
+
+    # Efficiency header - slot 7
+    set {_effHeader} to light blue stained glass pane named "&b&lEfficiency Branch"
+    set lore of {_effHeader} to "&8xᴘ · ᴛᴏᴋᴇɴs · ᴘʀᴏᴄs"
+    set slot 7 of {_menu} to {_effHeader}
+
+    # ════════════════════════════════════════
+    # ROWS 2-5: NODES
+    # ════════════════════════════════════════
+    # Power column: slots 10, 19, 28, 37 (nodes 1-2, 3-4, 5, 6)
+    # Fortune column: slots 13, 22, 31, 40
+    # Efficiency column: slots 16, 25, 34, 43
+
+    # Power nodes
+    set slot 10 of {_menu} to skilltree_createNodeItem({_p}, "power_1")
+    set slot 19 of {_menu} to skilltree_createNodeItem({_p}, "power_2")
+    set slot 28 of {_menu} to skilltree_createNodeItem({_p}, "power_3")
+    set slot 37 of {_menu} to skilltree_createNodeItem({_p}, "power_4")
+
+    # Power connector arrows
+    set slot 46 of {_menu} to skilltree_createNodeItem({_p}, "power_5")
+
+    # Fortune nodes
+    set slot 13 of {_menu} to skilltree_createNodeItem({_p}, "fortune_1")
+    set slot 22 of {_menu} to skilltree_createNodeItem({_p}, "fortune_2")
+    set slot 31 of {_menu} to skilltree_createNodeItem({_p}, "fortune_3")
+    set slot 40 of {_menu} to skilltree_createNodeItem({_p}, "fortune_4")
+
+    set slot 49 of {_menu} to skilltree_createNodeItem({_p}, "fortune_5")
+
+    # Efficiency nodes
+    set slot 16 of {_menu} to skilltree_createNodeItem({_p}, "efficiency_1")
+    set slot 25 of {_menu} to skilltree_createNodeItem({_p}, "efficiency_2")
+    set slot 34 of {_menu} to skilltree_createNodeItem({_p}, "efficiency_3")
+    set slot 43 of {_menu} to skilltree_createNodeItem({_p}, "efficiency_4")
+
+    set slot 52 of {_menu} to skilltree_createNodeItem({_p}, "efficiency_5")
+
+    # ════════════════════════════════════════
+    # CAPSTONE NODES (row 5, offset right by 1)
+    # ════════════════════════════════════════
+    # We place capstones to the right of node 5
+    set slot 47 of {_menu} to skilltree_createNodeItem({_p}, "power_6")
+    set slot 50 of {_menu} to skilltree_createNodeItem({_p}, "fortune_6")
+    set slot 53 of {_menu} to skilltree_createNodeItem({_p}, "efficiency_6")
+
+    # ════════════════════════════════════════
+    # ROW 6: CONTROLS (slots 45-53)
+    # Use remaining slots in bottom row
+    # ════════════════════════════════════════
+
+    # Info - slot 45
+    set {_info} to book named "&e&lSkill Tree Guide"
+    delete {_infoLore::*}
+    add "&8ᴍᴇɴᴜ" to {_infoLore::*}
+    add "" to {_infoLore::*}
+    add "&7Spend &dPrestige Points &7to" to {_infoLore::*}
+    add "&7unlock passive bonuses and" to {_infoLore::*}
+    add "&7powerful mechanics." to {_infoLore::*}
+    add "" to {_infoLore::*}
+    set {_points} to economy_getPrestigePoints({_p})
+    set {_spent} to skilltree_getTotalSpent({_p})
+    add "&7Available: &d%formatNum({_points})% pts" to {_infoLore::*}
+    add "&7Spent: &5%formatNum({_spent})% pts" to {_infoLore::*}
+    add "" to {_infoLore::*}
+    add "&7Each node requires the" to {_infoLore::*}
+    add "&7previous node to be maxed." to {_infoLore::*}
+    set lore of {_info} to {_infoLore::*}
+    set slot 45 of {_menu} to {_info}
+
+    # Respec - slot 48
+    set {_respec} to cauldron named "&c&lRespec Skills"
+    delete {_respecLore::*}
+    add "&8ᴍᴇɴᴜ" to {_respecLore::*}
+    add "" to {_respecLore::*}
+    add "&7Reset all skill nodes and" to {_respecLore::*}
+    add "&7get your points refunded." to {_respecLore::*}
+    add "" to {_respecLore::*}
+    set {_respecCost} to skilltree_getRespecCost()
+    set {_balance} to economy_getMoney({_p})
+    if {_balance} >= {_respecCost}:
+        add "&a  ✔ &7Cost: &6$%formatNum({_respecCost})%" to {_respecLore::*}
+    else:
+        add "&c  ✖ &7Cost: &6$%formatNum({_respecCost})% &8($%formatNum({_balance})%)" to {_respecLore::*}
+    add "&7Refund: &d%formatNum({_spent})% pts" to {_respecLore::*}
+    add "" to {_respecLore::*}
+    if {_spent} > 0:
+        add "&eClick to respec" to {_respecLore::*}
+        set string tag "skilltree;action" of custom nbt of {_respec} to "respec"
+    else:
+        add "&8No skills to reset" to {_respecLore::*}
+    set lore of {_respec} to {_respecLore::*}
+    set slot 48 of {_menu} to {_respec}
+
+    open {_menu} to {_p}
+    menu_setCurrentMenu({_p}, "SKILL_TREE")
+
+
+# ============================================================
+# NODE ITEM BUILDER
+# ============================================================
+
+function skilltree_createNodeItem(p: player, nodeId: text) :: item:
+    set {_name} to skilltree_getNodeName({_nodeId})
+    set {_branch} to skilltree_getNodeBranch({_nodeId})
+    set {_branchColor} to skilltree_getBranchColor({_branch})
+    set {_stat} to skilltree_getNodeStat({_nodeId})
+    set {_desc} to skilltree_getNodeDesc({_nodeId})
+    set {_maxRank} to skilltree_getNodeMaxRank({_nodeId})
+    set {_rank} to skilltree_getNodeRank({_p}, {_nodeId})
+    set {_req} to skilltree_getNodeRequires({_nodeId})
+    set {_icon} to skilltree_getNodeIcon({_nodeId})
+
+    # Determine state
+    set {_reqMet} to true
+    if {_req} is not "":
+        if skilltree_isNodeMaxed({_p}, {_req}) is false:
+            set {_reqMet} to false
+
+    set {_maxed} to false
+    if {_rank} >= {_maxRank}:
+        set {_maxed} to true
+
+    set {_unlocked} to false
+    if {_rank} > 0:
+        set {_unlocked} to true
+
+    # Build item based on state
+    if {_maxed} is true:
+        # Maxed - use icon, green name
+        set {_item} to {_icon}
+        set name of {_item} to "&a&l%{_name}% &7[&a%{_rank}%&7/&a%{_maxRank}%&7]"
+    else if {_unlocked} is true:
+        # Partially upgraded - use icon, yellow name
+        set {_item} to {_icon}
+        set name of {_item} to "&e%{_name}% &7[&e%{_rank}%&7/&a%{_maxRank}%&7]"
+    else if {_reqMet} is true:
+        # Available to purchase - use icon, white name
+        set {_item} to {_icon}
+        set name of {_item} to "%{_branchColor}%%{_name}% &7[&c0&7/&a%{_maxRank}%&7]"
+    else:
+        # Locked - gray glass pane
+        set {_item} to gray stained glass pane named "&c🔒 %{_name}%"
+
+    # Build lore
+    delete {_lore::*}
+    add "&8sᴋɪʟʟ ɴᴏᴅᴇ" to {_lore::*}
+    add "" to {_lore::*}
+    add "&7%{_desc}%" to {_lore::*}
+    add "" to {_lore::*}
+
+    # Show current bonus
+    if {_rank} > 0:
+        set {_currentBonus} to skilltree_getNodeBonus({_nodeId}) * {_rank}
+        set {_currentPercent} to round({_currentBonus} * 100)
+        if {_stat} is not "mechanic":
+            set {_statName} to skilltree_formatStatName({_stat})
+            add "&7Current: &a+%{_currentPercent}%%% %{_statName}%" to {_lore::*}
+            # Show secondary stat if present
+            set {_stat2} to {-skilltree::node::%{_nodeId}%::bonusStat2}
+            if {_stat2} is set:
+                set {_bonus2} to {-skilltree::node::%{_nodeId}%::bonus2} ? 0
+                set {_current2} to round({_bonus2} * {_rank} * 100)
+                set {_statName2} to skilltree_formatStatName({_stat2})
+                add "&7         &a+%{_current2}%%% %{_statName2}%" to {_lore::*}
+        else:
+            add "&7Status: &aActive" to {_lore::*}
+        add "" to {_lore::*}
+
+    # Show next rank cost or maxed
+    if {_maxed} is true:
+        add "&a&lMAXED" to {_lore::*}
+    else if {_reqMet} is false:
+        # Show what's required
+        set {_reqName} to skilltree_getNodeName({_req})
+        add "&cRequires: &7%{_reqName}% (maxed)" to {_lore::*}
+    else:
+        # Show cost for next rank
+        set {_nextRank} to {_rank} + 1
+        set {_cost} to skilltree_getNodeRankCost({_nodeId}, {_nextRank})
+        set {_points} to economy_getPrestigePoints({_p})
+        add "&7Rank %{_nextRank}% Cost: &d%{_cost}% pts" to {_lore::*}
+        if {_points} >= {_cost}:
+            add "&7Balance: &d%formatNum({_points})% pts" to {_lore::*}
+            add "" to {_lore::*}
+            add "&eClick to upgrade" to {_lore::*}
+        else:
+            add "&7Balance: &c%formatNum({_points})% pts" to {_lore::*}
+            add "" to {_lore::*}
+            add "&cNot enough points" to {_lore::*}
+
+    set lore of {_item} to {_lore::*}
+    set string tag "skilltree;node" of custom nbt of {_item} to {_nodeId}
+
+    return {_item}
+
+
+# ============================================================
+# RESPEC CONFIRMATION
+# ============================================================
+
+function skilltree_openRespecConfirm(p: player):
+    set {_uuid} to {_p}'s uuid
+    set {_menu} to chest inventory with 3 rows named "&c&lConfirm Respec"
+
+    # Fill with glass
+    set {_filler} to black stained glass pane named "&1"
+    loop 27 times:
+        set slot loop-number - 1 of {_menu} to {_filler}
+
+    # Red glass warning
+    set {_warning} to red stained glass pane named "&1"
+    set slot 3,4,5,12,14,21,22,23 of {_menu} to {_warning}
+
+    # Info center - slot 13
+    set {_info} to cauldron named "&c&lRESPEC ALL SKILLS"
+    delete {_infoLore::*}
+    add "&8ᴍᴇɴᴜ" to {_infoLore::*}
+    add "" to {_infoLore::*}
+    add "&7This will reset &call &7skill" to {_infoLore::*}
+    add "&7nodes and refund your points." to {_infoLore::*}
+    add "" to {_infoLore::*}
+    set {_respecCost} to skilltree_getRespecCost()
+    set {_spent} to skilltree_getTotalSpent({_p})
+    add "&6Summary:" to {_infoLore::*}
+    add " &7Cost: &6$%formatNum({_respecCost})%" to {_infoLore::*}
+    add " &7Refund: &d%formatNum({_spent})% pts" to {_infoLore::*}
+    add "" to {_infoLore::*}
+    add "&c⚠ This cannot be undone!" to {_infoLore::*}
+    set lore of {_info} to {_infoLore::*}
+    set slot 13 of {_menu} to {_info}
+
+    # Confirm - slot 11
+    set {_confirm} to lime dye named "&a&lCONFIRM"
+    delete {_confirmLore::*}
+    add "&8ᴍᴇɴᴜ" to {_confirmLore::*}
+    add "" to {_confirmLore::*}
+    add "&7Reset all skills and" to {_confirmLore::*}
+    add "&7receive &d%formatNum({_spent})% pts &7back." to {_confirmLore::*}
+    add "" to {_confirmLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴄᴏɴғɪʀᴍ" to {_confirmLore::*}
+    set lore of {_confirm} to {_confirmLore::*}
+    set string tag "skilltree;action" of custom nbt of {_confirm} to "confirm_respec"
+    set slot 11 of {_menu} to {_confirm}
+
+    # Cancel - slot 15
+    set {_cancel} to red dye named "&c&lCANCEL"
+    delete {_cancelLore::*}
+    add "&8ᴍᴇɴᴜ" to {_cancelLore::*}
+    add "" to {_cancelLore::*}
+    add "&7Go back to skill tree" to {_cancelLore::*}
+    add "" to {_cancelLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ɢᴏ ʙᴀᴄᴋ" to {_cancelLore::*}
+    set lore of {_cancel} to {_cancelLore::*}
+    set string tag "skilltree;action" of custom nbt of {_cancel} to "cancel_respec"
+    set slot 15 of {_menu} to {_cancel}
+
+    open {_menu} to {_p}
+    menu_setCurrentMenu({_p}, "SKILL_RESPEC")
+
+
+# ============================================================
+# CLICK HANDLERS
+# ============================================================
+
+on inventory click:
+    if menu_getCurrentMenu(player) = "SKILL_TREE":
+        cancel event
+
+        set {_nbt} to custom nbt of clicked slot
+        set {_nodeId} to string tag "skilltree;node" of {_nbt}
+        set {_action} to string tag "skilltree;action" of {_nbt}
+
+        if {_nodeId} is set:
+            if skilltree_canPurchase(player, {_nodeId}) is true:
+                if skilltree_purchase(player, {_nodeId}) is true:
+                    set {_nodeName} to skilltree_getNodeName({_nodeId})
+                    set {_newRank} to skilltree_getNodeRank(player, {_nodeId})
+                    play sound "entity.player.levelup" with volume 0.5 and pitch 1.5 to player
+                    send "&d⭐ &7Upgraded &d%{_nodeName}% &7to rank &a%{_newRank}%&7!" to player
+                else:
+                    play sound "entity.villager.no" with volume 0.5 and pitch 1 to player
+            else:
+                play sound "entity.villager.no" with volume 0.5 and pitch 1 to player
+            skilltree_openMenu(player)
+            stop
+
+        if {_action} is "respec":
+            play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+            skilltree_openRespecConfirm(player)
+            stop
+
+    else if menu_getCurrentMenu(player) = "SKILL_RESPEC":
+        cancel event
+
+        set {_nbt} to custom nbt of clicked slot
+        set {_action} to string tag "skilltree;action" of {_nbt}
+
+        if {_action} is "confirm_respec":
+            if skilltree_respec(player) is true:
+                play sound "entity.generic.explode" with volume 0.5 and pitch 1.2 to player
+                set {_refund} to skilltree_getTotalSpent(player)
+                send "" to player
+                send "&c&lSKILLS RESET!" to player
+                send "&7All skill points have been refunded." to player
+                send "&7Prestige Points: &d%formatNum(economy_getPrestigePoints(player))%" to player
+                send "" to player
+                skilltree_openMenu(player)
+            else:
+                play sound "entity.villager.no" with volume 0.5 and pitch 1 to player
+                send "&cNot enough money to respec! Need &6$%formatNum(skilltree_getRespecCost())%" to player
+                skilltree_openMenu(player)
+            stop
+
+        if {_action} is "cancel_respec":
+            play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+            skilltree_openMenu(player)
+            stop
+
+
+# ============================================================
+# INVENTORY CLOSE
+# ============================================================
+
+on inventory close:
+    set {_menu} to menu_getCurrentMenu(player)
+    if {_menu} is "SKILL_TREE":
+        menu_deleteSession(player)
+    else if {_menu} is "SKILL_RESPEC":
+        menu_deleteSession(player)
+
+
+# ============================================================
+# HELPER
+# ============================================================
+
+function skilltree_formatStatName(stat: text) :: text:
+    if {_stat} is "mining_speed":
+        return "Mining Speed"
+    else if {_stat} is "drops":
+        return "Drops"
+    else if {_stat} is "xp":
+        return "XP"
+    else if {_stat} is "token":
+        return "Tokens"
+    else if {_stat} is "enchant_proc":
+        return "Enchant Proc"
+    else if {_stat} is "damage":
+        return "Damage"
+    else if {_stat} is "durability":
+        return "Durability"
+    return {_stat}
