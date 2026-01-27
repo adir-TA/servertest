@@ -51,7 +51,7 @@ function petFollow_spawn(p: player, petId: text):
     set {_loc} to {_p}'s location
     set {_yaw} to yaw of {_loc}
     set {_behindX} to x-coord of {_loc} + (1.5 * sin({_yaw}))
-    set {_behindZ} to z-coord of {_loc} + (1.5 * cos({_yaw}))
+    set {_behindZ} to z-coord of {_loc} - (1.5 * cos({_yaw}))
     set {_spawnLoc} to location({_behindX}, y-coord of {_loc} + 0.5, {_behindZ}, world of {_loc})
 
     # Spawn pet display
@@ -188,9 +188,9 @@ function petFollow_startLoop(p: player):
                     set {_step} to {_arcSpread} / ({_count} - 1)
                     set {_angle} to {_pYaw} - {_halfArc} + ({_petIndex} * {_step})
 
-                # Convert to position (sin/cos with raw yaw = behind player in MC)
+                # Convert to position (behind = +sin, -cos in MC yaw convention)
                 set {_targetX} to {_pX} + ({_radius} * sin({_angle}))
-                set {_targetZ} to {_pZ} + ({_radius} * cos({_angle}))
+                set {_targetZ} to {_pZ} - ({_radius} * cos({_angle}))
 
                 # Bobbing offset unique per pet
                 set {_bobPhase} to ({_tick} * 72) + ({_petIndex} * 60)
