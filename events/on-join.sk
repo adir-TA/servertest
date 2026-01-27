@@ -3,3 +3,7 @@ on join:
     menu_deleteSession(player)
     # Apply Speed enchant if equipped
     enchant_applySpeed(player)
+    # Spawn pet follow displays after short delay (let client load)
+    wait 5 ticks
+    petFollow_spawnAll(player)
+    petFollow_startLoop(player)
