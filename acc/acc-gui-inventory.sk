@@ -106,7 +106,8 @@ function acc_openInventoryGui(p: player, page: number):
     set {_salvageCount} to 0
     set {_salvageTokens} to 0
     loop {_sortedList::*}:
-        set {_parts::*} to acc_parseAccessory(loop-value)
+        set {_splitData::*} to loop-value split by ";"
+        set {_parts::*} to acc_parseAccessory({_splitData::2})
         add acc_getSalvageValue({_parts::2}) to {_salvageTokens}
         add 1 to {_salvageCount}
     
@@ -473,16 +474,16 @@ on inventory click:
 
 function acc_getSortedInventory(p: player, sortBy: text) :: texts:
     set {_uuid} to {_p}'s uuid
-    set {_inventory::*} to {data::accessories::%{_uuid}%::inventory::*}
 
-    if size of {_inventory::*} <= 1:
-        # Return with index prefix even for single items
-        if size of {_inventory::*} = 1:
-            return "1;%{_inventory::1}%"
-        return {_inventory::*}
+    # Loop global list directly to preserve actual indices (local copy re-indexes)
+    if size of {data::accessories::%{_uuid}%::inventory::*} <= 1:
+        if size of {data::accessories::%{_uuid}%::inventory::*} = 1:
+            loop {data::accessories::%{_uuid}%::inventory::*}:
+                return "%loop-index%;%loop-value%"
+        return {_none::*}
 
     set {_count} to 0
-    loop {_inventory::*}:
+    loop {data::accessories::%{_uuid}%::inventory::*}:
         add 1 to {_count}
         set {_encoded} to loop-value
         set {_origIndex} to loop-index
