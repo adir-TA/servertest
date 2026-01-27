@@ -120,6 +120,27 @@ function petFollow_despawnAll(p: player):
     delete {-pet::follow::%{_uuid}%::text::*}
 
 
+# Full refresh - despawn all and respawn all equipped pets
+# Called on equip/unequip to update displays and arc positions
+function petFollow_refreshAll(p: player):
+    set {_uuid} to {_p}'s uuid
+
+    # Remove all existing displays
+    loop {-pet::follow::%{_uuid}%::ids::*}:
+        remove fake entity with id loop-value for {_p}
+    loop {-pet::follow::%{_uuid}%::text::*}:
+        remove fake entity with id loop-value for {_p}
+    delete {-pet::follow::%{_uuid}%::ids::*}
+    delete {-pet::follow::%{_uuid}%::text::*}
+
+    # Respawn for all currently equipped pets
+    loop {pet::equipped::%{_uuid}%::*}:
+        petFollow_spawn({_p}, loop-value)
+
+    # Ensure loop is running
+    petFollow_startLoop({_p})
+
+
 # ============================================================
 # FOLLOW LOOP (Guarded - same pattern as multiplier loop)
 # ============================================================

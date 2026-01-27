@@ -222,34 +222,33 @@ function pet_equip(p: player, petId: text) :: boolean:
     # Recalculate multipliers
     multiplier_recalculate({_p})
 
-    # Spawn follow display
-    petFollow_spawn({_p}, {_petId})
-    petFollow_startLoop({_p})
+    # Refresh all follow displays (repositions arc for new count)
+    petFollow_refreshAll({_p})
 
     return true
 
 # Unequip a pet
 function pet_unequip(p: player, petId: text) :: boolean:
     set {_uuid} to {_p}'s uuid
-    
+
     # Check if equipped
     if pet_isEquipped({_p}, {_petId}) = false:
         send "&cThis pet is not equipped!" to {_p}
         return false
-    
+
     # Unequip
     remove {_petId} from {pet::equipped::%{_uuid}%::*}
-    
+
     set {_type} to pet_getInstanceType({_p}, {_petId})
     set {_rarity} to pet_getInstanceRarity({_p}, {_petId})
     set {_name} to pet_getTypeName({_type})
     set {_color} to pet_getRarityColor({_rarity})
-    
+
     send "&c✗ Unequipped %{_color}%%{_name}%&c!" to {_p}
     play sound "entity.armor_stand.break" with volume 0.8 and pitch 0.8 to {_p}
 
-    # Remove follow display
-    petFollow_despawn({_p}, {_petId})
+    # Refresh all follow displays (repositions arc for new count)
+    petFollow_refreshAll({_p})
 
     # Recalculate multipliers
     multiplier_recalculate({_p})
