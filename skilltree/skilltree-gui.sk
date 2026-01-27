@@ -2,26 +2,19 @@
 # SKILL TREE - GUI SYSTEM
 # ============================================================
 #
-# Advancement-style layout: all 3 branches side-by-side,
-# scroll down layer by layer through the tree.
+# Wynncraft-style layout: 3 branches side-by-side in columns,
+# nodes flowing top to bottom with glass pane connectors.
+# Scroll down layer by layer to see deeper nodes.
 #
-# Columns (3 branches):
-#   Power:      column 1 (slots 1, 10, 19, 28, 37)
-#   Fortune:    column 4 (slots 4, 13, 22, 31, 40)
-#   Efficiency: column 7 (slots 7, 16, 25, 34, 43)
+# Columns:
+#   Power:      slot column 1
+#   Fortune:    slot column 4
+#   Efficiency: slot column 7
 #
-# Pages (scroll layers):
-#   Page 1: Nodes 1 & 2  (+ arrows between & below)
-#   Page 2: Nodes 3 & 4
-#   Page 3: Nodes 5 & 6 (capstone)
+# Each layer shows 3 nodes (one per branch) with connectors.
+# Layers:
+#   1: Nodes 1, 2  |  2: Nodes 3, 4  |  3: Nodes 5, 6
 #
-# Layout per page (6 rows):
-#   Row 1: [pts] [⚔PWR] [  ] [  ] [✦FRT] [  ] [  ] [⚡EFF] [respec]
-#   Row 2: [  ] [NODE ] [  ] [  ] [NODE ] [  ] [  ] [NODE ] [  ]
-#   Row 3: [  ] [ ↓  ] [  ] [  ] [ ↓  ] [  ] [  ] [ ↓  ] [  ]
-#   Row 4: [  ] [NODE ] [  ] [  ] [NODE ] [  ] [  ] [NODE ] [  ]
-#   Row 5: [  ] [ ↓  ] [  ] [  ] [ ↓  ] [  ] [  ] [ ↓  ] [  ]
-#   Row 6: [↑] [    ] [    ] [    ] [pg ] [    ] [    ] [    ] [↓]
 # ============================================================
 
 # ============================================================
@@ -43,97 +36,148 @@ function skilltree_openPage(p: player, page: number):
     set {_points} to economy_getPrestigePoints({_p})
     set {_spent} to skilltree_getTotalSpent({_p})
 
-    set {_menu} to chest inventory with 6 rows named "&d&l✦ Skill Tree &8(Layer %{_page}%/3)"
+    set {_menu} to chest inventory with 6 rows named "&8Skill Tree"
 
-    # Fill with dark glass
-    set {_dark} to black stained glass pane named "&1"
+    # Fill background
+    set {_bg} to black stained glass pane named "&1"
     loop 54 times:
-        set slot loop-number - 1 of {_menu} to {_dark}
+        set slot loop-number - 1 of {_menu} to {_bg}
 
     # ════════════════════════════════════════
-    # DECORATIVE GLASS - column separators
-    # Columns between branches (slots 2,3,5,6 per row)
+    # ROW 1: HEADER BAR
     # ════════════════════════════════════════
-    set {_sep} to gray stained glass pane named "&1"
-    # Row 2
-    set slot 9,11,12,14,15,17 of {_menu} to {_sep}
-    # Row 3
-    set slot 18,20,21,23,24,26 of {_menu} to {_sep}
-    # Row 4
-    set slot 27,29,30,32,33,35 of {_menu} to {_sep}
-    # Row 5
-    set slot 36,38,39,41,42,44 of {_menu} to {_sep}
-
-    # ════════════════════════════════════════
-    # ROW 1: BRANCH HEADERS + CONTROLS
-    # ════════════════════════════════════════
-
-    # Points info - slot 0
-    set {_ptsItem} to dragon breath named "&d&lPrestige Points"
-    delete {_ptsLore::*}
-    add "&8ᴍᴇɴᴜ ɪᴛᴇᴍ" to {_ptsLore::*}
-    add "" to {_ptsLore::*}
-    add "&7Available: &d%formatNum({_points})% pts" to {_ptsLore::*}
-    add "&7Total Spent: &5%formatNum({_spent})% pts" to {_ptsLore::*}
-    add "" to {_ptsLore::*}
-    add "&7Earn points by prestiging" to {_ptsLore::*}
-    add "&7your archetypes. &8(/prestige)" to {_ptsLore::*}
-    set lore of {_ptsItem} to {_ptsLore::*}
-    set slot 0 of {_menu} to {_ptsItem}
+    set {_headerGlass} to gray stained glass pane named "&1"
+    set slot 0,2,3,5,6,8 of {_menu} to {_headerGlass}
 
     # Power header - slot 1
-    set {_pwrH} to red stained glass pane named "&c&l⚔ POWER"
-    delete {_pwrHLore::*}
-    add "&8ᴅᴀᴍᴀɢᴇ · sᴘᴇᴇᴅ · ᴅᴜʀᴀʙɪʟɪᴛʏ" to {_pwrHLore::*}
-    add "" to {_pwrHLore::*}
-    set {_pProg} to 0
-    set {_pMax} to 0
+    set {_pwrH} to red stained glass pane named "&c&lPower"
+    delete {_pwrLore::*}
+    add "&8ᴍᴇɴᴜ ɪᴛᴇᴍ" to {_pwrLore::*}
+    add "" to {_pwrLore::*}
+    add "&7Damage, Speed, Durability" to {_pwrLore::*}
+    add "" to {_pwrLore::*}
+    set {_pp} to 0
+    set {_pm} to 0
     loop integers from 1 to 6:
-        add skilltree_getNodeRank({_p}, "power_%loop-number%") to {_pProg}
-        add skilltree_getNodeMaxRank("power_%loop-number%") to {_pMax}
-    add "&7Progress: &c%{_pProg}%&7/&c%{_pMax}%" to {_pwrHLore::*}
-    set lore of {_pwrH} to {_pwrHLore::*}
+        add skilltree_getNodeRank({_p}, "power_%loop-number%") to {_pp}
+        add skilltree_getNodeMaxRank("power_%loop-number%") to {_pm}
+    add "&7Progress: &c%{_pp}%&7/&c%{_pm}%" to {_pwrLore::*}
+    set lore of {_pwrH} to {_pwrLore::*}
     set slot 1 of {_menu} to {_pwrH}
 
-    # Separator glass - slots 2,3
-    set {_rsep} to red stained glass pane named "&1"
-    set {_osep} to orange stained glass pane named "&1"
-    set {_bsep} to light blue stained glass pane named "&1"
-    set slot 2,3 of {_menu} to {_sep}
-
     # Fortune header - slot 4
-    set {_frtH} to orange stained glass pane named "&6&l✦ FORTUNE"
-    delete {_frtHLore::*}
-    add "&8ᴅʀᴏᴘs · ᴘʀᴏᴄs · ᴛᴏᴋᴇɴs" to {_frtHLore::*}
-    add "" to {_frtHLore::*}
-    set {_fProg} to 0
-    set {_fMax} to 0
+    set {_frtH} to orange stained glass pane named "&6&lFortune"
+    delete {_frtLore::*}
+    add "&8ᴍᴇɴᴜ ɪᴛᴇᴍ" to {_frtLore::*}
+    add "" to {_frtLore::*}
+    add "&7Drops, Procs, Tokens" to {_frtLore::*}
+    add "" to {_frtLore::*}
+    set {_fp} to 0
+    set {_fm} to 0
     loop integers from 1 to 6:
-        add skilltree_getNodeRank({_p}, "fortune_%loop-number%") to {_fProg}
-        add skilltree_getNodeMaxRank("fortune_%loop-number%") to {_fMax}
-    add "&7Progress: &6%{_fProg}%&7/&6%{_fMax}%" to {_frtHLore::*}
-    set lore of {_frtH} to {_frtHLore::*}
+        add skilltree_getNodeRank({_p}, "fortune_%loop-number%") to {_fp}
+        add skilltree_getNodeMaxRank("fortune_%loop-number%") to {_fm}
+    add "&7Progress: &6%{_fp}%&7/&6%{_fm}%" to {_frtLore::*}
+    set lore of {_frtH} to {_frtLore::*}
     set slot 4 of {_menu} to {_frtH}
 
-    # Separator glass - slots 5,6
-    set slot 5,6 of {_menu} to {_sep}
-
     # Efficiency header - slot 7
-    set {_effH} to light blue stained glass pane named "&b&l⚡ EFFICIENCY"
-    delete {_effHLore::*}
-    add "&8xᴘ · ᴛᴏᴋᴇɴs · ᴘʀᴏᴄs" to {_effHLore::*}
-    add "" to {_effHLore::*}
-    set {_eProg} to 0
-    set {_eMax} to 0
+    set {_effH} to light blue stained glass pane named "&b&lEfficiency"
+    delete {_effLore::*}
+    add "&8ᴍᴇɴᴜ ɪᴛᴇᴍ" to {_effLore::*}
+    add "" to {_effLore::*}
+    add "&7XP, Tokens, Procs" to {_effLore::*}
+    add "" to {_effLore::*}
+    set {_ep} to 0
+    set {_em} to 0
     loop integers from 1 to 6:
-        add skilltree_getNodeRank({_p}, "efficiency_%loop-number%") to {_eProg}
-        add skilltree_getNodeMaxRank("efficiency_%loop-number%") to {_eMax}
-    add "&7Progress: &b%{_eProg}%&7/&b%{_eMax}%" to {_effHLore::*}
-    set lore of {_effH} to {_effHLore::*}
+        add skilltree_getNodeRank({_p}, "efficiency_%loop-number%") to {_ep}
+        add skilltree_getNodeMaxRank("efficiency_%loop-number%") to {_em}
+    add "&7Progress: &b%{_ep}%&7/&b%{_em}%" to {_effLore::*}
+    set lore of {_effH} to {_effLore::*}
     set slot 7 of {_menu} to {_effH}
 
-    # Respec - slot 8
-    set {_respec} to cauldron named "&c&lRespec Skills"
+    # ════════════════════════════════════════
+    # ROWS 2-5: NODES + CONNECTORS
+    # Page 1: nodes 1,2 | Page 2: nodes 3,4 | Page 3: nodes 5,6
+    # ════════════════════════════════════════
+    set {_nodeA} to ({_page} * 2) - 1
+    set {_nodeB} to {_page} * 2
+
+    # Row 2 (slots 9-17): Node A
+    set slot 10 of {_menu} to skilltree_createNodeItem({_p}, "power_%{_nodeA}%")
+    set slot 13 of {_menu} to skilltree_createNodeItem({_p}, "fortune_%{_nodeA}%")
+    set slot 16 of {_menu} to skilltree_createNodeItem({_p}, "efficiency_%{_nodeA}%")
+
+    # Row 3 (slots 18-26): Connector A->B
+    set slot 19 of {_menu} to skilltree_createConnector({_p}, "power_%{_nodeA}%", "power_%{_nodeB}%", "power")
+    set slot 22 of {_menu} to skilltree_createConnector({_p}, "fortune_%{_nodeA}%", "fortune_%{_nodeB}%", "fortune")
+    set slot 25 of {_menu} to skilltree_createConnector({_p}, "efficiency_%{_nodeA}%", "efficiency_%{_nodeB}%", "efficiency")
+
+    # Row 4 (slots 27-35): Node B
+    set slot 28 of {_menu} to skilltree_createNodeItem({_p}, "power_%{_nodeB}%")
+    set slot 31 of {_menu} to skilltree_createNodeItem({_p}, "fortune_%{_nodeB}%")
+    set slot 34 of {_menu} to skilltree_createNodeItem({_p}, "efficiency_%{_nodeB}%")
+
+    # Row 5 (slots 36-44): Connector to next layer (or end)
+    if {_page} < 3:
+        set {_nodeC} to {_nodeB} + 1
+        set slot 37 of {_menu} to skilltree_createConnector({_p}, "power_%{_nodeB}%", "power_%{_nodeC}%", "power")
+        set slot 40 of {_menu} to skilltree_createConnector({_p}, "fortune_%{_nodeB}%", "fortune_%{_nodeC}%", "fortune")
+        set slot 43 of {_menu} to skilltree_createConnector({_p}, "efficiency_%{_nodeB}%", "efficiency_%{_nodeC}%", "efficiency")
+    else:
+        # End of tree
+        set slot 37 of {_menu} to skilltree_createEndConnector("power")
+        set slot 40 of {_menu} to skilltree_createEndConnector("fortune")
+        set slot 43 of {_menu} to skilltree_createEndConnector("efficiency")
+
+    # ════════════════════════════════════════
+    # ROW 6: NAVIGATION BAR
+    # ════════════════════════════════════════
+    set {_navGlass} to gray stained glass pane named "&1"
+    set slot 46,47,48,50,51,52 of {_menu} to {_navGlass}
+
+    # Scroll up - slot 45
+    if {_page} > 1:
+        set {_up} to arrow named "&f&lScroll Up"
+        delete {_upLore::*}
+        add "&8ᴍᴇɴᴜ ɪᴛᴇᴍ" to {_upLore::*}
+        add "" to {_upLore::*}
+        add "&7View previous layer." to {_upLore::*}
+        set lore of {_up} to {_upLore::*}
+        set string tag "skilltree;action" of custom nbt of {_up} to "scroll_up"
+        set slot 45 of {_menu} to {_up}
+
+    # Page indicator - slot 49
+    set {_pageItem} to nether star named "&d&lLayer %{_page}%/3"
+    delete {_pageLore::*}
+    add "&8ᴍᴇɴᴜ ɪᴛᴇᴍ" to {_pageLore::*}
+    add "" to {_pageLore::*}
+    add "&7Available: &d%formatNum({_points})% pts" to {_pageLore::*}
+    add "&7Spent: &5%formatNum({_spent})% pts" to {_pageLore::*}
+    add "" to {_pageLore::*}
+    if {_page} is 1:
+        add "&f> &7Layer 1 &8- Layer 2 - Layer 3" to {_pageLore::*}
+    else if {_page} is 2:
+        add "&8Layer 1 - &f> &7Layer 2 &8- Layer 3" to {_pageLore::*}
+    else:
+        add "&8Layer 1 - Layer 2 - &f> &7Layer 3" to {_pageLore::*}
+    set lore of {_pageItem} to {_pageLore::*}
+    set slot 49 of {_menu} to {_pageItem}
+
+    # Scroll down - slot 53
+    if {_page} < 3:
+        set {_down} to arrow named "&f&lScroll Down"
+        delete {_downLore::*}
+        add "&8ᴍᴇɴᴜ ɪᴛᴇᴍ" to {_downLore::*}
+        add "" to {_downLore::*}
+        add "&7View next layer." to {_downLore::*}
+        set lore of {_down} to {_downLore::*}
+        set string tag "skilltree;action" of custom nbt of {_down} to "scroll_down"
+        set slot 53 of {_menu} to {_down}
+
+    # Respec - slot 48
+    set {_respec} to cauldron named "&c&lRespec"
     delete {_respecLore::*}
     add "&8ᴍᴇɴᴜ ɪᴛᴇᴍ" to {_respecLore::*}
     add "" to {_respecLore::*}
@@ -143,9 +187,9 @@ function skilltree_openPage(p: player, page: number):
     set {_respecCost} to skilltree_getRespecCost()
     set {_balance} to economy_getMoney({_p})
     if {_balance} >= {_respecCost}:
-        add "&a  ✔ &7Cost: &6$%formatNum({_respecCost})%" to {_respecLore::*}
+        add "&a  > &7Cost: &6$%formatNum({_respecCost})%" to {_respecLore::*}
     else:
-        add "&c  ✖ &7Cost: &6$%formatNum({_respecCost})% &8($%formatNum({_balance})%)" to {_respecLore::*}
+        add "&c  > &7Cost: &6$%formatNum({_respecCost})% &8($%formatNum({_balance})%)" to {_respecLore::*}
     add "&7Refund: &d%formatNum({_spent})% pts" to {_respecLore::*}
     add "" to {_respecLore::*}
     if {_spent} > 0:
@@ -154,107 +198,7 @@ function skilltree_openPage(p: player, page: number):
     else:
         add "&8No skills to reset" to {_respecLore::*}
     set lore of {_respec} to {_respecLore::*}
-    set slot 8 of {_menu} to {_respec}
-
-    # ════════════════════════════════════════
-    # ROW 2 & 4: NODES (2 per page per branch)
-    # ROW 3: ARROWS between nodes on same page
-    # ROW 5: ARROWS continuing to next page
-    # ════════════════════════════════════════
-
-    # Calculate which nodes this page shows
-    # Page 1: nodes 1,2 | Page 2: nodes 3,4 | Page 3: nodes 5,6
-    set {_nodeA} to ({_page} * 2) - 1
-    set {_nodeB} to {_page} * 2
-
-    # ── NODE ROW A (row 2: slots 10, 13, 16) ──
-    set slot 10 of {_menu} to skilltree_createNodeItem({_p}, "power_%{_nodeA}%")
-    set slot 13 of {_menu} to skilltree_createNodeItem({_p}, "fortune_%{_nodeA}%")
-    set slot 16 of {_menu} to skilltree_createNodeItem({_p}, "efficiency_%{_nodeA}%")
-
-    # ── ARROWS A→B (row 3: slots 19, 22, 25) ──
-    set slot 19 of {_menu} to skilltree_createArrow({_p}, "power_%{_nodeA}%", "power_%{_nodeB}%", "power")
-    set slot 22 of {_menu} to skilltree_createArrow({_p}, "fortune_%{_nodeA}%", "fortune_%{_nodeB}%", "fortune")
-    set slot 25 of {_menu} to skilltree_createArrow({_p}, "efficiency_%{_nodeA}%", "efficiency_%{_nodeB}%", "efficiency")
-
-    # ── NODE ROW B (row 4: slots 28, 31, 34) ──
-    set slot 28 of {_menu} to skilltree_createNodeItem({_p}, "power_%{_nodeB}%")
-    set slot 31 of {_menu} to skilltree_createNodeItem({_p}, "fortune_%{_nodeB}%")
-    set slot 34 of {_menu} to skilltree_createNodeItem({_p}, "efficiency_%{_nodeB}%")
-
-    # ── ARROWS B→next page (row 5: slots 37, 40, 43) ──
-    if {_page} < 3:
-        set {_nodeC} to {_nodeB} + 1
-        set slot 37 of {_menu} to skilltree_createArrow({_p}, "power_%{_nodeB}%", "power_%{_nodeC}%", "power")
-        set slot 40 of {_menu} to skilltree_createArrow({_p}, "fortune_%{_nodeB}%", "fortune_%{_nodeC}%", "fortune")
-        set slot 43 of {_menu} to skilltree_createArrow({_p}, "efficiency_%{_nodeB}%", "efficiency_%{_nodeC}%", "efficiency")
-    else:
-        # Final layer - end of tree markers
-        set {_endP} to skilltree_createEndMarker("power")
-        set {_endF} to skilltree_createEndMarker("fortune")
-        set {_endE} to skilltree_createEndMarker("efficiency")
-        set slot 37 of {_menu} to {_endP}
-        set slot 40 of {_menu} to {_endF}
-        set slot 43 of {_menu} to {_endE}
-
-    # ════════════════════════════════════════
-    # ROW 6: NAVIGATION
-    # ════════════════════════════════════════
-
-    # Bottom border
-    set slot 46,47,48,50,51,52 of {_menu} to {_sep}
-
-    # Scroll up - slot 45
-    if {_page} > 1:
-        set {_up} to spectral arrow named "&e&l▲ Scroll Up"
-        delete {_upLore::*}
-        add "&8ᴍᴇɴᴜ ɪᴛᴇᴍ" to {_upLore::*}
-        add "" to {_upLore::*}
-        add "&7View previous layer" to {_upLore::*}
-        add "&7of the skill tree." to {_upLore::*}
-        add "" to {_upLore::*}
-        add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ sᴄʀᴏʟʟ ᴜᴘ" to {_upLore::*}
-        set lore of {_up} to {_upLore::*}
-        set string tag "skilltree;action" of custom nbt of {_up} to "scroll_up"
-        set slot 45 of {_menu} to {_up}
-
-    # Page indicator - slot 49
-    set {_pageItem} to paper named "&d&lLayer %{_page}% &7/ &d3"
-    delete {_pageLore::*}
-    add "&8ᴍᴇɴᴜ ɪᴛᴇᴍ" to {_pageLore::*}
-    add "" to {_pageLore::*}
-    # Page indicator dots
-    if {_page} is 1:
-        add "&d● &8● ●" to {_pageLore::*}
-        add "" to {_pageLore::*}
-        add "&7Showing: &fFoundation nodes" to {_pageLore::*}
-    else if {_page} is 2:
-        add "&8● &d● &8●" to {_pageLore::*}
-        add "" to {_pageLore::*}
-        add "&7Showing: &eAdvanced nodes" to {_pageLore::*}
-    else:
-        add "&8● ● &d●" to {_pageLore::*}
-        add "" to {_pageLore::*}
-        add "&7Showing: &6Mastery & Capstones" to {_pageLore::*}
-    add "" to {_pageLore::*}
-    add "&7Use arrows to scroll" to {_pageLore::*}
-    add "&7through the tree." to {_pageLore::*}
-    set lore of {_pageItem} to {_pageLore::*}
-    set slot 49 of {_menu} to {_pageItem}
-
-    # Scroll down - slot 53
-    if {_page} < 3:
-        set {_down} to spectral arrow named "&a&l▼ Scroll Down"
-        delete {_downLore::*}
-        add "&8ᴍᴇɴᴜ ɪᴛᴇᴍ" to {_downLore::*}
-        add "" to {_downLore::*}
-        add "&7View next layer" to {_downLore::*}
-        add "&7of the skill tree." to {_downLore::*}
-        add "" to {_downLore::*}
-        add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ sᴄʀᴏʟʟ ᴅᴏᴡɴ" to {_downLore::*}
-        set lore of {_down} to {_downLore::*}
-        set string tag "skilltree;action" of custom nbt of {_down} to "scroll_down"
-        set slot 53 of {_menu} to {_down}
+    set slot 50 of {_menu} to {_respec}
 
     open {_menu} to {_p}
     menu_setCurrentMenu({_p}, "SKILL_TREE")
@@ -262,74 +206,66 @@ function skilltree_openPage(p: player, page: number):
 
 
 # ============================================================
-# ARROW CONNECTOR BUILDER
+# CONNECTOR (glass pane between nodes)
 # ============================================================
 
-function skilltree_createArrow(p: player, fromNode: text, toNode: text, branch: text) :: item:
-    set {_branchColor} to skilltree_getBranchColor({_branch})
+function skilltree_createConnector(p: player, fromNode: text, toNode: text, branch: text) :: item:
     set {_fromRank} to skilltree_getNodeRank({_p}, {_fromNode})
     set {_fromMax} to skilltree_getNodeMaxRank({_fromNode})
     set {_toRank} to skilltree_getNodeRank({_p}, {_toNode})
 
-    set {_fromName} to skilltree_getNodeName({_fromNode})
-    set {_toName} to skilltree_getNodeName({_toNode})
-
+    # Both done = green, from maxed = yellow, otherwise gray
     if {_fromRank} >= {_fromMax}:
         if {_toRank} > 0:
-            # Both connected - green
-            set {_item} to chain named "&a&l↓"
-            delete {_lore::*}
-            add "&8ᴄᴏɴɴᴇᴄᴛᴏʀ" to {_lore::*}
-            add "" to {_lore::*}
-            add "&a✔ %{_fromName}%" to {_lore::*}
-            add "&a  ↓" to {_lore::*}
-            add "&a✔ %{_toName}%" to {_lore::*}
+            set {_item} to lime stained glass pane named "&a&l|"
         else:
-            # From maxed, to available - yellow
-            set {_item} to chain named "&e&l↓"
-            delete {_lore::*}
-            add "&8ᴄᴏɴɴᴇᴄᴛᴏʀ" to {_lore::*}
-            add "" to {_lore::*}
-            add "&a✔ %{_fromName}%" to {_lore::*}
-            add "&e  ↓" to {_lore::*}
-            add "&e○ %{_toName}%" to {_lore::*}
+            set {_item} to yellow stained glass pane named "&e&l|"
     else:
-        # Locked
-        set {_item} to iron bars named "&8&l↓"
-        delete {_lore::*}
-        add "&8ᴄᴏɴɴᴇᴄᴛᴏʀ" to {_lore::*}
-        add "" to {_lore::*}
         if {_fromRank} > 0:
-            add "&e◐ %{_fromName}% &8(%{_fromRank}%/%{_fromMax}%)" to {_lore::*}
+            set {_item} to yellow stained glass pane named "&e&l|"
         else:
-            add "&c✖ %{_fromName}%" to {_lore::*}
-        add "&8  ↓" to {_lore::*}
-        add "&c🔒 %{_toName}%" to {_lore::*}
+            set {_item} to gray stained glass pane named "&8&l|"
 
+    delete {_lore::*}
+    set {_fromName} to skilltree_getNodeName({_fromNode})
+    set {_toName} to skilltree_getNodeName({_toNode})
+    add "&8ᴄᴏɴɴᴇᴄᴛᴏʀ" to {_lore::*}
+    add "" to {_lore::*}
+    if {_fromRank} >= {_fromMax}:
+        add "&a> %{_fromName}%" to {_lore::*}
+    else if {_fromRank} > 0:
+        add "&e> %{_fromName}% &8(%{_fromRank}%/%{_fromMax}%)" to {_lore::*}
+    else:
+        add "&c> %{_fromName}%" to {_lore::*}
+    add "&7  |" to {_lore::*}
+    if {_toRank} > 0:
+        add "&a> %{_toName}%" to {_lore::*}
+    else if {_fromRank} >= {_fromMax}:
+        add "&e> %{_toName}% &8(available)" to {_lore::*}
+    else:
+        add "&c> %{_toName}% &8(locked)" to {_lore::*}
     set lore of {_item} to {_lore::*}
     return {_item}
 
 
 # ============================================================
-# END-OF-TREE MARKER
+# END CONNECTOR
 # ============================================================
 
-function skilltree_createEndMarker(branch: text) :: item:
-    set {_branchColor} to skilltree_getBranchColor({_branch})
-    set {_branchName} to skilltree_getBranchName({_branch})
-
+function skilltree_createEndConnector(branch: text) :: item:
     if {_branch} is "power":
-        set {_item} to red stained glass pane named "%{_branchColor}%&l✦ End of Branch"
+        set {_item} to red stained glass pane named "&c&l-"
     else if {_branch} is "fortune":
-        set {_item} to orange stained glass pane named "%{_branchColor}%&l✦ End of Branch"
+        set {_item} to orange stained glass pane named "&6&l-"
     else:
-        set {_item} to light blue stained glass pane named "%{_branchColor}%&l✦ End of Branch"
+        set {_item} to light blue stained glass pane named "&b&l-"
 
     delete {_lore::*}
+    set {_branchName} to skilltree_getBranchName({_branch})
+    set {_branchColor} to skilltree_getBranchColor({_branch})
     add "&8ᴇɴᴅ" to {_lore::*}
     add "" to {_lore::*}
-    add "&7You've reached the end" to {_lore::*}
-    add "&7of the %{_branchColor}%%{_branchName}% &7branch." to {_lore::*}
+    add "&7End of %{_branchColor}%%{_branchName}% &7branch." to {_lore::*}
     set lore of {_item} to {_lore::*}
     return {_item}
 
@@ -350,7 +286,7 @@ function skilltree_createNodeItem(p: player, nodeId: text) :: item:
     set {_icon} to skilltree_getNodeIcon({_nodeId})
     set {_mechanic} to skilltree_getNodeMechanic({_nodeId})
 
-    # Determine state
+    # State checks
     set {_reqMet} to true
     if {_req} is not "":
         if skilltree_isNodeMaxed({_p}, {_req}) is false:
@@ -371,46 +307,37 @@ function skilltree_createNodeItem(p: player, nodeId: text) :: item:
     # Build item based on state
     if {_maxed} is true:
         set {_item} to {_icon}
-        if {_isCapstone} is true:
-            set name of {_item} to "&a&l★ %{_name}% ★ &7[&a&lMAX&7]"
-        else:
-            set name of {_item} to "&a&l%{_name}% &7[&a%{_rank}%&7/&a%{_maxRank}%&7]"
+        set name of {_item} to "&a&l%{_name}% &7[&a%{_rank}%/%{_maxRank}%&7]"
     else if {_unlocked} is true:
         set {_item} to {_icon}
-        set name of {_item} to "&e%{_name}% &7[&e%{_rank}%&7/&a%{_maxRank}%&7]"
+        set name of {_item} to "&e%{_name}% &7[&e%{_rank}%/%{_maxRank}%&7]"
     else if {_reqMet} is true:
         set {_item} to {_icon}
-        if {_isCapstone} is true:
-            set name of {_item} to "%{_branchColor}%&l★ %{_name}% ★ &7[&c0&7/&a%{_maxRank}%&7]"
-        else:
-            set name of {_item} to "%{_branchColor}%%{_name}% &7[&c0&7/&a%{_maxRank}%&7]"
+        set name of {_item} to "%{_branchColor}%%{_name}% &7[&80/%{_maxRank}%&7]"
     else:
-        set {_item} to gray stained glass pane named "&c🔒 %{_name}%"
+        # Locked - use mangrove button like pets menu
+        set {_item} to mangrove button named "&c%{_name}%"
 
     # Build lore
     delete {_lore::*}
-    if {_isCapstone} is true:
-        add "&8ᴄᴀᴘsᴛᴏɴᴇ ᴀʙɪʟɪᴛʏ" to {_lore::*}
-    else:
-        add "&8sᴋɪʟʟ ɴᴏᴅᴇ" to {_lore::*}
+    add "&8ᴍᴇɴᴜ ɪᴛᴇᴍ" to {_lore::*}
     add "" to {_lore::*}
-
     add "&7%{_desc}%" to {_lore::*}
     add "" to {_lore::*}
 
-    # Rank progress bar
+    # Rank progress bar (only if multi-rank)
     if {_maxRank} > 1:
         set {_bar} to "&7["
         loop integers from 1 to {_maxRank}:
             if loop-number <= {_rank}:
-                set {_bar} to "%{_bar}%&a■"
+                set {_bar} to "%{_bar}%&a|"
             else:
-                set {_bar} to "%{_bar}%&8□"
+                set {_bar} to "%{_bar}%&8|"
         set {_bar} to "%{_bar}%&7]"
         add {_bar} to {_lore::*}
         add "" to {_lore::*}
 
-    # Show current bonus
+    # Current bonus
     if {_rank} > 0:
         if {_stat} is not "mechanic":
             set {_currentBonus} to skilltree_getNodeBonus({_nodeId}) * {_rank}
@@ -424,17 +351,17 @@ function skilltree_createNodeItem(p: player, nodeId: text) :: item:
                 set {_statName2} to skilltree_formatStatName({_stat2})
                 add "&7         &a+%{_current2}%%% %{_statName2}%" to {_lore::*}
         else:
-            add "&7Status: &a&lACTIVE" to {_lore::*}
+            add "&7Status: &aActive" to {_lore::*}
         add "" to {_lore::*}
 
-    # Show next rank cost or maxed
+    # Footer
     if {_maxed} is true:
-        add "&a&l✔ MAXED" to {_lore::*}
+        add "&a&lMAXED" to {_lore::*}
     else if {_reqMet} is false:
         set {_reqName} to skilltree_getNodeName({_req})
-        add "&cRequires: &7%{_reqName}% &c(maxed)" to {_lore::*}
+        add "&cRequires: &7%{_reqName}% (maxed)" to {_lore::*}
         add "" to {_lore::*}
-        add "&8🔒 Locked" to {_lore::*}
+        add "&c> Locked" to {_lore::*}
     else:
         set {_nextRank} to {_rank} + 1
         set {_cost} to skilltree_getNodeRankCost({_nodeId}, {_nextRank})
@@ -443,11 +370,11 @@ function skilltree_createNodeItem(p: player, nodeId: text) :: item:
         if {_points} >= {_cost}:
             add "&7Balance: &d%formatNum({_points})% pts" to {_lore::*}
             add "" to {_lore::*}
-            add "&eClick to upgrade" to {_lore::*}
+            add "&a> Click to upgrade" to {_lore::*}
         else:
             add "&7Balance: &c%formatNum({_points})% pts" to {_lore::*}
             add "" to {_lore::*}
-            add "&cNot enough points" to {_lore::*}
+            add "&c> Not enough points" to {_lore::*}
 
     set lore of {_item} to {_lore::*}
     set string tag "skilltree;node" of custom nbt of {_item} to {_nodeId}
@@ -460,8 +387,7 @@ function skilltree_createNodeItem(p: player, nodeId: text) :: item:
 # ============================================================
 
 function skilltree_openRespecConfirm(p: player):
-    set {_uuid} to {_p}'s uuid
-    set {_menu} to chest inventory with 3 rows named "&c&lConfirm Respec"
+    set {_menu} to chest inventory with 3 rows named "&8Confirm Respec"
 
     set {_filler} to black stained glass pane named "&1"
     loop 27 times:
@@ -470,45 +396,43 @@ function skilltree_openRespecConfirm(p: player):
     set {_warning} to red stained glass pane named "&1"
     set slot 3,4,5,12,14,21,22,23 of {_menu} to {_warning}
 
+    set {_spent} to skilltree_getTotalSpent({_p})
+    set {_respecCost} to skilltree_getRespecCost()
+
     # Info center
-    set {_info} to cauldron named "&c&lRESPEC ALL SKILLS"
+    set {_info} to cauldron named "&c&lRespec All Skills"
     delete {_infoLore::*}
     add "&8ᴍᴇɴᴜ ɪᴛᴇᴍ" to {_infoLore::*}
     add "" to {_infoLore::*}
     add "&7This will reset &call &7skill" to {_infoLore::*}
     add "&7nodes and refund your points." to {_infoLore::*}
     add "" to {_infoLore::*}
-    set {_respecCost} to skilltree_getRespecCost()
-    set {_spent} to skilltree_getTotalSpent({_p})
-    add "&6Summary:" to {_infoLore::*}
-    add " &7Cost: &6$%formatNum({_respecCost})%" to {_infoLore::*}
-    add " &7Refund: &d%formatNum({_spent})% pts" to {_infoLore::*}
-    add "" to {_infoLore::*}
-    add "&c⚠ This cannot be undone!" to {_infoLore::*}
+    add "&7Cost: &6$%formatNum({_respecCost})%" to {_infoLore::*}
+    add "&7Refund: &d%formatNum({_spent})% pts" to {_infoLore::*}
     set lore of {_info} to {_infoLore::*}
     set slot 13 of {_menu} to {_info}
 
     # Confirm
-    set {_confirm} to lime dye named "&a&lCONFIRM"
+    set {_confirm} to lime dye named "&a&lConfirm"
     delete {_confirmLore::*}
     add "&8ᴍᴇɴᴜ ɪᴛᴇᴍ" to {_confirmLore::*}
     add "" to {_confirmLore::*}
     add "&7Reset all skills and" to {_confirmLore::*}
     add "&7receive &d%formatNum({_spent})% pts &7back." to {_confirmLore::*}
     add "" to {_confirmLore::*}
-    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴄᴏɴғɪʀᴍ" to {_confirmLore::*}
+    add "&a> Click to confirm" to {_confirmLore::*}
     set lore of {_confirm} to {_confirmLore::*}
     set string tag "skilltree;action" of custom nbt of {_confirm} to "confirm_respec"
     set slot 11 of {_menu} to {_confirm}
 
     # Cancel
-    set {_cancel} to red dye named "&c&lCANCEL"
+    set {_cancel} to red dye named "&c&lCancel"
     delete {_cancelLore::*}
     add "&8ᴍᴇɴᴜ ɪᴛᴇᴍ" to {_cancelLore::*}
     add "" to {_cancelLore::*}
-    add "&7Go back to skill tree" to {_cancelLore::*}
+    add "&7Go back to skill tree." to {_cancelLore::*}
     add "" to {_cancelLore::*}
-    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ɢᴏ ʙᴀᴄᴋ" to {_cancelLore::*}
+    add "&c> Click to cancel" to {_cancelLore::*}
     set lore of {_cancel} to {_cancelLore::*}
     set string tag "skilltree;action" of custom nbt of {_cancel} to "cancel_respec"
     set slot 15 of {_menu} to {_cancel}
@@ -538,7 +462,7 @@ on inventory click:
                     set {_nodeName} to skilltree_getNodeName({_nodeId})
                     set {_newRank} to skilltree_getNodeRank(player, {_nodeId})
                     play sound "entity.player.levelup" with volume 0.5 and pitch 1.5 to player
-                    send "&d⭐ &7Upgraded &d%{_nodeName}% &7to rank &a%{_newRank}%&7!" to player
+                    send "&7Upgraded &d%{_nodeName}% &7to rank &a%{_newRank}%&7." to player
                 else:
                     play sound "entity.villager.no" with volume 0.5 and pitch 1 to player
             else:
@@ -571,14 +495,14 @@ on inventory click:
             if skilltree_respec(player) is true:
                 play sound "entity.generic.explode" with volume 0.5 and pitch 1.2 to player
                 send "" to player
-                send "&c&lSKILLS RESET!" to player
+                send "&c&lSkills Reset" to player
                 send "&7All skill points have been refunded." to player
                 send "&7Prestige Points: &d%formatNum(economy_getPrestigePoints(player))%" to player
                 send "" to player
                 skilltree_openPage(player, 1)
             else:
                 play sound "entity.villager.no" with volume 0.5 and pitch 1 to player
-                send "&cNot enough money to respec! Need &6$%formatNum(skilltree_getRespecCost())%" to player
+                send "&cNot enough money to respec." to player
                 skilltree_openPage(player, 1)
             stop
 
@@ -589,7 +513,7 @@ on inventory click:
 
 
 # ============================================================
-# INVENTORY CLOSE - CLEANUP
+# INVENTORY CLOSE
 # ============================================================
 
 on inventory close:
