@@ -259,6 +259,36 @@ function skilltree_initConfig():
     # ════════════════════════════════════════
     set {-skilltree::respec::cost} to 10000000
 
+    # ════════════════════════════════════════
+    # GUI LAYOUT - Column positions per node
+    # Creates zigzag pattern across the grid
+    # Virtual rows: 0-10 (even=node, odd=connector)
+    # ════════════════════════════════════════
+
+    # Power branch (left area, cols 0-2) - zigzags
+    set {-skilltree::layout::power::1} to 1
+    set {-skilltree::layout::power::2} to 0
+    set {-skilltree::layout::power::3} to 2
+    set {-skilltree::layout::power::4} to 1
+    set {-skilltree::layout::power::5} to 0
+    set {-skilltree::layout::power::6} to 1
+
+    # Fortune branch (middle, cols 3-5) - zigzags opposite
+    set {-skilltree::layout::fortune::1} to 4
+    set {-skilltree::layout::fortune::2} to 5
+    set {-skilltree::layout::fortune::3} to 3
+    set {-skilltree::layout::fortune::4} to 4
+    set {-skilltree::layout::fortune::5} to 5
+    set {-skilltree::layout::fortune::6} to 4
+
+    # Efficiency branch (right area, cols 6-8) - zigzags
+    set {-skilltree::layout::efficiency::1} to 7
+    set {-skilltree::layout::efficiency::2} to 8
+    set {-skilltree::layout::efficiency::3} to 6
+    set {-skilltree::layout::efficiency::4} to 7
+    set {-skilltree::layout::efficiency::5} to 6
+    set {-skilltree::layout::efficiency::6} to 7
+
 
 # ============================================================
 # CONFIG GETTERS
