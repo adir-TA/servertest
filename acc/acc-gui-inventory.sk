@@ -387,6 +387,7 @@ on inventory click:
                     if {_result} is true:
                         play sound "item.armor.equip_diamond" with volume 0.8 and pitch 1.2 to player
                         send "&aAccessory equipped to slot #%{_targetSlot}%!" to player
+                        accOrbit_refreshAll(player)
                     else:
                         play sound "entity.villager.no" with volume 0.5 and pitch 1 to player
                     set {_page} to {-acc::menu::%{_uuid}%::page} ? 1

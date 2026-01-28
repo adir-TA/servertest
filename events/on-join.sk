@@ -7,3 +7,6 @@ on join:
     wait 5 ticks
     petFollow_spawnAll(player)
     petFollow_startLoop(player)
+    # Spawn accessory orbit displays
+    accOrbit_spawnAll(player)
+    accOrbit_startLoop(player)

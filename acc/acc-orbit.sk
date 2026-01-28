@@ -1,0 +1,225 @@
+# ============================================================
+# ACCESSORY ORBIT SYSTEM - Client-Side Display Entities
+# ============================================================
+#
+# Spawns fake item displays for each equipped accessory that
+# orbit around the player. All packet-based (client-side only).
+#
+# Variables:
+#   {-acc::orbit::%uuid%::loop}           → Loop control flag
+#   {-guard::acc-orbit::%uuid%}           → Prevents duplicate loops
+#   {-acc::orbit::%uuid%::ids::%slot%}    → Display entity ID per slot
+#   {-acc::orbit::%uuid%::angle}          → Current orbit angle
+#
+# ============================================================
+
+
+# ============================================================
+# SPAWN / DESPAWN
+# ============================================================
+
+# Spawns a single accessory's orbit display for a player
+function accOrbit_spawn(p: player, slot: number):
+    set {_uuid} to {_p}'s uuid
+
+    # Don't double-spawn
+    if {-acc::orbit::%{_uuid}%::ids::%{_slot}%} is set:
+        stop
+
+    set {_encoded} to acc_getBagSlot({_p}, {_slot})
+    if {_encoded} is not set:
+        stop
+    if {_encoded} is "":
+        stop
+
+    set {_parts::*} to acc_parseAccessory({_encoded})
+    set {_type} to {_parts::1}
+    set {_rarity} to {_parts::2}
+
+    set {_icon} to acc_getTypeIcon({_type})
+    set {_glow} to accOrbit_getGlowColor({_rarity})
+
+    # Generate entity ID
+    set {_displayId} to random integer between 100000 and 9999999
+
+    # Store ID
+    set {-acc::orbit::%{_uuid}%::ids::%{_slot}%} to {_displayId}
+
+    # Spawn at player location initially
+    set {_loc} to {_p}'s location
+    set {_spawnLoc} to location(x-coord of {_loc}, y-coord of {_loc} + 1, z-coord of {_loc}, world of {_loc})
+
+    # Spawn accessory display
+    spawn fake item display at {_spawnLoc} for {_p} with id {_displayId}
+
+    set {_m} to new metadata packet with id {_displayId}:
+        display item: {_icon}
+        display scale: vector(0.35, 0.35, 0.35)
+        display brightness block: 15
+        display teleportduration: 2
+        glowing: true
+        display glow: {_glow}
+    send packet {_m} to {_p}
+
+
+# Despawns a single accessory's orbit display
+function accOrbit_despawn(p: player, slot: number):
+    set {_uuid} to {_p}'s uuid
+
+    set {_displayId} to {-acc::orbit::%{_uuid}%::ids::%{_slot}%}
+
+    if {_displayId} is set:
+        remove fake entity with id {_displayId} for {_p}
+        delete {-acc::orbit::%{_uuid}%::ids::%{_slot}%}
+
+
+# Spawns displays for ALL currently equipped accessories
+function accOrbit_spawnAll(p: player):
+    set {_uuid} to {_p}'s uuid
+    set {_unlocked} to acc_getUnlockedSlots({_p})
+    loop integers from 1 to {_unlocked}:
+        set {_encoded} to acc_getBagSlot({_p}, loop-value)
+        if {_encoded} is set:
+            if {_encoded} is not "":
+                accOrbit_spawn({_p}, loop-value)
+
+
+# Despawns ALL accessory orbit displays for a player
+function accOrbit_despawnAll(p: player):
+    set {_uuid} to {_p}'s uuid
+    loop {-acc::orbit::%{_uuid}%::ids::*}:
+        remove fake entity with id loop-value for {_p}
+    delete {-acc::orbit::%{_uuid}%::ids::*}
+
+
+# Full refresh - despawn all and respawn all equipped accessories
+# Called on equip/unequip to update displays
+function accOrbit_refreshAll(p: player):
+    set {_uuid} to {_p}'s uuid
+
+    # Remove all existing displays
+    loop {-acc::orbit::%{_uuid}%::ids::*}:
+        remove fake entity with id loop-value for {_p}
+    delete {-acc::orbit::%{_uuid}%::ids::*}
+
+    # Respawn for all currently equipped accessories
+    set {_unlocked} to acc_getUnlockedSlots({_p})
+    loop integers from 1 to {_unlocked}:
+        set {_encoded} to acc_getBagSlot({_p}, loop-value)
+        if {_encoded} is set:
+            if {_encoded} is not "":
+                accOrbit_spawn({_p}, loop-value)
+
+    # Ensure loop is running
+    accOrbit_startLoop({_p})
+
+
+# ============================================================
+# ORBIT LOOP (Guarded - same pattern as pet follow)
+# ============================================================
+
+function accOrbit_startLoop(p: player):
+    set {_uuid} to {_p}'s uuid
+
+    # Always ensure loop flag is true
+    set {-acc::orbit::%{_uuid}%::loop} to true
+
+    # Guard - only one loop per player
+    {-guard::acc-orbit::%{_uuid}%} is not set
+    set {-guard::acc-orbit::%{_uuid}%} to a random uuid
+
+    set {-acc::orbit::%{_uuid}%::angle} to 0
+
+    while {-acc::orbit::%{_uuid}%::loop} is true:
+        wait 2 ticks
+
+        if {_p} is not online:
+            delete {-acc::orbit::%{_uuid}%::loop}
+            delete {-acc::orbit::%{_uuid}%::angle}
+            delete {-guard::acc-orbit::%{_uuid}%}
+            stop
+
+        # Check if player has any equipped accessories with active displays
+        set {_displayCount} to size of {-acc::orbit::%{_uuid}%::ids::*}
+        if {_displayCount} <= 0:
+            delete {-acc::orbit::%{_uuid}%::loop}
+            delete {-acc::orbit::%{_uuid}%::angle}
+            delete {-guard::acc-orbit::%{_uuid}%}
+            stop
+
+        # Update orbit angle (5 degrees per tick = full rotation in ~3.6 seconds)
+        add 5 to {-acc::orbit::%{_uuid}%::angle}
+        if {-acc::orbit::%{_uuid}%::angle} >= 360:
+            remove 360 from {-acc::orbit::%{_uuid}%::angle}
+
+        set {_baseAngle} to {-acc::orbit::%{_uuid}%::angle}
+
+        # Player location
+        set {_pLoc} to {_p}'s location
+        set {_pX} to x-coord of {_pLoc}
+        set {_pY} to y-coord of {_pLoc}
+        set {_pZ} to z-coord of {_pLoc}
+        set {_world} to world of {_pLoc}
+
+        # Orbit parameters
+        set {_radius} to 1.0
+        set {_height} to 0.9
+
+        # Calculate positions for all accessories (evenly distributed around circle)
+        set {_count} to {_displayCount}
+        set {_angleStep} to 360 / {_count}
+
+        set {_idx} to 0
+        set {_unlocked} to acc_getUnlockedSlots({_p})
+        loop integers from 1 to {_unlocked}:
+            set {_slot} to loop-value
+            set {_displayId} to {-acc::orbit::%{_uuid}%::ids::%{_slot}%}
+
+            if {_displayId} is set:
+                # Calculate orbit position
+                set {_angle} to {_baseAngle} + ({_idx} * {_angleStep})
+
+                # Convert to radians and calculate position
+                set {_rad} to {_angle} * 0.01745329
+                set {_targetX} to {_pX} + ({_radius} * cos({_rad}))
+                set {_targetZ} to {_pZ} + ({_radius} * sin({_rad}))
+
+                # Slight bobbing effect
+                set {_bobPhase} to ({_baseAngle} * 2) + ({_idx} * 90)
+                set {_bobY} to sin({_bobPhase}) * 0.05
+                set {_targetY} to {_pY} + {_height} + {_bobY}
+
+                # Teleport display
+                set {_targetLoc} to location({_targetX}, {_targetY}, {_targetZ}, {_world})
+                send teleport packet with id {_displayId} with location {_targetLoc} to {_p}
+
+                # Rotate item to face outward from player
+                set {_faceAngle} to {_angle} + 90
+                set {_faceRad} to {_faceAngle} * 0.01745329
+                set {_qy} to sin({_faceRad} / 2)
+                set {_qw} to cos({_faceRad} / 2)
+
+                set {_m} to new metadata packet with id {_displayId}:
+                    display rotation left: 0, {_qy}, 0, {_qw}
+                send packet {_m} to {_p}
+
+                add 1 to {_idx}
+
+    delete {-guard::acc-orbit::%{_uuid}%}
+
+
+# ============================================================
+# HELPERS
+# ============================================================
+
+# Get glow color by rarity
+function accOrbit_getGlowColor(rarity: text) :: color:
+    if {_rarity} = "legendary":
+        return rgb(255, 170, 0)
+    else if {_rarity} = "epic":
+        return rgb(255, 85, 255)
+    else if {_rarity} = "rare":
+        return rgb(85, 85, 255)
+    else if {_rarity} = "uncommon":
+        return rgb(85, 255, 85)
+    return rgb(170, 170, 170)
