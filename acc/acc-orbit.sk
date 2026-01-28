@@ -57,7 +57,7 @@ function accOrbit_spawn(p: player, slot: number):
         display item: {_icon}
         display scale: vector(0.35, 0.35, 0.35)
         display brightness block: 15
-        display teleportduration: 2
+        display teleportduration: 15
         glowing: true
         display glow: {_glow}
     send packet {_m} to {_p}
@@ -132,7 +132,7 @@ function accOrbit_startLoop(p: player):
     set {-acc::orbit::%{_uuid}%::tick} to 0
 
     while {-acc::orbit::%{_uuid}%::loop} is true:
-        wait 1 tick
+        wait 15 ticks
 
         if {_p} is not online:
             delete {-acc::orbit::%{_uuid}%::loop}
@@ -148,7 +148,7 @@ function accOrbit_startLoop(p: player):
             delete {-guard::acc-orbit::%{_uuid}%}
             stop
 
-        # Update tick counter for smooth animation
+        # Update tick counter for animation
         add 1 to {-acc::orbit::%{_uuid}%::tick}
         set {_tick} to {-acc::orbit::%{_uuid}%::tick}
 
@@ -207,19 +207,19 @@ function accOrbit_startLoop(p: player):
                 else:
                     set {_vertOffset} to 0
 
-                # Smooth bobbing animation (each item has different phase)
-                set {_bobPhase} to ({_tick} * 4) + ({_idx} * 45)
-                set {_bobY} to sin({_bobPhase}) * 0.06
+                # Bobbing animation (slower phase since we update less often)
+                set {_bobPhase} to ({_tick} * 60) + ({_idx} * 45)
+                set {_bobY} to sin({_bobPhase}) * 0.08
 
                 # Slight forward/back sway
-                set {_swayPhase} to ({_tick} * 3) + ({_idx} * 60)
-                set {_sway} to sin({_swayPhase}) * 0.05
+                set {_swayPhase} to ({_tick} * 45) + ({_idx} * 60)
+                set {_sway} to sin({_swayPhase}) * 0.06
                 set {_targetX} to {_baseX} + ({_sway} * cos({_yaw}))
                 set {_targetZ} to {_baseZ} + ({_sway} * sin({_yaw}))
 
                 set {_targetY} to {_pY} + 0.9 + {_vertOffset} + {_bobY}
 
-                # Teleport display
+                # Teleport display (interpolates smoothly over 15 ticks)
                 set {_targetLoc} to location({_targetX}, {_targetY}, {_targetZ}, {_world})
                 send teleport packet with id {_displayId} with location {_targetLoc} to {_p}
 
