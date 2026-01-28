@@ -177,7 +177,27 @@ function acc_openInventoryGui(p: player, page: number):
         set string tag "acc;action" of custom nbt of {_next} to "page"
         set int tag "acc;page" of custom nbt of {_next} to {_page} + 1
         set slot 50 of {_menu} to {_next}
-    
+
+    # Filter button - Slot 51
+    set {_filteredCount} to filter_countFilteredAcc({_p})
+    set {_totalAccTypes} to filter_countTotalAcc()
+    set {_filter} to comparator named "&c&lAuto-Salvage Filter"
+    delete {_filterLore::*}
+    add "&8ᴀᴄᴛɪᴏɴ" to {_filterLore::*}
+    add "" to {_filterLore::*}
+    add "&7Configure which accessories to" to {_filterLore::*}
+    add "&7auto-salvage when obtained." to {_filterLore::*}
+    add "" to {_filterLore::*}
+    add "&6Filtered: &c%{_filteredCount}%&7/%{_totalAccTypes}%" to {_filterLore::*}
+    add "" to {_filterLore::*}
+    add "&d&lLegendary accessories are" to {_filterLore::*}
+    add "&d&lalways protected!" to {_filterLore::*}
+    add "" to {_filterLore::*}
+    add "&eClick to configure" to {_filterLore::*}
+    set lore of {_filter} to {_filterLore::*}
+    set string tag "acc;action" of custom nbt of {_filter} to "open_filter"
+    set slot 51 of {_menu} to {_filter}
+
     # Close - Slot 53
     set {_close} to red dye named "&c&lClose"
     set lore of {_close} to "&8ᴍᴇɴᴜ"
@@ -392,7 +412,12 @@ on inventory click:
             set {_newPage} to int tag "acc;page" of {_nbt}
             set {_sort} to {-acc::menu::%{_uuid}%::sort} ? "tier"
             acc_openInventoryGui(player, {_newPage})
-        
+
+        else if {_action} is "open_filter":
+            play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+            delete {-acc::menu::%{_uuid}%}
+            filter_openAccFilter(player, 1)
+
         else if {_action} is "close":
             close inventory of player
     

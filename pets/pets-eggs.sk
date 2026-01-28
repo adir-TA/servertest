@@ -372,34 +372,56 @@ function pet_playOpeningSequence(p: player, tier: text, amount: number, altarLoc
         stop
     
     # Roll all pets and setup data
+    set {_totalSalvageTokens} to 0
+    set {_salvageCount} to 0
+    set {_keptCount} to 0
     loop {_amount} times:
         set {_i} to loop-number
         set {_rarity} to pet_rollRarity({_tier})
         set {_type} to pet_rollType({_tier})
-        set {_petId} to pet_create({_p}, {_type}, {_rarity})
-        
+
+        # Check if this pet should be auto-salvaged
+        set {_shouldSalvage} to filter_shouldSalvagePet({_p}, {_type}, {_rarity})
+        set {_results::%{_i}%::salvaged} to {_shouldSalvage}
+
+        if {_shouldSalvage} is true:
+            # Auto-salvage: don't create pet, track tokens
+            set {_salvageValue} to pet_getSalvageValue({_rarity})
+            add {_salvageValue} to {_totalSalvageTokens}
+            add 1 to {_salvageCount}
+            set {_results::%{_i}%::salvageValue} to {_salvageValue}
+        else:
+            # Keep: create the pet normally
+            set {_petId} to pet_create({_p}, {_type}, {_rarity})
+            set {_results::%{_i}%::petId} to {_petId}
+            add 1 to {_keptCount}
+
         set {_results::%{_i}%::type} to {_type}
         set {_results::%{_i}%::rarity} to {_rarity}
-        set {_results::%{_i}%::petId} to {_petId}
-        
+
         # Calculate offset position - perpendicular to player view
         set {_offsetMult} to ({_i} - (({_amount} + 1) / 2)) * 1.0
         set {_eggX::%{_i}%} to {_centerX} + ({_perpX} * {_offsetMult})
         set {_eggY::%{_i}%} to {_centerY}
         set {_eggZ::%{_i}%} to {_centerZ} + ({_perpZ} * {_offsetMult})
-        
+
         # Assign entity IDs
         set {_eggId::%{_i}%} to {_baseId} + ({_i} * 10)
         set {_petId::%{_i}%} to {_baseId} + ({_i} * 10) + 1
         set {_textId::%{_i}%} to {_baseId} + ({_i} * 10) + 2
-        
-        # Get pet data
-        set {_petIcon::%{_i}%} to pet_getTypeIcon({_type})
+
+        # Get pet data - use barrier for auto-salvaged pets
+        if {_shouldSalvage} is true:
+            set {_petIcon::%{_i}%} to barrier
+        else:
+            set {_petIcon::%{_i}%} to pet_getTypeIcon({_type})
         set {_petName::%{_i}%} to pet_getTypeName({_type})
         set {_rarityColor::%{_i}%} to pet_getRarityColor({_rarity})
-        
-        # Get rarity glow color
-        if {_rarity} = "legendary":
+
+        # Get rarity glow color - grey for salvaged
+        if {_shouldSalvage} is true:
+            set {_petGlow::%{_i}%} to rgb(100, 100, 100)
+        else if {_rarity} = "legendary":
             set {_petGlow::%{_i}%} to rgb(255, 170, 0)
         else if {_rarity} = "epic":
             set {_petGlow::%{_i}%} to rgb(255, 85, 255)
@@ -409,6 +431,10 @@ function pet_playOpeningSequence(p: player, tier: text, amount: number, altarLoc
             set {_petGlow::%{_i}%} to rgb(85, 255, 85)
         else:
             set {_petGlow::%{_i}%} to rgb(170, 170, 170)
+
+    # Give salvage tokens if any
+    if {_totalSalvageTokens} > 0:
+        mining_giveTokens({_p}, {_totalSalvageTokens})
     
     # ════════════════════════════════════════
     # PHASE 1: All eggs appear and grow
@@ -661,7 +687,12 @@ function pet_playOpeningSequence(p: player, tier: text, amount: number, altarLoc
             set {_statsText} to "&a+%{_bonus}%%% &7%{_statsList}%"
         
         # Build beautiful display text with stats (matching treasure style)
-        if {_rarity} = "legendary":
+        # Check if this pet was auto-salvaged
+        set {_wasSalvaged} to {_results::%{_i}%::salvaged}
+        if {_wasSalvaged} is true:
+            set {_salvageValue} to {_results::%{_i}%::salvageValue}
+            set {_displayText} to "&8&l[RECYCLED]%nl%%{_rarityColor::%{_i}%}%%{_petName::%{_i}%}%%nl%&6+%{_salvageValue}% tokens"
+        else if {_rarity} = "legendary":
             set {_displayText} to "&6&l✦ LEGENDARY ✦%nl%%{_rarityColor::%{_i}%}%&l%{_petName::%{_i}%}%%nl%&8━━━━━━━━━━━━%nl%%{_statsText}%"
         else if {_rarity} = "epic":
             set {_displayText} to "&d&l★ EPIC ★%nl%%{_rarityColor::%{_i}%}%%{_petName::%{_i}%}%%nl%&8─────────%nl%%{_statsText}%"
@@ -752,8 +783,11 @@ function pet_playOpeningSequence(p: player, tier: text, amount: number, altarLoc
     
     # Summary
     send "" to {_p}
-    send "&aReceived %{_amount}% pets!" to {_p}
-    send "&7Use &e/pets &7to view and equip them!" to {_p}
+    if {_keptCount} > 0:
+        send "&aReceived %{_keptCount}% pets!" to {_p}
+        send "&7Use &e/pets &7to view and equip them!" to {_p}
+    if {_salvageCount} > 0:
+        send "&8Auto-salvaged %{_salvageCount}% pets: &6+%{_totalSalvageTokens}% tokens" to {_p}
     send "" to {_p}
     
     delete {-pet::opening::%{_p}'s uuid%}

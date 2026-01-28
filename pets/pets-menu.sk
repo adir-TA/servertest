@@ -242,18 +242,25 @@ function pet_openMainMenu(p: player, page: number, sortBy: text):
         set string tag "pet;sortBy" of custom nbt of {_next} to {_sortBy}
         set slot 50 of {_menu} to {_next}
     
-    # Buy eggs button - Slot 52
-    # set {_buy} to turtle egg named "&d&lBuy Eggs"
-    # add menu_utils_getMenuItemFirstLoreLine() to {_buyLore::*}
-    # add "" to {_buyLore::*}
-    # add "&7Open the egg shop to" to {_buyLore::*}
-    # add "&7purchase new pets!" to {_buyLore::*}
-    # add "" to {_buyLore::*}
-    # add "&eClick to open" to {_buyLore::*}
-    # set lore of {_buy} to {_buyLore::*}
-    # set string tag "pet;action" of custom nbt of {_buy} to "buy_eggs"
-    # set slot 52 of {_menu} to {_buy}
-    
+    # Filter button - Slot 51
+    set {_filteredCount} to filter_countFilteredPets({_p})
+    set {_totalPetTypes} to filter_countTotalPets()
+    set {_filter} to comparator named "&c&lAuto-Salvage Filter"
+    add menu_utils_getMenuItemFirstLoreLine() to {_filterLore::*}
+    add "" to {_filterLore::*}
+    add "&7Configure which pets to" to {_filterLore::*}
+    add "&7auto-salvage when obtained." to {_filterLore::*}
+    add "" to {_filterLore::*}
+    add "&6Filtered: &c%{_filteredCount}%&7/%{_totalPetTypes}%" to {_filterLore::*}
+    add "" to {_filterLore::*}
+    add "&d&lLegendary pets are" to {_filterLore::*}
+    add "&d&lalways protected!" to {_filterLore::*}
+    add "" to {_filterLore::*}
+    add "&eClick to configure" to {_filterLore::*}
+    set lore of {_filter} to {_filterLore::*}
+    set string tag "pet;action" of custom nbt of {_filter} to "open_filter"
+    set slot 51 of {_menu} to {_filter}
+
     # Close button - Slot 53
     set {_close} to barrier named "&c&lClose"
     set lore of {_close} to menu_utils_getMenuItemFirstLoreLine()
@@ -467,7 +474,12 @@ on inventory click:
         else if {_action} = "salvage_all":
             play sound "ui.button.click" with volume 0.5 and pitch 1 to player
             pet_openSalvageAllConfirm(player)
-        
+
+        else if {_action} = "open_filter":
+            play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+            delete {-pet::menu::%{_uuid}%}
+            filter_openPetFilter(player, 1)
+
         else if {_action} = "close":
             close inventory of player
     

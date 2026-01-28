@@ -518,12 +518,27 @@ function acc_playTreasureAnimation(p: player, treasureId: text, amount: integer)
     set {_baseId} to random integer between 100000 and 9999999
 
     # Roll all rewards and setup positions (LINE UP like pet eggs)
+    set {_totalSalvageTokens} to 0
+    set {_salvageCount} to 0
+    set {_keptCount} to 0
     loop {_amount} times:
         set {_i} to loop-number
 
         set {_rarity::%{_i}%} to acc_rollRarity({_treasureId})
         set {_type::%{_i}%} to acc_rollType({_treasureId})
         set {_encoded::%{_i}%} to acc_encodeAccessory({_type::%{_i}%}, {_rarity::%{_i}%})
+
+        # Check if this accessory should be auto-salvaged
+        set {_shouldSalvage} to filter_shouldSalvageAcc({_p}, {_type::%{_i}%}, {_rarity::%{_i}%})
+        set {_salvaged::%{_i}%} to {_shouldSalvage}
+
+        if {_shouldSalvage} is true:
+            # Auto-salvage: track tokens
+            set {_salvageValue::%{_i}%} to acc_getSalvageValue({_rarity::%{_i}%})
+            add {_salvageValue::%{_i}%} to {_totalSalvageTokens}
+            add 1 to {_salvageCount}
+        else:
+            add 1 to {_keptCount}
 
         # Calculate offset position - perpendicular to player view (LINE UP)
         set {_offsetMult} to ({_i} - (({_amount} + 1) / 2)) * 1.0
@@ -537,11 +552,16 @@ function acc_playTreasureAnimation(p: player, treasureId: text, amount: integer)
         set {_itemId::%{_i}%} to {_baseId} + ({_i} * 10) + 2
         set {_textId::%{_i}%} to {_baseId} + ({_i} * 10) + 3
 
-        # Get accessory icon based on type
-        set {_accIcon::%{_i}%} to acc_getTypeIcon({_type::%{_i}%})
+        # Get accessory icon based on type - use barrier for auto-salvaged
+        if {_shouldSalvage} is true:
+            set {_accIcon::%{_i}%} to barrier
+        else:
+            set {_accIcon::%{_i}%} to acc_getTypeIcon({_type::%{_i}%})
 
-        # Get rarity glow
-        if {_rarity::%{_i}%} is "legendary":
+        # Get rarity glow - grey for salvaged
+        if {_shouldSalvage} is true:
+            set {_itemGlow::%{_i}%} to rgb(100, 100, 100)
+        else if {_rarity::%{_i}%} is "legendary":
             set {_itemGlow::%{_i}%} to rgb(255, 170, 0)
         else if {_rarity::%{_i}%} is "epic":
             set {_itemGlow::%{_i}%} to rgb(255, 85, 255)
@@ -905,7 +925,12 @@ function acc_playTreasureAnimation(p: player, treasureId: text, amount: integer)
         set {_bonus} to acc_calculateBonus({_type}, {_rarity})
 
         # Build beautiful display text with stats
-        if {_rarity} is "legendary":
+        # Check if this accessory was auto-salvaged
+        set {_wasSalvaged} to {_salvaged::%{_i}%}
+        if {_wasSalvaged} is true:
+            set {_salvageValue} to {_salvageValue::%{_i}%}
+            set {_displayText} to "&8&l[RECYCLED]%nl%%{_rarityColor}%%{_typeName}%%nl%&6+%{_salvageValue}% tokens"
+        else if {_rarity} is "legendary":
             set {_displayText} to "&6&lLEGENDARY%nl%%{_rarityColor}%&l%{_typeName}%%nl%&8━━━━━━━━━━━━%nl%&a+%{_bonus}%%% &f%{_statName}%"
         else if {_rarity} is "epic":
             set {_displayText} to "&d&lEPIC%nl%%{_rarityColor}%%{_typeName}%%nl%&8─────────%nl%&a+%{_bonus}%%% &7%{_statName}%"
@@ -997,24 +1022,34 @@ function acc_playTreasureAnimation(p: player, treasureId: text, amount: integer)
     # Restore the altar block
     make {_p} see block at {_altarLoc} as {_originalBlock}
 
-    # Give all rewards
+    # Give rewards only for non-salvaged items
     loop {_amount} times:
         set {_i} to loop-number
-        acc_addToInventory({_p}, {_encoded::%{_i}%})
+        if {_salvaged::%{_i}%} is not true:
+            acc_addToInventory({_p}, {_encoded::%{_i}%})
+
+    # Give salvage tokens if any
+    if {_totalSalvageTokens} > 0:
+        mining_giveTokens({_p}, {_totalSalvageTokens})
 
     # Send summary
     send "" to {_p}
     send "&6&lTREASURES OPENED" to {_p}
     send "%{_color}%%{_treasureName}% &7x%{_amount}%" to {_p}
     send "" to {_p}
-    send "&7You obtained:" to {_p}
 
-    loop {_amount} times:
-        set {_i} to loop-number
-        set {_rarityColor} to acc_getRarityColor({_rarity::%{_i}%})
-        set {_rarityName} to acc_getRarityName({_rarity::%{_i}%})
-        set {_typeName} to acc_getTypeName({_type::%{_i}%})
-        send " %{_rarityColor}%%{_rarityName}% %{_typeName}%" to {_p}
+    if {_keptCount} > 0:
+        send "&7You obtained:" to {_p}
+        loop {_amount} times:
+            set {_i} to loop-number
+            if {_salvaged::%{_i}%} is not true:
+                set {_rarityColor} to acc_getRarityColor({_rarity::%{_i}%})
+                set {_rarityName} to acc_getRarityName({_rarity::%{_i}%})
+                set {_typeName} to acc_getTypeName({_type::%{_i}%})
+                send " %{_rarityColor}%%{_rarityName}% %{_typeName}%" to {_p}
+
+    if {_salvageCount} > 0:
+        send "&8Auto-salvaged %{_salvageCount}% accessories: &6+%{_totalSalvageTokens}% tokens" to {_p}
 
     send "" to {_p}
 
