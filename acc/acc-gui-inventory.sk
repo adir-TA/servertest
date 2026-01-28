@@ -183,21 +183,21 @@ function acc_openInventoryGui(p: player, page: number):
     set {_totalAccTypes} to filter_countTotalAcc()
     set {_filter} to comparator named "&c&lAuto-Salvage Filter"
     delete {_filterLore::*}
-    add "&8ᴀᴄᴛɪᴏɴ" to {_filterLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_filterLore::*}
     add "" to {_filterLore::*}
     add "&7Configure which accessories to" to {_filterLore::*}
     add "&7auto-salvage when obtained." to {_filterLore::*}
     add "" to {_filterLore::*}
     add "&6Filtered: &c%{_filteredCount}%&7/%{_totalAccTypes}%" to {_filterLore::*}
     add "" to {_filterLore::*}
-    add "&eClick to configure" to {_filterLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴄᴏɴғɪɢᴜʀᴇ" to {_filterLore::*}
     set lore of {_filter} to {_filterLore::*}
     set string tag "acc;action" of custom nbt of {_filter} to "open_filter"
     set slot 51 of {_menu} to {_filter}
 
     # Close - Slot 53
-    set {_close} to red dye named "&c&lClose"
-    set lore of {_close} to "&8ᴍᴇɴᴜ"
+    set {_close} to barrier named "&c&lClose"
+    set lore of {_close} to menu_utils_getMenuItemFirstLoreLine()
     set string tag "acc;action" of custom nbt of {_close} to "close"
     set slot 53 of {_menu} to {_close}
     

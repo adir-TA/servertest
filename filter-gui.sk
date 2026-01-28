@@ -42,12 +42,13 @@ function filter_openIndexMain(p: player):
     # Pet Index - Slot 11
     set {_petItem} to turtle egg named "&d&lPet Index"
     delete {_petLore::*}
-    add "&8ᴍᴇɴᴜ" to {_petLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_petLore::*}
     add "" to {_petLore::*}
     add "&7View all available pets" to {_petLore::*}
     add "&7and their stats." to {_petLore::*}
     add "" to {_petLore::*}
     add "&7Total Pets: &e%filter_countTotalPets()%" to {_petLore::*}
+    add "" to {_petLore::*}
     add "" to {_petLore::*}
     add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴠɪᴇᴡ" to {_petLore::*}
     set lore of {_petItem} to {_petLore::*}
@@ -57,12 +58,13 @@ function filter_openIndexMain(p: player):
     # Accessory Index - Slot 15
     set {_accItem} to diamond named "&6&lAccessory Index"
     delete {_accLore::*}
-    add "&8ᴍᴇɴᴜ" to {_accLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_accLore::*}
     add "" to {_accLore::*}
     add "&7View all available accessories" to {_accLore::*}
     add "&7and their stats." to {_accLore::*}
     add "" to {_accLore::*}
     add "&7Total Accessories: &e%filter_countTotalAcc()%" to {_accLore::*}
+    add "" to {_accLore::*}
     add "" to {_accLore::*}
     add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴠɪᴇᴡ" to {_accLore::*}
     set lore of {_accItem} to {_accLore::*}
@@ -154,7 +156,7 @@ function filter_openPetIndex(p: player, page: number):
     # Info - Slot 45
     set {_info} to book named "&ePet Index"
     delete {_infoLore::*}
-    add "&8ᴍᴇɴᴜ" to {_infoLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_infoLore::*}
     add "" to {_infoLore::*}
     add "&7This shows all pets" to {_infoLore::*}
     add "&7available in the game." to {_infoLore::*}
@@ -170,7 +172,7 @@ function filter_openPetIndex(p: player, page: number):
     if {_page} > 1:
         set {_prev} to arrow named "&c&lBack"
         delete {_prevLore::*}
-        add "&8ɴᴀᴠɪɢᴀᴛɪᴏɴ" to {_prevLore::*}
+        add menu_utils_getMenuItemFirstLoreLine() to {_prevLore::*}
         add "" to {_prevLore::*}
         add "&7Page: &8[&a%{_page} - 1%&8/&c%{_totalPages}%&8]" to {_prevLore::*}
         set lore of {_prev} to {_prevLore::*}
@@ -187,7 +189,7 @@ function filter_openPetIndex(p: player, page: number):
     if {_page} < {_totalPages}:
         set {_next} to arrow named "&a&lNext"
         delete {_nextLore::*}
-        add "&8ɴᴀᴠɪɢᴀᴛɪᴏɴ" to {_nextLore::*}
+        add menu_utils_getMenuItemFirstLoreLine() to {_nextLore::*}
         add "" to {_nextLore::*}
         add "&7Page: &8[&a%{_page} + 1%&8/&c%{_totalPages}%&8]" to {_nextLore::*}
         set lore of {_next} to {_nextLore::*}
@@ -199,9 +201,11 @@ function filter_openPetIndex(p: player, page: number):
     # Back to main - Slot 53
     set {_back} to barrier named "&c&lBack"
     delete {_backLore::*}
-    add "&8ᴍᴇɴᴜ" to {_backLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_backLore::*}
     add "" to {_backLore::*}
     add "&7Return to index menu" to {_backLore::*}
+    add "" to {_backLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ɢᴏ ʙᴀᴄᴋ" to {_backLore::*}
     set lore of {_back} to {_backLore::*}
     set string tag "index;action" of custom nbt of {_back} to "back_main"
     set slot 53 of {_menu} to {_back}
@@ -282,7 +286,7 @@ function filter_openAccIndex(p: player, page: number):
     # Info - Slot 45
     set {_info} to book named "&eAccessory Index"
     delete {_infoLore::*}
-    add "&8ᴍᴇɴᴜ" to {_infoLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_infoLore::*}
     add "" to {_infoLore::*}
     add "&7This shows all accessories" to {_infoLore::*}
     add "&7available in the game." to {_infoLore::*}
@@ -300,7 +304,7 @@ function filter_openAccIndex(p: player, page: number):
     if {_page} > 1:
         set {_prev} to arrow named "&c&lBack"
         delete {_prevLore::*}
-        add "&8ɴᴀᴠɪɢᴀᴛɪᴏɴ" to {_prevLore::*}
+        add menu_utils_getMenuItemFirstLoreLine() to {_prevLore::*}
         add "" to {_prevLore::*}
         add "&7Page: &8[&a%{_page} - 1%&8/&c%{_totalPages}%&8]" to {_prevLore::*}
         set lore of {_prev} to {_prevLore::*}
@@ -317,7 +321,7 @@ function filter_openAccIndex(p: player, page: number):
     if {_page} < {_totalPages}:
         set {_next} to arrow named "&a&lNext"
         delete {_nextLore::*}
-        add "&8ɴᴀᴠɪɢᴀᴛɪᴏɴ" to {_nextLore::*}
+        add menu_utils_getMenuItemFirstLoreLine() to {_nextLore::*}
         add "" to {_nextLore::*}
         add "&7Page: &8[&a%{_page} + 1%&8/&c%{_totalPages}%&8]" to {_nextLore::*}
         set lore of {_next} to {_nextLore::*}
@@ -329,9 +333,11 @@ function filter_openAccIndex(p: player, page: number):
     # Back to main - Slot 53
     set {_back} to barrier named "&c&lBack"
     delete {_backLore::*}
-    add "&8ᴍᴇɴᴜ" to {_backLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_backLore::*}
     add "" to {_backLore::*}
     add "&7Return to index menu" to {_backLore::*}
+    add "" to {_backLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ɢᴏ ʙᴀᴄᴋ" to {_backLore::*}
     set lore of {_back} to {_backLore::*}
     set string tag "index;action" of custom nbt of {_back} to "back_main"
     set slot 53 of {_menu} to {_back}
@@ -394,7 +400,7 @@ function filter_openPetFilter(p: player, page: number):
 
             set {_item} to {_icon} named "%{_tierColor}%%{_name}%"
             delete {_lore::*}
-            add "&8ᴀᴜᴛᴏ-sᴀʟᴠᴀɢᴇ ғɪʟᴛᴇʀ" to {_lore::*}
+            add menu_utils_getMenuItemFirstLoreLine() to {_lore::*}
             add "" to {_lore::*}
             add "&7Tier: %{_tierColor}%%{_tier} in proper case%" to {_lore::*}
             add "" to {_lore::*}
@@ -415,8 +421,8 @@ function filter_openPetFilter(p: player, page: number):
                 add "&7your collection when obtained." to {_lore::*}
 
             add "" to {_lore::*}
-            add "&eLeft-click: Toggle ALL rarities" to {_lore::*}
-            add "&bRight-click: Filter by rarity" to {_lore::*}
+            add "<#C0CF91>ʟᴇғᴛ-ᴄʟɪᴄᴋ: ᴛᴏɢɢʟᴇ ᴀʟʟ" to {_lore::*}
+            add "<#C0CF91>ʀɪɢʜᴛ-ᴄʟɪᴄᴋ: ғɪʟᴛᴇʀ ʙʏ ʀᴀʀɪᴛʏ" to {_lore::*}
 
             set lore of {_item} to {_lore::*}
             set string tag "filter;type" of custom nbt of {_item} to {_type}
@@ -431,7 +437,7 @@ function filter_openPetFilter(p: player, page: number):
     set {_filteredCount} to filter_countFilteredPets({_p})
     set {_info} to book named "&ePet Filter Info"
     delete {_infoLore::*}
-    add "&8ᴍᴇɴᴜ" to {_infoLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_infoLore::*}
     add "" to {_infoLore::*}
     add "&7Configure which pets to" to {_infoLore::*}
     add "&7auto-salvage on obtain." to {_infoLore::*}
@@ -443,12 +449,12 @@ function filter_openPetFilter(p: player, page: number):
     # Filter All - Slot 46
     set {_filterAll} to red dye named "&c&lFilter All"
     delete {_filterAllLore::*}
-    add "&8ᴀᴄᴛɪᴏɴ" to {_filterAllLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_filterAllLore::*}
     add "" to {_filterAllLore::*}
     add "&7Enable auto-salvage for" to {_filterAllLore::*}
     add "&7all pet types." to {_filterAllLore::*}
     add "" to {_filterAllLore::*}
-    add "&eClick to filter all" to {_filterAllLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ғɪʟᴛᴇʀ ᴀʟʟ" to {_filterAllLore::*}
     set lore of {_filterAll} to {_filterAllLore::*}
     set string tag "filter;action" of custom nbt of {_filterAll} to "filter_all_pets"
     set slot 46 of {_menu} to {_filterAll}
@@ -456,12 +462,12 @@ function filter_openPetFilter(p: player, page: number):
     # Keep All - Slot 47
     set {_keepAll} to lime dye named "&a&lKeep All"
     delete {_keepAllLore::*}
-    add "&8ᴀᴄᴛɪᴏɴ" to {_keepAllLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_keepAllLore::*}
     add "" to {_keepAllLore::*}
     add "&7Disable auto-salvage for" to {_keepAllLore::*}
     add "&7all pet types." to {_keepAllLore::*}
     add "" to {_keepAllLore::*}
-    add "&eClick to keep all" to {_keepAllLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴋᴇᴇᴘ ᴀʟʟ" to {_keepAllLore::*}
     set lore of {_keepAll} to {_keepAllLore::*}
     set string tag "filter;action" of custom nbt of {_keepAll} to "keep_all_pets"
     set slot 47 of {_menu} to {_keepAll}
@@ -470,7 +476,7 @@ function filter_openPetFilter(p: player, page: number):
     if {_page} > 1:
         set {_prev} to arrow named "&c&lBack"
         delete {_prevLore::*}
-        add "&8ɴᴀᴠɪɢᴀᴛɪᴏɴ" to {_prevLore::*}
+        add menu_utils_getMenuItemFirstLoreLine() to {_prevLore::*}
         add "" to {_prevLore::*}
         add "&7Page: &8[&a%{_page} - 1%&8/&c%{_totalPages}%&8]" to {_prevLore::*}
         set lore of {_prev} to {_prevLore::*}
@@ -487,7 +493,7 @@ function filter_openPetFilter(p: player, page: number):
     if {_page} < {_totalPages}:
         set {_next} to arrow named "&a&lNext"
         delete {_nextLore::*}
-        add "&8ɴᴀᴠɪɢᴀᴛɪᴏɴ" to {_nextLore::*}
+        add menu_utils_getMenuItemFirstLoreLine() to {_nextLore::*}
         add "" to {_nextLore::*}
         add "&7Page: &8[&a%{_page} + 1%&8/&c%{_totalPages}%&8]" to {_nextLore::*}
         set lore of {_next} to {_nextLore::*}
@@ -499,9 +505,11 @@ function filter_openPetFilter(p: player, page: number):
     # Back - Slot 53
     set {_back} to barrier named "&c&lBack"
     delete {_backLore::*}
-    add "&8ᴍᴇɴᴜ" to {_backLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_backLore::*}
     add "" to {_backLore::*}
     add "&7Return to pets menu" to {_backLore::*}
+    add "" to {_backLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ɢᴏ ʙᴀᴄᴋ" to {_backLore::*}
     set lore of {_back} to {_backLore::*}
     set string tag "filter;action" of custom nbt of {_back} to "back_pets"
     set slot 53 of {_menu} to {_back}
@@ -557,7 +565,7 @@ function filter_openAccFilter(p: player, page: number):
 
             set {_item} to {_icon} named "%{_tierColor}%%{_name}%"
             delete {_lore::*}
-            add "&8ᴀᴜᴛᴏ-sᴀʟᴠᴀɢᴇ ғɪʟᴛᴇʀ" to {_lore::*}
+            add menu_utils_getMenuItemFirstLoreLine() to {_lore::*}
             add "" to {_lore::*}
             add "&7Tier: %{_tierColor}%%acc_getTierName({_tier})%" to {_lore::*}
             add "" to {_lore::*}
@@ -578,8 +586,8 @@ function filter_openAccFilter(p: player, page: number):
                 add "&7to your storage when obtained." to {_lore::*}
 
             add "" to {_lore::*}
-            add "&eLeft-click: Toggle ALL rarities" to {_lore::*}
-            add "&bRight-click: Filter by rarity" to {_lore::*}
+            add "<#C0CF91>ʟᴇғᴛ-ᴄʟɪᴄᴋ: ᴛᴏɢɢʟᴇ ᴀʟʟ" to {_lore::*}
+            add "<#C0CF91>ʀɪɢʜᴛ-ᴄʟɪᴄᴋ: ғɪʟᴛᴇʀ ʙʏ ʀᴀʀɪᴛʏ" to {_lore::*}
 
             set lore of {_item} to {_lore::*}
             set string tag "filter;type" of custom nbt of {_item} to {_type}
@@ -594,7 +602,7 @@ function filter_openAccFilter(p: player, page: number):
     set {_filteredCount} to filter_countFilteredAcc({_p})
     set {_info} to book named "&eAccessory Filter Info"
     delete {_infoLore::*}
-    add "&8ᴍᴇɴᴜ" to {_infoLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_infoLore::*}
     add "" to {_infoLore::*}
     add "&7Configure which accessories" to {_infoLore::*}
     add "&7to auto-salvage on obtain." to {_infoLore::*}
@@ -606,12 +614,12 @@ function filter_openAccFilter(p: player, page: number):
     # Filter All - Slot 46
     set {_filterAll} to red dye named "&c&lFilter All"
     delete {_filterAllLore::*}
-    add "&8ᴀᴄᴛɪᴏɴ" to {_filterAllLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_filterAllLore::*}
     add "" to {_filterAllLore::*}
     add "&7Enable auto-salvage for" to {_filterAllLore::*}
     add "&7all accessory types." to {_filterAllLore::*}
     add "" to {_filterAllLore::*}
-    add "&eClick to filter all" to {_filterAllLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ғɪʟᴛᴇʀ ᴀʟʟ" to {_filterAllLore::*}
     set lore of {_filterAll} to {_filterAllLore::*}
     set string tag "filter;action" of custom nbt of {_filterAll} to "filter_all_acc"
     set slot 46 of {_menu} to {_filterAll}
@@ -619,12 +627,12 @@ function filter_openAccFilter(p: player, page: number):
     # Keep All - Slot 47
     set {_keepAll} to lime dye named "&a&lKeep All"
     delete {_keepAllLore::*}
-    add "&8ᴀᴄᴛɪᴏɴ" to {_keepAllLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_keepAllLore::*}
     add "" to {_keepAllLore::*}
     add "&7Disable auto-salvage for" to {_keepAllLore::*}
     add "&7all accessory types." to {_keepAllLore::*}
     add "" to {_keepAllLore::*}
-    add "&eClick to keep all" to {_keepAllLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴋᴇᴇᴘ ᴀʟʟ" to {_keepAllLore::*}
     set lore of {_keepAll} to {_keepAllLore::*}
     set string tag "filter;action" of custom nbt of {_keepAll} to "keep_all_acc"
     set slot 47 of {_menu} to {_keepAll}
@@ -633,7 +641,7 @@ function filter_openAccFilter(p: player, page: number):
     if {_page} > 1:
         set {_prev} to arrow named "&c&lBack"
         delete {_prevLore::*}
-        add "&8ɴᴀᴠɪɢᴀᴛɪᴏɴ" to {_prevLore::*}
+        add menu_utils_getMenuItemFirstLoreLine() to {_prevLore::*}
         add "" to {_prevLore::*}
         add "&7Page: &8[&a%{_page} - 1%&8/&c%{_totalPages}%&8]" to {_prevLore::*}
         set lore of {_prev} to {_prevLore::*}
@@ -650,7 +658,7 @@ function filter_openAccFilter(p: player, page: number):
     if {_page} < {_totalPages}:
         set {_next} to arrow named "&a&lNext"
         delete {_nextLore::*}
-        add "&8ɴᴀᴠɪɢᴀᴛɪᴏɴ" to {_nextLore::*}
+        add menu_utils_getMenuItemFirstLoreLine() to {_nextLore::*}
         add "" to {_nextLore::*}
         add "&7Page: &8[&a%{_page} + 1%&8/&c%{_totalPages}%&8]" to {_nextLore::*}
         set lore of {_next} to {_nextLore::*}
@@ -662,9 +670,11 @@ function filter_openAccFilter(p: player, page: number):
     # Back - Slot 53
     set {_back} to barrier named "&c&lBack"
     delete {_backLore::*}
-    add "&8ᴍᴇɴᴜ" to {_backLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_backLore::*}
     add "" to {_backLore::*}
     add "&7Return to accessories menu" to {_backLore::*}
+    add "" to {_backLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ɢᴏ ʙᴀᴄᴋ" to {_backLore::*}
     set lore of {_back} to {_backLore::*}
     set string tag "filter;action" of custom nbt of {_back} to "back_acc"
     set slot 53 of {_menu} to {_back}
@@ -700,7 +710,7 @@ function filter_openPetRarityFilter(p: player, petType: text):
     # Pet preview - Slot 4
     set {_preview} to {_icon} named "%{_tierColor}%%{_name}%"
     delete {_previewLore::*}
-    add "&8ᴘᴇᴛ" to {_previewLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_previewLore::*}
     add "" to {_previewLore::*}
     add "&7Tier: %{_tierColor}%%{_tier} in proper case%" to {_previewLore::*}
     add "" to {_previewLore::*}
@@ -736,25 +746,25 @@ function filter_openPetRarityFilter(p: player, petType: text):
         if {_isFiltered} is true:
             set {_rarityItem} to red dye named "%{_color}%%{_rarity} in proper case%"
             delete {_rarityLore::*}
-            add "&8ʀᴀʀɪᴛʏ ғɪʟᴛᴇʀ" to {_rarityLore::*}
+            add menu_utils_getMenuItemFirstLoreLine() to {_rarityLore::*}
             add "" to {_rarityLore::*}
             add "&cStatus: &4AUTO-SALVAGE" to {_rarityLore::*}
             add "" to {_rarityLore::*}
             add "&7%{_color}%%{_rarity} in proper case% &7%{_name}%s" to {_rarityLore::*}
             add "&7will be auto-salvaged." to {_rarityLore::*}
             add "" to {_rarityLore::*}
-            add "&aClick to KEEP" to {_rarityLore::*}
+            add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴋᴇᴇᴘ" to {_rarityLore::*}
         else:
             set {_rarityItem} to lime dye named "%{_color}%%{_rarity} in proper case%"
             delete {_rarityLore::*}
-            add "&8ʀᴀʀɪᴛʏ ғɪʟᴛᴇʀ" to {_rarityLore::*}
+            add menu_utils_getMenuItemFirstLoreLine() to {_rarityLore::*}
             add "" to {_rarityLore::*}
             add "&aStatus: &2KEEP" to {_rarityLore::*}
             add "" to {_rarityLore::*}
             add "&7%{_color}%%{_rarity} in proper case% &7%{_name}%s" to {_rarityLore::*}
             add "&7will be kept." to {_rarityLore::*}
             add "" to {_rarityLore::*}
-            add "&cClick to AUTO-SALVAGE" to {_rarityLore::*}
+            add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ғɪʟᴛᴇʀ" to {_rarityLore::*}
 
         set lore of {_rarityItem} to {_rarityLore::*}
         set string tag "filter;rarity" of custom nbt of {_rarityItem} to {_rarity}
@@ -765,12 +775,12 @@ function filter_openPetRarityFilter(p: player, petType: text):
     # Filter all rarities - Slot 21
     set {_filterAll} to red dye named "&c&lFilter All Rarities"
     delete {_filterAllLore::*}
-    add "&8ᴀᴄᴛɪᴏɴ" to {_filterAllLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_filterAllLore::*}
     add "" to {_filterAllLore::*}
     add "&7Auto-salvage all rarities" to {_filterAllLore::*}
     add "&7of this pet." to {_filterAllLore::*}
     add "" to {_filterAllLore::*}
-    add "&eClick to filter all" to {_filterAllLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ғɪʟᴛᴇʀ ᴀʟʟ" to {_filterAllLore::*}
     set lore of {_filterAll} to {_filterAllLore::*}
     set string tag "filter;action" of custom nbt of {_filterAll} to "filter_all_rarities"
     set slot 21 of {_menu} to {_filterAll}
@@ -778,12 +788,12 @@ function filter_openPetRarityFilter(p: player, petType: text):
     # Keep all rarities - Slot 23
     set {_keepAll} to lime dye named "&a&lKeep All Rarities"
     delete {_keepAllLore::*}
-    add "&8ᴀᴄᴛɪᴏɴ" to {_keepAllLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_keepAllLore::*}
     add "" to {_keepAllLore::*}
     add "&7Keep all rarities of" to {_keepAllLore::*}
     add "&7this pet." to {_keepAllLore::*}
     add "" to {_keepAllLore::*}
-    add "&eClick to keep all" to {_keepAllLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴋᴇᴇᴘ ᴀʟʟ" to {_keepAllLore::*}
     set lore of {_keepAll} to {_keepAllLore::*}
     set string tag "filter;action" of custom nbt of {_keepAll} to "keep_all_rarities"
     set slot 23 of {_menu} to {_keepAll}
@@ -791,9 +801,11 @@ function filter_openPetRarityFilter(p: player, petType: text):
     # Back - Slot 22
     set {_back} to barrier named "&c&lBack"
     delete {_backLore::*}
-    add "&8ᴍᴇɴᴜ" to {_backLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_backLore::*}
     add "" to {_backLore::*}
     add "&7Return to pet filter" to {_backLore::*}
+    add "" to {_backLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ɢᴏ ʙᴀᴄᴋ" to {_backLore::*}
     set lore of {_back} to {_backLore::*}
     set string tag "filter;action" of custom nbt of {_back} to "back_filter"
     set slot 22 of {_menu} to {_back}
@@ -823,7 +835,7 @@ function filter_openAccRarityFilter(p: player, accType: text):
     # Accessory preview - Slot 4
     set {_preview} to {_icon} named "%{_tierColor}%%{_name}%"
     delete {_previewLore::*}
-    add "&8ᴀᴄᴄᴇssᴏʀʏ" to {_previewLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_previewLore::*}
     add "" to {_previewLore::*}
     add "&7Tier: %{_tierColor}%%acc_getTierName({_tier})%" to {_previewLore::*}
     add "" to {_previewLore::*}
@@ -859,25 +871,25 @@ function filter_openAccRarityFilter(p: player, accType: text):
         if {_isFiltered} is true:
             set {_rarityItem} to red dye named "%{_color}%%{_rarity} in proper case%"
             delete {_rarityLore::*}
-            add "&8ʀᴀʀɪᴛʏ ғɪʟᴛᴇʀ" to {_rarityLore::*}
+            add menu_utils_getMenuItemFirstLoreLine() to {_rarityLore::*}
             add "" to {_rarityLore::*}
             add "&cStatus: &4AUTO-SALVAGE" to {_rarityLore::*}
             add "" to {_rarityLore::*}
             add "&7%{_color}%%{_rarity} in proper case% &7%{_name}%s" to {_rarityLore::*}
             add "&7will be auto-salvaged." to {_rarityLore::*}
             add "" to {_rarityLore::*}
-            add "&aClick to KEEP" to {_rarityLore::*}
+            add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴋᴇᴇᴘ" to {_rarityLore::*}
         else:
             set {_rarityItem} to lime dye named "%{_color}%%{_rarity} in proper case%"
             delete {_rarityLore::*}
-            add "&8ʀᴀʀɪᴛʏ ғɪʟᴛᴇʀ" to {_rarityLore::*}
+            add menu_utils_getMenuItemFirstLoreLine() to {_rarityLore::*}
             add "" to {_rarityLore::*}
             add "&aStatus: &2KEEP" to {_rarityLore::*}
             add "" to {_rarityLore::*}
             add "&7%{_color}%%{_rarity} in proper case% &7%{_name}%s" to {_rarityLore::*}
             add "&7will be kept." to {_rarityLore::*}
             add "" to {_rarityLore::*}
-            add "&cClick to AUTO-SALVAGE" to {_rarityLore::*}
+            add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ғɪʟᴛᴇʀ" to {_rarityLore::*}
 
         set lore of {_rarityItem} to {_rarityLore::*}
         set string tag "filter;rarity" of custom nbt of {_rarityItem} to {_rarity}
@@ -888,12 +900,12 @@ function filter_openAccRarityFilter(p: player, accType: text):
     # Filter all rarities - Slot 21
     set {_filterAll} to red dye named "&c&lFilter All Rarities"
     delete {_filterAllLore::*}
-    add "&8ᴀᴄᴛɪᴏɴ" to {_filterAllLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_filterAllLore::*}
     add "" to {_filterAllLore::*}
     add "&7Auto-salvage all rarities" to {_filterAllLore::*}
     add "&7of this accessory." to {_filterAllLore::*}
     add "" to {_filterAllLore::*}
-    add "&eClick to filter all" to {_filterAllLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ғɪʟᴛᴇʀ ᴀʟʟ" to {_filterAllLore::*}
     set lore of {_filterAll} to {_filterAllLore::*}
     set string tag "filter;action" of custom nbt of {_filterAll} to "filter_all_rarities"
     set slot 21 of {_menu} to {_filterAll}
@@ -901,12 +913,12 @@ function filter_openAccRarityFilter(p: player, accType: text):
     # Keep all rarities - Slot 23
     set {_keepAll} to lime dye named "&a&lKeep All Rarities"
     delete {_keepAllLore::*}
-    add "&8ᴀᴄᴛɪᴏɴ" to {_keepAllLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_keepAllLore::*}
     add "" to {_keepAllLore::*}
     add "&7Keep all rarities of" to {_keepAllLore::*}
     add "&7this accessory." to {_keepAllLore::*}
     add "" to {_keepAllLore::*}
-    add "&eClick to keep all" to {_keepAllLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴋᴇᴇᴘ ᴀʟʟ" to {_keepAllLore::*}
     set lore of {_keepAll} to {_keepAllLore::*}
     set string tag "filter;action" of custom nbt of {_keepAll} to "keep_all_rarities"
     set slot 23 of {_menu} to {_keepAll}
@@ -914,9 +926,11 @@ function filter_openAccRarityFilter(p: player, accType: text):
     # Back - Slot 22
     set {_back} to barrier named "&c&lBack"
     delete {_backLore::*}
-    add "&8ᴍᴇɴᴜ" to {_backLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_backLore::*}
     add "" to {_backLore::*}
     add "&7Return to accessory filter" to {_backLore::*}
+    add "" to {_backLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ɢᴏ ʙᴀᴄᴋ" to {_backLore::*}
     set lore of {_back} to {_backLore::*}
     set string tag "filter;action" of custom nbt of {_back} to "back_filter"
     set slot 22 of {_menu} to {_back}
