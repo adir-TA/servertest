@@ -403,8 +403,6 @@ function filter_openPetFilter(p: player, page: number):
                 add "&7This pet will be automatically" to {_lore::*}
                 add "&7salvaged when obtained." to {_lore::*}
                 add "" to {_lore::*}
-                add "&8(Legendary rarity is protected)" to {_lore::*}
-                add "" to {_lore::*}
                 add "&aClick to KEEP this pet" to {_lore::*}
             else:
                 add "&aStatus: &2KEEP" to {_lore::*}
@@ -433,9 +431,6 @@ function filter_openPetFilter(p: player, page: number):
     add "&7auto-salvage on obtain." to {_infoLore::*}
     add "" to {_infoLore::*}
     add "&6Filtered: &c%{_filteredCount}%&7/%{_total}%" to {_infoLore::*}
-    add "" to {_infoLore::*}
-    add "&d&lLegendary pets are" to {_infoLore::*}
-    add "&d&lalways protected!" to {_infoLore::*}
     set lore of {_info} to {_infoLore::*}
     set slot 45 of {_menu} to {_info}
 
@@ -565,8 +560,6 @@ function filter_openAccFilter(p: player, page: number):
                 add "&7This accessory will be" to {_lore::*}
                 add "&7auto-salvaged when obtained." to {_lore::*}
                 add "" to {_lore::*}
-                add "&8(Legendary rarity is protected)" to {_lore::*}
-                add "" to {_lore::*}
                 add "&aClick to KEEP this accessory" to {_lore::*}
             else:
                 add "&aStatus: &2KEEP" to {_lore::*}
@@ -595,9 +588,6 @@ function filter_openAccFilter(p: player, page: number):
     add "&7to auto-salvage on obtain." to {_infoLore::*}
     add "" to {_infoLore::*}
     add "&6Filtered: &c%{_filteredCount}%&7/%{_total}%" to {_infoLore::*}
-    add "" to {_infoLore::*}
-    add "&d&lLegendary accessories are" to {_infoLore::*}
-    add "&d&lalways protected!" to {_infoLore::*}
     set lore of {_info} to {_infoLore::*}
     set slot 45 of {_menu} to {_info}
 

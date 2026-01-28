@@ -190,9 +190,6 @@ function acc_openInventoryGui(p: player, page: number):
     add "" to {_filterLore::*}
     add "&6Filtered: &c%{_filteredCount}%&7/%{_totalAccTypes}%" to {_filterLore::*}
     add "" to {_filterLore::*}
-    add "&d&lLegendary accessories are" to {_filterLore::*}
-    add "&d&lalways protected!" to {_filterLore::*}
-    add "" to {_filterLore::*}
     add "&eClick to configure" to {_filterLore::*}
     set lore of {_filter} to {_filterLore::*}
     set string tag "acc;action" of custom nbt of {_filter} to "open_filter"

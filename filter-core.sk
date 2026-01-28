@@ -2,7 +2,6 @@
 # AUTO-SALVAGE FILTER SYSTEM - CORE
 # ============================================================
 # Allows players to auto-salvage specific pets/accessories
-# Legendary rarity is protected and cannot be filtered
 # ============================================================
 
 # ============================================================
@@ -45,24 +44,14 @@ function filter_setAccFilter(p: player, accType: text, enabled: boolean):
 
 # Check if a pet should be auto-salvaged
 # Returns true if should salvage, false if should keep
-# LEGENDARY IS ALWAYS PROTECTED
 function filter_shouldSalvagePet(p: player, petType: text, rarity: text) :: boolean:
-    # Legendary is always protected
-    if {_rarity} is "legendary":
-        return false
-
     # Check if this pet type is filtered
     return filter_isPetFiltered({_p}, {_petType})
 
 
 # Check if an accessory should be auto-salvaged
 # Returns true if should salvage, false if should keep
-# LEGENDARY IS ALWAYS PROTECTED
 function filter_shouldSalvageAcc(p: player, accType: text, rarity: text) :: boolean:
-    # Legendary is always protected
-    if {_rarity} is "legendary":
-        return false
-
     # Check if this accessory type is filtered
     return filter_isAccFiltered({_p}, {_accType})
 
