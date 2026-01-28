@@ -735,22 +735,10 @@ function filter_openPetRarityFilter(p: player, petType: text):
     set lore of {_preview} to {_previewLore::*}
     set slot 4 of {_menu} to {_preview}
 
-    # All-filter status
-    set {_isAllFiltered} to filter_isPetFiltered({_p}, {_petType})
-    if {_isAllFiltered} is true:
-        set {_allStatus} to red stained glass pane named "&c&lALL FILTERED"
-        delete {_allLore::*}
-        add "&7All rarities are currently" to {_allLore::*}
-        add "&7being auto-salvaged." to {_allLore::*}
-        add "" to {_allLore::*}
-        add "&eClick below to disable" to {_allLore::*}
-        set lore of {_allStatus} to {_allLore::*}
-        set slot 13 of {_menu} to {_allStatus}
-
-    # Rarity slots: 10, 11, 12, 14, 15, 16 -> we use 10-14 for 5 rarities
+    # Rarity slots: 10, 11, 12, 13, 14 (continuous)
     set {_rarities::*} to "common", "uncommon", "rare", "epic" and "legendary"
-    set {_rarityColors::*} to "&7", "&a", "&9", "&5" and "&6"
-    set {_raritySlots::*} to 10, 11, 12, 14 and 16
+    set {_rarityColors::*} to "&f", "&a", "&9", "&5" and "&6"
+    set {_raritySlots::*} to 10, 11, 12, 13 and 14
 
     set {_idx} to 1
     loop {_rarities::*}:
@@ -788,34 +776,34 @@ function filter_openPetRarityFilter(p: player, petType: text):
 
         add 1 to {_idx}
 
-    # Filter all rarities - Slot 21
-    set {_filterAll} to red dye named "&c&lFilter All Rarities"
+    # Filter all rarities - Slot 20
+    set {_filterAll} to red concrete named "&c&lFILTER ALL"
     delete {_filterAllLore::*}
     add menu_utils_getMenuItemFirstLoreLine() to {_filterAllLore::*}
     add "" to {_filterAllLore::*}
-    add "&7Auto-salvage all rarities" to {_filterAllLore::*}
-    add "&7of this pet." to {_filterAllLore::*}
+    add "&7Mark all rarities for" to {_filterAllLore::*}
+    add "&7auto-salvage." to {_filterAllLore::*}
     add "" to {_filterAllLore::*}
     add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ғɪʟᴛᴇʀ ᴀʟʟ" to {_filterAllLore::*}
     set lore of {_filterAll} to {_filterAllLore::*}
     set string tag "filter;action" of custom nbt of {_filterAll} to "filter_all_rarities"
-    set slot 21 of {_menu} to {_filterAll}
+    set slot 20 of {_menu} to {_filterAll}
 
-    # Keep all rarities - Slot 23
-    set {_keepAll} to lime dye named "&a&lKeep All Rarities"
+    # Keep all rarities - Slot 24
+    set {_keepAll} to lime concrete named "&a&lKEEP ALL"
     delete {_keepAllLore::*}
     add menu_utils_getMenuItemFirstLoreLine() to {_keepAllLore::*}
     add "" to {_keepAllLore::*}
-    add "&7Keep all rarities of" to {_keepAllLore::*}
-    add "&7this pet." to {_keepAllLore::*}
+    add "&7Mark all rarities to" to {_keepAllLore::*}
+    add "&7be kept." to {_keepAllLore::*}
     add "" to {_keepAllLore::*}
     add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴋᴇᴇᴘ ᴀʟʟ" to {_keepAllLore::*}
     set lore of {_keepAll} to {_keepAllLore::*}
     set string tag "filter;action" of custom nbt of {_keepAll} to "keep_all_rarities"
-    set slot 23 of {_menu} to {_keepAll}
+    set slot 24 of {_menu} to {_keepAll}
 
     # Back - Slot 22
-    set {_back} to barrier named "&c&lBack"
+    set {_back} to arrow named "&c&lBACK"
     delete {_backLore::*}
     add menu_utils_getMenuItemFirstLoreLine() to {_backLore::*}
     add "" to {_backLore::*}
@@ -860,22 +848,10 @@ function filter_openAccRarityFilter(p: player, accType: text):
     set lore of {_preview} to {_previewLore::*}
     set slot 4 of {_menu} to {_preview}
 
-    # All-filter status
-    set {_isAllFiltered} to filter_isAccFiltered({_p}, {_accType})
-    if {_isAllFiltered} is true:
-        set {_allStatus} to red stained glass pane named "&c&lALL FILTERED"
-        delete {_allLore::*}
-        add "&7All rarities are currently" to {_allLore::*}
-        add "&7being auto-salvaged." to {_allLore::*}
-        add "" to {_allLore::*}
-        add "&eClick below to disable" to {_allLore::*}
-        set lore of {_allStatus} to {_allLore::*}
-        set slot 13 of {_menu} to {_allStatus}
-
-    # Rarity slots
+    # Rarity slots: 10, 11, 12, 13, 14 (continuous)
     set {_rarities::*} to "common", "uncommon", "rare", "epic" and "legendary"
-    set {_rarityColors::*} to "&7", "&a", "&9", "&5" and "&6"
-    set {_raritySlots::*} to 10, 11, 12, 14 and 16
+    set {_rarityColors::*} to "&f", "&a", "&9", "&5" and "&6"
+    set {_raritySlots::*} to 10, 11, 12, 13 and 14
 
     set {_idx} to 1
     loop {_rarities::*}:
@@ -913,34 +889,34 @@ function filter_openAccRarityFilter(p: player, accType: text):
 
         add 1 to {_idx}
 
-    # Filter all rarities - Slot 21
-    set {_filterAll} to red dye named "&c&lFilter All Rarities"
+    # Filter all rarities - Slot 20
+    set {_filterAll} to red concrete named "&c&lFILTER ALL"
     delete {_filterAllLore::*}
     add menu_utils_getMenuItemFirstLoreLine() to {_filterAllLore::*}
     add "" to {_filterAllLore::*}
-    add "&7Auto-salvage all rarities" to {_filterAllLore::*}
-    add "&7of this accessory." to {_filterAllLore::*}
+    add "&7Mark all rarities for" to {_filterAllLore::*}
+    add "&7auto-salvage." to {_filterAllLore::*}
     add "" to {_filterAllLore::*}
     add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ғɪʟᴛᴇʀ ᴀʟʟ" to {_filterAllLore::*}
     set lore of {_filterAll} to {_filterAllLore::*}
     set string tag "filter;action" of custom nbt of {_filterAll} to "filter_all_rarities"
-    set slot 21 of {_menu} to {_filterAll}
+    set slot 20 of {_menu} to {_filterAll}
 
-    # Keep all rarities - Slot 23
-    set {_keepAll} to lime dye named "&a&lKeep All Rarities"
+    # Keep all rarities - Slot 24
+    set {_keepAll} to lime concrete named "&a&lKEEP ALL"
     delete {_keepAllLore::*}
     add menu_utils_getMenuItemFirstLoreLine() to {_keepAllLore::*}
     add "" to {_keepAllLore::*}
-    add "&7Keep all rarities of" to {_keepAllLore::*}
-    add "&7this accessory." to {_keepAllLore::*}
+    add "&7Mark all rarities to" to {_keepAllLore::*}
+    add "&7be kept." to {_keepAllLore::*}
     add "" to {_keepAllLore::*}
     add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴋᴇᴇᴘ ᴀʟʟ" to {_keepAllLore::*}
     set lore of {_keepAll} to {_keepAllLore::*}
     set string tag "filter;action" of custom nbt of {_keepAll} to "keep_all_rarities"
-    set slot 23 of {_menu} to {_keepAll}
+    set slot 24 of {_menu} to {_keepAll}
 
     # Back - Slot 22
-    set {_back} to barrier named "&c&lBack"
+    set {_back} to arrow named "&c&lBACK"
     delete {_backLore::*}
     add menu_utils_getMenuItemFirstLoreLine() to {_backLore::*}
     add "" to {_backLore::*}
