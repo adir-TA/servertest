@@ -131,7 +131,7 @@ function accOrbit_startLoop(p: player):
     set {-acc::orbit::%{_uuid}%::angle} to 0
 
     while {-acc::orbit::%{_uuid}%::loop} is true:
-        wait 2 ticks
+        wait 3 ticks
 
         if {_p} is not online:
             delete {-acc::orbit::%{_uuid}%::loop}
@@ -147,8 +147,8 @@ function accOrbit_startLoop(p: player):
             delete {-guard::acc-orbit::%{_uuid}%}
             stop
 
-        # Update orbit angle (5 degrees per tick = full rotation in ~3.6 seconds)
-        add 5 to {-acc::orbit::%{_uuid}%::angle}
+        # Update orbit angle (6 degrees per 3 ticks = full rotation in ~3 seconds)
+        add 6 to {-acc::orbit::%{_uuid}%::angle}
         if {-acc::orbit::%{_uuid}%::angle} >= 360:
             remove 360 from {-acc::orbit::%{_uuid}%::angle}
 
@@ -176,13 +176,12 @@ function accOrbit_startLoop(p: player):
             set {_displayId} to {-acc::orbit::%{_uuid}%::ids::%{_slot}%}
 
             if {_displayId} is set:
-                # Calculate orbit position
+                # Calculate orbit position (degrees - sin/cos in Skript use degrees)
                 set {_angle} to {_baseAngle} + ({_idx} * {_angleStep})
 
-                # Convert to radians and calculate position
-                set {_rad} to {_angle} * 0.01745329
-                set {_targetX} to {_pX} + ({_radius} * cos({_rad}))
-                set {_targetZ} to {_pZ} + ({_radius} * sin({_rad}))
+                # Position on circle around player
+                set {_targetX} to {_pX} + ({_radius} * cos({_angle}))
+                set {_targetZ} to {_pZ} + ({_radius} * sin({_angle}))
 
                 # Slight bobbing effect
                 set {_bobPhase} to ({_baseAngle} * 2) + ({_idx} * 90)
@@ -195,9 +194,8 @@ function accOrbit_startLoop(p: player):
 
                 # Rotate item to face outward from player
                 set {_faceAngle} to {_angle} + 90
-                set {_faceRad} to {_faceAngle} * 0.01745329
-                set {_qy} to sin({_faceRad} / 2)
-                set {_qw} to cos({_faceRad} / 2)
+                set {_qy} to sin({_faceAngle} / 2)
+                set {_qw} to cos({_faceAngle} / 2)
 
                 set {_m} to new metadata packet with id {_displayId}:
                     display rotation left: 0, {_qy}, 0, {_qw}
