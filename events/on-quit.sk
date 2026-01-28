@@ -10,7 +10,7 @@ on quit:
 
     # Stop accessory orbit loop and cleanup
     delete {-acc::orbit::%player's uuid%::loop}
-    delete {-acc::orbit::%player's uuid%::angle}
+    delete {-acc::orbit::%player's uuid%::tick}
     delete {-acc::orbit::%player's uuid%::ids::*}
     delete {-guard::acc-orbit::%player's uuid%}
 

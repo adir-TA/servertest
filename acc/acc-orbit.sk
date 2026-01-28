@@ -3,13 +3,14 @@
 # ============================================================
 #
 # Spawns fake item displays for each equipped accessory that
-# orbit around the player. All packet-based (client-side only).
+# float beside the player in two "walls" (left and right).
+# All packet-based (client-side only).
 #
 # Variables:
 #   {-acc::orbit::%uuid%::loop}           → Loop control flag
 #   {-guard::acc-orbit::%uuid%}           → Prevents duplicate loops
 #   {-acc::orbit::%uuid%::ids::%slot%}    → Display entity ID per slot
-#   {-acc::orbit::%uuid%::angle}          → Current orbit angle
+#   {-acc::orbit::%uuid%::tick}           → Tick counter for animation
 #
 # ============================================================
 
@@ -128,14 +129,14 @@ function accOrbit_startLoop(p: player):
     {-guard::acc-orbit::%{_uuid}%} is not set
     set {-guard::acc-orbit::%{_uuid}%} to a random uuid
 
-    set {-acc::orbit::%{_uuid}%::angle} to 0
+    set {-acc::orbit::%{_uuid}%::tick} to 0
 
     while {-acc::orbit::%{_uuid}%::loop} is true:
-        wait 3 ticks
+        wait 1 tick
 
         if {_p} is not online:
             delete {-acc::orbit::%{_uuid}%::loop}
-            delete {-acc::orbit::%{_uuid}%::angle}
+            delete {-acc::orbit::%{_uuid}%::tick}
             delete {-guard::acc-orbit::%{_uuid}%}
             stop
 
@@ -143,59 +144,89 @@ function accOrbit_startLoop(p: player):
         set {_displayCount} to size of {-acc::orbit::%{_uuid}%::ids::*}
         if {_displayCount} <= 0:
             delete {-acc::orbit::%{_uuid}%::loop}
-            delete {-acc::orbit::%{_uuid}%::angle}
+            delete {-acc::orbit::%{_uuid}%::tick}
             delete {-guard::acc-orbit::%{_uuid}%}
             stop
 
-        # Update orbit angle (6 degrees per 3 ticks = full rotation in ~3 seconds)
-        add 6 to {-acc::orbit::%{_uuid}%::angle}
-        if {-acc::orbit::%{_uuid}%::angle} >= 360:
-            remove 360 from {-acc::orbit::%{_uuid}%::angle}
+        # Update tick counter for smooth animation
+        add 1 to {-acc::orbit::%{_uuid}%::tick}
+        set {_tick} to {-acc::orbit::%{_uuid}%::tick}
 
-        set {_baseAngle} to {-acc::orbit::%{_uuid}%::angle}
-
-        # Player location
+        # Player location and facing direction
         set {_pLoc} to {_p}'s location
         set {_pX} to x-coord of {_pLoc}
         set {_pY} to y-coord of {_pLoc}
         set {_pZ} to z-coord of {_pLoc}
+        set {_yaw} to yaw of {_pLoc}
         set {_world} to world of {_pLoc}
 
-        # Orbit parameters
-        set {_radius} to 1.0
-        set {_height} to 0.9
+        # Calculate left/right perpendicular vectors based on player yaw
+        # Left is yaw + 90, Right is yaw - 90
+        set {_leftYaw} to {_yaw} + 90
+        set {_rightYaw} to {_yaw} - 90
 
-        # Calculate positions for all accessories (evenly distributed around circle)
-        set {_count} to {_displayCount}
-        set {_angleStep} to 360 / {_count}
+        # Distance from player (how far to the side)
+        set {_sideDistance} to 0.8
+
+        # Split accessories into left and right walls
+        set {_leftCount} to ceil({_displayCount} / 2)
+        set {_rightCount} to {_displayCount} - {_leftCount}
 
         set {_idx} to 0
+        set {_leftIdx} to 0
+        set {_rightIdx} to 0
         set {_unlocked} to acc_getUnlockedSlots({_p})
+
         loop integers from 1 to {_unlocked}:
             set {_slot} to loop-value
             set {_displayId} to {-acc::orbit::%{_uuid}%::ids::%{_slot}%}
 
             if {_displayId} is set:
-                # Calculate orbit position (degrees - sin/cos in Skript use degrees)
-                set {_angle} to {_baseAngle} + ({_idx} * {_angleStep})
+                # Determine if left or right side
+                if {_idx} < {_leftCount}:
+                    # Left side
+                    set {_useYaw} to {_leftYaw}
+                    set {_sideIdx} to {_leftIdx}
+                    set {_sideCount} to {_leftCount}
+                    add 1 to {_leftIdx}
+                else:
+                    # Right side
+                    set {_useYaw} to {_rightYaw}
+                    set {_sideIdx} to {_rightIdx}
+                    set {_sideCount} to {_rightCount}
+                    add 1 to {_rightIdx}
 
-                # Position on circle around player
-                set {_targetX} to {_pX} + ({_radius} * cos({_angle}))
-                set {_targetZ} to {_pZ} + ({_radius} * sin({_angle}))
+                # Calculate base position to the side of player
+                set {_baseX} to {_pX} - ({_sideDistance} * sin({_useYaw}))
+                set {_baseZ} to {_pZ} + ({_sideDistance} * cos({_useYaw}))
 
-                # Slight bobbing effect
-                set {_bobPhase} to ({_baseAngle} * 2) + ({_idx} * 90)
-                set {_bobY} to sin({_bobPhase}) * 0.05
-                set {_targetY} to {_pY} + {_height} + {_bobY}
+                # Vertical spacing for multiple on same side
+                if {_sideCount} > 1:
+                    set {_vertSpacing} to 0.35
+                    set {_vertOffset} to ({_sideIdx} - ({_sideCount} - 1) / 2) * {_vertSpacing}
+                else:
+                    set {_vertOffset} to 0
+
+                # Smooth bobbing animation (each item has different phase)
+                set {_bobPhase} to ({_tick} * 4) + ({_idx} * 45)
+                set {_bobY} to sin({_bobPhase}) * 0.06
+
+                # Slight forward/back sway
+                set {_swayPhase} to ({_tick} * 3) + ({_idx} * 60)
+                set {_sway} to sin({_swayPhase}) * 0.05
+                set {_targetX} to {_baseX} + ({_sway} * cos({_yaw}))
+                set {_targetZ} to {_baseZ} + ({_sway} * sin({_yaw}))
+
+                set {_targetY} to {_pY} + 0.9 + {_vertOffset} + {_bobY}
 
                 # Teleport display
                 set {_targetLoc} to location({_targetX}, {_targetY}, {_targetZ}, {_world})
                 send teleport packet with id {_displayId} with location {_targetLoc} to {_p}
 
-                # Rotate item to face outward from player
-                set {_faceAngle} to {_angle} + 90
-                set {_qy} to sin({_faceAngle} / 2)
-                set {_qw} to cos({_faceAngle} / 2)
+                # Rotate item to face same direction as player
+                set {_faceYaw} to {_yaw} * -1
+                set {_qy} to sin({_faceYaw} / 2)
+                set {_qw} to cos({_faceYaw} / 2)
 
                 set {_m} to new metadata packet with id {_displayId}:
                     display rotation left: 0, {_qy}, 0, {_qw}
