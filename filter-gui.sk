@@ -390,6 +390,8 @@ function filter_openPetFilter(p: player, page: number):
             else:
                 set {_tierColor} to "&a"
 
+            set {_rarityFiltered} to filter_countPetRarityFiltered({_p}, {_type})
+
             set {_item} to {_icon} named "%{_tierColor}%%{_name}%"
             delete {_lore::*}
             add "&8ᴀᴜᴛᴏ-sᴀʟᴠᴀɢᴇ ғɪʟᴛᴇʀ" to {_lore::*}
@@ -398,19 +400,23 @@ function filter_openPetFilter(p: player, page: number):
             add "" to {_lore::*}
 
             if {_isFiltered} is true:
-                add "&cStatus: &4AUTO-SALVAGE" to {_lore::*}
+                add "&cStatus: &4ALL AUTO-SALVAGE" to {_lore::*}
                 add "" to {_lore::*}
-                add "&7This pet will be automatically" to {_lore::*}
-                add "&7salvaged when obtained." to {_lore::*}
+                add "&7All rarities of this pet" to {_lore::*}
+                add "&7will be auto-salvaged." to {_lore::*}
+            else if {_rarityFiltered} > 0:
+                add "&eStatus: &6PARTIAL (%{_rarityFiltered}%/5)" to {_lore::*}
                 add "" to {_lore::*}
-                add "&aClick to KEEP this pet" to {_lore::*}
+                add "&7Some rarities filtered." to {_lore::*}
             else:
-                add "&aStatus: &2KEEP" to {_lore::*}
+                add "&aStatus: &2KEEP ALL" to {_lore::*}
                 add "" to {_lore::*}
                 add "&7This pet will be added to" to {_lore::*}
                 add "&7your collection when obtained." to {_lore::*}
-                add "" to {_lore::*}
-                add "&cClick to AUTO-SALVAGE" to {_lore::*}
+
+            add "" to {_lore::*}
+            add "&eLeft-click: Toggle ALL rarities" to {_lore::*}
+            add "&bRight-click: Filter by rarity" to {_lore::*}
 
             set lore of {_item} to {_lore::*}
             set string tag "filter;type" of custom nbt of {_item} to {_type}
@@ -547,6 +553,8 @@ function filter_openAccFilter(p: player, page: number):
             set {_tierColor} to acc_getTierColor({_tier})
             set {_isFiltered} to filter_isAccFiltered({_p}, {_type})
 
+            set {_rarityFiltered} to filter_countAccRarityFiltered({_p}, {_type})
+
             set {_item} to {_icon} named "%{_tierColor}%%{_name}%"
             delete {_lore::*}
             add "&8ᴀᴜᴛᴏ-sᴀʟᴠᴀɢᴇ ғɪʟᴛᴇʀ" to {_lore::*}
@@ -555,19 +563,23 @@ function filter_openAccFilter(p: player, page: number):
             add "" to {_lore::*}
 
             if {_isFiltered} is true:
-                add "&cStatus: &4AUTO-SALVAGE" to {_lore::*}
+                add "&cStatus: &4ALL AUTO-SALVAGE" to {_lore::*}
                 add "" to {_lore::*}
-                add "&7This accessory will be" to {_lore::*}
-                add "&7auto-salvaged when obtained." to {_lore::*}
+                add "&7All rarities of this accessory" to {_lore::*}
+                add "&7will be auto-salvaged." to {_lore::*}
+            else if {_rarityFiltered} > 0:
+                add "&eStatus: &6PARTIAL (%{_rarityFiltered}%/5)" to {_lore::*}
                 add "" to {_lore::*}
-                add "&aClick to KEEP this accessory" to {_lore::*}
+                add "&7Some rarities filtered." to {_lore::*}
             else:
-                add "&aStatus: &2KEEP" to {_lore::*}
+                add "&aStatus: &2KEEP ALL" to {_lore::*}
                 add "" to {_lore::*}
                 add "&7This accessory will be added" to {_lore::*}
                 add "&7to your storage when obtained." to {_lore::*}
-                add "" to {_lore::*}
-                add "&cClick to AUTO-SALVAGE" to {_lore::*}
+
+            add "" to {_lore::*}
+            add "&eLeft-click: Toggle ALL rarities" to {_lore::*}
+            add "&bRight-click: Filter by rarity" to {_lore::*}
 
             set lore of {_item} to {_lore::*}
             set string tag "filter;type" of custom nbt of {_item} to {_type}
@@ -663,6 +675,258 @@ function filter_openAccFilter(p: player, page: number):
 
 
 # ============================================================
+# PET RARITY FILTER MENU
+# ============================================================
+
+function filter_openPetRarityFilter(p: player, petType: text):
+    set {_uuid} to {_p}'s uuid
+    set {_name} to pet_getTypeName({_petType})
+    set {_tier} to pet_getTypeTier({_petType})
+    set {_icon} to pet_getTypeIcon({_petType})
+
+    if {_tier} is "divine":
+        set {_tierColor} to "&d"
+    else if {_tier} is "ultra":
+        set {_tierColor} to "&b"
+    else:
+        set {_tierColor} to "&a"
+
+    set {_menu} to chest inventory with 3 rows named "&c&l%{_name}% Filter"
+
+    set {_filler} to black stained glass pane named "&1"
+    loop 27 times:
+        set slot loop-number - 1 of {_menu} to {_filler}
+
+    # Pet preview - Slot 4
+    set {_preview} to {_icon} named "%{_tierColor}%%{_name}%"
+    delete {_previewLore::*}
+    add "&8ᴘᴇᴛ" to {_previewLore::*}
+    add "" to {_previewLore::*}
+    add "&7Tier: %{_tierColor}%%{_tier} in proper case%" to {_previewLore::*}
+    add "" to {_previewLore::*}
+    add "&7Configure which rarities" to {_previewLore::*}
+    add "&7to auto-salvage." to {_previewLore::*}
+    set lore of {_preview} to {_previewLore::*}
+    set slot 4 of {_menu} to {_preview}
+
+    # All-filter status
+    set {_isAllFiltered} to filter_isPetFiltered({_p}, {_petType})
+    if {_isAllFiltered} is true:
+        set {_allStatus} to red stained glass pane named "&c&lALL FILTERED"
+        delete {_allLore::*}
+        add "&7All rarities are currently" to {_allLore::*}
+        add "&7being auto-salvaged." to {_allLore::*}
+        add "" to {_allLore::*}
+        add "&eClick below to disable" to {_allLore::*}
+        set lore of {_allStatus} to {_allLore::*}
+        set slot 13 of {_menu} to {_allStatus}
+
+    # Rarity slots: 10, 11, 12, 14, 15, 16 -> we use 10-14 for 5 rarities
+    set {_rarities::*} to "common", "uncommon", "rare", "epic" and "legendary"
+    set {_rarityColors::*} to "&7", "&a", "&9", "&5" and "&6"
+    set {_raritySlots::*} to 10, 11, 12, 14 and 16
+
+    set {_idx} to 1
+    loop {_rarities::*}:
+        set {_rarity} to loop-value
+        set {_color} to {_rarityColors::%{_idx}%}
+        set {_slot} to {_raritySlots::%{_idx}%}
+        set {_isFiltered} to filter_isPetRarityFiltered({_p}, {_petType}, {_rarity})
+
+        if {_isFiltered} is true:
+            set {_rarityItem} to red dye named "%{_color}%%{_rarity} in proper case%"
+            delete {_rarityLore::*}
+            add "&8ʀᴀʀɪᴛʏ ғɪʟᴛᴇʀ" to {_rarityLore::*}
+            add "" to {_rarityLore::*}
+            add "&cStatus: &4AUTO-SALVAGE" to {_rarityLore::*}
+            add "" to {_rarityLore::*}
+            add "&7%{_color}%%{_rarity} in proper case% &7%{_name}%s" to {_rarityLore::*}
+            add "&7will be auto-salvaged." to {_rarityLore::*}
+            add "" to {_rarityLore::*}
+            add "&aClick to KEEP" to {_rarityLore::*}
+        else:
+            set {_rarityItem} to lime dye named "%{_color}%%{_rarity} in proper case%"
+            delete {_rarityLore::*}
+            add "&8ʀᴀʀɪᴛʏ ғɪʟᴛᴇʀ" to {_rarityLore::*}
+            add "" to {_rarityLore::*}
+            add "&aStatus: &2KEEP" to {_rarityLore::*}
+            add "" to {_rarityLore::*}
+            add "&7%{_color}%%{_rarity} in proper case% &7%{_name}%s" to {_rarityLore::*}
+            add "&7will be kept." to {_rarityLore::*}
+            add "" to {_rarityLore::*}
+            add "&cClick to AUTO-SALVAGE" to {_rarityLore::*}
+
+        set lore of {_rarityItem} to {_rarityLore::*}
+        set string tag "filter;rarity" of custom nbt of {_rarityItem} to {_rarity}
+        set slot {_slot} of {_menu} to {_rarityItem}
+
+        add 1 to {_idx}
+
+    # Filter all rarities - Slot 21
+    set {_filterAll} to red dye named "&c&lFilter All Rarities"
+    delete {_filterAllLore::*}
+    add "&8ᴀᴄᴛɪᴏɴ" to {_filterAllLore::*}
+    add "" to {_filterAllLore::*}
+    add "&7Auto-salvage all rarities" to {_filterAllLore::*}
+    add "&7of this pet." to {_filterAllLore::*}
+    add "" to {_filterAllLore::*}
+    add "&eClick to filter all" to {_filterAllLore::*}
+    set lore of {_filterAll} to {_filterAllLore::*}
+    set string tag "filter;action" of custom nbt of {_filterAll} to "filter_all_rarities"
+    set slot 21 of {_menu} to {_filterAll}
+
+    # Keep all rarities - Slot 23
+    set {_keepAll} to lime dye named "&a&lKeep All Rarities"
+    delete {_keepAllLore::*}
+    add "&8ᴀᴄᴛɪᴏɴ" to {_keepAllLore::*}
+    add "" to {_keepAllLore::*}
+    add "&7Keep all rarities of" to {_keepAllLore::*}
+    add "&7this pet." to {_keepAllLore::*}
+    add "" to {_keepAllLore::*}
+    add "&eClick to keep all" to {_keepAllLore::*}
+    set lore of {_keepAll} to {_keepAllLore::*}
+    set string tag "filter;action" of custom nbt of {_keepAll} to "keep_all_rarities"
+    set slot 23 of {_menu} to {_keepAll}
+
+    # Back - Slot 22
+    set {_back} to barrier named "&c&lBack"
+    delete {_backLore::*}
+    add "&8ᴍᴇɴᴜ" to {_backLore::*}
+    add "" to {_backLore::*}
+    add "&7Return to pet filter" to {_backLore::*}
+    set lore of {_back} to {_backLore::*}
+    set string tag "filter;action" of custom nbt of {_back} to "back_filter"
+    set slot 22 of {_menu} to {_back}
+
+    open {_menu} to {_p}
+    set {-filter::menu::%{_uuid}%} to "PET_RARITY_FILTER"
+    set {-filter::menu::%{_uuid}%::type} to {_petType}
+
+
+# ============================================================
+# ACCESSORY RARITY FILTER MENU
+# ============================================================
+
+function filter_openAccRarityFilter(p: player, accType: text):
+    set {_uuid} to {_p}'s uuid
+    set {_name} to acc_getTypeName({_accType})
+    set {_tier} to acc_getTypeTier({_accType})
+    set {_icon} to acc_getTypeIcon({_accType})
+    set {_tierColor} to acc_getTierColor({_tier})
+
+    set {_menu} to chest inventory with 3 rows named "&c&l%{_name}% Filter"
+
+    set {_filler} to black stained glass pane named "&1"
+    loop 27 times:
+        set slot loop-number - 1 of {_menu} to {_filler}
+
+    # Accessory preview - Slot 4
+    set {_preview} to {_icon} named "%{_tierColor}%%{_name}%"
+    delete {_previewLore::*}
+    add "&8ᴀᴄᴄᴇssᴏʀʏ" to {_previewLore::*}
+    add "" to {_previewLore::*}
+    add "&7Tier: %{_tierColor}%%acc_getTierName({_tier})%" to {_previewLore::*}
+    add "" to {_previewLore::*}
+    add "&7Configure which rarities" to {_previewLore::*}
+    add "&7to auto-salvage." to {_previewLore::*}
+    set lore of {_preview} to {_previewLore::*}
+    set slot 4 of {_menu} to {_preview}
+
+    # All-filter status
+    set {_isAllFiltered} to filter_isAccFiltered({_p}, {_accType})
+    if {_isAllFiltered} is true:
+        set {_allStatus} to red stained glass pane named "&c&lALL FILTERED"
+        delete {_allLore::*}
+        add "&7All rarities are currently" to {_allLore::*}
+        add "&7being auto-salvaged." to {_allLore::*}
+        add "" to {_allLore::*}
+        add "&eClick below to disable" to {_allLore::*}
+        set lore of {_allStatus} to {_allLore::*}
+        set slot 13 of {_menu} to {_allStatus}
+
+    # Rarity slots
+    set {_rarities::*} to "common", "uncommon", "rare", "epic" and "legendary"
+    set {_rarityColors::*} to "&7", "&a", "&9", "&5" and "&6"
+    set {_raritySlots::*} to 10, 11, 12, 14 and 16
+
+    set {_idx} to 1
+    loop {_rarities::*}:
+        set {_rarity} to loop-value
+        set {_color} to {_rarityColors::%{_idx}%}
+        set {_slot} to {_raritySlots::%{_idx}%}
+        set {_isFiltered} to filter_isAccRarityFiltered({_p}, {_accType}, {_rarity})
+
+        if {_isFiltered} is true:
+            set {_rarityItem} to red dye named "%{_color}%%{_rarity} in proper case%"
+            delete {_rarityLore::*}
+            add "&8ʀᴀʀɪᴛʏ ғɪʟᴛᴇʀ" to {_rarityLore::*}
+            add "" to {_rarityLore::*}
+            add "&cStatus: &4AUTO-SALVAGE" to {_rarityLore::*}
+            add "" to {_rarityLore::*}
+            add "&7%{_color}%%{_rarity} in proper case% &7%{_name}%s" to {_rarityLore::*}
+            add "&7will be auto-salvaged." to {_rarityLore::*}
+            add "" to {_rarityLore::*}
+            add "&aClick to KEEP" to {_rarityLore::*}
+        else:
+            set {_rarityItem} to lime dye named "%{_color}%%{_rarity} in proper case%"
+            delete {_rarityLore::*}
+            add "&8ʀᴀʀɪᴛʏ ғɪʟᴛᴇʀ" to {_rarityLore::*}
+            add "" to {_rarityLore::*}
+            add "&aStatus: &2KEEP" to {_rarityLore::*}
+            add "" to {_rarityLore::*}
+            add "&7%{_color}%%{_rarity} in proper case% &7%{_name}%s" to {_rarityLore::*}
+            add "&7will be kept." to {_rarityLore::*}
+            add "" to {_rarityLore::*}
+            add "&cClick to AUTO-SALVAGE" to {_rarityLore::*}
+
+        set lore of {_rarityItem} to {_rarityLore::*}
+        set string tag "filter;rarity" of custom nbt of {_rarityItem} to {_rarity}
+        set slot {_slot} of {_menu} to {_rarityItem}
+
+        add 1 to {_idx}
+
+    # Filter all rarities - Slot 21
+    set {_filterAll} to red dye named "&c&lFilter All Rarities"
+    delete {_filterAllLore::*}
+    add "&8ᴀᴄᴛɪᴏɴ" to {_filterAllLore::*}
+    add "" to {_filterAllLore::*}
+    add "&7Auto-salvage all rarities" to {_filterAllLore::*}
+    add "&7of this accessory." to {_filterAllLore::*}
+    add "" to {_filterAllLore::*}
+    add "&eClick to filter all" to {_filterAllLore::*}
+    set lore of {_filterAll} to {_filterAllLore::*}
+    set string tag "filter;action" of custom nbt of {_filterAll} to "filter_all_rarities"
+    set slot 21 of {_menu} to {_filterAll}
+
+    # Keep all rarities - Slot 23
+    set {_keepAll} to lime dye named "&a&lKeep All Rarities"
+    delete {_keepAllLore::*}
+    add "&8ᴀᴄᴛɪᴏɴ" to {_keepAllLore::*}
+    add "" to {_keepAllLore::*}
+    add "&7Keep all rarities of" to {_keepAllLore::*}
+    add "&7this accessory." to {_keepAllLore::*}
+    add "" to {_keepAllLore::*}
+    add "&eClick to keep all" to {_keepAllLore::*}
+    set lore of {_keepAll} to {_keepAllLore::*}
+    set string tag "filter;action" of custom nbt of {_keepAll} to "keep_all_rarities"
+    set slot 23 of {_menu} to {_keepAll}
+
+    # Back - Slot 22
+    set {_back} to barrier named "&c&lBack"
+    delete {_backLore::*}
+    add "&8ᴍᴇɴᴜ" to {_backLore::*}
+    add "" to {_backLore::*}
+    add "&7Return to accessory filter" to {_backLore::*}
+    set lore of {_back} to {_backLore::*}
+    set string tag "filter;action" of custom nbt of {_back} to "back_filter"
+    set slot 22 of {_menu} to {_back}
+
+    open {_menu} to {_p}
+    set {-filter::menu::%{_uuid}%} to "ACC_RARITY_FILTER"
+    set {-filter::menu::%{_uuid}%::type} to {_accType}
+
+
+# ============================================================
 # CLICK HANDLERS
 # ============================================================
 
@@ -718,13 +982,21 @@ on inventory click:
         set {_type} to string tag "filter;type" of {_nbt}
 
         if {_type} is set:
-            # Toggle individual pet filter
+            # Right-click = open rarity filter
+            if click type is right mouse button:
+                play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+                filter_openPetRarityFilter(player, {_type})
+                stop
+
+            # Left-click = Toggle all rarities filter
             set {_isFiltered} to filter_isPetFiltered(player, {_type})
             if {_isFiltered} is true:
                 filter_setPetFilter(player, {_type}, false)
                 play sound "block.note_block.pling" with volume 0.5 and pitch 1.5 to player
             else:
                 filter_setPetFilter(player, {_type}, true)
+                # Also clear individual rarity filters when enabling all-filter
+                filter_clearPetRarityFilters(player, {_type})
                 play sound "block.note_block.bass" with volume 0.5 and pitch 0.8 to player
             set {_page} to {-filter::menu::%{_uuid}%::page} ? 1
             filter_openPetFilter(player, {_page})
@@ -759,13 +1031,21 @@ on inventory click:
         set {_type} to string tag "filter;type" of {_nbt}
 
         if {_type} is set:
-            # Toggle individual accessory filter
+            # Right-click = open rarity filter
+            if click type is right mouse button:
+                play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+                filter_openAccRarityFilter(player, {_type})
+                stop
+
+            # Left-click = Toggle all rarities filter
             set {_isFiltered} to filter_isAccFiltered(player, {_type})
             if {_isFiltered} is true:
                 filter_setAccFilter(player, {_type}, false)
                 play sound "block.note_block.pling" with volume 0.5 and pitch 1.5 to player
             else:
                 filter_setAccFilter(player, {_type}, true)
+                # Also clear individual rarity filters when enabling all-filter
+                filter_clearAccRarityFilters(player, {_type})
                 play sound "block.note_block.bass" with volume 0.5 and pitch 0.8 to player
             set {_page} to {-filter::menu::%{_uuid}%::page} ? 1
             filter_openAccFilter(player, {_page})
@@ -793,6 +1073,84 @@ on inventory click:
             delete {-filter::menu::%{_uuid}%::page}
             acc_openInventoryGui(player, 1)
 
+    else if {_menuType} is "PET_RARITY_FILTER":
+        cancel event
+        set {_nbt} to custom nbt of clicked slot
+        set {_action} to string tag "filter;action" of {_nbt}
+        set {_rarity} to string tag "filter;rarity" of {_nbt}
+        set {_type} to {-filter::menu::%{_uuid}%::type}
+
+        if {_rarity} is set:
+            # Toggle rarity filter
+            set {_isFiltered} to filter_isPetRarityFiltered(player, {_type}, {_rarity})
+            if {_isFiltered} is true:
+                filter_setPetRarityFilter(player, {_type}, {_rarity}, false)
+                play sound "block.note_block.pling" with volume 0.5 and pitch 1.5 to player
+            else:
+                filter_setPetRarityFilter(player, {_type}, {_rarity}, true)
+                # If enabling a rarity filter, make sure all-filter is off
+                filter_setPetFilter(player, {_type}, false)
+                play sound "block.note_block.bass" with volume 0.5 and pitch 0.8 to player
+            filter_openPetRarityFilter(player, {_type})
+
+        else if {_action} is "filter_all_rarities":
+            play sound "entity.item.break" with volume 0.5 and pitch 1 to player
+            # Enable all-filter (filters all rarities)
+            filter_setPetFilter(player, {_type}, true)
+            filter_clearPetRarityFilters(player, {_type})
+            filter_openPetRarityFilter(player, {_type})
+
+        else if {_action} is "keep_all_rarities":
+            play sound "entity.experience_orb.pickup" with volume 0.5 and pitch 1 to player
+            # Disable all-filter and clear rarity filters
+            filter_setPetFilter(player, {_type}, false)
+            filter_clearPetRarityFilters(player, {_type})
+            filter_openPetRarityFilter(player, {_type})
+
+        else if {_action} is "back_filter":
+            play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+            set {_page} to {-filter::menu::%{_uuid}%::page} ? 1
+            filter_openPetFilter(player, {_page})
+
+    else if {_menuType} is "ACC_RARITY_FILTER":
+        cancel event
+        set {_nbt} to custom nbt of clicked slot
+        set {_action} to string tag "filter;action" of {_nbt}
+        set {_rarity} to string tag "filter;rarity" of {_nbt}
+        set {_type} to {-filter::menu::%{_uuid}%::type}
+
+        if {_rarity} is set:
+            # Toggle rarity filter
+            set {_isFiltered} to filter_isAccRarityFiltered(player, {_type}, {_rarity})
+            if {_isFiltered} is true:
+                filter_setAccRarityFilter(player, {_type}, {_rarity}, false)
+                play sound "block.note_block.pling" with volume 0.5 and pitch 1.5 to player
+            else:
+                filter_setAccRarityFilter(player, {_type}, {_rarity}, true)
+                # If enabling a rarity filter, make sure all-filter is off
+                filter_setAccFilter(player, {_type}, false)
+                play sound "block.note_block.bass" with volume 0.5 and pitch 0.8 to player
+            filter_openAccRarityFilter(player, {_type})
+
+        else if {_action} is "filter_all_rarities":
+            play sound "entity.item.break" with volume 0.5 and pitch 1 to player
+            # Enable all-filter (filters all rarities)
+            filter_setAccFilter(player, {_type}, true)
+            filter_clearAccRarityFilters(player, {_type})
+            filter_openAccRarityFilter(player, {_type})
+
+        else if {_action} is "keep_all_rarities":
+            play sound "entity.experience_orb.pickup" with volume 0.5 and pitch 1 to player
+            # Disable all-filter and clear rarity filters
+            filter_setAccFilter(player, {_type}, false)
+            filter_clearAccRarityFilters(player, {_type})
+            filter_openAccRarityFilter(player, {_type})
+
+        else if {_action} is "back_filter":
+            play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+            set {_page} to {-filter::menu::%{_uuid}%::page} ? 1
+            filter_openAccFilter(player, {_page})
+
 
 on inventory close:
     set {_uuid} to player's uuid
@@ -801,6 +1159,10 @@ on inventory close:
         if {_menu} contains "INDEX":
             delete {-filter::menu::%{_uuid}%}
             delete {-filter::menu::%{_uuid}%::page}
+        else if {_menu} contains "RARITY_FILTER":
+            delete {-filter::menu::%{_uuid}%}
+            delete {-filter::menu::%{_uuid}%::page}
+            delete {-filter::menu::%{_uuid}%::type}
         else if {_menu} contains "FILTER":
             delete {-filter::menu::%{_uuid}%}
             delete {-filter::menu::%{_uuid}%::page}
