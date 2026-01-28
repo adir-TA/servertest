@@ -116,7 +116,8 @@ function filter_clearAccRarityFilters(p: player, accType: text):
 # Checks type-wide filter first, then per-rarity filter
 function filter_shouldSalvagePet(p: player, petType: text, rarity: text) :: boolean:
     # Check if entire pet type is filtered (all rarities)
-    if filter_isPetFiltered({_p}, {_petType}):
+    set {_typeFiltered} to filter_isPetFiltered({_p}, {_petType})
+    if {_typeFiltered} is true:
         return true
     # Check if this specific rarity for this pet is filtered
     return filter_isPetRarityFiltered({_p}, {_petType}, {_rarity})
@@ -127,7 +128,8 @@ function filter_shouldSalvagePet(p: player, petType: text, rarity: text) :: bool
 # Checks type-wide filter first, then per-rarity filter
 function filter_shouldSalvageAcc(p: player, accType: text, rarity: text) :: boolean:
     # Check if entire accessory type is filtered (all rarities)
-    if filter_isAccFiltered({_p}, {_accType}):
+    set {_typeFiltered} to filter_isAccFiltered({_p}, {_accType})
+    if {_typeFiltered} is true:
         return true
     # Check if this specific rarity for this accessory is filtered
     return filter_isAccRarityFiltered({_p}, {_accType}, {_rarity})
