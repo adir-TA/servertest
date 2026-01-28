@@ -431,7 +431,7 @@ function prestige_getStatLine(p: player, archetype: text) :: text:
     set {_prestige} to {mining::%{_archetype}%::%{_uuid}%::prestige} ? 0
     set {_maxLevel} to prestige_getMaxLevel({_p}, {_archetype})
     set {_xpNeeded} to round(100 * {_level} ^ 1.2)
-    
+
     if {_archetype} = "demolition":
         set {_displayName} to "&c&lDemolition"
     else if {_archetype} = "precision":
@@ -440,8 +440,54 @@ function prestige_getStatLine(p: player, archetype: text) :: text:
         set {_displayName} to "&d&lArcane"
     else:
         set {_displayName} to "&f&l%{_archetype}%"
-    
+
     if {_level} >= {_maxLevel}:
         return "%{_displayName}%&7: [&6P%{_prestige}%&7] Level &e%{_level}% &c&lMAX"
-    
+
     return "%{_displayName}%&7: [&6P%{_prestige}%&7] Level &e%{_level}% &7(&a%{_xp}%&7/&a%{_xpNeeded}% XP&7)"
+
+
+# ============================================================
+# ADMIN COMMANDS
+# ============================================================
+
+command /setprestige <text> <player> <integer>:
+    permission: op
+    permission message: &cYou don't have permission to use this command.
+    usage: &c/setprestige <archetype> <player> <value>
+    trigger:
+        set {_archetype} to arg-1 in lower case
+        set {_target} to arg-2
+        set {_value} to arg-3
+
+        # Validate archetype
+        if {_archetype} is not "precision", "demolition", "arcane" or "global":
+            send "&cInvalid archetype! Use: precision, demolition, arcane, or global" to player
+            stop
+
+        # Validate value
+        if {_value} < 0:
+            send "&cPrestige value cannot be negative!" to player
+            stop
+
+        set {_uuid} to {_target}'s uuid
+        set {_oldPrestige} to {mining::%{_archetype}%::%{_uuid}%::prestige} ? 0
+        set {mining::%{_archetype}%::%{_uuid}%::prestige} to {_value}
+
+        # Get display name for archetype
+        if {_archetype} = "precision":
+            set {_displayName} to "&b&lPrecision"
+        else if {_archetype} = "demolition":
+            set {_displayName} to "&c&lDemolition"
+        else if {_archetype} = "arcane":
+            set {_displayName} to "&d&lArcane"
+        else:
+            set {_displayName} to "&f&lGlobal"
+
+        send "&aSet %{_displayName}% &aprestige for &e%{_target}% &afrom &6%{_oldPrestige}% &ato &6%{_value}%" to player
+
+        if {_target} is online:
+            send "&eYour %{_displayName}% &eprestige was set to &6%{_value}% &eby an admin." to {_target}
+            # Update multipliers and pickaxe for the target
+            multiplier_onPrestige({_target})
+            pickaxe_onPrestige({_target})
