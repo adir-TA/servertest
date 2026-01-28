@@ -1101,14 +1101,18 @@ on inventory click:
 
         else if {_action} is "filter_all_rarities":
             play sound "entity.item.break" with volume 0.5 and pitch 1 to player
-            # Enable all-filter (filters all rarities)
-            filter_setPetFilter(player, {_type}, true)
-            filter_clearPetRarityFilters(player, {_type})
+            # Enable all individual rarity filters
+            filter_setPetFilter(player, {_type}, false)
+            filter_setPetRarityFilter(player, {_type}, "common", true)
+            filter_setPetRarityFilter(player, {_type}, "uncommon", true)
+            filter_setPetRarityFilter(player, {_type}, "rare", true)
+            filter_setPetRarityFilter(player, {_type}, "epic", true)
+            filter_setPetRarityFilter(player, {_type}, "legendary", true)
             filter_openPetRarityFilter(player, {_type})
 
         else if {_action} is "keep_all_rarities":
             play sound "entity.experience_orb.pickup" with volume 0.5 and pitch 1 to player
-            # Disable all-filter and clear rarity filters
+            # Disable all individual rarity filters
             filter_setPetFilter(player, {_type}, false)
             filter_clearPetRarityFilters(player, {_type})
             filter_openPetRarityFilter(player, {_type})
@@ -1140,14 +1144,18 @@ on inventory click:
 
         else if {_action} is "filter_all_rarities":
             play sound "entity.item.break" with volume 0.5 and pitch 1 to player
-            # Enable all-filter (filters all rarities)
-            filter_setAccFilter(player, {_type}, true)
-            filter_clearAccRarityFilters(player, {_type})
+            # Enable all individual rarity filters
+            filter_setAccFilter(player, {_type}, false)
+            filter_setAccRarityFilter(player, {_type}, "common", true)
+            filter_setAccRarityFilter(player, {_type}, "uncommon", true)
+            filter_setAccRarityFilter(player, {_type}, "rare", true)
+            filter_setAccRarityFilter(player, {_type}, "epic", true)
+            filter_setAccRarityFilter(player, {_type}, "legendary", true)
             filter_openAccRarityFilter(player, {_type})
 
         else if {_action} is "keep_all_rarities":
             play sound "entity.experience_orb.pickup" with volume 0.5 and pitch 1 to player
-            # Disable all-filter and clear rarity filters
+            # Disable all individual rarity filters
             filter_setAccFilter(player, {_type}, false)
             filter_clearAccRarityFilters(player, {_type})
             filter_openAccRarityFilter(player, {_type})
