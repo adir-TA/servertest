@@ -155,13 +155,13 @@ function acc_openChestsGui(p: player):
     set slot 22 of {_menu} to {_keyInfo}
 
     # Back button - Slot 40
-    set {_back} to arrow named "&c&lBack"
+    set {_back} to arrow named "&c&lBACK"
     delete {_backLore::*}
-    add "&8ᴍᴇɴᴜ" to {_backLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_backLore::*}
     add "" to {_backLore::*}
     add "&7Return to accessories" to {_backLore::*}
     add "" to {_backLore::*}
-    add "&eClick to go back" to {_backLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ɢᴏ ʙᴀᴄᴋ" to {_backLore::*}
     set lore of {_back} to {_backLore::*}
     set string tag "acc;action" of custom nbt of {_back} to "back"
     set slot 40 of {_menu} to {_back}

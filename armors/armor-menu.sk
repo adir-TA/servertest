@@ -184,9 +184,11 @@ function armor_openMenu(p: player, selectedTier: integer):
     set slot 49 of {_menu} to {_gemItem}
     
     # Close
-    
-    set {_close} to red dye named "&c&lCLOSE"
+
+    set {_close} to barrier named "&c&lCLOSE"
     add menu_utils_getMenuItemFirstLoreLine() to {_closeLore::*}
+    add "" to {_closeLore::*}
+    add "&7Close this menu" to {_closeLore::*}
     add "" to {_closeLore::*}
     add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴄʟᴏsᴇ" to {_closeLore::*}
     set lore of {_close} to {_closeLore::*}

@@ -187,22 +187,26 @@ function skilltree_openPage(p: player, vScroll: number, hScroll: number):
 
     # Scroll Left - Slot 47
     if {_hScroll} > 0:
-        set {_left} to arrow named "&b&l← Left"
+        set {_left} to arrow named "&b&l← LEFT"
         delete {_leftLore::*}
         add menu_utils_getMenuItemFirstLoreLine() to {_leftLore::*}
         add "" to {_leftLore::*}
         add "&7Scroll left" to {_leftLore::*}
+        add "" to {_leftLore::*}
+        add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ sᴄʀᴏʟʟ ʟᴇғᴛ" to {_leftLore::*}
         set lore of {_left} to {_leftLore::*}
         set string tag "skilltree;action" of custom nbt of {_left} to "scroll_left"
         set slot 47 of {_menu} to {_left}
 
     # Scroll Up - Slot 48
     if {_vScroll} > 0:
-        set {_prev} to arrow named "&c&l↑ Up"
+        set {_prev} to arrow named "&c&l↑ UP"
         delete {_prevLore::*}
         add menu_utils_getMenuItemFirstLoreLine() to {_prevLore::*}
         add "" to {_prevLore::*}
         add "&7Scroll up one row" to {_prevLore::*}
+        add "" to {_prevLore::*}
+        add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ sᴄʀᴏʟʟ ᴜᴘ" to {_prevLore::*}
         set lore of {_prev} to {_prevLore::*}
         set string tag "skilltree;action" of custom nbt of {_prev} to "scroll_up"
         set slot 48 of {_menu} to {_prev}
@@ -219,29 +223,39 @@ function skilltree_openPage(p: player, vScroll: number, hScroll: number):
 
     # Scroll Down - Slot 50
     if {_vScroll} < 7:
-        set {_next} to arrow named "&a&l↓ Down"
+        set {_next} to arrow named "&a&l↓ DOWN"
         delete {_nextLore::*}
         add menu_utils_getMenuItemFirstLoreLine() to {_nextLore::*}
         add "" to {_nextLore::*}
         add "&7Scroll down one row" to {_nextLore::*}
+        add "" to {_nextLore::*}
+        add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ sᴄʀᴏʟʟ ᴅᴏᴡɴ" to {_nextLore::*}
         set lore of {_next} to {_nextLore::*}
         set string tag "skilltree;action" of custom nbt of {_next} to "scroll_down"
         set slot 50 of {_menu} to {_next}
 
     # Scroll Right - Slot 51
     if {_hScroll} < 10:
-        set {_right} to arrow named "&b&l→ Right"
+        set {_right} to arrow named "&b&l→ RIGHT"
         delete {_rightLore::*}
         add menu_utils_getMenuItemFirstLoreLine() to {_rightLore::*}
         add "" to {_rightLore::*}
         add "&7Scroll right" to {_rightLore::*}
+        add "" to {_rightLore::*}
+        add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ sᴄʀᴏʟʟ ʀɪɢʜᴛ" to {_rightLore::*}
         set lore of {_right} to {_rightLore::*}
         set string tag "skilltree;action" of custom nbt of {_right} to "scroll_right"
         set slot 51 of {_menu} to {_right}
 
     # Close - Slot 53
-    set {_close} to barrier named "&c&lClose"
-    set lore of {_close} to menu_utils_getMenuItemFirstLoreLine()
+    set {_close} to barrier named "&c&lCLOSE"
+    delete {_closeLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_closeLore::*}
+    add "" to {_closeLore::*}
+    add "&7Close this menu" to {_closeLore::*}
+    add "" to {_closeLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴄʟᴏsᴇ" to {_closeLore::*}
+    set lore of {_close} to {_closeLore::*}
     set string tag "skilltree;action" of custom nbt of {_close} to "close"
     set slot 53 of {_menu} to {_close}
 
