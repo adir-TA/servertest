@@ -270,7 +270,6 @@ on inventory click:
             if acc_unequipFromBag(player, {_bagSlot}) is true:
                 play sound "item.armor.unequip_leather" with volume 0.8 and pitch 1 to player
                 send "&eAccessory unequipped!" to player
-                accOrbit_refreshAll(player)
                 acc_openBagGui(player)
             else:
                 play sound "entity.villager.no" with volume 0.5 and pitch 1 to player

@@ -8,10 +8,4 @@ on quit:
     delete {-pet::follow::%player's uuid%::text::*}
     delete {-guard::pet-follow::%player's uuid%}
 
-    # Stop accessory orbit loop and cleanup
-    delete {-acc::orbit::%player's uuid%::loop}
-    delete {-acc::orbit::%player's uuid%::tick}
-    delete {-acc::orbit::%player's uuid%::ids::*}
-    delete {-guard::acc-orbit::%player's uuid%}
-
     delete {-miningData::%player's uuid%::*}
