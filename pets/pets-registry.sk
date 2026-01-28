@@ -1,0 +1,382 @@
+# ============================================================
+# PET REGISTRY
+# ============================================================
+#
+# Defines all pet types, tiers, and rarities.
+# Easy to add new pets by calling pet_registerType()
+#
+# BALANCE OVERVIEW:
+# ┌──────────┬────────┬──────────┬───────────┬─────────────┐
+# │ Tier     │ Cost   │ Base %   │ Legendary │ Leg. Chance │
+# ├──────────┼────────┼──────────┼───────────┼─────────────┤
+# │ Normal   │ $50    │ 2%       │ 10%       │ 2%          │
+# │ Ultra    │ $250   │ 4%       │ 20%       │ 1.5%        │
+# │ Divine   │ $1,000 │ 6%       │ 30%       │ 0.5%        │
+# └──────────┴────────┴──────────┴───────────┴─────────────┘
+#
+# Rarity multipliers: common(1x), uncommon(1.5x), rare(2.5x), epic(4x), legendary(5x)
+#
+# ============================================================
+
+# ============================================================
+# INITIALIZATION
+# ============================================================
+
+
+function customSkull(id: string) :: item:
+    if length of {_id} > 16:
+        set {_n} to nbt from "{""minecraft:profile"":{properties:[{name:""textures"",value:""%{_id}%""}]}}"
+        return player head with nbt {_n}
+    return skull of ({_id} parsed as offlineplayer)
+
+on script load:
+    # Clear old registry data
+    delete {-pet::types::*}
+    delete {-pet::tiers::*}
+    delete {-pet::rarities::*}
+    loop "normal", "ultra" and "divine":
+        delete {-pet::tier::%loop-value%::types::*}
+
+    # ════════════════════════════════════════
+    # REGISTER TIERS
+    # ════════════════════════════════════════
+    pet_registerTier("normal", "&2$&a2,500", 2500, 45, 30, 16, 7, 2)
+    pet_registerTier("ultra", "&2$&a37,500", 37500, 48, 28, 15, 7.5, 1.5)
+    pet_registerTier("divine", "&2$&a125,000", 125000, 52, 27, 14, 6.5, 0.5)
+
+    # ════════════════════════════════════════
+    # REGISTER RARITIES
+    # ════════════════════════════════════════
+    pet_registerRarity("common", "&7", 1.0)
+    pet_registerRarity("uncommon", "&a", 1.5)
+    pet_registerRarity("rare", "&9", 2.5)
+    pet_registerRarity("epic", "&d", 4.0)
+    pet_registerRarity("legendary", "&6", 5.0)
+
+    # ════════════════════════════════════════
+    # NORMAL TIER
+    # ════════════════════════════════════════
+    set {_cowValue} to "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYjE2MzRiMGM4ZTNiYjk5YTQ5YTJlMzA0NGI2ZGJjYzYxOWU0ZWU0YTcyZjIzYTgxOGQ4OGVhMWYwOTRlOGVmOCJ9fX0="
+    pet_registerType("cow", "Cow", "normal", "drops", 0.02, customSkull({_cowValue}))
+
+    set {_pigValue} to "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZWIxOGZjNTZiNWVkMzg5MDFiNzdjZTA2MThhYjIyZTcwMzJmMDI5OWM3MGM1MTBmMmYyZDViM2UwN2U5ZjI3OCJ9fX0="
+    pet_registerType("pig", "Pig", "normal", "token", 0.02, customSkull({_pigValue}))
+
+    set {_chickenValue} to "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNzE5OTc4NTI5MzFlMmY4ZmJjZjlmMThjYTM3ODljNDU2NWU1MWQxZjk4ZjBjYWYwMTc2Y2YzZTg2NmMxNDQ5YSJ9fX0="
+    pet_registerType("chicken", "Chicken", "normal", "xp", 0.02, customSkull({_chickenValue}))
+
+    set {_sheepValue} to "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvODRlNWNkYjBlZGIzNjJjYjQ1NDU4NmQxZmQwZWJlOTcxNDIzZjAxNWIwYjFiZmM5NWY4ZDVhZjhhZmU3ZTgxMCJ9fX0="
+    pet_registerType("sheep", "Sheep", "normal", "mining_speed", 0.02, customSkull({_sheepValue}))
+
+    set {_rabbitValue} to "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYzU1YjhlN2JmNjhiMjdjY2ZhYzI3MTY4NzczODQ2Mzk3NzUzMTU3ODE0OTQwZDNjN2U5Y2M5MGU5NjdkZjcwIn19fQ=="
+    pet_registerType("rabbit", "Rabbit", "normal", "enchant_proc", 0.015, customSkull({_rabbitValue}))
+
+    set {_turtleValue} to "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvOGZhNTUyMTM5OTY2YzVmYWMxYjk4MDYxY2UyM2ZjMGRkZWYwNThjMTYzMTQyZGQ2ZDFjNzY4Y2QyZGEyMDdjMiJ9fX0="
+    pet_registerType("turtle", "Turtle", "normal", "durability", 0.02, customSkull({_turtleValue}))
+
+    # ════════════════════════════════════════
+    # ULTRA TIER
+    # ════════════════════════════════════════
+    set {_wolfValue} to "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvOThhZjAzOTllNTgyY2ZmN2NmY2Q2M2I3YjkzODYxMTcyZmY1NDhjYWUyYzk0NTk3OTQ5ZmIyOGUyN2U3ZTg0YSJ9fX0="
+    pet_registerType("wolf", "Wolf", "ultra", "damage", 0.04, customSkull({_wolfValue}))
+
+    set {_foxValue} to "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZDYzMWFhYzJjN2Q3OTVkOTgxNmNhODM4YjAwNTkyN2JiMzUyYjUyNWQ2MWRlOGViYjE0NjFkMzA0ZDFkMmMwMCJ9fX0="
+    pet_registerType("fox", "Fox", "ultra", "token", 0.04, customSkull({_foxValue}))
+
+    set {_parrotValue} to "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYmIxMDhhM2YzOTdiNTdiNTk1N2Y2MzQwZDdlYTkzYTk0ODQyNGU1MjliYjNiNjU2NzJmMmJkZjZmNjFlNmJlNiJ9fX0="
+    pet_registerType("parrot", "Parrot", "ultra", "xp", 0.04, customSkull({_parrotValue}))
+
+    set {_catValue} to "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNzA0MjFlYTU2N2VmODYyN2ZhMDZhZmY5YjVkZjRkNWE1MjU5ZmM1MTE2ZTg3MDExMGVjM2VmNjRkMjY2NGVkMCJ9fX0="
+    pet_registerType("cat", "Cat", "ultra", "enchant_proc", 0.03, customSkull({_catValue}))
+
+    set {_dolphinValue} to "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYzU2ZjEzYjVmMjJkMmE0YTU2ZTY3NzNmZjNmMDk1MjRkZjA4NmY0Y2FkY2JlZDU0M2U2MjEyNzI1ZGZkMDVkZSJ9fX0="
+    pet_registerType("dolphin", "Dolphin", "ultra", "mining_speed", 0.04, customSkull({_dolphinValue}))
+
+    set {_pandaValue} to "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYTk3OTI0OWYyZWU1YmNlNzMwNTZmZWJhMTg4OWQ0MGE3ZTBiNzg2M2U2ZGY0NmYxZTc2YTUzZDI4NDAwNzcxMSJ9fX0="
+    pet_registerType("panda", "Panda", "ultra", "drops", 0.04, customSkull({_pandaValue}))
+
+    set {_beeValue} to "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvODU1NGIyMTdmMjBmNWNmZjE0YWI0NGRkMjhhMWU5M2VmM2EyYTJiZGQzMjU2ZTlmOWYzMzk0NmU3MDEwYTc3OCJ9fX0="
+    pet_registerType("bee", "Bee", "ultra", "durability", 0.035, customSkull({_beeValue}))
+
+    set {_ocelotValue} to "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTY1N2NkNWMyOTg5ZmY5NzU3MGZlYzRkZGNkYzY5MjZhNjhhMzM5MzI1MGMxYmUxZjBiMTE0YTFkYjEifX19"
+    pet_registerType2("ocelot", "Ocelot", "ultra", "mining_speed", "token", 0.025, customSkull({_ocelotValue}))
+
+    set {_polar_bearValue} to "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMjI0YWU5NGVmNTYyNTczMmIxNTJlOTAwMDgzYzNiMzk4ZmRlOTdiNDIyNjRhODFmOTliOTk5ZDk3OTEyYTc5MCJ9fX0="
+    pet_registerType2("polar_bear", "Polar Bear", "ultra", "damage", "drops", 0.025, customSkull({_polar_bearValue}))
+
+    # ════════════════════════════════════════
+    # DIVINE TIER
+    # ════════════════════════════════════════
+    set {_blazeValue} to "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNzM3NjIzZjc5ZjdlYjRmM2Y4MGRhNjViNjUyY2M0NGIyMTQ4ZWVhNDFmOWZmZTJlODZhMjNiZGY0OWFiNzdiMSJ9fX0="
+    pet_registerType("blaze", "Blaze", "divine", "xp", 0.06, customSkull({_blazeValue}))
+
+    set {_wither_skeletonValue} to "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYzc0MzEyM2ExOWU4MDkzYjQ2NWI4NDgzOGUyOGY3ZDY0YWYwNzljNThiN2NmM2RhYzA3YzhjNTkyYTY0ZmMzMiJ9fX0="
+    pet_registerType("wither_skeleton", "Wither Skeleton", "divine", "damage", 0.06, customSkull({_wither_skeletonValue}))
+
+    set {_allayValue} to "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZGY1ZGU5NDBiZmU0OTljNTllZThkYWM5ZjljMzkxOWU3NTM1ZWZmM2E5YWNiMTZmNDg0MmJmMjkwZjRjNjc5ZiJ9fX0="
+    pet_registerType("allay", "Allay", "divine", "token", 0.06, customSkull({_allayValue}))
+
+    set {_axolotlValue} to "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvN2UwYTJlMmZmNGNhYzE3MDJkOWE5ODBlZjk5ZTk5MDQzMzM4YmI3Zjg1MmNiNjE2MDRmNzRhNjI5NTU0NzY2NSJ9fX0="
+    pet_registerType("axolotl", "Axolotl", "divine", "drops", 0.06, customSkull({_axolotlValue}))
+
+    set {_wardenValue} to "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZjhjMjExZDY2YzgwM2FhYzE1YWI4NmY3OWM3ZWRmZDZjM2IyMDM0ZDIzMzU1YTkyZjZiZDQyZTgzNTI2MGJlMCJ9fX0="
+    pet_registerType("warden", "Warden", "divine", "mining_speed", 0.055, customSkull({_wardenValue}))
+
+    set {_shulkerValue} to "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZTM3NGYzMzc1MTgzNjYxNDkyMzRhMWM2MGFjYzNmZjVmZDk5ODM4ZmE5MGZhMjA5MzllMWNkYmEwYjNlYmM0YiJ9fX0="
+    pet_registerType("shulker", "Shulker", "divine", "enchant_proc", 0.05, customSkull({_shulkerValue}))
+
+    set {_ravagerValue} to "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNWM3M2UxNmZhMjkyNjg5OWNmMTg0MzQzNjBlMjE0NGY4NGVmMWViOTgxZjk5NjE0ODkxMjE0OGRkODdlMGIyYSJ9fX0="
+    pet_registerType("ravager", "Ravager", "divine", "durability", 0.055, customSkull({_ravagerValue}))
+
+    set {_ender_dragonValue} to "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvOGY4MWM5ZDQyNjgwYWQ3YmM2ODZhMTI4MTA3M2ZiYmUyZmQ4MTYxOTEzZTVhM2JkOTk2OTNkMmM0MDRkODgyOCJ9fX0="
+    pet_registerType2("ender_dragon", "Ender Dragon", "divine", "drops", "xp", 0.04, customSkull({_ender_dragonValue}))
+
+    set {_iron_golemValue} to "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYzc5ODIzNmQ0NTI4ZWU1MzQxMjBiMDBhZDY2MjE5MmU2OTI5NWE4MDE3YjE1ZmJlZThmYjAzNDFhMWIwNzRiNSJ9fX0="
+    pet_registerType2("iron_golem", "Iron Golem", "divine", "durability", "damage", 0.04, customSkull({_iron_golemValue}))
+
+    set {_witherValue} to "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMThlNDMwNmEyYzFjZjZjNWVhOWUwMWViYmExY2ExZjU3MGQxNGE3Yzc5ZmE4ZmQxNjI1NzUwNGNjNzMxZTU2MSJ9fX0="
+    pet_registerType2("wither", "Wither", "divine", "token", "drops", 0.04, customSkull({_witherValue}))
+
+    set {_phoenixValue} to "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMmRmZTU4ZGNhNDQ2ODg4MDlhNDRjMjczNjdmY2MyODgwODk3NzkyYWY4ODM4ZjkzZjJiNTg1YWZjYmU4ZjEzNyJ9fX0="
+    pet_registerType3("phoenix", "Phoenix", "divine", "mining_speed", "xp", "token", 0.025, customSkull({_phoenixValue}))
+
+    set {_hydraValue} to "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNDdlNjM3ZjFjYTczNWVmMzU0NjdhNjI3NTlkYWU0MWNmNGZmYjVjMmMxNGFhZDQyZWE4YWNlOWJjN2U2OGVjIn19fQ=="
+    pet_registerType3("hydra", "Hydra", "divine", "drops", "damage", "enchant_proc", 0.025, customSkull({_hydraValue}))
+
+
+
+# ============================================================
+# TIER REGISTRATION
+# ============================================================
+
+# Registers an egg tier with cost and rarity weights
+# Weights: common, uncommon, rare, epic, legendary (must sum to 100)
+function pet_registerTier(tier: text, displayCost: text, cost: number, wCommon: number, wUncommon: number, wRare: number, wEpic: number, wLegendary: number):
+    add {_tier} to {-pet::tiers::*}
+    
+    set {-pet::tier::%{_tier}%::displayCost} to {_displayCost}
+    set {-pet::tier::%{_tier}%::cost} to {_cost}
+    
+    # Store weights for rolling
+    set {-pet::tier::%{_tier}%::weight::common} to {_wCommon}
+    set {-pet::tier::%{_tier}%::weight::uncommon} to {_wUncommon}
+    set {-pet::tier::%{_tier}%::weight::rare} to {_wRare}
+    set {-pet::tier::%{_tier}%::weight::epic} to {_wEpic}
+    set {-pet::tier::%{_tier}%::weight::legendary} to {_wLegendary}
+
+
+# ============================================================
+# RARITY REGISTRATION
+# ============================================================
+
+# Registers a rarity with color and multiplier
+function pet_registerRarity(rarity: text, color: text, multiplier: number):
+    add {_rarity} to {-pet::rarities::*}
+    
+    set {-pet::rarity::%{_rarity}%::color} to {_color}
+    set {-pet::rarity::%{_rarity}%::multiplier} to {_multiplier}
+
+
+# ============================================================
+# PET TYPE REGISTRATION
+# ============================================================
+
+# Registers a pet type with a single stat
+function pet_registerType(type: text, name: text, tier: text, stat: text, base: number, icon: item):
+    add {_type} to {-pet::types::*}
+    add {_type} to {-pet::tier::%{_tier}%::types::*}
+    
+    set {-pet::type::%{_type}%::name} to {_name}
+    set {-pet::type::%{_type}%::tier} to {_tier}
+    set {-pet::type::%{_type}%::base} to {_base}
+    set {-pet::type::%{_type}%::icon} to {_icon}
+    
+    # Store single stat in list format for compatibility
+    delete {-pet::type::%{_type}%::stats::*}
+    add {_stat} to {-pet::type::%{_type}%::stats::*}
+
+# Registers a pet type with TWO stats
+function pet_registerType2(type: text, name: text, tier: text, stat1: text, stat2: text, base: number, icon: item):
+    add {_type} to {-pet::types::*}
+    add {_type} to {-pet::tier::%{_tier}%::types::*}
+    
+    set {-pet::type::%{_type}%::name} to {_name}
+    set {-pet::type::%{_type}%::tier} to {_tier}
+    set {-pet::type::%{_type}%::base} to {_base}
+    set {-pet::type::%{_type}%::icon} to {_icon}
+    
+    delete {-pet::type::%{_type}%::stats::*}
+    add {_stat1} to {-pet::type::%{_type}%::stats::*}
+    add {_stat2} to {-pet::type::%{_type}%::stats::*}
+
+# Registers a pet type with THREE stats
+function pet_registerType3(type: text, name: text, tier: text, stat1: text, stat2: text, stat3: text, base: number, icon: item):
+    add {_type} to {-pet::types::*}
+    add {_type} to {-pet::tier::%{_tier}%::types::*}
+    
+    set {-pet::type::%{_type}%::name} to {_name}
+    set {-pet::type::%{_type}%::tier} to {_tier}
+    set {-pet::type::%{_type}%::base} to {_base}
+    set {-pet::type::%{_type}%::icon} to {_icon}
+    
+    delete {-pet::type::%{_type}%::stats::*}
+    add {_stat1} to {-pet::type::%{_type}%::stats::*}
+    add {_stat2} to {-pet::type::%{_type}%::stats::*}
+    add {_stat3} to {-pet::type::%{_type}%::stats::*}
+
+
+# ============================================================
+# GETTERS
+# ============================================================
+
+# Tier getters
+function pet_getTierCost(tier: text) :: number:
+    return {-pet::tier::%{_tier}%::cost} ? 0
+
+function pet_getTierDisplayCost(tier: text) :: text:
+    return {-pet::tier::%{_tier}%::displayCost} ? "$0"
+
+function pet_getTierTypes(tier: text) :: objects:
+    return {-pet::tier::%{_tier}%::types::*}
+
+function pet_getTierWeight(tier: text, rarity: text) :: number:
+    return {-pet::tier::%{_tier}%::weight::%{_rarity}%} ? 0
+
+# Rarity getters
+function pet_getRarityColor(rarity: text) :: text:
+    return {-pet::rarity::%{_rarity}%::color} ? "&7"
+
+function pet_getRarityMultiplier(rarity: text) :: number:
+    return {-pet::rarity::%{_rarity}%::multiplier} ? 1
+
+# Pet type getters
+function pet_getTypeName(type: text) :: text:
+    return {-pet::type::%{_type}%::name} ? {_type}
+
+function pet_getTypeTier(type: text) :: text:
+    return {-pet::type::%{_type}%::tier} ? "normal"
+
+# Returns first stat (for backwards compatibility)
+function pet_getTypeStat(type: text) :: text:
+    return {-pet::type::%{_type}%::stats::1} ? "mining_speed"
+
+# Returns all stats as a list
+function pet_getTypeStats(type: text) :: objects:
+    return {-pet::type::%{_type}%::stats::*}
+
+# Returns number of stats this pet boosts
+function pet_getTypeStatCount(type: text) :: number:
+    return size of {-pet::type::%{_type}%::stats::*}
+
+# Check if pet boosts a specific stat
+function pet_typeHasStat(type: text, stat: text) :: boolean:
+    if {-pet::type::%{_type}%::stats::*} contains {_stat}:
+        return true
+    return false
+
+function pet_getTypeBase(type: text) :: number:
+    return {-pet::type::%{_type}%::base} ? 0
+
+function pet_getTypeIcon(type: text) :: item:
+    return {-pet::type::%{_type}%::icon} ? barrier
+
+
+# ============================================================
+# STAT NAME FORMATTING
+# ============================================================
+
+function pet_formatStatName(stat: text) :: text:
+    set {_formatted} to {_stat}
+    replace all "_" with " " in {_formatted}
+    return {_formatted} in strict proper case
+
+function pet_getSalvageValue(rarity: text) :: number:
+    if {_rarity} = "common":
+        return 5
+    else if {_rarity} = "uncommon":
+        return 15
+    else if {_rarity} = "rare":
+        return 50
+    else if {_rarity} = "epic":
+        return 200
+    else if {_rarity} = "legendary":
+        return 1000
+    return 0
+
+
+# ============================================================
+# SLOT REQUIREMENTS
+# ============================================================
+
+# Returns the prestige requirement for a slot (all archetypes must meet this)
+function pet_getSlotPrestigeReq(slot: number) :: number:
+    if {_slot} = 1:
+        return 0
+    else if {_slot} = 2:
+        return 0
+    else if {_slot} = 3:
+        return 0
+    else if {_slot} = 4:
+        return 1
+    else if {_slot} = 5:
+        return 3
+    return 999
+
+# Returns the money cost to unlock a slot
+function pet_getSlotMoneyCost(slot: number) :: number:
+    if {_slot} = 1:
+        return 0
+    else if {_slot} = 2:
+        return 25000
+    else if {_slot} = 3:
+        return 125000
+    else if {_slot} = 4:
+        return 450000
+    else if {_slot} = 5:
+        return 2000000
+    return 0
+
+
+# ============================================================
+# UTILITY - CALCULATE FINAL BONUS
+# ============================================================
+
+function pet_calculateBonus(type: text, rarity: text) :: number:
+    set {_base} to pet_getTypeBase({_type})
+    set {_mult} to pet_getRarityMultiplier({_rarity})
+    return {_base} * {_mult}
+
+
+# ============================================================
+# DEBUG COMMAND
+# ============================================================
+
+command /petregistry:
+    permission: op
+    trigger:
+        send ""
+        send "&6&m                               "
+        send "&e&l🐾 PET REGISTRY"
+        send "&6&m                               "
+        send ""
+        
+        loop {-pet::tiers::*}:
+            set {_tier} to loop-value
+            set {_cost} to pet_getTierDisplayCost({_tier})
+            send "&7Tier: &e%{_tier}% &7(%{_cost}%/egg)"
+            
+            loop {-pet::tier::%{_tier}%::types::*}:
+                set {_type} to loop-value-2
+                set {_name} to pet_getTypeName({_type})
+                set {_base} to pet_getTypeBase({_type})
+                set {_stats} to ""
+                loop {-pet::type::%{_type}%::stats::*}:
+                    if {_stats} != "":
+                        set {_stats} to "%{_stats}%, %loop-value-3%"
+                    else:
+                        set {_stats} to loop-value-3
+                send "  &7- &f%{_name}% &7(%{_stats}%, base: %{_base} * 100%%%)"
+            
+            send ""
+        
+        send "&6&m                               "

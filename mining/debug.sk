@@ -1,0 +1,456 @@
+# ============================================================
+# DEBUG COMMANDS
+# ============================================================
+
+# ============================================================
+# DEBUG COMMANDS
+# ============================================================
+
+command /debugexcavator:
+    permission: op
+    trigger:
+        set {_id} to enchant_getIdByString("Excavator")
+        set {_level} to enchant_getPlayerLevelByString(player, "Excavator")
+        set {_equipped} to enchant_checkIfEquipped(player, {_id})
+        
+        set {_controlID} to enchant_getIdByString("Control")
+        set {_controlLevel} to enchant_getPlayerLevelByString(player, "Control")
+        set {_controlEquipped} to enchant_checkIfEquipped(player, {_controlID})
+        
+        send "&e--- Excavator Debug ---"
+        send "&7Enchant ID: &f%{_id}%"
+        send "&7Level: &f%{_level}%"
+        send "&7Equipped: &f%{_equipped}%"
+        send ""
+        send "&e--- Control Debug ---"
+        send "&7Control ID: &f%{_controlID}%"
+        send "&7Control Level: &f%{_controlLevel}%"
+        send "&7Control Equipped: &f%{_controlEquipped}%"
+        send ""
+        send "&7Tokens: &6%{data::tokens::%player's uuid%}%"
+
+
+command /debugprospecting [<integer=1>]:
+    permission: op
+    trigger:
+        set {_tier} to arg-1
+        if {_tier} < 1:
+            set {_tier} to 1
+        if {_tier} > 3:
+            set {_tier} to 3
+        
+        set {_gems} to random integer between 3 and 5
+        set {_roll} to random number between 0 and 1
+        if {_roll} < 0.5:
+            set {_doubled} to true
+            set {_gems} to {_gems} * 2
+        else:
+            set {_doubled} to false
+        
+        send "&eTesting Prospecting: Tier %{_tier}%, %{_gems}% gems, doubled: %{_doubled}%"
+        
+        set {_block} to target block of player
+        packetPouchGems(player, location of {_block}, {_tier}, {_gems}, {_doubled})
+        prospecting_giveGems(player, {_tier} * 2.5, {_gems})
+
+
+command /debugtornado:
+    permission: op
+    trigger:
+        send "&eTesting Tornado at target block..."
+        set {_block} to target block of player
+        tornado_spawn(player, location of {_block})
+
+
+command /debugamplify:
+    permission: op
+    trigger:
+        send "&eTesting Amplify - marking target block..."
+        set {_block} to target block of player
+        set {_loc} to location of {_block}
+        
+        set {_bx} to floor(x-coord of {_loc})
+        set {_by} to floor(y-coord of {_loc})
+        set {_bz} to floor(z-coord of {_loc})
+        set {_key} to "%{_bx}%_%{_by}%_%{_bz}%"
+        
+        send "&7Key: &f%{_key}%"
+        
+        if amplify_isAmplified(player, {_loc}) = true:
+            send "&cBlock is already amplified! Breaking will give 2x rewards."
+        else:
+            set {_blockType} to type of block at {_loc}
+            amplify_markBlock(player, {_loc}, {_blockType})
+            play sound "block.respawn_anchor.charge" with volume 0.5 and pitch 1.5 to player
+            send "&aBlock amplified! Break it for 2x rewards."
+
+
+command /debugamplifycheck:
+    permission: op
+    trigger:
+        set {_block} to target block of player
+        set {_loc} to location of {_block}
+        
+        set {_bx} to floor(x-coord of {_loc})
+        set {_by} to floor(y-coord of {_loc})
+        set {_bz} to floor(z-coord of {_loc})
+        set {_key} to "%{_bx}%_%{_by}%_%{_bz}%"
+        
+        send "&eChecking block..."
+        send "&7Key: &f%{_key}%"
+        send "&7Is amplified: &f%amplify_isAmplified(player, {_loc})%"
+        
+        if {-amplified::%player's uuid%::%{_key}%} is set:
+            send "&7Entity ID: &f%{-amplified::%player's uuid%::%{_key}%}%"
+        else:
+            send "&7Entity ID: &cnot set"
+
+
+command /debugfocus:
+    permission: op
+    trigger:
+        set {_id} to enchant_getIdByString("Focus")
+        set {_level} to enchant_getPlayerLevelByString(player, "Focus")
+        set {_equipped} to enchant_checkIfEquipped(player, {_id})
+        
+        set {_baseChance} to {_level} * 0.5
+        set {_finalChance} to enchant_getActivationChance(player, {_baseChance})
+        
+        if {-focus::%player's uuid%::cooldown} is set:
+            set {_onCooldown} to true
+        else:
+            set {_onCooldown} to false
+        
+        send "&e--- Focus Debug ---"
+        send "&7Enchant ID: &f%{_id}%"
+        send "&7Level: &f%{_level}%"
+        send "&7Equipped: &f%{_equipped}%"
+        send "&7Base Chance: &f%{_baseChance}%%%"
+        send "&7Final Chance (with Control): &f%{_finalChance}%%%"
+        send "&7On Cooldown: &f%{_onCooldown}%"
+
+
+command /debugcriticalhit:
+    permission: op
+    trigger:
+        set {_id} to enchant_getIdByString("Critical Hit")
+        set {_level} to enchant_getPlayerLevelByString(player, "Critical Hit")
+        set {_equipped} to enchant_checkIfEquipped(player, {_id})
+        
+        set {_baseChance} to {_level} * 0.5
+        set {_finalChance} to enchant_getActivationChance(player, {_baseChance})
+        
+        if {-criticalHit::%player's uuid%::cooldown} is set:
+            set {_onCooldown} to true
+        else:
+            set {_onCooldown} to false
+        
+        send "&e--- Critical Hit Debug ---"
+        send "&7Enchant ID: &f%{_id}%"
+        send "&7Level: &f%{_level}%"
+        send "&7Equipped: &f%{_equipped}%"
+        send "&7Base Chance: &f%{_baseChance}%%%"
+        send "&7Final Chance (with Control): &f%{_finalChance}%%%"
+        send "&7On Cooldown: &f%{_onCooldown}%"
+
+
+command /debugfortune:
+    permission: op
+    trigger:
+        set {_id} to enchant_getIdByString("Fortune")
+        set {_level} to enchant_getPlayerLevelByString(player, "Fortune")
+        set {_equipped} to enchant_checkIfEquipped(player, {_id})
+        
+        send "&e--- Fortune Debug ---"
+        send "&7Enchant ID: &f%{_id}%"
+        send "&7Level: &f%{_level}%"
+        send "&7Equipped: &f%{_equipped}%"
+        send "&7Bonus Drops: &f0-%{_level}% extra items"
+
+
+command /debuglaser:
+    permission: op
+    trigger:
+        set {_id} to enchant_getIdByString("Laser")
+        set {_level} to enchant_getPlayerLevelByString(player, "Laser")
+        set {_equipped} to enchant_checkIfEquipped(player, {_id})
+        
+        set {_baseChance} to {_level} * 0.6
+        set {_finalChance} to enchant_getActivationChance(player, {_baseChance})
+        
+        send "&e--- Laser Debug ---"
+        send "&7Enchant ID: &f%{_id}%"
+        send "&7Level: &f%{_level}%"
+        send "&7Equipped: &f%{_equipped}%"
+        send "&7Base Chance: &f%{_baseChance}%%%"
+        send "&7Final Chance (with Control): &f%{_finalChance}%%%"
+
+
+command /testlaser:
+    permission: op
+    trigger:
+        set {_block} to target block of player
+        set {_loc} to location of {_block}
+        
+        set {_target} to laser_findTarget(player, {_loc})
+        
+        if {_target} is not set:
+            send "&cNo valid target found nearby!"
+            stop
+        
+        send "&eFiring laser at nearby block..."
+        laser_playEffect(player, {_loc}, {_target}, 1)
+
+
+command /debugexplosive:
+    permission: op
+    trigger:
+        set {_id} to enchant_getIdByString("Explosive")
+        set {_level} to enchant_getPlayerLevelByString(player, "Explosive")
+        set {_equipped} to enchant_checkIfEquipped(player, {_id})
+        
+        set {_baseChance} to {_level} * 0.4
+        set {_finalChance} to enchant_getActivationChance(player, {_baseChance})
+        
+        set {_radius} to 1 + floor({_level} / 25)
+        if {_radius} > 2:
+            set {_radius} to 2
+        
+        if {-explosive::%player's uuid%::cooldown} is set:
+            set {_onCooldown} to true
+        else:
+            set {_onCooldown} to false
+        
+        set {_reducedCD} to stability_getReducedCooldown(player, 15)
+        
+        send "&e--- Explosive Debug ---"
+        send "&7Enchant ID: &f%{_id}%"
+        send "&7Level: &f%{_level}%"
+        send "&7Equipped: &f%{_equipped}%"
+        send "&7Base Chance: &f%{_baseChance}%%%"
+        send "&7Final Chance (with Control): &f%{_finalChance}%%%"
+        send "&7Current Radius: &f%{_radius}%"
+        send "&7Cooldown: &f%{_onCooldown}% &7(15s → %{_reducedCD}%s with Stability)"
+
+
+command /testexplosive [<integer=1>]:
+    permission: op
+    trigger:
+        set {_radius} to arg-1
+        if {_radius} < 1:
+            set {_radius} to 1
+        if {_radius} > 2:
+            set {_radius} to 2
+        
+        set {_block} to target block of player
+        set {_loc} to location of {_block}
+        
+        send "&eTesting Explosive with radius %{_radius}%..."
+        explosive_detonate(player, {_loc}, {_radius})
+
+
+command /debugshockwave:
+    permission: op
+    trigger:
+        set {_id} to enchant_getIdByString("Shockwave")
+        set {_level} to enchant_getPlayerLevelByString(player, "Shockwave")
+        set {_equipped} to enchant_checkIfEquipped(player, {_id})
+        
+        set {_baseChance} to {_level} * 0.3
+        set {_finalChance} to enchant_getActivationChance(player, {_baseChance})
+        
+        if {-shockwave::%player's uuid%::cooldown} is set:
+            set {_onCooldown} to true
+        else:
+            set {_onCooldown} to false
+        
+        set {_reducedCD} to stability_getReducedCooldown(player, 18)
+        
+        send "&e--- Shockwave Debug ---"
+        send "&7Enchant ID: &f%{_id}%"
+        send "&7Level: &f%{_level}%"
+        send "&7Equipped: &f%{_equipped}%"
+        send "&7Base Chance: &f%{_baseChance}%%%"
+        send "&7Final Chance (with Control): &f%{_finalChance}%%%"
+        send "&7Pulses: &f3"
+        send "&7Max Radius: &f2"
+        send "&7Cooldown: &f%{_onCooldown}% &7(18s → %{_reducedCD}%s with Stability)"
+
+
+command /testshockwave:
+    permission: op
+    trigger:
+        set {_block} to target block of player
+        set {_loc} to location of {_block}
+        
+        send "&eTesting Shockwave..."
+        shockwave_pulse(player, {_loc})
+
+
+command /debuglightning:
+    permission: op
+    trigger:
+        set {_id} to enchant_getIdByString("Lightning")
+        set {_level} to enchant_getPlayerLevelByString(player, "Lightning")
+        set {_equipped} to enchant_checkIfEquipped(player, {_id})
+        
+        set {_baseChance} to {_level} * 0.3
+        set {_finalChance} to enchant_getActivationChance(player, {_baseChance})
+        
+        set {_radius} to 1 + floor({_level} / 25)
+        if {_radius} > 2:
+            set {_radius} to 2
+        
+        if {-lightning::%player's uuid%::cooldown} is set:
+            set {_onCooldown} to true
+        else:
+            set {_onCooldown} to false
+        
+        set {_reducedCD} to stability_getReducedCooldown(player, 12)
+        
+        send "&e--- Lightning Debug ---"
+        send "&7Enchant ID: &f%{_id}%"
+        send "&7Level: &f%{_level}%"
+        send "&7Equipped: &f%{_equipped}%"
+        send "&7Base Chance: &f%{_baseChance}%%%"
+        send "&7Final Chance (with Control): &f%{_finalChance}%%%"
+        send "&7Current Radius: &f%{_radius}%"
+        send "&7Strikes: &f2"
+        send "&7Cooldown: &f%{_onCooldown}% &7(12s → %{_reducedCD}%s with Stability)"
+
+
+command /testlightning [<integer=1>]:
+    permission: op
+    trigger:
+        set {_radius} to arg-1
+        if {_radius} < 1:
+            set {_radius} to 1
+        if {_radius} > 2:
+            set {_radius} to 2
+        
+        set {_block} to target block of player
+        set {_loc} to location of {_block}
+        
+        send "&eTesting Lightning with radius %{_radius}%..."
+        lightning_strike(player, {_loc}, {_radius})
+
+
+command /debugearthquake:
+    permission: op
+    trigger:
+        set {_id} to enchant_getIdByString("Earthquake")
+        set {_level} to enchant_getPlayerLevelByString(player, "Earthquake")
+        set {_equipped} to enchant_checkIfEquipped(player, {_id})
+        
+        set {_baseChance} to {_level} * 0.2
+        set {_finalChance} to enchant_getActivationChance(player, {_baseChance})
+        
+        set {_radius} to 2 + floor({_level} / 25)
+        if {_radius} > 3:
+            set {_radius} to 3
+        
+        if {-earthquake::%player's uuid%::cooldown} is set:
+            set {_onCooldown} to true
+        else:
+            set {_onCooldown} to false
+        
+        send "&e--- Earthquake Debug ---"
+        send "&7Enchant ID: &f%{_id}%"
+        send "&7Level: &f%{_level}%"
+        send "&7Equipped: &f%{_equipped}%"
+        send "&7Base Chance: &f%{_baseChance}%%%"
+        send "&7Final Chance (with Control): &f%{_finalChance}%%%"
+        send "&7Current Radius: &f%{_radius}%"
+        send "&7Y Layers: &fSame Y only"
+        send "&7Cooldown: &f%{_onCooldown}% &7(20 seconds)"
+
+
+command /testearthquake [<integer=2>]:
+    permission: op
+    trigger:
+        set {_radius} to arg-1
+        if {_radius} < 2:
+            set {_radius} to 2
+        if {_radius} > 3:
+            set {_radius} to 3
+        
+        set {_block} to target block of player
+        set {_loc} to location of {_block}
+        
+        send "&eTesting Earthquake with radius %{_radius}%..."
+        earthquake_trigger(player, {_loc}, {_radius})
+
+
+command /debugstability:
+    permission: op
+    trigger:
+        set {_id} to enchant_getIdByString("Stability")
+        set {_level} to enchant_getPlayerLevelByString(player, "Stability")
+        set {_equipped} to enchant_checkIfEquipped(player, {_id})
+        
+        set {_reduction} to {_level} * 0.4
+        if {_reduction} > 20:
+            set {_reduction} to 20
+        
+        set {_multiplier} to stability_getCooldownMultiplier(player)
+        
+        # Calculate reduced cooldowns
+        set {_lightningCD} to stability_getReducedCooldown(player, 12)
+        set {_explosiveCD} to stability_getReducedCooldown(player, 15)
+        set {_shockwaveCD} to stability_getReducedCooldown(player, 18)
+        set {_earthquakeCD} to stability_getReducedCooldown(player, 20)
+        
+        send "&e--- Stability Debug ---"
+        send "&7Enchant ID: &f%{_id}%"
+        send "&7Level: &f%{_level}%"
+        send "&7Equipped: &f%{_equipped}%"
+        send "&7Cooldown Reduction: &f%{_reduction}%%%"
+        send "&7Multiplier: &f%{_multiplier}%"
+        send "&7--- Reduced Cooldowns ---"
+        send "&7Lightning: &f12s → %{_lightningCD}%s"
+        send "&7Explosive: &f15s → %{_explosiveCD}%s"
+        send "&7Shockwave: &f18s → %{_shockwaveCD}%s"
+        send "&7Earthquake: &f20s → %{_earthquakeCD}%s"
+
+
+command /debugovercharge:
+    permission: op
+    trigger:
+        set {_id} to enchant_getIdByString("Overcharge")
+        set {_level} to enchant_getPlayerLevelByString(player, "Overcharge")
+        set {_equipped} to enchant_checkIfEquipped(player, {_id})
+        
+        set {_blocksNeeded} to 15 - floor({_level} / 7)
+        if {_blocksNeeded} < 8:
+            set {_blocksNeeded} to 8
+        
+        if {-overcharge::%player's uuid%::counter} is set:
+            set {_counter} to {-overcharge::%player's uuid%::counter}
+        else:
+            set {_counter} to 0
+        
+        if {-overcharge::%player's uuid%::ready} is set:
+            set {_ready} to true
+        else:
+            set {_ready} to false
+        
+        set {_bonusDamage} to {_level} * 1
+        if {_bonusDamage} > 50:
+            set {_bonusDamage} to 50
+        
+        send "&e--- Overcharge Debug ---"
+        send "&7Enchant ID: &f%{_id}%"
+        send "&7Level: &f%{_level}%"
+        send "&7Equipped: &f%{_equipped}%"
+        send "&7Blocks Needed: &f%{_blocksNeeded}%"
+        send "&7Current Counter: &f%{_counter}%/%{_blocksNeeded}%"
+        send "&7Ready: &f%{_ready}%"
+        send "&7Bonus Damage: &f+%{_bonusDamage}%%%"
+
+
+command /testovercharge:
+    permission: op
+    trigger:
+        set {-overcharge::%player's uuid%::ready} to true
+        send "&eOvercharge set to READY!"
+        overcharge_notifyReady(player)

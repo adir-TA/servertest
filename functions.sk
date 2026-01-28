@@ -1,0 +1,47 @@
+
+function autosplit(t:text,length:integer) :: texts:
+    if length of {_t} < {_length}:
+        return {_t}
+    set {_desc::*} to split {_t} at " "
+    set {_line} to ""
+    loop {_desc::*}:
+        if {_line} = "":
+            set {_line} to "%{_line}%%loop-value%"
+            continue
+        set {_line} to "%{_line}% %loop-value%"
+        if length of {_line} > {_length}:
+            add {_line} to {_lines::*}
+            set {_line} to ""
+    if {_line} != "" or " ":
+        add {_line} to {_lines::*}
+    return {_lines::*}
+
+
+function guiShape(inv:inventory,s:strings,d:string,i:itemtype):
+    loop {_s::*}:
+        set {_t::*} to split loop-value at ""
+        loop {_t::*}:
+            set {_num} to loop-index-2 parsed as integer
+            if loop-value-2 = "%{_d}%":
+                set slot ({_num}+{_n}-1) of {_inv} to {_i}
+        add 9 to {_n}
+
+function formatNum(n: number) :: string:
+    set {_l::*} to split "k,M,B,T,Qn,Qi,Sx" at ","
+    set {_i} to min(floor(log({_n})/3), size of {_l::*})
+    return "%{_n}%" if {_i} <= 0
+    set {_i2} to 1000^{_i}
+    return "%{_n}/{_i2}%%{_l::%{_i}%}%"
+
+function center(text: text) :: text:
+    set {_width} to max(70, length of {_text} + 10)
+    set {_pad} to " " repeated ({_width} - length of {_text}) / 2 times
+    return "%{_pad}%%{_text}%"
+
+function formatTime(time: timespan) :: string:
+  set {_time} to "%{_time}%"
+  set {_timespan::*} to {_time} parsed as "%number% %string%[s][ and %number% %string%[s]]"
+  set {_first} to "%{_timespan::1}%%first character of {_timespan::2}%"
+  set {_second} to "%{_timespan::3}%%first character of {_timespan::4}%"
+
+  return ("%{_first}% %{_second}%" if {_timespan::3} is set, else "%{_first}%")

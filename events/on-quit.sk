@@ -1,0 +1,11 @@
+on quit:
+    menu_deleteSession(player)
+
+    # Stop pet follow loop and cleanup
+    delete {-pet::follow::%player's uuid%::loop}
+    delete {-pet::follow::%player's uuid%::tick}
+    delete {-pet::follow::%player's uuid%::ids::*}
+    delete {-pet::follow::%player's uuid%::text::*}
+    delete {-guard::pet-follow::%player's uuid%}
+
+    delete {-miningData::%player's uuid%::*}

@@ -1,0 +1,220 @@
+# ============================================================
+# MINE ROTATION SYSTEM
+# ============================================================
+
+import:
+    com.sk89q.worldedit.bukkit.BukkitWorld
+    com.sk89q.worldedit.extent.clipboard.Clipboard
+    com.sk89q.worldedit.extent.clipboard.io.ClipboardFormats
+    com.sk89q.worldedit.math.BlockVector3
+    com.sk89q.worldedit.regions.CuboidRegion
+    java.io.File
+    java.nio.file.Files
+    java.nio.file.Paths
+
+
+# ============================================================
+# SCHEMATIC EFFECTS
+# ============================================================
+
+effect paste schematic %string% at %location% [(1¦(with|including) air)]:
+    trigger:
+        set {_file} to new File(expression-1)
+        
+        # Check if file exists
+        if {_file}.exists() is false:
+            # broadcast "&c[Mine] Schematic file not found: %expression-1%"
+            stop
+        
+        set {_location} to BlockVector3.at(expression-2.getBlockX(), expression-2.getBlockY(), expression-2.getBlockZ())
+        set {_world} to new BukkitWorld(expression-2.getWorld())
+        set {_includeAir} to true if parse mark = 1, else false
+        
+        # Get clipboard format and load
+        set {_format} to ClipboardFormats.findByFile({_file})
+        if {_format} is not set:
+            # broadcast "&c[Mine] Unknown schematic format for: %expression-1%"
+            stop
+        
+        # Load and paste - using original method
+        {_format}.load({_file}).paste({_world}, {_location}, false, {_includeAir}, false, null)
+
+
+effect create schematic %string% from pos1 %location% pos2 %location% origin %location%:
+    trigger:
+        Files.deleteIfExists(Paths.get(expression-1))
+        set {_file} to new File(expression-1)
+        set {_pos1} to BlockVector3.at(expression-2.getBlockX(), expression-2.getBlockY(), expression-2.getBlockZ())
+        set {_pos2} to BlockVector3.at(expression-3.getBlockX(), expression-3.getBlockY(), expression-3.getBlockZ())
+        set {_origin} to BlockVector3.at(expression-4.getBlockX(), expression-4.getBlockY(), expression-4.getBlockZ())
+        set {_world} to new BukkitWorld(expression-2.getWorld())
+        set {_region} to new CuboidRegion({_world}, {_pos1}, {_pos2})
+        set {_clipboard} to Clipboard.create({_region})
+        {_clipboard}.setOrigin({_origin})
+        {_clipboard}.save({_file}, ClipboardFormats.findByFile({_file}))
+
+
+# ============================================================
+# CONFIGURATION
+# ============================================================
+
+on script load:
+    # Initialize patterns list
+    set {-mine.patterns::*} to "waves", "paddles" and "cells"
+    
+    # Initialize color number if not set
+    {-mine.currentColor} is not set:
+        set {-mine.currentColor} to 1
+    
+    # Schematic folder path (adjust if needed)
+    set {-mine.schematicPath} to "plugins/FastAsyncWorldEdit/schematics/"
+    
+    # Auto-start rotation every 10 minutes (600 seconds)
+    set {-mine.autoRotate} to true
+    set {-mine.rotateInterval} to 600
+    set {-mine.rotateTimer} to 0
+    # broadcast "&a[Mine] Auto-rotation enabled (10 minutes)"
+
+command /rotation:
+    trigger:
+        set {_remaining} to {-mine.rotateInterval} - {-mine.rotateTimer}
+        set {_mins} to floor({_remaining} / 60)
+        set {_secs} to mod({_remaining}, 60)
+        send "&7Auto-Rotate: &aEnabled &7(every %{-mine.rotateInterval} / 60% min)"
+        send "&7Next Rotation: &f%{_mins}%m %{_secs}%s"
+
+# ============================================================
+# ROTATION FUNCTIONS
+# ============================================================
+
+function mine_rotate():
+    # Pick random pattern
+    set {_pattern} to random element of {-mine.patterns::*}
+    
+    # Build schematic name
+    set {_schematicName} to "%{_pattern}%-%{-mine.currentColor}%"
+    set {_schematicFile} to "%{-mine.schematicPath}%%{_schematicName}%.schem"
+    
+    # Debug output
+    # broadcast "&7[Debug] Attempting to paste: %{_schematicFile}%"
+    
+    # Check if paste location is set
+    if {mine.pasteLocation} is not set:
+        # broadcast "&c[Mine] Paste location not set! Use /mine setlocation"
+        stop
+    
+    # broadcast "&7[Debug] Paste location: %{mine.pasteLocation}%"
+    
+    # Paste the schematic
+    paste schematic {_schematicFile} at {mine.pasteLocation}
+    
+    # Broadcast rotation
+    # broadcast "&a[Mine] &7Rotated to &f%{_pattern}% &7pattern, color &f%{-mine.currentColor}%"
+    
+    # Increment color (1-16 cycle)
+    add 1 to {-mine.currentColor}
+    if {-mine.currentColor} > 16:
+        set {-mine.currentColor} to 1
+
+
+function mine_getColorName(num: integer) :: string:
+    set {_colors::1} to "White"
+    set {_colors::2} to "Orange"
+    set {_colors::3} to "Magenta"
+    set {_colors::4} to "Light Blue"
+    set {_colors::5} to "Yellow"
+    set {_colors::6} to "Lime"
+    set {_colors::7} to "Pink"
+    set {_colors::8} to "Gray"
+    set {_colors::9} to "Light Gray"
+    set {_colors::10} to "Cyan"
+    set {_colors::11} to "Purple"
+    set {_colors::12} to "Blue"
+    set {_colors::13} to "Brown"
+    set {_colors::14} to "Green"
+    set {_colors::15} to "Red"
+    set {_colors::16} to "Black"
+    return {_colors::%{_num}%} ? "Unknown"
+
+
+# ============================================================
+# ADMIN COMMANDS
+# ============================================================
+
+command /mine [<text>] [<integer>]:
+    permission: mine.admin
+    trigger:
+        if arg-1 is not set:
+            send "&e&lMine Rotation Commands:"
+            send "&7/mine rotate &8- &fForce rotate to next mine"
+            send "&7/mine setlocation &8- &fSet paste location to your position"
+            send "&7/mine setcolor <1-16> &8- &fSet current color number"
+            send "&7/mine info &8- &fShow current rotation info"
+            send "&7/mine start <seconds> &8- &fStart auto-rotation"
+            send "&7/mine stop &8- &fStop auto-rotation"
+        
+        else if arg-1 is "rotate":
+            mine_rotate()
+            send "&aForced mine rotation."
+        
+        else if arg-1 is "setlocation":
+            set {mine.pasteLocation} to player's target block's location
+            send "&aSet mine paste location to your target block position."
+            send "&7Location: &f%{mine.pasteLocation}%"
+        
+        else if arg-1 is "setcolor":
+            if arg-2 is not set:
+                send "&cUsage: /mine setcolor <1-16>"
+            else if arg-2 < 1:
+                send "&cColor must be between 1 and 16!"
+            else if arg-2 > 16:
+                send "&cColor must be between 1 and 16!"
+            else:
+                set {-mine.currentColor} to arg-2
+                send "&aSet current color to &f%arg-2% &7(%mine_getColorName(arg-2)%&7)"
+        
+        else if arg-1 is "info":
+            send "&e&lMine Rotation Info:"
+            send "&7Current Color: &f%{-mine.currentColor}% &7(%mine_getColorName({-mine.currentColor})%&7)"
+            send "&7Patterns: &f%{-mine.patterns::*}%"
+            if {mine.pasteLocation} is set:
+                send "&7Paste Location: &f%{mine.pasteLocation}%"
+            else:
+                send "&7Paste Location: &cNot set"
+            if {-mine.autoRotate} is true:
+                set {_remaining} to {-mine.rotateInterval} - {-mine.rotateTimer}
+                set {_mins} to floor({_remaining} / 60)
+                set {_secs} to mod({_remaining}, 60)
+                send "&7Auto-Rotate: &aEnabled &7(every %{-mine.rotateInterval} / 60% min)"
+                send "&7Next Rotation: &f%{_mins}%m %{_secs}%s"
+            else:
+                send "&7Auto-Rotate: &cDisabled"
+        
+        else if arg-1 is "start":
+            if arg-2 is not set:
+                send "&cUsage: /mine start <seconds>"
+            else if arg-2 < 10:
+                send "&cInterval must be at least 10 seconds!"
+            else:
+                set {-mine.autoRotate} to true
+                set {-mine.rotateInterval} to arg-2
+                send "&aStarted auto-rotation every &f%arg-2% &aseconds."
+        
+        else if arg-1 is "stop":
+            set {-mine.autoRotate} to false
+            send "&cStopped auto-rotation."
+        
+        else:
+            send "&cUnknown subcommand. Use /mine for help."
+
+
+# ============================================================
+# AUTO-ROTATION LOOP
+# ============================================================
+
+every 30 seconds:
+    if {-mine.autoRotate} is true:
+        add 30 to {-mine.rotateTimer}
+        if {-mine.rotateTimer} >= {-mine.rotateInterval}:
+            set {-mine.rotateTimer} to 0
+            mine_rotate()
