@@ -10,8 +10,8 @@
 # Variables:
 #   {data::discovered::pet::%uuid%::%type%}   → true if player discovered pet
 #   {data::discovered::acc::%uuid%::%type%}   → true if player discovered acc
-#   {-global::discovered::pet::%type%}        → count of players who found pet
-#   {-global::discovered::acc::%type%}        → count of players who found acc
+#   {data::global::discovered::pet::%type%}   → count of players who found pet
+#   {data::global::discovered::acc::%type%}   → count of players who found acc
 #
 # ============================================================
 
@@ -38,16 +38,16 @@ function discovery_discoverPet(p: player, petType: text) :: boolean:
     set {data::discovered::pet::%{_uuid}%::%{_petType}%} to true
 
     # Increment global discovery count
-    if {-global::discovered::pet::%{_petType}%} is not set:
-        set {-global::discovered::pet::%{_petType}%} to 0
-    add 1 to {-global::discovered::pet::%{_petType}%}
+    if {data::global::discovered::pet::%{_petType}%} is not set:
+        set {data::global::discovered::pet::%{_petType}%} to 0
+    add 1 to {data::global::discovered::pet::%{_petType}%}
 
     # Return true to indicate this was a NEW discovery
     return true
 
 
 function discovery_getGlobalPetCount(petType: text) :: integer:
-    return ({-global::discovered::pet::%{_petType}%} ? 0)
+    return ({data::global::discovered::pet::%{_petType}%} ? 0)
 
 
 function discovery_getPlayerPetCount(p: player) :: integer:
@@ -81,16 +81,16 @@ function discovery_discoverAcc(p: player, accType: text) :: boolean:
     set {data::discovered::acc::%{_uuid}%::%{_accType}%} to true
 
     # Increment global discovery count
-    if {-global::discovered::acc::%{_accType}%} is not set:
-        set {-global::discovered::acc::%{_accType}%} to 0
-    add 1 to {-global::discovered::acc::%{_accType}%}
+    if {data::global::discovered::acc::%{_accType}%} is not set:
+        set {data::global::discovered::acc::%{_accType}%} to 0
+    add 1 to {data::global::discovered::acc::%{_accType}%}
 
     # Return true to indicate this was a NEW discovery
     return true
 
 
 function discovery_getGlobalAccCount(accType: text) :: integer:
-    return ({-global::discovered::acc::%{_accType}%} ? 0)
+    return ({data::global::discovered::acc::%{_accType}%} ? 0)
 
 
 function discovery_getPlayerAccCount(p: player) :: integer:
