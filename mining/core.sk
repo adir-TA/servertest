@@ -10,38 +10,51 @@ on load:
 # MINING SESSION FUNCTIONS
 # ============================================================
 
+# Convert location to string key for consistent variable access
+function mining_getLocKey(l: location) :: text:
+    set {_x} to floor(x-coord of {_l})
+    set {_y} to floor(y-coord of {_l})
+    set {_z} to floor(z-coord of {_l})
+    return "%{_x}%_%{_y}%_%{_z}%"
+
 function mining_hasSession(p: player, l: location) :: boolean:
-    if {-miningData::%{_p}'s uuid%::progress::%{_l}%} is set:
+    set {_key} to mining_getLocKey({_l})
+    if {-miningData::%{_p}'s uuid%::progress::%{_key}%} is set:
         return true
     return false
 
 
 function mining_createSession(p: player, l: location):
-    set {-miningData::%{_p}'s uuid%::progress::%{_l}%} to 0
-    set {-miningData::%{_p}'s uuid%::lastStage::%{_l}%} to -1
-    set {-miningData::%{_p}'s uuid%::damageID::%{_l}%} to random integer between 1 and 1000000
+    set {_key} to mining_getLocKey({_l})
+    set {-miningData::%{_p}'s uuid%::progress::%{_key}%} to 0
+    set {-miningData::%{_p}'s uuid%::lastStage::%{_key}%} to -1
+    set {-miningData::%{_p}'s uuid%::damageID::%{_key}%} to random integer between 1 and 1000000
 
 
 function mining_clearSession(p: player, l: location):
-    if {-miningData::%{_p}'s uuid%::damageID::%{_l}%} is set:
-        set {_id} to {-miningData::%{_p}'s uuid%::damageID::%{_l}%}
+    set {_key} to mining_getLocKey({_l})
+    if {-miningData::%{_p}'s uuid%::damageID::%{_key}%} is set:
+        set {_id} to {-miningData::%{_p}'s uuid%::damageID::%{_key}%}
         make {_p} see damage of block at {_l} as 0 from {_id}
 
-    delete {-miningData::%{_p}'s uuid%::progress::%{_l}%}
-    delete {-miningData::%{_p}'s uuid%::lastStage::%{_l}%}
-    delete {-miningData::%{_p}'s uuid%::damageID::%{_l}%}
+    delete {-miningData::%{_p}'s uuid%::progress::%{_key}%}
+    delete {-miningData::%{_p}'s uuid%::lastStage::%{_key}%}
+    delete {-miningData::%{_p}'s uuid%::damageID::%{_key}%}
 
 
 function mining_getProgress(p: player, l: location) :: number:
-    return ({-miningData::%{_p}'s uuid%::progress::%{_l}%} ? 0)
+    set {_key} to mining_getLocKey({_l})
+    return ({-miningData::%{_p}'s uuid%::progress::%{_key}%} ? 0)
 
 
 function mining_setProgress(p: player, l: location, v: number):
-    set {-miningData::%{_p}'s uuid%::progress::%{_l}%} to {_v}
+    set {_key} to mining_getLocKey({_l})
+    set {-miningData::%{_p}'s uuid%::progress::%{_key}%} to {_v}
 
 
 function mining_addProgress(p: player, l: location, v: number):
-    add {_v} to {-miningData::%{_p}'s uuid%::progress::%{_l}%}
+    set {_key} to mining_getLocKey({_l})
+    add {_v} to {-miningData::%{_p}'s uuid%::progress::%{_key}%}
 
 
 # ============================================================
@@ -61,15 +74,16 @@ function mining_applyVisualUpdate(p: player, l: location):
     if mining_hasSession({_p}, {_l}) = false:
         mining_createSession({_p}, {_l})
 
+    set {_key} to mining_getLocKey({_l})
     set {_progress} to mining_getProgress({_p}, {_l})
     set {_newStage} to mining_getVisualStageFromProgress({_progress})
-    set {_lastStage} to ({-miningData::%{_p}'s uuid%::lastStage::%{_l}%} ? -1)
+    set {_lastStage} to ({-miningData::%{_p}'s uuid%::lastStage::%{_key}%} ? -1)
 
     if {_newStage} > {_lastStage}:
-        set {_id} to {-miningData::%{_p}'s uuid%::damageID::%{_l}%}
+        set {_id} to {-miningData::%{_p}'s uuid%::damageID::%{_key}%}
         make {_p} see damage of block at {_l} as {_newStage} / 10 from {_id}
-        set {-miningData::%{_p}'s uuid%::lastStage::%{_l}%} to {_newStage}
-        
+        set {-miningData::%{_p}'s uuid%::lastStage::%{_key}%} to {_newStage}
+
         if {_newStage} = 5:
             play sound "block.stone.hit" with volume 0.6 and pitch 0.8 at {_l} for {_p}
         if {_newStage} = 8:
@@ -85,11 +99,12 @@ function mining_applyInstantStage(p: player, l: location, stage: integer):
     if mining_hasSession({_p}, {_l}) = false:
         mining_createSession({_p}, {_l})
 
+    set {_key} to mining_getLocKey({_l})
     set {_progress} to {_stage} / 10
     mining_setProgress({_p}, {_l}, {_progress})
 
-    set {-miningData::%{_p}'s uuid%::lastStage::%{_l}%} to {_stage}
-    set {_id} to {-miningData::%{_p}'s uuid%::damageID::%{_l}%}
+    set {-miningData::%{_p}'s uuid%::lastStage::%{_key}%} to {_stage}
+    set {_id} to {-miningData::%{_p}'s uuid%::damageID::%{_key}%}
 
     make {_p} see damage of block at {_l} as {_stage} / 10 from {_id}
 

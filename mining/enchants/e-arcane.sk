@@ -241,25 +241,26 @@ function tornado_spawn(p: player, loc: location):
 function tornado_crackBlock(p: player, loc: location):
     set {_currentProgress} to mining_getProgress({_p}, {_loc})
     set {_currentStage} to mining_getVisualStageFromProgress({_currentProgress})
-    
+
     set {_stagesToAdd} to random integer between 2 and 4
     set {_progressToAdd} to {_stagesToAdd} / 10
-    
+
     set {_newProgress} to {_currentProgress} + {_progressToAdd}
-    
+
     if {_newProgress} > 0.8:
         set {_newProgress} to 0.8
-    
+
     if mining_hasSession({_p}, {_loc}) = false:
         mining_createSession({_p}, {_loc})
-    
+
     mining_setProgress({_p}, {_loc}, {_newProgress})
-    
+
+    set {_key} to mining_getLocKey({_loc})
     set {_newStage} to mining_getVisualStageFromProgress({_newProgress})
-    set {_id} to {-miningData::%{_p}'s uuid%::damageID::%{_loc}%}
+    set {_id} to {-miningData::%{_p}'s uuid%::damageID::%{_key}%}
     make {_p} see damage of block at {_loc} as {_newStage} / 10 from {_id}
-    set {-miningData::%{_p}'s uuid%::lastStage::%{_loc}%} to {_newStage}
-    
+    set {-miningData::%{_p}'s uuid%::lastStage::%{_key}%} to {_newStage}
+
     play sound "block.stone.hit" with volume 0.15 and pitch 0.9 at {_loc} for {_p}
 
 
