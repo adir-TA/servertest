@@ -20,23 +20,29 @@
 # Creates a new pet instance and returns its ID
 function pet_create(p: player, type: text, rarity: text) :: text:
     set {_uuid} to {_p}'s uuid
-    
+
     # Check pet storage limit (max 50)
     set {_owned} to size of {pet::owned::%{_uuid}%::*}
     if {_owned} >= 50:
         send "&cYour pet storage is full! (50/50)" to {_p}
         send "&7Salvage some pets to make room." to {_p}
         return ""
-    
+
     set {_petId} to "%random uuid%"
-    
+
     # Store pet data
     set {pet::data::%{_uuid}%::%{_petId}%::type} to {_type}
     set {pet::data::%{_uuid}%::%{_petId}%::rarity} to {_rarity}
-    
+
     # Add to owned list
     add {_petId} to {pet::owned::%{_uuid}%::*}
-    
+
+    # Track discovery
+    set {_isNew} to discovery_discoverPet({_p}, {_type})
+    if {_isNew} is true:
+        set {_loc} to {_p}'s location
+        discovery_showNewPetAnimation({_p}, {_type}, {_loc})
+
     return {_petId}
 
 # Deletes a pet instance (for salvaging)

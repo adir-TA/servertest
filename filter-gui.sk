@@ -40,6 +40,8 @@ function filter_openIndexMain(p: player):
         set slot loop-number - 1 of {_menu} to {_filler}
 
     # Pet Index - Slot 11
+    set {_petDiscovered} to discovery_getPlayerPetCount({_p})
+    set {_petTotal} to discovery_getTotalPetTypes()
     set {_petItem} to turtle egg named "&d&lPet Index"
     delete {_petLore::*}
     add menu_utils_getMenuItemFirstLoreLine() to {_petLore::*}
@@ -47,7 +49,7 @@ function filter_openIndexMain(p: player):
     add "&7View all available pets" to {_petLore::*}
     add "&7and their stats." to {_petLore::*}
     add "" to {_petLore::*}
-    add "&7Total Pets: &e%filter_countTotalPets()%" to {_petLore::*}
+    add "&7Discovered: &a%{_petDiscovered}%&7/&e%{_petTotal}%" to {_petLore::*}
     add "" to {_petLore::*}
     add "" to {_petLore::*}
     add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴠɪᴇᴡ" to {_petLore::*}
@@ -56,6 +58,8 @@ function filter_openIndexMain(p: player):
     set slot 11 of {_menu} to {_petItem}
 
     # Accessory Index - Slot 15
+    set {_accDiscovered} to discovery_getPlayerAccCount({_p})
+    set {_accTotal} to discovery_getTotalAccTypes()
     set {_accItem} to diamond named "&6&lAccessory Index"
     delete {_accLore::*}
     add menu_utils_getMenuItemFirstLoreLine() to {_accLore::*}
@@ -63,7 +67,7 @@ function filter_openIndexMain(p: player):
     add "&7View all available accessories" to {_accLore::*}
     add "&7and their stats." to {_accLore::*}
     add "" to {_accLore::*}
-    add "&7Total Accessories: &e%filter_countTotalAcc()%" to {_accLore::*}
+    add "&7Discovered: &a%{_accDiscovered}%&7/&e%{_accTotal}%" to {_accLore::*}
     add "" to {_accLore::*}
     add "" to {_accLore::*}
     add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴠɪᴇᴡ" to {_accLore::*}
@@ -111,42 +115,62 @@ function filter_openPetIndex(p: player, page: number):
         set {_type} to {_allPets::%{_petIndex}%}
 
         if {_type} is set:
-            set {_name} to pet_getTypeName({_type})
-            set {_tier} to pet_getTypeTier({_type})
-            set {_icon} to pet_getTypeIcon({_type})
-            set {_base} to pet_getTypeBase({_type}) * 100
+            set {_discovered} to discovery_hasPetDiscovered({_p}, {_type})
+            set {_globalCount} to discovery_getGlobalPetCount({_type})
 
-            # Tier color
-            if {_tier} is "divine":
-                set {_tierColor} to "&d"
-            else if {_tier} is "ultra":
-                set {_tierColor} to "&b"
+            if {_discovered} is true:
+                set {_name} to pet_getTypeName({_type})
+                set {_tier} to pet_getTypeTier({_type})
+                set {_icon} to pet_getTypeIcon({_type})
+                set {_base} to pet_getTypeBase({_type}) * 100
+
+                # Tier color
+                if {_tier} is "divine":
+                    set {_tierColor} to "&d"
+                else if {_tier} is "ultra":
+                    set {_tierColor} to "&b"
+                else:
+                    set {_tierColor} to "&a"
+
+                set {_item} to {_icon} named "%{_tierColor}%%{_name}%"
+                delete {_lore::*}
+                add "&8ᴘᴇᴛ" to {_lore::*}
+                add "" to {_lore::*}
+                add "&7Tier: %{_tierColor}%%{_tier} in proper case%" to {_lore::*}
+                add "" to {_lore::*}
+                add "&6Stats:" to {_lore::*}
+
+                # Show all stats this pet boosts
+                loop pet_getTypeStats({_type}):
+                    set {_stat} to loop-value-2
+                    set {_statFormatted} to pet_formatStatName({_stat})
+                    add " &8- &f%{_statFormatted}%" to {_lore::*}
+
+                add "" to {_lore::*}
+                add "&7Base: &a%{_base}%%%" to {_lore::*}
+
+                # Rarity range
+                set {_minBonus} to {_base}
+                set {_maxBonus} to {_base} * 5
+                add "&7Range: &a%{_minBonus}%%% &8- &6%{_maxBonus}%%%" to {_lore::*}
+                add "" to {_lore::*}
+                add "&8Found by &7%{_globalCount}% &8players" to {_lore::*}
+
+                set lore of {_item} to {_lore::*}
             else:
-                set {_tierColor} to "&a"
-
-            set {_item} to {_icon} named "%{_tierColor}%%{_name}%"
-            delete {_lore::*}
-            add "&8ᴘᴇᴛ" to {_lore::*}
-            add "" to {_lore::*}
-            add "&7Tier: %{_tierColor}%%{_tier} in proper case%" to {_lore::*}
-            add "" to {_lore::*}
-            add "&6Stats:" to {_lore::*}
-
-            # Show all stats this pet boosts
-            loop pet_getTypeStats({_type}):
-                set {_stat} to loop-value-2
-                set {_statFormatted} to pet_formatStatName({_stat})
-                add " &8- &f%{_statFormatted}%" to {_lore::*}
-
-            add "" to {_lore::*}
-            add "&7Base: &a%{_base}%%%" to {_lore::*}
-
-            # Rarity range
-            set {_minBonus} to {_base}
-            set {_maxBonus} to {_base} * 5
-            add "&7Range: &a%{_minBonus}%%% &8- &6%{_maxBonus}%%%" to {_lore::*}
-
-            set lore of {_item} to {_lore::*}
+                # Undiscovered - show Unknown
+                set {_item} to gray dye named "&8Unknown"
+                delete {_lore::*}
+                add "&8ᴘᴇᴛ" to {_lore::*}
+                add "" to {_lore::*}
+                add "&7You haven't discovered" to {_lore::*}
+                add "&7this pet yet." to {_lore::*}
+                add "" to {_lore::*}
+                add "&7Obtain this pet to reveal" to {_lore::*}
+                add "&7its stats and details." to {_lore::*}
+                add "" to {_lore::*}
+                add "&8Found by &7%{_globalCount}% &8players" to {_lore::*}
+                set lore of {_item} to {_lore::*}
 
             set {_guiSlot} to {_displaySlots::%{_displayIndex}%}
             set slot {_guiSlot} of {_menu} to {_item}
@@ -255,32 +279,52 @@ function filter_openAccIndex(p: player, page: number):
         set {_type} to {_allAcc::%{_accIndex}%}
 
         if {_type} is set:
-            set {_name} to acc_getTypeName({_type})
-            set {_tier} to acc_getTypeTier({_type})
-            set {_icon} to acc_getTypeIcon({_type})
-            set {_stat} to acc_getTypeStat({_type})
-            set {_base} to acc_getTypeBase({_type})
-            set {_tierColor} to acc_getTierColor({_tier})
-            set {_tierName} to acc_getTierName({_tier})
+            set {_discovered} to discovery_hasAccDiscovered({_p}, {_type})
+            set {_globalCount} to discovery_getGlobalAccCount({_type})
 
-            set {_item} to {_icon} named "%{_tierColor}%%{_name}%"
-            delete {_lore::*}
-            add "&8ᴀᴄᴄᴇssᴏʀʏ" to {_lore::*}
-            add "" to {_lore::*}
-            add "&7Tier: %{_tierColor}%%{_tierName}%" to {_lore::*}
-            add "" to {_lore::*}
+            if {_discovered} is true:
+                set {_name} to acc_getTypeName({_type})
+                set {_tier} to acc_getTypeTier({_type})
+                set {_icon} to acc_getTypeIcon({_type})
+                set {_stat} to acc_getTypeStat({_type})
+                set {_base} to acc_getTypeBase({_type})
+                set {_tierColor} to acc_getTierColor({_tier})
+                set {_tierName} to acc_getTierName({_tier})
 
-            set {_statFormatted} to acc_formatStatName({_stat})
-            add "&6Stat: &f%{_statFormatted}%" to {_lore::*}
-            add "" to {_lore::*}
-            add "&7Base: &a%{_base}%%%" to {_lore::*}
+                set {_item} to {_icon} named "%{_tierColor}%%{_name}%"
+                delete {_lore::*}
+                add "&8ᴀᴄᴄᴇssᴏʀʏ" to {_lore::*}
+                add "" to {_lore::*}
+                add "&7Tier: %{_tierColor}%%{_tierName}%" to {_lore::*}
+                add "" to {_lore::*}
 
-            # Rarity range
-            set {_minBonus} to {_base}
-            set {_maxBonus} to {_base} * 5.5
-            add "&7Range: &a%{_minBonus}%%% &8- &6%{_maxBonus}%%%" to {_lore::*}
+                set {_statFormatted} to acc_formatStatName({_stat})
+                add "&6Stat: &f%{_statFormatted}%" to {_lore::*}
+                add "" to {_lore::*}
+                add "&7Base: &a%{_base}%%%" to {_lore::*}
 
-            set lore of {_item} to {_lore::*}
+                # Rarity range
+                set {_minBonus} to {_base}
+                set {_maxBonus} to {_base} * 5.5
+                add "&7Range: &a%{_minBonus}%%% &8- &6%{_maxBonus}%%%" to {_lore::*}
+                add "" to {_lore::*}
+                add "&8Found by &7%{_globalCount}% &8players" to {_lore::*}
+
+                set lore of {_item} to {_lore::*}
+            else:
+                # Undiscovered - show Unknown
+                set {_item} to gray dye named "&8Unknown"
+                delete {_lore::*}
+                add "&8ᴀᴄᴄᴇssᴏʀʏ" to {_lore::*}
+                add "" to {_lore::*}
+                add "&7You haven't discovered" to {_lore::*}
+                add "&7this accessory yet." to {_lore::*}
+                add "" to {_lore::*}
+                add "&7Obtain this accessory to" to {_lore::*}
+                add "&7reveal its stats and details." to {_lore::*}
+                add "" to {_lore::*}
+                add "&8Found by &7%{_globalCount}% &8players" to {_lore::*}
+                set lore of {_item} to {_lore::*}
 
             set {_guiSlot} to {_displaySlots::%{_displayIndex}%}
             set slot {_guiSlot} of {_menu} to {_item}

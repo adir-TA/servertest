@@ -151,6 +151,14 @@ function acc_hasInventorySpace(p: player) :: boolean:
 function acc_addToInventory(p: player, encoded: text):
     add {_encoded} to {data::accessories::%{_p}'s uuid%::inventory::*}
 
+    # Track discovery
+    set {_parts::*} to acc_parseAccessory({_encoded})
+    set {_type} to {_parts::1}
+    set {_isNew} to discovery_discoverAcc({_p}, {_type})
+    if {_isNew} is true:
+        set {_loc} to {_p}'s location
+        discovery_showNewAccAnimation({_p}, {_type}, {_loc})
+
 
 function acc_getOwned(p: player) :: texts:
     return {data::accessories::%{_p}'s uuid%::inventory::*}
