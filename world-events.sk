@@ -32,6 +32,22 @@ function worldevent_getCenter(event: text) :: location:
 function worldevent_setCenter(event: text, loc: location):
     set {-worldevent::%{_event}%::center} to {_loc}
 
+# Get saved event location (persistent across commands)
+function worldevent_getSavedLocation() :: location:
+    return {data::worldevent::savedLocation}
+
+# Set saved event location
+function worldevent_setSavedLocation(loc: location):
+    set {data::worldevent::savedLocation} to {_loc}
+
+# Check if saved location exists
+function worldevent_hasSavedLocation() :: boolean:
+    return {data::worldevent::savedLocation} is set
+
+# Clear saved location
+function worldevent_clearSavedLocation():
+    delete {data::worldevent::savedLocation}
+
 
 # ============================================================
 # WHIRLWIND EVENT
@@ -440,28 +456,78 @@ on join:
 command /worldevent <text> [<text>] [<number>] [<number>]:
     permission: op
     trigger:
-        if arg-1 is "whirlwind":
+        if arg-1 is "setlocation":
+            # Set the saved location to the block the player is looking at
+            set {_targetBlock} to target block of player
+            if {_targetBlock} is air:
+                # If looking at air, use player's location
+                set {_loc} to player's location
+                worldevent_setSavedLocation({_loc})
+                send "&aSaved event location to your current position"
+            else:
+                set {_loc} to location of {_targetBlock}
+                add 1 to y-coord of {_loc}  # Spawn above the block
+                worldevent_setSavedLocation({_loc})
+                send "&aSaved event location to targeted block"
+            send "&7Location: &e%x-coord of {_loc}%, %y-coord of {_loc}%, %z-coord of {_loc}%"
+            send "&7World: &e%world of {_loc}%"
+
+        else if arg-1 is "clearlocation":
+            worldevent_clearSavedLocation()
+            send "&cCleared saved event location"
+
+        else if arg-1 is "location":
+            if worldevent_hasSavedLocation() is true:
+                set {_loc} to worldevent_getSavedLocation()
+                send "&6--- Saved Event Location ---"
+                send "&7X: &e%x-coord of {_loc}%"
+                send "&7Y: &e%y-coord of {_loc}%"
+                send "&7Z: &e%z-coord of {_loc}%"
+                send "&7World: &e%world of {_loc}%"
+            else:
+                send "&cNo saved location set!"
+                send "&7Use &e/worldevent setlocation &7to set one."
+
+        else if arg-1 is "whirlwind":
             if arg-2 is "start":
                 set {_radius} to arg-3 ? 30
                 set {_duration} to arg-4 ? 60
 
-                set {_center} to player's location
+                # Use saved location if set, otherwise player's location
+                if worldevent_hasSavedLocation() is true:
+                    set {_center} to worldevent_getSavedLocation()
+                    send "&aStarted Whirlwind event at saved location"
+                else:
+                    set {_center} to player's location
+                    send "&aStarted Whirlwind event at your location"
+                    send "&7Tip: Use &e/worldevent setlocation &7to set a fixed center"
+
                 whirlwind_start({_center}, {_radius}, {_duration})
-                send "&aStarted Whirlwind event at your location"
                 send "&7Radius: %{_radius}%, Duration: %{_duration}%s"
 
             else if arg-2 is "startsmooth":
                 set {_radius} to arg-3 ? 30
                 set {_duration} to arg-4 ? 60
 
-                set {_center} to player's location
+                # Use saved location if set, otherwise player's location
+                if worldevent_hasSavedLocation() is true:
+                    set {_center} to worldevent_getSavedLocation()
+                    send "&aStarted Smooth Whirlwind event at saved location"
+                else:
+                    set {_center} to player's location
+                    send "&aStarted Smooth Whirlwind event at your location"
+                    send "&7Tip: Use &e/worldevent setlocation &7to set a fixed center"
+
                 whirlwind_startSmooth({_center}, {_radius}, {_duration})
-                send "&aStarted Smooth Whirlwind event at your location"
                 send "&7Radius: %{_radius}%, Duration: %{_duration}%s"
 
             else if arg-2 is "stop":
                 whirlwind_stop()
-                whirlwind_stopSmooth(player's location)
+                set {_center} to worldevent_getCenter("whirlwind_smooth")
+                if {_center} is set:
+                    whirlwind_stopSmooth({_center})
+                else:
+                    whirlwind_stopSmooth(player's location)
                 send "&cStopped all Whirlwind events"
 
             else:
@@ -490,6 +556,10 @@ command /worldevent <text> [<text>] [<number>] [<number>]:
 
         else:
             send "&6--- World Events ---"
+            send "&e/worldevent setlocation &7- Set center to targeted block"
+            send "&e/worldevent clearlocation &7- Clear saved location"
+            send "&e/worldevent location &7- View saved location"
+            send ""
             send "&e/worldevent whirlwind start [radius] [duration]"
             send "&e/worldevent whirlwind startsmooth [radius] [duration]"
             send "&e/worldevent whirlwind stop"
