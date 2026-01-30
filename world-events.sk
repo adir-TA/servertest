@@ -435,7 +435,7 @@ function whirlwind_loop(center: location, radius: number, duration: integer):
 # Damage blocks under the tornado (exactly like shockwave_crackAtRadius)
 function whirlwind_damageBlocks(center: location):
     set {_startX} to floor(x-coord of {_center})
-    set {_startY} to floor(y-coord of {_center})
+    set {_startY} to floor(y-coord of {_center}) - 1
     set {_startZ} to floor(z-coord of {_center})
     set {_world} to world of {_center}
 
