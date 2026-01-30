@@ -66,7 +66,7 @@ function worldevent_clearSavedLocation():
 
 function whirlwind_start(center: location, radius: number, duration: integer):
     if worldevent_isActive("whirlwind") is true:
-        return
+        stop
 
     worldevent_setActive("whirlwind", true)
     worldevent_setCenter("whirlwind", {_center})
@@ -152,7 +152,8 @@ function whirlwind_drawForPlayer(p: player, x: number, y: number, z: number, w: 
         # Draw particles around the ring
         set {_particleCount} to 12 + ({_ring} * 4)  # More particles on outer rings
         loop {_particleCount} times:
-            set {_particleAngle} to {_ringAngle} + ((loop-number-2 - 1) * (360 / {_particleCount}))
+            set {_particleIndex} to loop-number
+            set {_particleAngle} to {_ringAngle} + (({_particleIndex} - 1) * (360 / {_particleCount}))
             set {_px} to {_x} + ({_ringRadius} * cos({_particleAngle}))
             set {_pz} to {_z} + ({_ringRadius} * sin({_particleAngle}))
 
@@ -163,9 +164,9 @@ function whirlwind_drawForPlayer(p: player, x: number, y: number, z: number, w: 
             draw 1 dust using dustOption(rgb(150, 150, 150), {_dustSize}) at {_particleLoc} for {_p}
 
             # Add some color variation
-            if mod(loop-number-2, 3) = 0:
+            if mod({_particleIndex}, 3) = 0:
                 draw 1 dust using dustOption(rgb(100, 180, 255), 1.2) at {_particleLoc} for {_p}
-            if mod(loop-number-2, 5) = 0:
+            if mod({_particleIndex}, 5) = 0:
                 draw 1 dust using dustOption(rgb(200, 200, 255), 1.0) at {_particleLoc} for {_p}
 
     # Draw the funnel core (vertical line of particles)
@@ -199,7 +200,7 @@ function whirlwind_drawForPlayer(p: player, x: number, y: number, z: number, w: 
 
 function whirlwind_stop():
     if worldevent_isActive("whirlwind") is false:
-        return
+        stop
 
     worldevent_setActive("whirlwind", false)
 
@@ -222,7 +223,7 @@ function whirlwind_stop():
 
 function whirlwind_startSmooth(center: location, radius: number, duration: integer):
     if worldevent_isActive("whirlwind_smooth") is true:
-        return
+        stop
 
     worldevent_setActive("whirlwind_smooth", true)
     worldevent_setCenter("whirlwind_smooth", {_center})
@@ -264,7 +265,8 @@ function whirlwind_spawnDisplays(p: player, center: location):
         set {_entitiesInRing} to 6 + ({_ring} * 2)
 
         loop {_entitiesInRing} times:
-            set {_angleOffset} to (loop-number-2 - 1) * (360 / {_entitiesInRing})
+            set {_entityIndex} to loop-number
+            set {_angleOffset} to ({_entityIndex} - 1) * (360 / {_entitiesInRing})
 
             set {_spawnLoc} to location({_x}, {_ringHeight}, {_z}, {_world})
 
@@ -401,7 +403,7 @@ function whirlwind_drawParticleEffects(p: player, x: number, y: number, z: numbe
 
 function whirlwind_stopSmooth(center: location):
     if worldevent_isActive("whirlwind_smooth") is false:
-        return
+        stop
 
     worldevent_setActive("whirlwind_smooth", false)
 
