@@ -1418,10 +1418,10 @@ function earthquake_damageRing(center: location, ringRadius: number):
         if mining_isMineable({_checkType}) = true:
             loop all players in radius 80 of {_checkLoc}:
                 if mining_isLocked(loop-player, {_checkLoc}) = false:
-                    earthquake_crackBlock(loop-player, {_checkLoc})
+                    quake_crackBlock(loop-player, {_checkLoc})
 
 
-function earthquake_crackBlock(p: player, loc: location):
+function quake_crackBlock(p: player, loc: location):
     if mining_hasSession({_p}, {_loc}) = false:
         mining_createSession({_p}, {_loc})
 
