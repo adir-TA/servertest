@@ -1171,6 +1171,16 @@ function earthquake_loop(center: location, radius: number, duration: integer):
             loop all players in radius 120 of {_center}:
                 earthquake_spawnFloatingBlocks(loop-player, {_center}, {_radius})
 
+        # GLOWING BLOCK RING PATTERN - display entities in circle patterns
+        if mod({_tickCount}, 20) = 0:
+            loop all players in radius 130 of {_center}:
+                earthquake_spawnGlowingRing(loop-player, {_center}, {_radius}, {_pulseCount})
+
+        # SMALL CLATTERING DEBRIS - tiny rocks scattered around
+        if mod({_tickCount}, 12) = 0:
+            loop all players in radius 100 of {_center}:
+                earthquake_spawnClatter(loop-player, {_center}, {_radius})
+
         # GROUND RUPTURE - blocks explode up from fissures
         if mod({_tickCount}, 40) = 0:
             loop all players in radius 100 of {_center}:
@@ -1191,59 +1201,60 @@ function earthquake_loop(center: location, radius: number, duration: integer):
                         earthquake_drawShockwave(loop-player, {_center}, {_waveRadius} - 12)
 
         # GROUND FISSURES - crack lines radiating from center
-        if mod({_tickCount}, 8) = 0:
-            set {_numFissures} to 12
+        if mod({_tickCount}, 10) = 0:
+            set {_numFissures} to 10
             loop all players in radius 120 of {_center}:
                 loop {_numFissures} times:
                     set {_fissureAngle} to (loop-number-2 - 1) * (360 / {_numFissures}) + (random number between -15 and 15)
                     set {_fissureLen} to random number between 5 and 20
                     earthquake_drawFissure(loop-player, {_center}, {_fissureAngle}, {_fissureLen})
 
-        # DUST CLOUDS rising from ground
-        if mod({_tickCount}, 4) = 0:
+        # DUST CLOUDS rising from ground - reduced
+        if mod({_tickCount}, 6) = 0:
             loop all players in radius 100 of {_center}:
-                loop 8 times:
+                loop 4 times:
                     set {_dustAngle} to random number between 0 and 360
                     set {_dustDist} to random number between 2 and ({_radius} * 0.8)
                     set {_dustX} to {_centerX} + ({_dustDist} * cos({_dustAngle}))
                     set {_dustZ} to {_centerZ} + ({_dustDist} * sin({_dustAngle}))
                     set {_dustLoc} to location({_dustX}, {_baseY} + 0.3, {_dustZ}, {_world})
-                    draw 2 of dust using dustOption(rgb(120, 100, 70), 2.0) at {_dustLoc} for loop-player
-                    draw 1 of campfire cosy smoke at {_dustLoc} with offset vector(0.3, 0.5, 0.3) for loop-player
+                    draw 1 of dust using dustOption(rgb(120, 100, 70), 1.8) at {_dustLoc} for loop-player
 
-        # GROUND SHAKE particles - small debris bouncing
-        if mod({_tickCount}, 2) = 0:
+        # GROUND SHAKE particles - reduced
+        if mod({_tickCount}, 3) = 0:
             loop all players in radius 80 of {_center}:
-                loop 10 times:
+                loop 5 times:
                     set {_shakeAngle} to random number between 0 and 360
                     set {_shakeDist} to random number between 1 and {_radius}
                     set {_shakeX} to {_centerX} + ({_shakeDist} * cos({_shakeAngle}))
                     set {_shakeZ} to {_centerZ} + ({_shakeDist} * sin({_shakeAngle}))
-                    set {_shakeLoc} to location({_shakeX}, {_baseY} + (random number between 0.1 and 0.6), {_shakeZ}, {_world})
-                    draw 1 of dust using dustOption(rgb(80, 70, 50), 1.2) at {_shakeLoc} for loop-player
+                    set {_shakeLoc} to location({_shakeX}, {_baseY} + (random number between 0.1 and 0.4), {_shakeZ}, {_world})
+                    draw 1 of dust using dustOption(rgb(80, 70, 50), 1.0) at {_shakeLoc} for loop-player
 
-        # BLOCK DAMAGE - damage blocks in waves
-        if mod({_tickCount}, 15) = 0:
-            set {_damageRadius} to mod({_tickCount} / 15, 6) * 3
+        # BLOCK DAMAGE - damage blocks in LARGER expanding waves
+        if mod({_tickCount}, 10) = 0:
+            set {_damageRadius} to mod({_tickCount} / 10, 10) * 5
             if {_damageRadius} > 0:
                 earthquake_damageRing({_center}, {_damageRadius})
+            # Also damage at inner radius
+            if {_damageRadius} > 10:
+                earthquake_damageRing({_center}, {_damageRadius} - 8)
 
         # SOUNDS - constant rumbling
-        if mod({_tickCount}, 10) = 0:
+        if mod({_tickCount}, 12) = 0:
             loop all players in radius 150 of {_center}:
-                play sound "block.gravel.break" with volume 0.6 and pitch 0.4 to loop-player
-                play sound "block.rooted_dirt.break" with volume 0.5 and pitch 0.3 to loop-player
+                play sound "block.gravel.break" with volume 0.5 and pitch 0.4 to loop-player
 
-        if mod({_tickCount}, 20) = 0:
+        if mod({_tickCount}, 25) = 0:
             loop all players in radius 150 of {_center}:
                 play sound "entity.ravager.roar" with volume 0.4 and pitch 0.4 to loop-player
 
-        if mod({_tickCount}, 35) = 0:
+        if mod({_tickCount}, 40) = 0:
             loop all players in radius 150 of {_center}:
                 play sound "block.respawn_anchor.charge" with volume 0.5 and pitch 0.3 to loop-player
 
         # Deep boom every so often
-        if mod({_tickCount}, 50) = 0:
+        if mod({_tickCount}, 55) = 0:
             loop all players in radius 200 of {_center}:
                 play sound "entity.warden.sonic_boom" with volume 0.4 and pitch 0.5 to loop-player
                 play sound "entity.generic.explode" with volume 0.3 and pitch 0.4 to loop-player
@@ -1252,6 +1263,167 @@ function earthquake_loop(center: location, radius: number, duration: integer):
         wait 1 tick
 
     earthquake_stop()
+
+
+# GLOWING BLOCK RING - blocks in a circle pattern with glow
+function earthquake_spawnGlowingRing(p: player, center: location, radius: number, pulseId: integer):
+    set {_world} to world of {_center}
+    set {_x} to x-coord of {_center}
+    set {_y} to y-coord of {_center}
+    set {_z} to z-coord of {_center}
+
+    # Ring radius varies with pulse
+    set {_ringRadius} to 8 + (mod({_pulseId}, 4) * 5)
+    set {_numBlocks} to 8 + (mod({_pulseId}, 3) * 4)
+
+    loop {_numBlocks} times:
+        set {_blockId} to random integer between 1000000 and 9999999
+        set {_angle} to (loop-number - 1) * (360 / {_numBlocks})
+        set {_blockX} to {_x} + ({_ringRadius} * cos({_angle}))
+        set {_blockZ} to {_z} + ({_ringRadius} * sin({_angle}))
+
+        set {_spawnLoc} to location({_blockX}, {_y}, {_blockZ}, {_world})
+        spawn fake item display at {_spawnLoc} for {_p} with id {_blockId}
+
+        # Alternating glow colors based on position
+        set {_glowType} to mod(loop-number, 3)
+        if {_glowType} = 0:
+            set {_glowColor} to rgb(255, 200, 100)
+            set {_item} to glowstone
+        else if {_glowType} = 1:
+            set {_glowColor} to rgb(255, 150, 50)
+            set {_item} to shroomlight
+        else:
+            set {_glowColor} to rgb(200, 180, 100)
+            set {_item} to ochre froglight
+
+        set {_scale} to random number between 0.3 and 0.6
+
+        set {_m} to new metadata packet with id {_blockId}:
+            display item: {_item}
+            display scale: vector({_scale}, {_scale}, {_scale})
+            display billboard: center
+            display brightness block: 15
+            display teleportduration: 3
+            glowing: true
+            display glow: {_glowColor}
+        send packet {_m} to {_p}
+
+        # Animate - rise, pulse glow, fall
+        earthquake_animateGlowBlock({_p}, {_blockId}, {_blockX}, {_y}, {_blockZ}, {_world}, {_scale}, {_glowType})
+
+
+# Glow block animation - rise, hover with pulsing, fall
+function earthquake_animateGlowBlock(p: player, eid: integer, x: number, baseY: number, z: number, w: world, scale: number, glowType: integer):
+    set {_currentY} to {_baseY}
+    set {_targetHeight} to random number between 1.0 and 2.5
+    set {_riseSpeed} to 0.12
+
+    # Rise up
+    while {_currentY} < ({_baseY} + {_targetHeight}):
+        add {_riseSpeed} to {_currentY}
+        set {_loc} to location({_x}, {_currentY}, {_z}, {_w})
+        send teleport packet with id {_eid} with location {_loc} to {_p}
+        wait 2 ticks
+
+    # Pulse glow effect - scale up and down
+    loop 8 times:
+        set {_pulseScale} to {_scale} * (1 + (sin(loop-number * 45) * 0.3))
+        set {_m} to new metadata packet with id {_eid}:
+            display scale: vector({_pulseScale}, {_pulseScale}, {_pulseScale})
+            display transformation: 2
+            display interpolation: 0
+        send packet {_m} to {_p}
+        wait 3 ticks
+
+    # Fall down
+    set {_fallSpeed} to 0.08
+    while {_currentY} > {_baseY}:
+        subtract {_fallSpeed} from {_currentY}
+        add 0.06 to {_fallSpeed}
+        if {_currentY} < {_baseY}:
+            set {_currentY} to {_baseY}
+        set {_loc} to location({_x}, {_currentY}, {_z}, {_w})
+        send teleport packet with id {_eid} with location {_loc} to {_p}
+        wait 1 tick
+
+    # Shrink and remove
+    set {_m} to new metadata packet with id {_eid}:
+        display scale: vector(0.05, 0.05, 0.05)
+        display transformation: 3
+        display interpolation: 0
+    send packet {_m} to {_p}
+
+    wait 3 ticks
+    remove fake entity with id {_eid} for {_p}
+
+
+# SMALL CLATTERING DEBRIS - tiny rocks that bounce briefly
+function earthquake_spawnClatter(p: player, center: location, radius: number):
+    set {_world} to world of {_center}
+    set {_x} to x-coord of {_center}
+    set {_y} to y-coord of {_center}
+    set {_z} to z-coord of {_center}
+
+    # Spawn 10-15 tiny debris pieces
+    set {_numDebris} to random integer between 10 and 15
+    loop {_numDebris} times:
+        set {_debrisId} to random integer between 1000000 and 9999999
+        set {_angle} to random number between 0 and 360
+        set {_dist} to random number between 3 and ({_radius} * 0.8)
+        set {_debrisX} to {_x} + ({_dist} * cos({_angle}))
+        set {_debrisZ} to {_z} + ({_dist} * sin({_angle}))
+
+        set {_spawnLoc} to location({_debrisX}, {_y}, {_debrisZ}, {_world})
+        spawn fake item display at {_spawnLoc} for {_p} with id {_debrisId}
+
+        # Tiny pebbles
+        set {_rand} to random integer between 1 and 4
+        if {_rand} = 1:
+            set {_item} to cobblestone
+        else if {_rand} = 2:
+            set {_item} to gravel
+        else if {_rand} = 3:
+            set {_item} to andesite
+        else:
+            set {_item} to stone
+
+        set {_scale} to random number between 0.15 and 0.3
+
+        set {_m} to new metadata packet with id {_debrisId}:
+            display item: {_item}
+            display scale: vector({_scale}, {_scale}, {_scale})
+            display billboard: center
+            display brightness block: 15
+            display teleportduration: 1
+        send packet {_m} to {_p}
+
+        # Quick bounce animation
+        earthquake_animateClatter({_p}, {_debrisId}, {_debrisX}, {_y}, {_debrisZ}, {_world})
+
+
+# Clatter animation - quick tiny bounce
+function earthquake_animateClatter(p: player, eid: integer, x: number, baseY: number, z: number, w: world):
+    set {_velocityY} to random number between 0.3 and 0.6
+    set {_currentY} to {_baseY}
+    set {_gravity} to 0.08
+
+    # Quick bounce up and down
+    loop 12 times:
+        add {_velocityY} to {_currentY}
+        subtract {_gravity} from {_velocityY}
+
+        if {_currentY} < {_baseY}:
+            set {_currentY} to {_baseY}
+            set {_velocityY} to {_velocityY} * -0.4
+
+        set {_loc} to location({_x}, {_currentY}, {_z}, {_w})
+        send teleport packet with id {_eid} with location {_loc} to {_p}
+
+        wait 1 tick
+
+    # Remove
+    remove fake entity with id {_eid} for {_p}
 
 
 # FLOATING BLOCKS - blocks rise from ground and hover/shake
