@@ -42,7 +42,9 @@ function worldevent_setSavedLocation(loc: location):
 
 # Check if saved location exists
 function worldevent_hasSavedLocation() :: boolean:
-    return {data::worldevent::savedLocation} is set
+    if {data::worldevent::savedLocation} is set:
+        return true
+    return false
 
 # Clear saved location
 function worldevent_clearSavedLocation():
@@ -187,8 +189,8 @@ function whirlwind_drawForPlayer(p: player, x: number, y: number, z: number, w: 
         set {_debrisZ} to {_z} + ({_debrisRadius} * sin({_debrisAngle}))
         set {_debrisLoc} to location({_debrisX}, {_y} + 0.5, {_debrisZ}, {_w})
 
-        draw 1 block dust of dirt at {_debrisLoc} for {_p}
-        draw 1 block dust of stone at {_debrisLoc} for {_p}
+        draw 1 dust using dustOption(rgb(139, 90, 43), 1.5) at {_debrisLoc} for {_p}
+        draw 1 dust using dustOption(rgb(128, 128, 128), 1.5) at {_debrisLoc} for {_p}
 
     # Ambient sound every few ticks
     if mod(floor({_spinAngle}), 45) = 0:
@@ -281,17 +283,17 @@ function whirlwind_spawnDisplays(p: player, center: location):
             set {-whirlwind::%{_uuid}%::scale::%{_entityCount}%} to {_scale}
 
             # Spawn text display entity via packets
-            send spawn packet for text display with id {_eid} at {_spawnLoc} to {_p}
+            spawn fake text display at {_spawnLoc} for {_p} with id {_eid}
 
             # Set initial appearance
             set {_m} to new metadata packet with id {_eid}:
-                display text: "&f█"
+                display text: "&b█"
                 display billboard: center
-                display text opacity: 200
                 display scale: vector({_scale}, {_scale}, {_scale})
-                display background color: bukkitColor from rgb 150, 200, 255, 180
+                display brightness block: 15
+                display teleportduration: 1
 
-            send {_m} to {_p}
+            send packet {_m} to {_p}
 
     set {-whirlwind::%{_uuid}%::count} to {_entityCount}
 
@@ -394,7 +396,7 @@ function whirlwind_drawParticleEffects(p: player, x: number, y: number, z: numbe
         set {_pz} to {_z} + ({_debrisRadius} * sin({_debrisAngle}))
         set {_loc} to location({_px}, {_debrisHeight}, {_pz}, {_w})
 
-        draw 1 block dust of cobblestone at {_loc} for {_p}
+        draw 1 dust using dustOption(rgb(128, 128, 128), 1.8) at {_loc} for {_p}
 
 
 function whirlwind_stopSmooth(center: location):
@@ -425,7 +427,7 @@ function whirlwind_despawnDisplays(p: player):
     loop {_count} times:
         set {_eid} to {-whirlwind::%{_uuid}%::eid::%loop-number%}
         if {_eid} is set:
-            send destroy packet for {_eid} to {_p}
+            remove fake entity with id {_eid} for {_p}
 
     # Clear stored data
     delete {-whirlwind::%{_uuid}%::*}

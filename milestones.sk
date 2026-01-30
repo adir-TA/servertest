@@ -102,14 +102,12 @@ function milestone_getBlocksRequirement(milestone: integer) :: number:
     if {_milestone} <= 0:
         return 0
 
-    # Check if wall milestone
-    set {_isWall} to mod({_milestone}, 25) = 0
-
     # Base formula: 100 * milestone^1.8 for regular
     # Wall milestones get 5x requirement multiplier
     set {_base} to 100 * ({_milestone} ^ 1.8)
 
-    if {_isWall} is true:
+    # Check if wall milestone (every 25th)
+    if mod({_milestone}, 25) = 0:
         set {_base} to {_base} * 5
 
     return floor({_base})
@@ -119,22 +117,22 @@ function milestone_getPrestigeRequirement(milestone: integer) :: number:
     if {_milestone} <= 0:
         return 0
 
-    # Check if wall milestone
-    set {_isWall} to mod({_milestone}, 25) = 0
-
     # Prestige milestones scale slower (prestiges are rarer)
     # Base: milestone^1.3 for regular
     # Wall milestones get 3x requirement multiplier
     set {_base} to {_milestone} ^ 1.3
 
-    if {_isWall} is true:
+    # Check if wall milestone (every 25th)
+    if mod({_milestone}, 25) = 0:
         set {_base} to {_base} * 3
 
     return floor({_base})
 
 # Check if milestone is a wall milestone
 function milestone_isWall(milestone: integer) :: boolean:
-    return mod({_milestone}, 25) = 0
+    if mod({_milestone}, 25) = 0:
+        return true
+    return false
 
 
 # ============================================================
@@ -634,8 +632,16 @@ function milestone_openBlocksMenu(p: player):
         set {_slot} to loop-value
         set {_req} to milestone_getBlocksRequirement({_milestoneNum})
         set {_isWall} to milestone_isWall({_milestoneNum})
-        set {_reached} to {_totalBlocks} >= {_req}
-        set {_claimed} to {_milestoneNum} <= {_claimedMilestone}
+
+        # Check if reached and claimed
+        if {_totalBlocks} >= {_req}:
+            set {_reached} to true
+        else:
+            set {_reached} to false
+        if {_milestoneNum} <= {_claimedMilestone}:
+            set {_claimed} to true
+        else:
+            set {_claimed} to false
 
         # Determine item and status
         if {_claimed} is true:
@@ -756,8 +762,16 @@ function milestone_openPrestigeMenu(p: player):
         set {_slot} to loop-value
         set {_req} to milestone_getPrestigeRequirement({_milestoneNum})
         set {_isWall} to milestone_isWall({_milestoneNum})
-        set {_reached} to {_totalPrestiges} >= {_req}
-        set {_claimed} to {_milestoneNum} <= {_claimedMilestone}
+
+        # Check if reached and claimed
+        if {_totalPrestiges} >= {_req}:
+            set {_reached} to true
+        else:
+            set {_reached} to false
+        if {_milestoneNum} <= {_claimedMilestone}:
+            set {_claimed} to true
+        else:
+            set {_claimed} to false
 
         # Determine item and status
         if {_claimed} is true:
