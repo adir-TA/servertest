@@ -355,48 +355,71 @@ function whirlwind_loop(center: location, radius: number, duration: integer):
                         set {_entityLoc} to location({_px}, {_py}, {_pz}, {_world})
                         send teleport packet with id {_eid} with location {_entityLoc} to {_loopPlayer}
 
-        # PARTICLE EFFECTS - spread out to reduce load
-        if mod({_tickCount}, 2) = 0:
-            loop all players in radius 120 of {_center}:
-                set {_particlePlayer} to loop-player
+        # PARTICLE EFFECTS - dense and dramatic
+        loop all players in radius 120 of {_center}:
+            set {_particlePlayer} to loop-player
 
-                # Ground dust swirl
-                loop 4 times:
-                    set {_dustAngle} to {_spinAngle} + (loop-number-2 * 90) + (random number between -15 and 15)
-                    set {_dustRadius} to 2 + (random number between 0 and 3)
-                    set {_dustX} to {_tornadoX} + ({_dustRadius} * cos({_dustAngle}))
-                    set {_dustZ} to {_tornadoZ} + ({_dustRadius} * sin({_dustAngle}))
-                    set {_dustLoc} to location({_dustX}, {_baseY} + 0.3, {_dustZ}, {_world})
-                    draw 1 dust using dustOption(rgb(110, 90, 70), 2.0) at {_dustLoc} for {_particlePlayer}
+            # Ground dust swirl - more particles
+            loop 8 times:
+                set {_dustAngle} to {_spinAngle} + (loop-number-2 * 45) + (random number between -20 and 20)
+                set {_dustRadius} to 1.5 + (random number between 0 and 4)
+                set {_dustX} to {_tornadoX} + ({_dustRadius} * cos({_dustAngle}))
+                set {_dustZ} to {_tornadoZ} + ({_dustRadius} * sin({_dustAngle}))
+                set {_dustLoc} to location({_dustX}, {_baseY} + 0.2, {_dustZ}, {_world})
+                draw 1 dust using dustOption(rgb(100, 80, 60), 2.5) at {_dustLoc} for {_particlePlayer}
 
-        # Rising funnel particles - less frequent
+            # Inner swirl - tighter spiral
+            loop 6 times:
+                set {_innerAngle} to ({_spinAngle} * 1.5) + (loop-number-2 * 60)
+                set {_innerRadius} to 0.8 + (loop-number-2 * 0.3)
+                set {_innerX} to {_tornadoX} + ({_innerRadius} * cos({_innerAngle}))
+                set {_innerZ} to {_tornadoZ} + ({_innerRadius} * sin({_innerAngle}))
+                set {_innerLoc} to location({_innerX}, {_baseY} + 0.5 + (loop-number-2 * 0.5), {_innerZ}, {_world})
+                draw 1 dust using dustOption(rgb(80, 70, 50), 1.8) at {_innerLoc} for {_particlePlayer}
+
+        # Rising funnel particles - every tick for density
+        loop all players in radius 100 of {_center}:
+            set {_particlePlayer} to loop-player
+            loop 10 times:
+                set {_funnelHeight} to (loop-number-2 * 4) + (random number between 0 and 3)
+                set {_funnelRadius} to 1.5 + ({_funnelHeight} * 0.28)
+                set {_funnelAngle} to {_spinAngle} * (1 + (loop-number-2 * 0.05)) + (random number between 0 and 360)
+                set {_fx} to {_tornadoX} + ({_funnelRadius} * cos({_funnelAngle}))
+                set {_fz} to {_tornadoZ} + ({_funnelRadius} * sin({_funnelAngle}))
+                set {_funnelLoc} to location({_fx}, {_baseY} + {_funnelHeight}, {_fz}, {_world})
+
+                set {_grayVal} to 80 + floor({_funnelHeight} * 3)
+                if {_grayVal} > 200:
+                    set {_grayVal} to 200
+                draw 1 dust using dustOption(rgb({_grayVal}, {_grayVal}, {_grayVal}), 1.8) at {_funnelLoc} for {_particlePlayer}
+
+            # Debris particles flying around
+            loop 4 times:
+                set {_debrisAngle} to {_spinAngle} * 0.8 + (loop-number-2 * 90) + (random number between -30 and 30)
+                set {_debrisRadius} to 8 + (random number between 0 and 6)
+                set {_debrisHeight} to (random number between 3 and 30)
+                set {_dx} to {_tornadoX} + ({_debrisRadius} * cos({_debrisAngle}))
+                set {_dz} to {_tornadoZ} + ({_debrisRadius} * sin({_debrisAngle}))
+                set {_debrisLoc} to location({_dx}, {_baseY} + {_debrisHeight}, {_dz}, {_world})
+                draw 1 dust using dustOption(rgb(139, 90, 43), 1.5) at {_debrisLoc} for {_particlePlayer}
+
+        # Cloud puffs at top - more frequent
         if mod({_tickCount}, 4) = 0:
             loop all players in radius 100 of {_center}:
                 set {_particlePlayer} to loop-player
-                loop 5 times:
-                    set {_funnelHeight} to (loop-number-2 * 8) + (random number between 0 and 6)
-                    set {_funnelRadius} to 2 + ({_funnelHeight} * 0.22)
-                    set {_funnelAngle} to {_spinAngle} * (1 + (loop-number-2 * 0.04)) + (random number between 0 and 360)
-                    set {_fx} to {_tornadoX} + ({_funnelRadius} * cos({_funnelAngle}))
-                    set {_fz} to {_tornadoZ} + ({_funnelRadius} * sin({_funnelAngle}))
-                    set {_funnelLoc} to location({_fx}, {_baseY} + {_funnelHeight}, {_fz}, {_world})
-
-                    set {_grayVal} to 90 + floor({_funnelHeight} * 2.5)
-                    if {_grayVal} > 180:
-                        set {_grayVal} to 180
-                    draw 1 dust using dustOption(rgb({_grayVal}, {_grayVal}, {_grayVal}), 1.5) at {_funnelLoc} for {_particlePlayer}
-
-        # Cloud puffs at top
-        if mod({_tickCount}, 8) = 0:
-            loop all players in radius 100 of {_center}:
-                set {_particlePlayer} to loop-player
-                loop 2 times:
+                loop 4 times:
                     set {_cloudAngle} to random number between 0 and 360
-                    set {_cloudRadius} to 10 + (random number between 0 and 6)
+                    set {_cloudRadius} to 8 + (random number between 0 and 8)
                     set {_cx} to {_tornadoX} + ({_cloudRadius} * cos({_cloudAngle}))
                     set {_cz} to {_tornadoZ} + ({_cloudRadius} * sin({_cloudAngle}))
-                    set {_cloudLoc} to location({_cx}, {_baseY} + 38 + (random number between 0 and 10), {_cz}, {_world})
-                    draw 1 cloud at {_cloudLoc} with offset vector(0.8, 0.4, 0.8) for {_particlePlayer}
+                    set {_cloudLoc} to location({_cx}, {_baseY} + 35 + (random number between 0 and 12), {_cz}, {_world})
+                    draw 2 cloud at {_cloudLoc} with offset vector(1, 0.5, 1) for {_particlePlayer}
+
+        # Smoke rising from center
+        if mod({_tickCount}, 3) = 0:
+            loop all players in radius 80 of {_center}:
+                set {_smokeLoc} to location({_tornadoX}, {_baseY} + 2, {_tornadoZ}, {_world})
+                draw 3 of campfire cosy smoke at {_smokeLoc} with offset vector(0.5, 1, 0.5) for loop-player
 
         # SOUNDS - ambient
         if mod({_tickCount}, 20) = 0:
@@ -459,34 +482,20 @@ function whirlwind_damageBlocks(center: location):
                         whirlwind_crackBlock(loop-player, {_checkLoc})
 
 
-# Crack a block for a player (exactly like tornado_crackBlock)
+# Crack a block for a player - instantly to stage 8 (one more hit breaks it)
 function whirlwind_crackBlock(p: player, loc: location):
-    set {_currentProgress} to mining_getProgress({_p}, {_loc})
-    set {_currentStage} to mining_getVisualStageFromProgress({_currentProgress})
-
-    # Add 2-4 stages of damage
-    set {_stagesToAdd} to random integer between 2 and 4
-    set {_progressToAdd} to {_stagesToAdd} / 10
-
-    set {_newProgress} to {_currentProgress} + {_progressToAdd}
-
-    # Cap at 0.8 (stage 8) - don't fully break
-    if {_newProgress} > 0.8:
-        set {_newProgress} to 0.8
-
     # Create session if needed
     if mining_hasSession({_p}, {_loc}) = false:
         mining_createSession({_p}, {_loc})
 
-    # Set progress
-    mining_setProgress({_p}, {_loc}, {_newProgress})
+    # Set directly to 0.8 (stage 8) - one more hit breaks it
+    mining_setProgress({_p}, {_loc}, 0.8)
 
-    # Show visual damage
+    # Show visual damage at stage 8
     set {_key} to mining_getLocKey({_loc})
-    set {_newStage} to mining_getVisualStageFromProgress({_newProgress})
     set {_id} to {-miningData::%{_p}'s uuid%::damageID::%{_key}%}
-    make {_p} see damage of block at {_loc} as {_newStage} / 10 from {_id}
-    set {-miningData::%{_p}'s uuid%::lastStage::%{_key}%} to {_newStage}
+    make {_p} see damage of block at {_loc} as 0.8 from {_id}
+    set {-miningData::%{_p}'s uuid%::lastStage::%{_key}%} to 8
 
     # Play crack sound
     play sound "block.stone.hit" with volume 0.15 and pitch 0.9 at {_loc} for {_p}
