@@ -301,7 +301,8 @@ function whirlwind_loop(center: location, radius: number, duration: integer):
 
         # BLOCK DAMAGE - damage blocks under the tornado
         if mod({_tickCount}, 10) = 0:
-            whirlwind_damageBlocks({_tornadoX}, {_baseY}, {_tornadoZ}, {_world})
+            set {_tornadoLoc} to location({_tornadoX}, {_baseY}, {_tornadoZ}, {_world})
+            whirlwind_damageBlocks({_tornadoLoc})
 
         # Update entities every 5 ticks (synced with teleportduration: 5)
         if mod({_tickCount}, 5) = 0:
@@ -431,42 +432,35 @@ function whirlwind_loop(center: location, radius: number, duration: integer):
     whirlwind_stop()
 
 
-# Damage blocks under the tornado (cracks to stage 8 max)
-# Uses the saved Y level from setlocation (same as all mineable blocks)
-function whirlwind_damageBlocks(x: number, baseY: number, z: number, w: world):
-    set {_tornadoX} to floor({_x})
-    set {_tornadoZ} to floor({_z})
-    set {_blockY} to floor({_baseY})
+# Damage blocks under the tornado (exactly like shockwave_crackAtRadius)
+function whirlwind_damageBlocks(center: location):
+    set {_startX} to floor(x-coord of {_center})
+    set {_startY} to floor(y-coord of {_center})
+    set {_startZ} to floor(z-coord of {_center})
+    set {_world} to world of {_center}
 
-    # Check blocks in a 5x5 area around tornado base at the BLOCK Y level
+    # Check blocks in a 5x5 area around tornado base (same Y level)
     loop integers from -2 to 2:
         set {_dx} to loop-value
         loop integers from -2 to 2:
             set {_dz} to loop-value-2
 
-            set {_blockX} to {_tornadoX} + {_dx}
-            set {_blockZ} to {_tornadoZ} + {_dz}
-            set {_blockLoc} to location({_blockX}, {_blockY}, {_blockZ}, {_w})
-            set {_blockType} to type of block at {_blockLoc}
+            set {_checkLoc} to location({_startX} + {_dx}, {_startY}, {_startZ} + {_dz}, {_world})
+            set {_checkType} to type of block at {_checkLoc}
 
-            # Skip air and bedrock
-            if {_blockType} is air:
-                continue
-            if {_blockType} is bedrock:
+            # Skip bedrock
+            if {_checkType} is bedrock:
                 continue
 
             # Check if mineable and damage for all nearby players
-            if mining_isMineable({_blockType}) = true:
-                loop all players in radius 80 of {_blockLoc}:
-                    whirlwind_crackBlockForPlayer(loop-player, {_blockLoc}, {_blockType})
+            if mining_isMineable({_checkType}) = true:
+                loop all players in radius 80 of {_checkLoc}:
+                    if mining_isLocked(loop-player, {_checkLoc}) = false:
+                        whirlwind_crackBlock(loop-player, {_checkLoc})
 
 
-# Crack a block for a player (like tornado_crackBlock)
-function whirlwind_crackBlockForPlayer(p: player, loc: location, blockType: item):
-    # Skip if locked for this player
-    if mining_isLocked({_p}, {_loc}) = true:
-        stop
-
+# Crack a block for a player (exactly like tornado_crackBlock)
+function whirlwind_crackBlock(p: player, loc: location):
     set {_currentProgress} to mining_getProgress({_p}, {_loc})
     set {_currentStage} to mining_getVisualStageFromProgress({_currentProgress})
 
@@ -495,7 +489,7 @@ function whirlwind_crackBlockForPlayer(p: player, loc: location, blockType: item
     set {-miningData::%{_p}'s uuid%::lastStage::%{_key}%} to {_newStage}
 
     # Play crack sound
-    play sound "block.stone.hit" with volume 0.2 and pitch 0.8 at {_loc} for {_p}
+    play sound "block.stone.hit" with volume 0.15 and pitch 0.9 at {_loc} for {_p}
 
 
 function whirlwind_stop():
