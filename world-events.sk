@@ -1176,20 +1176,27 @@ function earthquake_loop(center: location, radius: number, duration: integer):
             loop all players in radius 100 of {_center}:
                 earthquake_spawnRupture(loop-player, {_center}, {_radius})
 
-        # Expand current pulse outward with GROUND LIFT effect
+        # Expand current pulse outward with GROUND LIFT effect - MULTIPLE RINGS
         if mod({_tickCount}, 3) = 0:
-            set {_waveRadius} to mod({_tickCount}, 30) * 2
+            set {_waveRadius} to mod({_tickCount}, 30) * 3
             if {_waveRadius} > 0:
-                loop all players in radius 120 of {_center}:
+                loop all players in radius 150 of {_center}:
+                    # Main shockwave ring
                     earthquake_drawShockwave(loop-player, {_center}, {_waveRadius})
+                    # Secondary inner ring
+                    if {_waveRadius} > 8:
+                        earthquake_drawShockwave(loop-player, {_center}, {_waveRadius} - 6)
+                    # Third ring for extra effect
+                    if {_waveRadius} > 16:
+                        earthquake_drawShockwave(loop-player, {_center}, {_waveRadius} - 12)
 
         # GROUND FISSURES - crack lines radiating from center
         if mod({_tickCount}, 8) = 0:
-            set {_numFissures} to 8
-            loop all players in radius 100 of {_center}:
+            set {_numFissures} to 12
+            loop all players in radius 120 of {_center}:
                 loop {_numFissures} times:
-                    set {_fissureAngle} to (loop-number-2 - 1) * (360 / {_numFissures}) + (random number between -10 and 10)
-                    set {_fissureLen} to random number between 3 and 12
+                    set {_fissureAngle} to (loop-number-2 - 1) * (360 / {_numFissures}) + (random number between -15 and 15)
+                    set {_fissureLen} to random number between 5 and 20
                     earthquake_drawFissure(loop-player, {_center}, {_fissureAngle}, {_fissureLen})
 
         # DUST CLOUDS rising from ground
@@ -1576,12 +1583,12 @@ function earthquake_drawShockwave(p: player, center: location, waveRadius: numbe
     set {_y} to y-coord of {_center}
     set {_z} to z-coord of {_center}
 
-    # Draw ring of particles
-    set {_points} to floor({_waveRadius} * 3)
-    if {_points} < 12:
-        set {_points} to 12
-    if {_points} > 40:
-        set {_points} to 40
+    # Draw ring of particles - more points for larger rings
+    set {_points} to floor({_waveRadius} * 4)
+    if {_points} < 16:
+        set {_points} to 16
+    if {_points} > 60:
+        set {_points} to 60
 
     loop {_points} times:
         set {_angle} to (loop-number - 1) * (360 / {_points})
@@ -1589,12 +1596,22 @@ function earthquake_drawShockwave(p: player, center: location, waveRadius: numbe
         set {_pz} to {_z} + ({_waveRadius} * sin({_angle}))
         set {_particleLoc} to location({_px}, {_y} + 0.2, {_pz}, {_world})
 
-        # Dust ring
-        draw 1 of dust using dustOption(rgb(100, 85, 60), 1.5) at {_particleLoc} for {_p}
+        # Main dust ring - bigger particles
+        draw 1 of dust using dustOption(rgb(110, 95, 70), 2.0) at {_particleLoc} for {_p}
 
-        # Every few points add extra effects
+        # Ground crack effect at wave front
+        if mod(loop-number, 3) = 0:
+            draw 1 of dust using dustOption(rgb(50, 45, 35), 1.2) at location({_px}, {_y} + 0.05, {_pz}, {_world}) for {_p}
+
+        # Rising debris particles
         if mod(loop-number, 4) = 0:
-            draw 1 of campfire cosy smoke at {_particleLoc} with offset vector(0.2, 0.3, 0.2) for {_p}
+            set {_riseY} to {_y} + (random number between 0.3 and 0.8)
+            draw 1 of dust using dustOption(rgb(90, 80, 60), 1.5) at location({_px}, {_riseY}, {_pz}, {_world}) for {_p}
+            draw 1 of campfire cosy smoke at {_particleLoc} with offset vector(0.2, 0.4, 0.2) for {_p}
+
+        # Extra ground disturbance every few points
+        if mod(loop-number, 6) = 0:
+            draw 1 of explosion at location({_px}, {_y} + 0.1, {_pz}, {_world}) with offset vector(0.3, 0.1, 0.3) for {_p}
 
 
 function earthquake_drawFissure(p: player, center: location, angle: number, length: number):
@@ -1789,8 +1806,8 @@ command /worldevent <text> [<text>] [<number>] [<number>]:
 
         else if arg-1 is "earthquake":
             if arg-2 is "start":
-                set {_radius} to arg-3 ? 25
-                set {_duration} to arg-4 ? 45
+                set {_radius} to arg-3 ? 40
+                set {_duration} to arg-4 ? 50
 
                 if worldevent_hasSavedLocation() is true:
                     set {_center} to worldevent_getSavedLocation()
