@@ -5,9 +5,10 @@
 # Admin-command only world events
 # Any player can benefit from any event
 # Entirely player-sided, packet-based visuals
+# NO server-side entities - everything is client packets
 #
 # Events:
-#   - Whirlwind: Large tornado spinning around the map
+#   - Whirlwind: Massive tornado with debris and effects
 #
 # ============================================================
 
@@ -16,52 +17,43 @@
 # EVENT STATE TRACKING
 # ============================================================
 
-# Check if an event is active
 function worldevent_isActive(event: text) :: boolean:
     return {-worldevent::%{_event}%::active} ? false
 
-# Set event active state
 function worldevent_setActive(event: text, active: boolean):
     set {-worldevent::%{_event}%::active} to {_active}
 
-# Get current event center location
 function worldevent_getCenter(event: text) :: location:
     return {-worldevent::%{_event}%::center}
 
-# Set event center
 function worldevent_setCenter(event: text, loc: location):
     set {-worldevent::%{_event}%::center} to {_loc}
 
-# Get saved event location (persistent across commands)
 function worldevent_getSavedLocation() :: location:
     return {data::worldevent::savedLocation}
 
-# Set saved event location
 function worldevent_setSavedLocation(loc: location):
     set {data::worldevent::savedLocation} to {_loc}
 
-# Check if saved location exists
 function worldevent_hasSavedLocation() :: boolean:
     if {data::worldevent::savedLocation} is set:
         return true
     return false
 
-# Clear saved location
 function worldevent_clearSavedLocation():
     delete {data::worldevent::savedLocation}
 
 
 # ============================================================
-# WHIRLWIND EVENT
+# WHIRLWIND EVENT - WORLD EVENT VERSION
 # ============================================================
-# A massive tornado that spins around the map
-# Uses display entities for smooth visuals (like tornado enchant)
-#
-# Features:
-#   - Multiple rotating rings of item display entities
-#   - Funnel shape (narrow at bottom, wide at top)
-#   - Smooth circular path around a center point
-#   - Per-player packet-based rendering
+# Massive tornado with:
+#   - Smooth interpolated display entities (no flicker)
+#   - Flying debris blocks
+#   - Dust clouds and particles
+#   - Lightning flashes
+#   - Dynamic swaying motion
+#   - Epic sounds
 # ============================================================
 
 function whirlwind_start(center: location, radius: number, duration: integer):
@@ -71,22 +63,28 @@ function whirlwind_start(center: location, radius: number, duration: integer):
     worldevent_setActive("whirlwind", true)
     worldevent_setCenter("whirlwind", {_center})
 
-    # Announce event start
+    # Epic announcement
     broadcast ""
-    broadcast "&b&m                                              "
-    broadcast "&b&l⚡ WORLD EVENT: WHIRLWIND! ⚡"
-    broadcast "&7A massive tornado has appeared!"
-    broadcast "&b&m                                              "
+    broadcast "&8&m                                                  "
+    broadcast ""
+    broadcast "            &b&l⚡ &f&lWORLD EVENT &b&l⚡"
+    broadcast "              &b&lWHIRLWIND"
+    broadcast ""
+    broadcast "     &7A &bmassive tornado &7has touched down!"
+    broadcast ""
+    broadcast "&8&m                                                  "
     broadcast ""
 
+    # Dramatic sounds for everyone
     loop all players:
-        play sound "entity.wither.spawn" with volume 0.8 and pitch 0.5 to loop-player
+        play sound "entity.wither.spawn" with volume 1.0 and pitch 0.4 to loop-player
+        play sound "entity.lightning_bolt.thunder" with volume 0.8 and pitch 0.6 to loop-player
 
-    # Spawn display entities for all nearby players
-    loop all players in radius 150 of {_center}:
+    # Spawn display entities for nearby players
+    loop all players in radius 200 of {_center}:
         whirlwind_spawnForPlayer(loop-player, {_center})
 
-    # Start the animation loop
+    # Start animation loop
     whirlwind_loop({_center}, {_radius}, {_duration})
 
 
@@ -100,52 +98,44 @@ function whirlwind_spawnForPlayer(p: player, center: location):
     set {_baseId} to random integer between 100000 and 9999999
     set {_entityCount} to 0
 
-    # Tornado ring configuration (height, radius, entity count per ring)
-    # 10 rings for a large tornado
-    set {_ringHeight::1} to 0.5
-    set {_ringRadius::1} to 1.5
-    set {_ringCount::1} to 6
+    # MAIN FUNNEL - 8 rings of blocks
+    # Height, radius, count per ring
+    set {_ringHeight::1} to 1
+    set {_ringRadius::1} to 2
+    set {_ringCount::1} to 8
 
-    set {_ringHeight::2} to 2.0
-    set {_ringRadius::2} to 2.5
-    set {_ringCount::2} to 8
+    set {_ringHeight::2} to 4
+    set {_ringRadius::2} to 3.5
+    set {_ringCount::2} to 10
 
-    set {_ringHeight::3} to 4.0
-    set {_ringRadius::3} to 3.5
-    set {_ringCount::3} to 10
+    set {_ringHeight::3} to 8
+    set {_ringRadius::3} to 5
+    set {_ringCount::3} to 12
 
-    set {_ringHeight::4} to 6.5
-    set {_ringRadius::4} to 4.5
-    set {_ringCount::4} to 12
+    set {_ringHeight::4} to 13
+    set {_ringRadius::4} to 6.5
+    set {_ringCount::4} to 14
 
-    set {_ringHeight::5} to 9.5
-    set {_ringRadius::5} to 5.5
-    set {_ringCount::5} to 14
+    set {_ringHeight::5} to 19
+    set {_ringRadius::5} to 8
+    set {_ringCount::5} to 16
 
-    set {_ringHeight::6} to 13.0
-    set {_ringRadius::6} to 6.5
-    set {_ringCount::6} to 16
+    set {_ringHeight::6} to 26
+    set {_ringRadius::6} to 10
+    set {_ringCount::6} to 18
 
-    set {_ringHeight::7} to 17.0
-    set {_ringRadius::7} to 7.5
-    set {_ringCount::7} to 18
+    set {_ringHeight::7} to 34
+    set {_ringRadius::7} to 12
+    set {_ringCount::7} to 20
 
-    set {_ringHeight::8} to 21.0
-    set {_ringRadius::8} to 8.5
-    set {_ringCount::8} to 20
+    set {_ringHeight::8} to 43
+    set {_ringRadius::8} to 14
+    set {_ringCount::8} to 22
 
-    set {_ringHeight::9} to 25.0
-    set {_ringRadius::9} to 9.5
-    set {_ringCount::9} to 22
-
-    set {_ringHeight::10} to 30.0
-    set {_ringRadius::10} to 10.5
-    set {_ringCount::10} to 24
-
-    set {_numRings} to 10
+    set {_numRings} to 8
     set {_spawnLoc} to location({_x}, {_y}, {_z}, {_world})
 
-    # Spawn entities for each ring
+    # Spawn main funnel entities
     loop {_numRings} times:
         set {_ring} to loop-number
         set {_count} to {_ringCount::%{_ring}%}
@@ -155,39 +145,101 @@ function whirlwind_spawnForPlayer(p: player, center: location):
             add 1 to {_entityCount}
             set {_eid} to {_baseId} + {_entityCount}
 
-            # Store entity data
             set {-whirlwind::%{_uuid}%::eid::%{_entityCount}%} to {_eid}
             set {-whirlwind::%{_uuid}%::ring::%{_entityCount}%} to {_ring}
             set {-whirlwind::%{_uuid}%::angleOffset::%{_entityCount}%} to ({_innerIndex} - 1) * (360 / {_count})
+            set {-whirlwind::%{_uuid}%::type::%{_entityCount}%} to "funnel"
 
-            # Spawn the display entity
             spawn fake item display at {_spawnLoc} for {_p} with id {_eid}
 
-            # Color based on ring height (darker at bottom, lighter at top)
-            if {_ring} <= 3:
-                set {_item} to gray concrete
-            else if {_ring} <= 6:
-                set {_item} to light gray concrete
+            # Varied blocks for texture
+            set {_rand} to random integer between 1 and 10
+            if {_ring} <= 2:
+                if {_rand} <= 6:
+                    set {_item} to gray concrete
+                else if {_rand} <= 8:
+                    set {_item} to cobblestone
+                else:
+                    set {_item} to gravel
+            else if {_ring} <= 5:
+                if {_rand} <= 5:
+                    set {_item} to light gray concrete
+                else if {_rand} <= 7:
+                    set {_item} to stone
+                else if {_rand} <= 9:
+                    set {_item} to andesite
+                else:
+                    set {_item} to clay
             else:
-                set {_item} to white concrete
+                if {_rand} <= 4:
+                    set {_item} to white concrete
+                else if {_rand} <= 6:
+                    set {_item} to diorite
+                else if {_rand} <= 8:
+                    set {_item} to quartz block
+                else:
+                    set {_item} to snow block
 
-            # Scale increases with height
-            set {_scale} to 0.8 + ({_ring} * 0.15)
+            set {_scale} to 0.6 + ({_ring} * 0.12) + (random number between 0 and 0.2)
             set {-whirlwind::%{_uuid}%::scale::%{_entityCount}%} to {_scale}
 
-            # Set initial appearance
+            # IMPORTANT: teleportduration 3 for smooth interpolation
             set {_m} to new metadata packet with id {_eid}:
                 display item: {_item}
                 display scale: vector(0.01, 0.01, 0.01)
                 display billboard: center
                 display brightness block: 15
-                display teleportduration: 1
+                display teleportduration: 3
             send packet {_m} to {_p}
+
+    # DEBRIS - Flying blocks around the tornado
+    loop 15 times:
+        add 1 to {_entityCount}
+        set {_eid} to {_baseId} + {_entityCount}
+
+        set {-whirlwind::%{_uuid}%::eid::%{_entityCount}%} to {_eid}
+        set {-whirlwind::%{_uuid}%::type::%{_entityCount}%} to "debris"
+        set {-whirlwind::%{_uuid}%::debrisHeight::%{_entityCount}%} to random number between 2 and 35
+        set {-whirlwind::%{_uuid}%::debrisRadius::%{_entityCount}%} to random number between 15 and 25
+        set {-whirlwind::%{_uuid}%::debrisSpeed::%{_entityCount}%} to random number between 0.8 and 1.5
+        set {-whirlwind::%{_uuid}%::angleOffset::%{_entityCount}%} to random number between 0 and 360
+
+        spawn fake item display at {_spawnLoc} for {_p} with id {_eid}
+
+        # Random debris items
+        set {_rand} to random integer between 1 and 8
+        if {_rand} = 1:
+            set {_item} to oak log
+        else if {_rand} = 2:
+            set {_item} to oak planks
+        else if {_rand} = 3:
+            set {_item} to dirt
+        else if {_rand} = 4:
+            set {_item} to grass block
+        else if {_rand} = 5:
+            set {_item} to cobblestone
+        else if {_rand} = 6:
+            set {_item} to oak leaves
+        else if {_rand} = 7:
+            set {_item} to hay bale
+        else:
+            set {_item} to bricks
+
+        set {_scale} to random number between 0.4 and 0.9
+        set {-whirlwind::%{_uuid}%::scale::%{_entityCount}%} to {_scale}
+
+        set {_m} to new metadata packet with id {_eid}:
+            display item: {_item}
+            display scale: vector(0.01, 0.01, 0.01)
+            display billboard: center
+            display brightness block: 15
+            display teleportduration: 3
+        send packet {_m} to {_p}
 
     set {-whirlwind::%{_uuid}%::count} to {_entityCount}
 
-    # Pop in animation
-    wait 1 tick
+    # Pop-in animation
+    wait 2 ticks
 
     loop {_entityCount} times:
         set {_e} to loop-number
@@ -196,11 +248,11 @@ function whirlwind_spawnForPlayer(p: player, center: location):
 
         set {_m} to new metadata packet with id {_eid}:
             display scale: vector({_s}, {_s}, {_s})
-            display transformation: 3
+            display transformation: 4
             display interpolation: 0
         send packet {_m} to {_p}
 
-    play sound "entity.wither.shoot" with volume 0.5 and pitch 0.6 to {_p}
+    play sound "entity.wither.shoot" with volume 0.6 and pitch 0.5 to {_p}
 
 
 function whirlwind_loop(center: location, radius: number, duration: integer):
@@ -209,34 +261,28 @@ function whirlwind_loop(center: location, radius: number, duration: integer):
     set {_centerZ} to z-coord of {_center}
     set {_baseY} to y-coord of {_center}
 
-    # Ring height/radius config (must match spawnForPlayer)
-    set {_ringHeight::1} to 0.5
-    set {_ringRadius::1} to 1.5
-    set {_ringHeight::2} to 2.0
-    set {_ringRadius::2} to 2.5
-    set {_ringHeight::3} to 4.0
-    set {_ringRadius::3} to 3.5
-    set {_ringHeight::4} to 6.5
-    set {_ringRadius::4} to 4.5
-    set {_ringHeight::5} to 9.5
-    set {_ringRadius::5} to 5.5
-    set {_ringHeight::6} to 13.0
-    set {_ringRadius::6} to 6.5
-    set {_ringHeight::7} to 17.0
-    set {_ringRadius::7} to 7.5
-    set {_ringHeight::8} to 21.0
-    set {_ringRadius::8} to 8.5
-    set {_ringHeight::9} to 25.0
-    set {_ringRadius::9} to 9.5
-    set {_ringHeight::10} to 30.0
-    set {_ringRadius::10} to 10.5
+    # Ring config (must match spawn)
+    set {_ringHeight::1} to 1
+    set {_ringRadius::1} to 2
+    set {_ringHeight::2} to 4
+    set {_ringRadius::2} to 3.5
+    set {_ringHeight::3} to 8
+    set {_ringRadius::3} to 5
+    set {_ringHeight::4} to 13
+    set {_ringRadius::4} to 6.5
+    set {_ringHeight::5} to 19
+    set {_ringRadius::5} to 8
+    set {_ringHeight::6} to 26
+    set {_ringRadius::6} to 10
+    set {_ringHeight::7} to 34
+    set {_ringRadius::7} to 12
+    set {_ringHeight::8} to 43
+    set {_ringRadius::8} to 14
 
-    # Path around center
     set {_pathAngle} to 0
     set {_pathRadius} to {_radius}
-
-    # Internal spin
     set {_spinAngle} to 0
+    set {_swayAngle} to 0
 
     set {_totalTicks} to {_duration} * 20
     set {_tickCount} to 0
@@ -245,62 +291,132 @@ function whirlwind_loop(center: location, radius: number, duration: integer):
         if worldevent_isActive("whirlwind") is false:
             stop
 
-        # Calculate tornado center position on circular path
-        set {_tornadoX} to {_centerX} + ({_pathRadius} * cos({_pathAngle}))
-        set {_tornadoZ} to {_centerZ} + ({_pathRadius} * sin({_pathAngle}))
+        # Tornado path position with sway
+        set {_sway} to sin({_swayAngle}) * 3
+        set {_tornadoX} to {_centerX} + ({_pathRadius} * cos({_pathAngle})) + {_sway}
+        set {_tornadoZ} to {_centerZ} + ({_pathRadius} * sin({_pathAngle})) + (cos({_swayAngle} * 0.7) * 2)
 
-        # Update display entities for all nearby players
+        # Update entities every 3 ticks (smooth with teleportduration: 3)
+        if mod({_tickCount}, 3) = 0:
+            loop all players in radius 200 of {_center}:
+                set {_loopPlayer} to loop-player
+                set {_uuid} to {_loopPlayer}'s uuid
+                set {_count} to {-whirlwind::%{_uuid}%::count} ? 0
+
+                if {_count} <= 0:
+                    whirlwind_spawnForPlayer({_loopPlayer}, {_center})
+                    continue
+
+                loop {_count} times:
+                    set {_e} to loop-number-2
+                    set {_eid} to {-whirlwind::%{_uuid}%::eid::%{_e}%}
+                    set {_type} to {-whirlwind::%{_uuid}%::type::%{_e}%}
+
+                    if {_type} is "funnel":
+                        set {_ring} to {-whirlwind::%{_uuid}%::ring::%{_e}%}
+                        set {_angleOffset} to {-whirlwind::%{_uuid}%::angleOffset::%{_e}%}
+
+                        set {_height} to {_ringHeight::%{_ring}%}
+                        set {_ringRad} to {_ringRadius::%{_ring}%}
+
+                        # Higher rings spin faster and sway more
+                        set {_ringSpinMod} to 1 + ({_ring} * 0.1)
+                        set {_ringSway} to sin({_swayAngle} + ({_ring} * 15)) * ({_ring} * 0.3)
+                        set {_angle} to ({_spinAngle} * {_ringSpinMod}) + {_angleOffset}
+
+                        set {_px} to {_tornadoX} + ({_ringRad} * cos({_angle})) + {_ringSway}
+                        set {_pz} to {_tornadoZ} + ({_ringRad} * sin({_angle}))
+                        set {_py} to {_baseY} + {_height}
+
+                        set {_entityLoc} to location({_px}, {_py}, {_pz}, {_world})
+                        send teleport packet with id {_eid} with location {_entityLoc} to {_loopPlayer}
+
+                    else if {_type} is "debris":
+                        set {_debrisHeight} to {-whirlwind::%{_uuid}%::debrisHeight::%{_e}%}
+                        set {_debrisRadius} to {-whirlwind::%{_uuid}%::debrisRadius::%{_e}%}
+                        set {_debrisSpeed} to {-whirlwind::%{_uuid}%::debrisSpeed::%{_e}%}
+                        set {_angleOffset} to {-whirlwind::%{_uuid}%::angleOffset::%{_e}%}
+
+                        set {_debrisAngle} to ({_spinAngle} * {_debrisSpeed}) + {_angleOffset}
+                        set {_bobble} to sin({_spinAngle} * 2 + {_angleOffset}) * 2
+
+                        set {_px} to {_tornadoX} + ({_debrisRadius} * cos({_debrisAngle}))
+                        set {_pz} to {_tornadoZ} + ({_debrisRadius} * sin({_debrisAngle}))
+                        set {_py} to {_baseY} + {_debrisHeight} + {_bobble}
+
+                        set {_entityLoc} to location({_px}, {_py}, {_pz}, {_world})
+                        send teleport packet with id {_eid} with location {_entityLoc} to {_loopPlayer}
+
+        # PARTICLE EFFECTS - every tick for density
         loop all players in radius 150 of {_center}:
-            set {_loopPlayer} to loop-player
-            set {_uuid} to {_loopPlayer}'s uuid
-            set {_count} to {-whirlwind::%{_uuid}%::count} ? 0
+            set {_particlePlayer} to loop-player
 
-            if {_count} <= 0:
-                # Player joined mid-event, spawn entities for them
-                whirlwind_spawnForPlayer({_loopPlayer}, {_center})
-                continue
+            # Ground dust swirl
+            loop 6 times:
+                set {_dustAngle} to {_spinAngle} + (loop-number-2 * 60) + (random number between -10 and 10)
+                set {_dustRadius} to 3 + (random number between 0 and 4)
+                set {_dustX} to {_tornadoX} + ({_dustRadius} * cos({_dustAngle}))
+                set {_dustZ} to {_tornadoZ} + ({_dustRadius} * sin({_dustAngle}))
+                set {_dustLoc} to location({_dustX}, {_baseY} + 0.5, {_dustZ}, {_world})
+                draw 1 dust using dustOption(rgb(120, 100, 80), 2.5) at {_dustLoc} for {_particlePlayer}
 
-            # Update each entity position
-            loop {_count} times:
-                set {_e} to loop-number-2
-                set {_eid} to {-whirlwind::%{_uuid}%::eid::%{_e}%}
-                set {_ring} to {-whirlwind::%{_uuid}%::ring::%{_e}%}
-                set {_angleOffset} to {-whirlwind::%{_uuid}%::angleOffset::%{_e}%}
+            # Funnel particles rising
+            if mod({_tickCount}, 2) = 0:
+                loop 8 times:
+                    set {_funnelHeight} to (loop-number-2 * 5) + (random number between 0 and 4)
+                    set {_funnelRadius} to 2 + ({_funnelHeight} * 0.25)
+                    set {_funnelAngle} to {_spinAngle} * (1 + (loop-number-2 * 0.05)) + (random number between 0 and 360)
+                    set {_fx} to {_tornadoX} + ({_funnelRadius} * cos({_funnelAngle}))
+                    set {_fz} to {_tornadoZ} + ({_funnelRadius} * sin({_funnelAngle}))
+                    set {_funnelLoc} to location({_fx}, {_baseY} + {_funnelHeight}, {_fz}, {_world})
 
-                # Get ring parameters
-                set {_height} to {_ringHeight::%{_ring}%}
-                set {_ringRad} to {_ringRadius::%{_ring}%}
+                    set {_grayVal} to 100 + floor({_funnelHeight} * 3)
+                    if {_grayVal} > 200:
+                        set {_grayVal} to 200
+                    draw 1 dust using dustOption(rgb({_grayVal}, {_grayVal}, {_grayVal}), 1.8) at {_funnelLoc} for {_particlePlayer}
 
-                # Different spin speed per ring (higher rings spin faster)
-                set {_ringSpinMod} to 1 + ({_ring} * 0.08)
-                set {_angle} to ({_spinAngle} * {_ringSpinMod}) + {_angleOffset}
+            # Cloud puffs at top
+            if mod({_tickCount}, 5) = 0:
+                loop 3 times:
+                    set {_cloudAngle} to random number between 0 and 360
+                    set {_cloudRadius} to 12 + (random number between 0 and 5)
+                    set {_cx} to {_tornadoX} + ({_cloudRadius} * cos({_cloudAngle}))
+                    set {_cz} to {_tornadoZ} + ({_cloudRadius} * sin({_cloudAngle}))
+                    set {_cloudLoc} to location({_cx}, {_baseY} + 40 + (random number between 0 and 8), {_cz}, {_world})
+                    draw 2 cloud at {_cloudLoc} with offset vector(1, 0.5, 1) for {_particlePlayer}
 
-                # Calculate position
-                set {_px} to {_tornadoX} + ({_ringRad} * cos({_angle}))
-                set {_pz} to {_tornadoZ} + ({_ringRad} * sin({_angle}))
-                set {_py} to {_baseY} + {_height}
-
-                set {_entityLoc} to location({_px}, {_py}, {_pz}, {_world})
-                send teleport packet with id {_eid} with location {_entityLoc} to {_loopPlayer}
-
-        # Ambient sound every second
-        if mod({_tickCount}, 20) = 0:
+        # SOUNDS
+        if mod({_tickCount}, 15) = 0:
             loop all players in radius 100 of {_center}:
-                play sound "item.elytra.flying" with volume 0.4 and pitch 0.5 to loop-player
+                play sound "item.elytra.flying" with volume 0.6 and pitch 0.4 to loop-player
+
+        if mod({_tickCount}, 40) = 0:
+            loop all players in radius 150 of {_center}:
+                play sound "entity.phantom.flap" with volume 0.5 and pitch 0.6 to loop-player
+
+        # Random lightning flash
+        if mod({_tickCount}, 100) = 0:
+            set {_rand} to random integer between 1 and 3
+            if {_rand} = 1:
+                loop all players in radius 200 of {_center}:
+                    play sound "entity.lightning_bolt.thunder" with volume 0.4 and pitch 1.2 to loop-player
+                    play sound "entity.lightning_bolt.impact" with volume 0.3 and pitch 1.0 to loop-player
 
         # Update angles
-        add 1.5 to {_pathAngle}  # Speed around center
-        add 12 to {_spinAngle}   # Internal spin speed
+        add 1.2 to {_pathAngle}
+        add 8 to {_spinAngle}
+        add 3 to {_swayAngle}
 
         if {_pathAngle} >= 360:
             subtract 360 from {_pathAngle}
         if {_spinAngle} >= 360:
             subtract 360 from {_spinAngle}
+        if {_swayAngle} >= 360:
+            subtract 360 from {_swayAngle}
 
         add 1 to {_tickCount}
         wait 1 tick
 
-    # End the event
     whirlwind_stop()
 
 
@@ -309,21 +425,22 @@ function whirlwind_stop():
         stop
 
     worldevent_setActive("whirlwind", false)
-    set {_center} to worldevent_getCenter("whirlwind")
 
-    # Despawn entities for all players
+    # Despawn for all players
     loop all players:
         whirlwind_despawnForPlayer(loop-player)
 
-    # Announce event end
     broadcast ""
-    broadcast "&7&m                                              "
-    broadcast "&7The whirlwind has dissipated..."
-    broadcast "&7&m                                              "
+    broadcast "&8&m                                                  "
+    broadcast ""
+    broadcast "         &7The &bwhirlwind &7has dissipated..."
+    broadcast ""
+    broadcast "&8&m                                                  "
     broadcast ""
 
     loop all players:
-        play sound "entity.generic.extinguish_fire" with volume 0.8 and pitch 0.8 to loop-player
+        play sound "entity.generic.extinguish_fire" with volume 0.8 and pitch 0.6 to loop-player
+        play sound "block.powder_snow.break" with volume 0.6 and pitch 0.8 to loop-player
 
 
 function whirlwind_despawnForPlayer(p: player):
@@ -333,32 +450,30 @@ function whirlwind_despawnForPlayer(p: player):
     if {_count} <= 0:
         stop
 
-    # Shrink animation
+    # Shrink out animation
     loop {_count} times:
         set {_e} to loop-number
         set {_eid} to {-whirlwind::%{_uuid}%::eid::%{_e}%}
         if {_eid} is set:
             set {_m} to new metadata packet with id {_eid}:
                 display scale: vector(0.01, 0.01, 0.01)
-                display transformation: 3
+                display transformation: 4
                 display interpolation: 0
             send packet {_m} to {_p}
 
-    wait 3 ticks
+    wait 4 ticks
 
-    # Remove entities
     loop {_count} times:
         set {_e} to loop-number
         set {_eid} to {-whirlwind::%{_uuid}%::eid::%{_e}%}
         if {_eid} is set:
             remove fake entity with id {_eid} for {_p}
 
-    # Clear stored data
     delete {-whirlwind::%{_uuid}%::*}
 
 
 # ============================================================
-# CLEANUP ON PLAYER EVENTS
+# CLEANUP
 # ============================================================
 
 on quit:
@@ -366,11 +481,10 @@ on quit:
         delete {-whirlwind::%player's uuid%::*}
 
 on join:
-    # If whirlwind is active, spawn displays for joining player
     if worldevent_isActive("whirlwind") is true:
         set {_center} to worldevent_getCenter("whirlwind")
         if {_center} is set:
-            if distance between player's location and {_center} <= 150:
+            if distance between player's location and {_center} <= 200:
                 wait 10 ticks
                 whirlwind_spawnForPlayer(player, {_center})
 
@@ -383,16 +497,14 @@ command /worldevent <text> [<text>] [<number>] [<number>]:
     permission: op
     trigger:
         if arg-1 is "setlocation":
-            # Set the saved location to the block the player is looking at
             set {_targetBlock} to target block of player
             if {_targetBlock} is air:
-                # If looking at air, use player's location
                 set {_loc} to player's location
                 worldevent_setSavedLocation({_loc})
                 send "&aSaved event location to your current position"
             else:
                 set {_loc} to location of {_targetBlock}
-                add 1 to y-coord of {_loc}  # Spawn above the block
+                add 1 to y-coord of {_loc}
                 worldevent_setSavedLocation({_loc})
                 send "&aSaved event location to targeted block"
             send "&7Location: &e%x-coord of {_loc}%, %y-coord of {_loc}%, %z-coord of {_loc}%"
@@ -419,17 +531,16 @@ command /worldevent <text> [<text>] [<number>] [<number>]:
                 set {_radius} to arg-3 ? 30
                 set {_duration} to arg-4 ? 60
 
-                # Use saved location if set, otherwise player's location
                 if worldevent_hasSavedLocation() is true:
                     set {_center} to worldevent_getSavedLocation()
-                    send "&aStarted Whirlwind event at saved location"
+                    send "&aStarted Whirlwind at saved location"
                 else:
                     set {_center} to player's location
-                    send "&aStarted Whirlwind event at your location"
+                    send "&aStarted Whirlwind at your location"
                     send "&7Tip: Use &e/worldevent setlocation &7to set a fixed center"
 
                 whirlwind_start({_center}, {_radius}, {_duration})
-                send "&7Radius: %{_radius}%, Duration: %{_duration}%s"
+                send "&7Radius: %{_radius}% blocks, Duration: %{_duration}%s"
 
             else if arg-2 is "stop":
                 whirlwind_stop()
@@ -442,7 +553,7 @@ command /worldevent <text> [<text>] [<number>] [<number>]:
         else if arg-1 is "list":
             send "&6--- Active World Events ---"
             if worldevent_isActive("whirlwind") is true:
-                send "&7- &bWhirlwind"
+                send "&7- &b⚡ Whirlwind"
             else:
                 send "&7No events currently active"
 
