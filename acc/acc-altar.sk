@@ -437,6 +437,19 @@ function acc_playTreasureAnimation(p: player, treasureId: text, amount: integer)
 
     set {-acc::opening::%{_p}'s uuid%} to true
 
+    # Check accessory storage space
+    set {_currentStorage} to acc_getInventorySize({_p})
+    set {_maxStorage} to acc_getStorageMax()
+    set {_spaceAvailable} to {_maxStorage} - {_currentStorage}
+    if {_spaceAvailable} < {_amount}:
+        send "&cNot enough accessory storage space!" to {_p}
+        send "&7You have &e%{_currentStorage}%&7/&e%{_maxStorage}% &7accessories." to {_p}
+        send "&7Need &e%{_amount}% &7free slots. You have &c%{_spaceAvailable}%&7." to {_p}
+        send "&7Salvage some accessories first!" to {_p}
+        play sound "entity.villager.no" with volume 0.8 and pitch 1 to {_p}
+        delete {-acc::opening::%{_p}'s uuid%}
+        stop
+
     # Verify and use keys from inventory
     set {_hasKeys} to acc_getKeyCount({_p}, {_treasureId})
     if {_hasKeys} < {_amount}:
@@ -1039,15 +1052,24 @@ function acc_playTreasureAnimation(p: player, treasureId: text, amount: integer)
     # Restore the altar block
     make {_p} see block at {_altarLoc} as {_originalBlock}
 
-    # Give rewards only for non-salvaged items
+    # Give rewards only for non-salvaged items (with overflow protection)
+    set {_overflowTokens} to 0
+    set {_overflowCount} to 0
     loop {_amount} times:
         set {_i} to loop-number
         if {_salvaged::%{_i}%} is not true:
-            acc_addToInventory({_p}, {_encoded::%{_i}%})
+            set {_added} to acc_addToInventory({_p}, {_encoded::%{_i}%})
+            if {_added} is false:
+                # Storage full - auto-salvage overflow
+                set {_overflowValue} to acc_getSalvageValue({_rarity::%{_i}%})
+                add {_overflowValue} to {_overflowTokens}
+                add 1 to {_overflowCount}
+                set {_salvaged::%{_i}%} to true
 
-    # Give salvage tokens if any
-    if {_totalSalvageTokens} > 0:
-        mining_giveTokens({_p}, {_totalSalvageTokens})
+    # Give salvage tokens if any (including overflow)
+    set {_totalTokens} to {_totalSalvageTokens} + {_overflowTokens}
+    if {_totalTokens} > 0:
+        mining_giveTokens({_p}, {_totalTokens})
 
     # Send summary
     send "" to {_p}
@@ -1055,7 +1077,8 @@ function acc_playTreasureAnimation(p: player, treasureId: text, amount: integer)
     send "%{_color}%%{_treasureName}% &7x%{_amount}%" to {_p}
     send "" to {_p}
 
-    if {_keptCount} > 0:
+    set {_actualKept} to {_keptCount} - {_overflowCount}
+    if {_actualKept} > 0:
         send "&7You obtained:" to {_p}
         loop {_amount} times:
             set {_i} to loop-number
@@ -1067,6 +1090,9 @@ function acc_playTreasureAnimation(p: player, treasureId: text, amount: integer)
 
     if {_salvageCount} > 0:
         send "&8Auto-salvaged %{_salvageCount}% accessories: &6+%{_totalSalvageTokens}% tokens" to {_p}
+
+    if {_overflowCount} > 0:
+        send "&c⚠ Storage full! %{_overflowCount}% accessories converted to &6+%{_overflowTokens}% tokens" to {_p}
 
     send "" to {_p}
 

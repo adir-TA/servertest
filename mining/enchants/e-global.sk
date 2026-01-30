@@ -30,36 +30,41 @@ function excavator_getBonusTokens(level: integer) :: integer:
 
 # Returns NEGATIVE if magnet procced, POSITIVE otherwise
 # Calling code should: check if result < 0 for magnetProc, then use abs()
-function enchant_procExcavator(p: player, hardness: number) :: integer:
+# allowMagnet: set to false when called from enchants (Laser, etc) to prevent magnet from proccing
+function enchant_procExcavator(p: player, hardness: number, allowMagnet: boolean = true) :: integer:
     set {_id} to enchant_getIdByString("Excavator")
 
     set {_baseTokens} to excavator_getBaseTokens({_hardness})
 
     if enchant_checkIfEquipped({_p}, {_id}) = false:
         return {_baseTokens}
-    
+
     set {_level} to enchant_getPlayerLevelByString({_p}, "Excavator")
-    
+
     if {_level} < 1:
         return {_baseTokens}
-    
+
     set {_bonusTokens} to excavator_getBonusTokens({_level})
     set {_totalTokens} to {_baseTokens} + {_bonusTokens}
-    
+
+    # Don't allow magnet to proc from other enchants
+    if {_allowMagnet} is false:
+        return {_totalTokens}
+
     # Check if magnet is equipped and procs
     set {_magnetID} to enchant_getIdByString("Magnet")
-    
-    if enchant_checkIfEquipped({_p}, {_magnetID}) = false:
+
+    if enchant_checkIfEquipped({_p}, {_magnetID}) is false:
         return {_totalTokens}
-    
+
     set {_magnetLevel} to enchant_getPlayerLevelByString({_p}, "Magnet")
-    
+
     if {_magnetLevel} < 1:
         return {_totalTokens}
-    
-    if enchant_rollChance({_p}, {_magnetLevel}) = false:
+
+    if enchant_rollChance({_p}, {_magnetLevel}) is false:
         return {_totalTokens}
-    
+
     # Magnet procced - return negative to signal this
     return ({_totalTokens} * 2) * -1
 
@@ -91,12 +96,14 @@ function enchant_procMagnet(p: player, tokens: integer) :: integer:
 
 function excavator_addTokens(p: player, loc: location, tokens: integer, magnetProc: boolean):
     add {_tokens} to {-excavator::%{_p}'s uuid%::pending}
-    
-    if {_magnetProc} = true:
+
+    # Only set magnet to true if this proc had magnet
+    # Don't override existing true with false (accumulate any magnet procs)
+    if {_magnetProc} is true:
         set {-excavator::%{_p}'s uuid%::magnet} to true
-    
+
     set {-excavator::%{_p}'s uuid%::loc} to {_loc}
-    
+
     if {-excavator::%{_p}'s uuid%::scheduled} is not set:
         set {-excavator::%{_p}'s uuid%::scheduled} to true
         excavator_flushTokens({_p})

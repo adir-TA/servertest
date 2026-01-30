@@ -265,10 +265,10 @@ function laser_playEffect(p: player, origin: location, target: location, multipl
 function laser_destroyBlock(p: player, loc: location, multiplier: integer):
     # Clear any existing mining session on this block
     mining_clearSession({_p}, {_loc})
-    
+
     set {_type} to type of block at {_loc}
     set {_hardness} to mining_getHardness({_type})
-    
+
     # Check if block was amplified
     set {_isAmplified} to amplify_isAmplified({_p}, {_loc})
     if {_isAmplified} = true:
@@ -278,32 +278,19 @@ function laser_destroyBlock(p: player, loc: location, multiplier: integer):
         amplify_showText({_p}, {_loc})
     else:
         set {_finalMultiplier} to {_multiplier}
-    
+
     # Block break sound
     play sound "block.stone.break" with volume 1 and pitch 0.8 at {_loc} for {_p}
-    
+
     # Block loot animation
     packetBlockLoot({_p}, {_loc}, {_type})
-    
-    # Only Excavator can proc (no Prospecting, Tornado, Amplify, etc.)
-    set {_tokens} to enchant_procExcavator({_p}, {_hardness})
-    if {_tokens} > 0:
-        set {_tokens} to {_tokens} * {_finalMultiplier}
-        
-        set {_baseTokens} to excavator_getBaseTokens({_hardness})
-        set {_level} to enchant_getPlayerLevelByString({_p}, "Excavator")
-        set {_maxBonus} to ceil({_level} / 20)
-        if {_maxBonus} < 1:
-            set {_maxBonus} to 1
-        set {_expectedMax} to ({_baseTokens} + {_maxBonus}) * {_finalMultiplier}
-        
-        if {_tokens} > {_expectedMax}:
-            set {_magnetProc} to true
-        else:
-            set {_magnetProc} to false
-        
-        mining_giveTokens({_p}, {_tokens})
-        excavator_addTokens({_p}, {_loc}, {_tokens}, {_magnetProc})
+
+    # Only Excavator can proc (no Magnet, no Prospecting, no other enchants)
+    set {_tokens} to enchant_procExcavator({_p}, {_hardness}, false)
+    set {_tokens} to {_tokens} * {_finalMultiplier}
+
+    mining_giveTokens({_p}, {_tokens})
+    excavator_addTokens({_p}, {_loc}, {_tokens}, false)
     
     # Get Fortune level for bonus drops
     set {_fortuneID} to enchant_getIdByString("Fortune")
