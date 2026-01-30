@@ -10,6 +10,7 @@
 # Events:
 #   - Whirlwind: Massive tornado with debris and effects
 #   - Meteor Rain: Meteors falling from sky with explosions
+#   - Earthquake: Ground shaking with fissures and bouncing rocks
 #
 # ============================================================
 
@@ -987,6 +988,10 @@ function meteor_impact(p: player, loc: location, coreScale: number, numPieces: i
             set {_fragLoc} to location({_fragX}, {_fragY}, {_fragZ}, {_world})
             send teleport packet with id {_eid} with location {_fragLoc} to {_p}
 
+            # Store final landing position for block damage
+            set {_finalX::%{_i}%} to {_fragX}
+            set {_finalZ::%{_i}%} to {_fragZ}
+
             # Fire trail on each fragment
             draw 1 of flame at {_fragLoc} for {_p}
             draw 1 of dust using dustOption(rgb(255, 150, 0), 1.2) at {_fragLoc} for {_p}
@@ -995,6 +1000,27 @@ function meteor_impact(p: player, loc: location, coreScale: number, numPieces: i
         draw 3 of flame at {_loc} with offset vector(0.5, 0.3, 0.5) for {_p}
 
         wait 2 ticks
+
+    # Damage blocks where each fragment landed
+    loop {_numPieces} times:
+        set {_i} to loop-number
+        set {_landX} to {_finalX::%{_i}%}
+        set {_landZ} to {_finalZ::%{_i}%}
+        set {_landLoc} to location({_landX}, {_y} - 1, {_landZ}, {_world})
+
+        # Small impact effect at each fragment
+        draw 3 of flame at location({_landX}, {_y}, {_landZ}, {_world}) for {_p}
+        draw 2 of dust using dustOption(rgb(255, 100, 0), 1.0) at location({_landX}, {_y}, {_landZ}, {_world}) for {_p}
+
+        # Damage block at landing spot
+        set {_landBlockType} to type of block at {_landLoc}
+        if {_landBlockType} is not bedrock:
+            if mining_isMineable({_landBlockType}) = true:
+                if mining_isLocked({_p}, {_landLoc}) = false:
+                    meteor_crackBlock({_p}, {_landLoc})
+
+    # Small impact sound for fragments
+    play sound "block.basalt.break" with volume 0.4 and pitch 0.8 at {_loc} for {_p}
 
     # Shrink fragments to nothing with glow fade
     loop {_numPieces} times:
@@ -1076,6 +1102,353 @@ function meteor_stop():
 
     loop all players:
         play sound "entity.ender_dragon.death" with volume 0.5 and pitch 0.8 to loop-player
+
+
+# ============================================================
+# EARTHQUAKE EVENT
+# ============================================================
+# Massive ground-shaking event with:
+#   - Shockwave pulses radiating outward
+#   - Ground fissure crack particles
+#   - Bouncing rock debris (display entities)
+#   - Dust clouds rising from ground
+#   - Deep rumbling sounds
+#   - Block damage in expanding waves
+# ============================================================
+
+function earthquake_start(center: location, radius: number, duration: integer):
+    if worldevent_isActive("earthquake") is true:
+        stop
+
+    worldevent_setActive("earthquake", true)
+    worldevent_setCenter("earthquake", {_center})
+
+    # Epic announcement
+    broadcast ""
+    broadcast "&8&m                                                  "
+    broadcast ""
+    broadcast "            &6&l⚠ &f&lWORLD EVENT &6&l⚠"
+    broadcast "              &6&lEARTHQUAKE"
+    broadcast ""
+    broadcast "     &7The ground &6trembles &7beneath your feet!"
+    broadcast ""
+    broadcast "&8&m                                                  "
+    broadcast ""
+
+    # Initial rumble for everyone
+    loop all players:
+        play sound "entity.ender_dragon.growl" with volume 1.0 and pitch 0.3 to loop-player
+        play sound "block.respawn_anchor.deplete" with volume 0.8 and pitch 0.4 to loop-player
+
+    # Start the earthquake loop
+    earthquake_loop({_center}, {_radius}, {_duration})
+
+
+function earthquake_loop(center: location, radius: number, duration: integer):
+    set {_world} to world of {_center}
+    set {_centerX} to x-coord of {_center}
+    set {_centerZ} to z-coord of {_center}
+    set {_baseY} to y-coord of {_center}
+
+    set {_totalTicks} to {_duration} * 20
+    set {_tickCount} to 0
+    set {_pulseRadius} to 0
+    set {_pulseCount} to 0
+
+    while {_tickCount} < {_totalTicks}:
+        if worldevent_isActive("earthquake") is false:
+            stop
+
+        # SHOCKWAVE PULSE - every 30 ticks send out a new wave
+        if mod({_tickCount}, 30) = 0:
+            add 1 to {_pulseCount}
+            # Spawn bouncing rocks at the epicenter
+            loop all players in radius 150 of {_center}:
+                earthquake_spawnRocks(loop-player, {_center}, {_pulseCount})
+
+        # Expand current pulse outward
+        if mod({_tickCount}, 3) = 0:
+            set {_waveRadius} to mod({_tickCount}, 30) * 2
+            if {_waveRadius} > 0:
+                loop all players in radius 120 of {_center}:
+                    earthquake_drawShockwave(loop-player, {_center}, {_waveRadius})
+
+        # GROUND FISSURES - crack lines radiating from center
+        if mod({_tickCount}, 8) = 0:
+            set {_numFissures} to 8
+            loop all players in radius 100 of {_center}:
+                loop {_numFissures} times:
+                    set {_fissureAngle} to (loop-number-2 - 1) * (360 / {_numFissures}) + (random number between -10 and 10)
+                    set {_fissureLen} to random number between 3 and 12
+                    earthquake_drawFissure(loop-player, {_center}, {_fissureAngle}, {_fissureLen})
+
+        # DUST CLOUDS rising from ground
+        if mod({_tickCount}, 4) = 0:
+            loop all players in radius 100 of {_center}:
+                loop 6 times:
+                    set {_dustAngle} to random number between 0 and 360
+                    set {_dustDist} to random number between 2 and ({_radius} * 0.6)
+                    set {_dustX} to {_centerX} + ({_dustDist} * cos({_dustAngle}))
+                    set {_dustZ} to {_centerZ} + ({_dustDist} * sin({_dustAngle}))
+                    set {_dustLoc} to location({_dustX}, {_baseY} + 0.3, {_dustZ}, {_world})
+                    draw 2 of dust using dustOption(rgb(120, 100, 70), 2.0) at {_dustLoc} for loop-player
+                    draw 1 of campfire cosy smoke at {_dustLoc} with offset vector(0.3, 0.5, 0.3) for loop-player
+
+        # GROUND SHAKE particles - small debris bouncing
+        if mod({_tickCount}, 2) = 0:
+            loop all players in radius 80 of {_center}:
+                loop 8 times:
+                    set {_shakeAngle} to random number between 0 and 360
+                    set {_shakeDist} to random number between 1 and {_radius}
+                    set {_shakeX} to {_centerX} + ({_shakeDist} * cos({_shakeAngle}))
+                    set {_shakeZ} to {_centerZ} + ({_shakeDist} * sin({_shakeAngle}))
+                    set {_shakeLoc} to location({_shakeX}, {_baseY} + (random number between 0.1 and 0.5), {_shakeZ}, {_world})
+                    draw 1 of dust using dustOption(rgb(80, 70, 50), 1.2) at {_shakeLoc} for loop-player
+
+        # BLOCK DAMAGE - damage blocks in waves
+        if mod({_tickCount}, 15) = 0:
+            set {_damageRadius} to mod({_tickCount} / 15, 6) * 3
+            if {_damageRadius} > 0:
+                earthquake_damageRing({_center}, {_damageRadius})
+
+        # SOUNDS - constant rumbling
+        if mod({_tickCount}, 10) = 0:
+            loop all players in radius 150 of {_center}:
+                play sound "block.gravel.break" with volume 0.6 and pitch 0.4 to loop-player
+                play sound "block.rooted_dirt.break" with volume 0.5 and pitch 0.3 to loop-player
+
+        if mod({_tickCount}, 20) = 0:
+            loop all players in radius 150 of {_center}:
+                play sound "entity.ravager.roar" with volume 0.4 and pitch 0.4 to loop-player
+
+        if mod({_tickCount}, 35) = 0:
+            loop all players in radius 150 of {_center}:
+                play sound "block.respawn_anchor.charge" with volume 0.5 and pitch 0.3 to loop-player
+
+        # Deep boom every so often
+        if mod({_tickCount}, 50) = 0:
+            loop all players in radius 200 of {_center}:
+                play sound "entity.warden.sonic_boom" with volume 0.4 and pitch 0.5 to loop-player
+                play sound "entity.generic.explode" with volume 0.3 and pitch 0.4 to loop-player
+
+        add 1 to {_tickCount}
+        wait 1 tick
+
+    earthquake_stop()
+
+
+function earthquake_spawnRocks(p: player, center: location, pulseId: integer):
+    set {_world} to world of {_center}
+    set {_x} to x-coord of {_center}
+    set {_y} to y-coord of {_center}
+    set {_z} to z-coord of {_center}
+
+    # Spawn 6-8 bouncing rocks around epicenter
+    set {_numRocks} to random integer between 6 and 8
+    loop {_numRocks} times:
+        set {_rockId} to random integer between 1000000 and 9999999
+        set {_angle} to (loop-number - 1) * (360 / {_numRocks}) + (random number between -20 and 20)
+        set {_dist} to random number between 2 and 8
+        set {_rockX} to {_x} + ({_dist} * cos({_angle}))
+        set {_rockZ} to {_z} + ({_dist} * sin({_angle}))
+
+        set {_spawnLoc} to location({_rockX}, {_y}, {_rockZ}, {_world})
+        spawn fake item display at {_spawnLoc} for {_p} with id {_rockId}
+
+        # Random rock type
+        set {_rand} to random integer between 1 and 6
+        if {_rand} = 1:
+            set {_item} to cobblestone
+        else if {_rand} = 2:
+            set {_item} to stone
+        else if {_rand} = 3:
+            set {_item} to andesite
+        else if {_rand} = 4:
+            set {_item} to gravel
+        else if {_rand} = 5:
+            set {_item} to cobbled deepslate
+        else:
+            set {_item} to tuff
+
+        set {_scale} to random number between 0.4 and 0.9
+
+        set {_m} to new metadata packet with id {_rockId}:
+            display item: {_item}
+            display scale: vector({_scale}, {_scale}, {_scale})
+            display billboard: center
+            display brightness block: 15
+            display teleportduration: 2
+        send packet {_m} to {_p}
+
+        # Animate rock bouncing up and falling
+        earthquake_animateRock({_p}, {_rockId}, {_rockX}, {_y}, {_rockZ}, {_world}, {_angle})
+
+
+function earthquake_animateRock(p: player, eid: integer, x: number, baseY: number, z: number, w: world, angle: number):
+    set {_currentY} to {_baseY}
+    set {_velocityY} to random number between 0.8 and 1.5
+    set {_velocityX} to cos({_angle}) * (random number between 0.1 and 0.3)
+    set {_velocityZ} to sin({_angle}) * (random number between 0.1 and 0.3)
+    set {_currentX} to {_x}
+    set {_currentZ} to {_z}
+    set {_gravity} to 0.12
+    set {_bounces} to 0
+    set {_maxBounces} to random integer between 2 and 3
+
+    # Pop up effect
+    draw 3 of dust using dustOption(rgb(100, 90, 70), 1.5) at location({_x}, {_baseY} + 0.3, {_z}, {_w}) for {_p}
+    play sound "block.stone.break" with volume 0.3 and pitch 0.8 at location({_x}, {_baseY}, {_z}, {_w}) for {_p}
+
+    while {_bounces} < {_maxBounces}:
+        # Apply physics
+        add {_velocityX} to {_currentX}
+        add {_velocityY} to {_currentY}
+        add {_velocityZ} to {_currentZ}
+        subtract {_gravity} from {_velocityY}
+
+        set {_loc} to location({_currentX}, {_currentY}, {_currentZ}, {_w})
+        send teleport packet with id {_eid} with location {_loc} to {_p}
+
+        # Check if hit ground
+        if {_currentY} <= {_baseY}:
+            set {_currentY} to {_baseY}
+            set {_velocityY} to {_velocityY} * -0.5  # Bounce with energy loss
+            add 1 to {_bounces}
+
+            # Bounce dust
+            draw 2 of dust using dustOption(rgb(90, 80, 60), 1.0) at {_loc} for {_p}
+            play sound "block.stone.hit" with volume 0.15 and pitch 1.2 at {_loc} for {_p}
+
+            # Reduce horizontal velocity
+            set {_velocityX} to {_velocityX} * 0.6
+            set {_velocityZ} to {_velocityZ} * 0.6
+
+        wait 2 ticks
+
+    # Shrink and remove
+    set {_m} to new metadata packet with id {_eid}:
+        display scale: vector(0.05, 0.05, 0.05)
+        display transformation: 5
+        display interpolation: 0
+    send packet {_m} to {_p}
+
+    wait 5 ticks
+    remove fake entity with id {_eid} for {_p}
+
+
+function earthquake_drawShockwave(p: player, center: location, waveRadius: number):
+    set {_world} to world of {_center}
+    set {_x} to x-coord of {_center}
+    set {_y} to y-coord of {_center}
+    set {_z} to z-coord of {_center}
+
+    # Draw ring of particles
+    set {_points} to floor({_waveRadius} * 3)
+    if {_points} < 12:
+        set {_points} to 12
+    if {_points} > 40:
+        set {_points} to 40
+
+    loop {_points} times:
+        set {_angle} to (loop-number - 1) * (360 / {_points})
+        set {_px} to {_x} + ({_waveRadius} * cos({_angle}))
+        set {_pz} to {_z} + ({_waveRadius} * sin({_angle}))
+        set {_particleLoc} to location({_px}, {_y} + 0.2, {_pz}, {_world})
+
+        # Dust ring
+        draw 1 of dust using dustOption(rgb(100, 85, 60), 1.5) at {_particleLoc} for {_p}
+
+        # Every few points add extra effects
+        if mod(loop-number, 4) = 0:
+            draw 1 of campfire cosy smoke at {_particleLoc} with offset vector(0.2, 0.3, 0.2) for {_p}
+
+
+function earthquake_drawFissure(p: player, center: location, angle: number, length: number):
+    set {_world} to world of {_center}
+    set {_startX} to x-coord of {_center}
+    set {_startZ} to z-coord of {_center}
+    set {_y} to y-coord of {_center}
+
+    set {_dirX} to cos({_angle})
+    set {_dirZ} to sin({_angle})
+
+    # Draw crack line from center outward
+    set {_step} to 0
+    while {_step} < {_length}:
+        set {_wobble} to random number between -0.3 and 0.3
+        set {_px} to {_startX} + ({_dirX} * {_step}) + ({_dirZ} * {_wobble})
+        set {_pz} to {_startZ} + ({_dirZ} * {_step}) + ({_dirX} * {_wobble})
+        set {_crackLoc} to location({_px}, {_y} + 0.1, {_pz}, {_world})
+
+        # Dark crack particles
+        draw 1 of dust using dustOption(rgb(30, 25, 20), 1.0) at {_crackLoc} for {_p}
+
+        # Some dust rising from crack
+        if random number between 0 and 1 > 0.6:
+            draw 1 of dust using dustOption(rgb(80, 70, 55), 0.8) at location({_px}, {_y} + 0.4, {_pz}, {_world}) for {_p}
+
+        add 0.5 to {_step}
+
+
+function earthquake_damageRing(center: location, ringRadius: number):
+    set {_world} to world of {_center}
+    set {_centerX} to floor(x-coord of {_center})
+    set {_centerY} to floor(y-coord of {_center}) - 1
+    set {_centerZ} to floor(z-coord of {_center})
+
+    # Damage blocks in a ring pattern
+    set {_innerRadius} to {_ringRadius} - 1
+    if {_innerRadius} < 0:
+        set {_innerRadius} to 0
+
+    set {_points} to floor({_ringRadius} * 4)
+    if {_points} < 8:
+        set {_points} to 8
+
+    loop {_points} times:
+        set {_angle} to (loop-number - 1) * (360 / {_points})
+        set {_checkX} to {_centerX} + floor({_ringRadius} * cos({_angle}))
+        set {_checkZ} to {_centerZ} + floor({_ringRadius} * sin({_angle}))
+        set {_checkLoc} to location({_checkX}, {_centerY}, {_checkZ}, {_world})
+
+        set {_checkType} to type of block at {_checkLoc}
+        if {_checkType} is bedrock:
+            continue
+
+        if mining_isMineable({_checkType}) = true:
+            loop all players in radius 80 of {_checkLoc}:
+                if mining_isLocked(loop-player, {_checkLoc}) = false:
+                    earthquake_crackBlock(loop-player, {_checkLoc})
+
+
+function earthquake_crackBlock(p: player, loc: location):
+    if mining_hasSession({_p}, {_loc}) = false:
+        mining_createSession({_p}, {_loc})
+
+    mining_setProgress({_p}, {_loc}, 0.8)
+
+    set {_key} to mining_getLocKey({_loc})
+    set {_id} to {-miningData::%{_p}'s uuid%::damageID::%{_key}%}
+    make {_p} see damage of block at {_loc} as 0.8 from {_id}
+    set {-miningData::%{_p}'s uuid%::lastStage::%{_key}%} to 8
+
+
+function earthquake_stop():
+    if worldevent_isActive("earthquake") is false:
+        stop
+
+    worldevent_setActive("earthquake", false)
+
+    broadcast ""
+    broadcast "&8&m                                                  "
+    broadcast ""
+    broadcast "         &7The &6earthquake &7has subsided..."
+    broadcast ""
+    broadcast "&8&m                                                  "
+    broadcast ""
+
+    loop all players:
+        play sound "block.respawn_anchor.set_spawn" with volume 0.6 and pitch 0.6 to loop-player
 
 
 # ============================================================
@@ -1180,6 +1553,30 @@ command /worldevent <text> [<text>] [<number>] [<number>]:
                 send "&e/worldevent meteor start [radius] [duration]"
                 send "&e/worldevent meteor stop"
 
+        else if arg-1 is "earthquake":
+            if arg-2 is "start":
+                set {_radius} to arg-3 ? 25
+                set {_duration} to arg-4 ? 45
+
+                if worldevent_hasSavedLocation() is true:
+                    set {_center} to worldevent_getSavedLocation()
+                    send "&aStarted Earthquake at saved location"
+                else:
+                    set {_center} to player's location
+                    send "&aStarted Earthquake at your location"
+                    send "&7Tip: Use &e/worldevent setlocation &7to set a fixed center"
+
+                earthquake_start({_center}, {_radius}, {_duration})
+                send "&7Radius: %{_radius}% blocks, Duration: %{_duration}%s"
+
+            else if arg-2 is "stop":
+                earthquake_stop()
+                send "&cStopped Earthquake event"
+
+            else:
+                send "&e/worldevent earthquake start [radius] [duration]"
+                send "&e/worldevent earthquake stop"
+
         else if arg-1 is "list":
             send "&6--- Active World Events ---"
             set {_anyActive} to false
@@ -1189,12 +1586,16 @@ command /worldevent <text> [<text>] [<number>] [<number>]:
             if worldevent_isActive("meteor") is true:
                 send "&7- &c☄ Meteor Rain"
                 set {_anyActive} to true
+            if worldevent_isActive("earthquake") is true:
+                send "&7- &6⚠ Earthquake"
+                set {_anyActive} to true
             if {_anyActive} is false:
                 send "&7No events currently active"
 
         else if arg-1 is "stopall":
             whirlwind_stop()
             meteor_stop()
+            earthquake_stop()
             send "&cStopped all world events"
 
         else:
@@ -1210,6 +1611,10 @@ command /worldevent <text> [<text>] [<number>] [<number>]:
             send "&c☄ Meteor Rain:"
             send "&e/worldevent meteor start [radius] [duration]"
             send "&e/worldevent meteor stop"
+            send ""
+            send "&6⚠ Earthquake:"
+            send "&e/worldevent earthquake start [radius] [duration]"
+            send "&e/worldevent earthquake stop"
             send ""
             send "&e/worldevent list &7- Show active events"
             send "&e/worldevent stopall &7- Stop all events"
