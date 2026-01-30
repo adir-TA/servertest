@@ -474,6 +474,7 @@ function miningHandler_main(p: player, l: location):
         mining_finishBlock({_p}, {_l})
         tutorial_onBlockMined({_p})
         team_addBlockProgress({_p})
+        milestone_addBlocks({_p}, 1)
         
         # ═══ XP SYSTEM ═══
         set {_archetypeId} to player_getArchetype({_p})
