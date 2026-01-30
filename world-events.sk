@@ -667,122 +667,362 @@ function meteor_loop(center: location, radius: number, duration: integer):
 
 function meteor_spawnMeteor(p: player, x: number, baseY: number, z: number, w: world, id: integer):
     set {_uuid} to {_p}'s uuid
-    set {_eid} to random integer between 1000000 and 9999999
+    set {_baseEid} to random integer between 1000000 and 9999999
 
     # Start position high in sky
     set {_startY} to {_baseY} + 60
     set {_endY} to {_baseY}
     set {_spawnLoc} to location({_x}, {_startY}, {_z}, {_w})
 
-    # Spawn meteor display entity
-    spawn fake item display at {_spawnLoc} for {_p} with id {_eid}
+    # Meteor size
+    set {_coreScale} to random number between 1.5 and 2.2
 
-    # Random meteor appearance
-    set {_rand} to random integer between 1 and 4
-    if {_rand} = 1:
-        set {_item} to magma block
-    else if {_rand} = 2:
-        set {_item} to netherrack
-    else if {_rand} = 3:
-        set {_item} to crying obsidian
-    else:
-        set {_item} to blackstone
+    # SPHERICAL METEOR - spawn multiple entities in sphere pattern
+    # Core center piece
+    set {_eid::1} to {_baseEid}
+    set {_offsetX::1} to 0
+    set {_offsetY::1} to 0
+    set {_offsetZ::1} to 0
+    set {_scale::1} to {_coreScale}
+    set {_item::1} to magma block
 
-    set {_scale} to random number between 1.2 and 2.5
+    # Surrounding pieces (8 pieces arranged around core)
+    set {_pieceScale} to {_coreScale} * 0.6
 
-    set {_m} to new metadata packet with id {_eid}:
-        display item: {_item}
-        display scale: vector({_scale}, {_scale}, {_scale})
-        display billboard: center
-        display brightness block: 15
-        display teleportduration: 2
-        glowing: true
-        display glow: rgb(255, 100, 0)
-    send packet {_m} to {_p}
+    # Top
+    set {_eid::2} to {_baseEid} + 1
+    set {_offsetX::2} to 0
+    set {_offsetY::2} to {_coreScale} * 0.4
+    set {_offsetZ::2} to 0
+    set {_scale::2} to {_pieceScale}
+    set {_item::2} to netherrack
 
-    # Animate meteor falling
-    meteor_animateFall({_p}, {_eid}, {_x}, {_startY}, {_endY}, {_z}, {_w}, {_scale})
+    # Bottom
+    set {_eid::3} to {_baseEid} + 2
+    set {_offsetX::3} to 0
+    set {_offsetY::3} to {_coreScale} * -0.4
+    set {_offsetZ::3} to 0
+    set {_scale::3} to {_pieceScale}
+    set {_item::3} to blackstone
+
+    # Front
+    set {_eid::4} to {_baseEid} + 3
+    set {_offsetX::4} to 0
+    set {_offsetY::4} to 0
+    set {_offsetZ::4} to {_coreScale} * 0.4
+    set {_scale::4} to {_pieceScale}
+    set {_item::4} to magma block
+
+    # Back
+    set {_eid::5} to {_baseEid} + 4
+    set {_offsetX::5} to 0
+    set {_offsetY::5} to 0
+    set {_offsetZ::5} to {_coreScale} * -0.4
+    set {_scale::5} to {_pieceScale}
+    set {_item::5} to crying obsidian
+
+    # Left
+    set {_eid::6} to {_baseEid} + 5
+    set {_offsetX::6} to {_coreScale} * 0.4
+    set {_offsetY::6} to 0
+    set {_offsetZ::6} to 0
+    set {_scale::6} to {_pieceScale}
+    set {_item::6} to netherrack
+
+    # Right
+    set {_eid::7} to {_baseEid} + 6
+    set {_offsetX::7} to {_coreScale} * -0.4
+    set {_offsetY::7} to 0
+    set {_offsetZ::7} to 0
+    set {_scale::7} to {_pieceScale}
+    set {_item::7} to magma block
+
+    # Diagonal pieces for more roundness
+    set {_eid::8} to {_baseEid} + 7
+    set {_offsetX::8} to {_coreScale} * 0.3
+    set {_offsetY::8} to {_coreScale} * 0.3
+    set {_offsetZ::8} to {_coreScale} * 0.3
+    set {_scale::8} to {_pieceScale} * 0.8
+    set {_item::8} to crying obsidian
+
+    set {_eid::9} to {_baseEid} + 8
+    set {_offsetX::9} to {_coreScale} * -0.3
+    set {_offsetY::9} to {_coreScale} * 0.3
+    set {_offsetZ::9} to {_coreScale} * -0.3
+    set {_scale::9} to {_pieceScale} * 0.8
+    set {_item::9} to blackstone
+
+    set {_eid::10} to {_baseEid} + 9
+    set {_offsetX::10} to {_coreScale} * 0.3
+    set {_offsetY::10} to {_coreScale} * -0.3
+    set {_offsetZ::10} to {_coreScale} * -0.3
+    set {_scale::10} to {_pieceScale} * 0.8
+    set {_item::10} to netherrack
+
+    set {_eid::11} to {_baseEid} + 10
+    set {_offsetX::11} to {_coreScale} * -0.3
+    set {_offsetY::11} to {_coreScale} * -0.3
+    set {_offsetZ::11} to {_coreScale} * 0.3
+    set {_scale::11} to {_pieceScale} * 0.8
+    set {_item::11} to magma block
+
+    set {_numPieces} to 11
+
+    # Spawn all pieces
+    loop {_numPieces} times:
+        set {_i} to loop-number
+        set {_entityId} to {_eid::%{_i}%}
+        set {_pieceItem} to {_item::%{_i}%}
+        set {_pieceScaleVal} to {_scale::%{_i}%}
+
+        spawn fake item display at {_spawnLoc} for {_p} with id {_entityId}
+
+        set {_m} to new metadata packet with id {_entityId}:
+            display item: {_pieceItem}
+            display scale: vector({_pieceScaleVal}, {_pieceScaleVal}, {_pieceScaleVal})
+            display billboard: center
+            display brightness block: 15
+            display teleportduration: 2
+            glowing: true
+            display glow: rgb(255, 100, 0)
+        send packet {_m} to {_p}
+
+    # Animate meteor falling (pass all entity data)
+    meteor_animateFall({_p}, {_x}, {_startY}, {_endY}, {_z}, {_w}, {_coreScale}, {_numPieces}, {_baseEid})
 
 
-function meteor_animateFall(p: player, eid: integer, x: number, startY: number, endY: number, z: number, w: world, scale: number):
+function meteor_animateFall(p: player, x: number, startY: number, endY: number, z: number, w: world, coreScale: number, numPieces: integer, baseEid: integer):
     set {_currentY} to {_startY}
     set {_fallSpeed} to 3
+
+    # Piece offsets (must match spawn function)
+    set {_offsetX::1} to 0
+    set {_offsetY::1} to 0
+    set {_offsetZ::1} to 0
+
+    set {_offsetX::2} to 0
+    set {_offsetY::2} to {_coreScale} * 0.4
+    set {_offsetZ::2} to 0
+
+    set {_offsetX::3} to 0
+    set {_offsetY::3} to {_coreScale} * -0.4
+    set {_offsetZ::3} to 0
+
+    set {_offsetX::4} to 0
+    set {_offsetY::4} to 0
+    set {_offsetZ::4} to {_coreScale} * 0.4
+
+    set {_offsetX::5} to 0
+    set {_offsetY::5} to 0
+    set {_offsetZ::5} to {_coreScale} * -0.4
+
+    set {_offsetX::6} to {_coreScale} * 0.4
+    set {_offsetY::6} to 0
+    set {_offsetZ::6} to 0
+
+    set {_offsetX::7} to {_coreScale} * -0.4
+    set {_offsetY::7} to 0
+    set {_offsetZ::7} to 0
+
+    set {_offsetX::8} to {_coreScale} * 0.3
+    set {_offsetY::8} to {_coreScale} * 0.3
+    set {_offsetZ::8} to {_coreScale} * 0.3
+
+    set {_offsetX::9} to {_coreScale} * -0.3
+    set {_offsetY::9} to {_coreScale} * 0.3
+    set {_offsetZ::9} to {_coreScale} * -0.3
+
+    set {_offsetX::10} to {_coreScale} * 0.3
+    set {_offsetY::10} to {_coreScale} * -0.3
+    set {_offsetZ::10} to {_coreScale} * -0.3
+
+    set {_offsetX::11} to {_coreScale} * -0.3
+    set {_offsetY::11} to {_coreScale} * -0.3
+    set {_offsetZ::11} to {_coreScale} * 0.3
+
+    set {_rotation} to 0
 
     # Falling animation
     while {_currentY} > {_endY}:
         subtract {_fallSpeed} from {_currentY}
-        add 0.15 to {_fallSpeed}  # Accelerate
+        add 0.15 to {_fallSpeed}
 
         if {_fallSpeed} > 6:
             set {_fallSpeed} to 6
 
-        set {_loc} to location({_x}, {_currentY}, {_z}, {_w})
-        send teleport packet with id {_eid} with location {_loc} to {_p}
+        # Rotate the meteor as it falls
+        add 8 to {_rotation}
+        if {_rotation} >= 360:
+            subtract 360 from {_rotation}
 
-        # Fire trail particles
-        loop 3 times:
-            set {_trailY} to {_currentY} + (loop-number * 1.5)
-            set {_trailX} to {_x} + (random number between -0.3 and 0.3)
-            set {_trailZ} to {_z} + (random number between -0.3 and 0.3)
+        # Move all pieces together with rotation
+        loop {_numPieces} times:
+            set {_i} to loop-number
+            set {_eid} to {_baseEid} + ({_i} - 1)
+
+            # Rotate offset around Y axis for tumbling effect
+            set {_ox} to {_offsetX::%{_i}%}
+            set {_oy} to {_offsetY::%{_i}%}
+            set {_oz} to {_offsetZ::%{_i}%}
+
+            set {_rotatedX} to ({_ox} * cos({_rotation})) - ({_oz} * sin({_rotation}))
+            set {_rotatedZ} to ({_ox} * sin({_rotation})) + ({_oz} * cos({_rotation}))
+
+            set {_pieceX} to {_x} + {_rotatedX}
+            set {_pieceY} to {_currentY} + {_oy}
+            set {_pieceZ} to {_z} + {_rotatedZ}
+
+            set {_loc} to location({_pieceX}, {_pieceY}, {_pieceZ}, {_w})
+            send teleport packet with id {_eid} with location {_loc} to {_p}
+
+        # Fire trail particles - more dramatic
+        loop 5 times:
+            set {_trailY} to {_currentY} + (loop-number * 1.2)
+            set {_trailX} to {_x} + (random number between -0.5 and 0.5)
+            set {_trailZ} to {_z} + (random number between -0.5 and 0.5)
             set {_trailLoc} to location({_trailX}, {_trailY}, {_trailZ}, {_w})
             draw 1 of flame at {_trailLoc} for {_p}
-            draw 1 of dust using dustOption(rgb(255, 100, 0), 1.5) at {_trailLoc} for {_p}
+            draw 1 of dust using dustOption(rgb(255, 100, 0), 1.8) at {_trailLoc} for {_p}
+
+        # Ember sparks flying off
+        loop 3 times:
+            set {_sparkAngle} to random number between 0 and 360
+            set {_sparkDist} to random number between 0.3 and 1.0
+            set {_sparkX} to {_x} + ({_sparkDist} * cos({_sparkAngle}))
+            set {_sparkZ} to {_z} + ({_sparkDist} * sin({_sparkAngle}))
+            set {_sparkLoc} to location({_sparkX}, {_currentY} + (random number between -0.5 and 1), {_sparkZ}, {_w})
+            draw 1 of lava at {_sparkLoc} for {_p}
 
         # Smoke trail
-        set {_smokeLoc} to location({_x}, {_currentY} + 2, {_z}, {_w})
-        draw 2 of large smoke at {_smokeLoc} with offset vector(0.2, 0.5, 0.2) for {_p}
+        set {_smokeLoc} to location({_x}, {_currentY} + 2.5, {_z}, {_w})
+        draw 3 of large smoke at {_smokeLoc} with offset vector(0.4, 0.8, 0.4) for {_p}
 
         # Whooshing sound while falling
-        if mod(floor({_startY} - {_currentY}), 15) = 0:
-            play sound "entity.firework_rocket.launch" with volume 0.4 and pitch 0.5 at {_loc} for {_p}
+        if mod(floor({_startY} - {_currentY}), 12) = 0:
+            play sound "entity.firework_rocket.launch" with volume 0.5 and pitch 0.4 at location({_x}, {_currentY}, {_z}, {_w}) for {_p}
 
         wait 2 ticks
 
-    # IMPACT!
+    # IMPACT with scatter animation!
     set {_impactLoc} to location({_x}, {_endY}, {_z}, {_w})
-    meteor_impact({_p}, {_impactLoc}, {_scale})
-
-    # Remove meteor entity
-    remove fake entity with id {_eid} for {_p}
+    meteor_impact({_p}, {_impactLoc}, {_coreScale}, {_numPieces}, {_baseEid})
 
 
-function meteor_impact(p: player, loc: location, scale: number):
+function meteor_impact(p: player, loc: location, coreScale: number, numPieces: integer, baseEid: integer):
     set {_world} to world of {_loc}
     set {_x} to x-coord of {_loc}
     set {_y} to y-coord of {_loc}
     set {_z} to z-coord of {_loc}
 
-    # Explosion particles
-    draw 30 of explosion at {_loc} with offset vector(1.5, 1, 1.5) for {_p}
-    draw 50 of flame at {_loc} with offset vector(2, 1.5, 2) for {_p}
-    draw 40 of large smoke at {_loc} with offset vector(2.5, 2, 2.5) for {_p}
-    draw 20 of lava at {_loc} with offset vector(1.5, 0.5, 1.5) for {_p}
+    # Initial explosion particles
+    draw 40 of explosion at {_loc} with offset vector(2, 1.5, 2) for {_p}
+    draw 60 of flame at {_loc} with offset vector(2.5, 2, 2.5) for {_p}
+    draw 50 of large smoke at {_loc} with offset vector(3, 2.5, 3) for {_p}
+    draw 30 of lava at {_loc} with offset vector(2, 1, 2) for {_p}
 
-    # Orange/red dust burst
-    loop 15 times:
-        set {_burstAngle} to (loop-number - 1) * 24
-        set {_burstDist} to random number between 0.5 and 2.5
+    # Orange/red dust burst in circle
+    loop 20 times:
+        set {_burstAngle} to (loop-number - 1) * 18
+        set {_burstDist} to random number between 0.5 and 3
         set {_burstX} to {_x} + ({_burstDist} * cos({_burstAngle}))
         set {_burstZ} to {_z} + ({_burstDist} * sin({_burstAngle}))
         set {_burstLoc} to location({_burstX}, {_y} + 0.5, {_burstZ}, {_world})
-        draw 1 of dust using dustOption(rgb(255, 80, 0), 2.0) at {_burstLoc} for {_p}
+        draw 1 of dust using dustOption(rgb(255, 80, 0), 2.5) at {_burstLoc} for {_p}
 
     # Impact sounds - big boom!
-    play sound "entity.generic.explode" with volume 1.0 and pitch 0.6 at {_loc} for {_p}
-    play sound "entity.lightning_bolt.impact" with volume 0.8 and pitch 0.5 at {_loc} for {_p}
-    play sound "block.anvil.land" with volume 0.6 and pitch 0.4 at {_loc} for {_p}
-    play sound "entity.dragon_fireball.explode" with volume 0.7 and pitch 0.7 at {_loc} for {_p}
+    play sound "entity.generic.explode" with volume 1.2 and pitch 0.5 at {_loc} for {_p}
+    play sound "entity.lightning_bolt.impact" with volume 0.9 and pitch 0.4 at {_loc} for {_p}
+    play sound "block.anvil.land" with volume 0.7 and pitch 0.3 at {_loc} for {_p}
+    play sound "entity.dragon_fireball.explode" with volume 0.8 and pitch 0.6 at {_loc} for {_p}
+    play sound "item.totem.use" with volume 0.4 and pitch 0.6 at {_loc} for {_p}
 
     # Damage blocks in impact area (3x3)
     meteor_damageBlocks({_p}, {_loc})
 
-    # Secondary fire particles after delay
-    wait 3 ticks
-    draw 20 of flame at {_loc} with offset vector(1.5, 0.5, 1.5) for {_p}
-    draw 15 of smoke at {_loc} with offset vector(2, 1, 2) for {_p}
+    # SCATTER ANIMATION - fragments fly outward with glow!
+    # Set scatter directions for each piece
+    loop {_numPieces} times:
+        set {_i} to loop-number
+        set {_scatterAngle} to ({_i} - 1) * (360 / {_numPieces}) + (random number between -20 and 20)
+        set {_scatterDirX::%{_i}%} to cos({_scatterAngle})
+        set {_scatterDirZ::%{_i}%} to sin({_scatterAngle})
+        set {_scatterDirY::%{_i}%} to random number between 0.3 and 0.8
+        set {_scatterSpeed::%{_i}%} to random number between 0.4 and 0.8
+
+    # Make pieces glow brighter on impact
+    loop {_numPieces} times:
+        set {_i} to loop-number
+        set {_eid} to {_baseEid} + ({_i} - 1)
+        set {_shrinkScale} to {_coreScale} * 0.4
+
+        set {_m} to new metadata packet with id {_eid}:
+            display scale: vector({_shrinkScale}, {_shrinkScale}, {_shrinkScale})
+            display transformation: 3
+            display interpolation: 0
+            display brightness block: 15
+            glowing: true
+            display glow: rgb(255, 200, 50)
+        send packet {_m} to {_p}
+
+    # Animate scatter over 8 frames
+    set {_scatterFrame} to 0
+    while {_scatterFrame} < 8:
+        add 1 to {_scatterFrame}
+        set {_progress} to {_scatterFrame} / 8
+
+        loop {_numPieces} times:
+            set {_i} to loop-number
+            set {_eid} to {_baseEid} + ({_i} - 1)
+
+            set {_speed} to {_scatterSpeed::%{_i}%}
+            set {_dist} to {_scatterFrame} * {_speed}
+
+            # Arc trajectory - up then down
+            set {_arcHeight} to (1 - (({_progress} - 0.5) * ({_progress} - 0.5) * 4)) * 1.5
+
+            set {_fragX} to {_x} + ({_scatterDirX::%{_i}%} * {_dist})
+            set {_fragY} to {_y} + ({_scatterDirY::%{_i}%} * {_dist}) + {_arcHeight}
+            set {_fragZ} to {_z} + ({_scatterDirZ::%{_i}%} * {_dist})
+
+            set {_fragLoc} to location({_fragX}, {_fragY}, {_fragZ}, {_world})
+            send teleport packet with id {_eid} with location {_fragLoc} to {_p}
+
+            # Fire trail on each fragment
+            draw 1 of flame at {_fragLoc} for {_p}
+            draw 1 of dust using dustOption(rgb(255, 150, 0), 1.2) at {_fragLoc} for {_p}
+
+        # Center still burning
+        draw 3 of flame at {_loc} with offset vector(0.5, 0.3, 0.5) for {_p}
+
+        wait 2 ticks
+
+    # Shrink fragments to nothing with glow fade
+    loop {_numPieces} times:
+        set {_i} to loop-number
+        set {_eid} to {_baseEid} + ({_i} - 1)
+
+        set {_m} to new metadata packet with id {_eid}:
+            display scale: vector(0.05, 0.05, 0.05)
+            display transformation: 5
+            display interpolation: 0
+            display glow: rgb(255, 50, 0)
+        send packet {_m} to {_p}
+
+    # More fire and smoke during fade
+    draw 25 of flame at {_loc} with offset vector(2, 0.8, 2) for {_p}
+    draw 20 of smoke at {_loc} with offset vector(2.5, 1.5, 2.5) for {_p}
 
     wait 5 ticks
-    draw 10 of smoke at {_loc} with offset vector(1.5, 0.8, 1.5) for {_p}
+
+    # Final cleanup - remove all entities
+    loop {_numPieces} times:
+        set {_i} to loop-number
+        set {_eid} to {_baseEid} + ({_i} - 1)
+        remove fake entity with id {_eid} for {_p}
+
+    # Lingering embers
+    draw 15 of lava at {_loc} with offset vector(1.5, 0.3, 1.5) for {_p}
+    draw 10 of smoke at {_loc} with offset vector(2, 1, 2) for {_p}
 
 
 function meteor_damageBlocks(p: player, center: location):
