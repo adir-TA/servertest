@@ -528,6 +528,13 @@ function acc_playTreasureAnimation(p: player, treasureId: text, amount: integer)
         set {_type::%{_i}%} to acc_rollType({_treasureId})
         set {_encoded::%{_i}%} to acc_encodeAccessory({_type::%{_i}%}, {_rarity::%{_i}%})
 
+        # Check if this is a NEW discovery (before adding)
+        set {_isNewDiscovery} to discovery_hasAccDiscovered({_p}, {_type::%{_i}%})
+        if {_isNewDiscovery} is false:
+            set {_isNew::%{_i}%} to true
+        else:
+            set {_isNew::%{_i}%} to false
+
         # Check if this accessory should be auto-salvaged
         set {_shouldSalvage} to filter_shouldSalvageAcc({_p}, {_type::%{_i}%}, {_rarity::%{_i}%})
         set {_salvaged::%{_i}%} to {_shouldSalvage}
@@ -537,6 +544,8 @@ function acc_playTreasureAnimation(p: player, treasureId: text, amount: integer)
             set {_salvageValue::%{_i}%} to acc_getSalvageValue({_rarity::%{_i}%})
             add {_salvageValue::%{_i}%} to {_totalSalvageTokens}
             add 1 to {_salvageCount}
+            # Still track discovery even if salvaged
+            discovery_discoverAcc({_p}, {_type::%{_i}%})
         else:
             add 1 to {_keptCount}
 
@@ -927,19 +936,27 @@ function acc_playTreasureAnimation(p: player, treasureId: text, amount: integer)
         # Build beautiful display text with stats
         # Check if this accessory was auto-salvaged
         set {_wasSalvaged} to {_salvaged::%{_i}%}
+        set {_isNew} to {_isNew::%{_i}%}
+
+        # NEW! prefix for first-time discoveries
+        if {_isNew} is true:
+            set {_newPrefix} to "&b&lNEW!%nl%"
+        else:
+            set {_newPrefix} to ""
+
         if {_wasSalvaged} is true:
             set {_salvageValue} to {_salvageValue::%{_i}%}
-            set {_displayText} to "&8&l[RECYCLED]%nl%%{_rarityColor}%%{_typeName}%%nl%&6+%{_salvageValue}% tokens"
+            set {_displayText} to "%{_newPrefix}%&8&l[RECYCLED]%nl%%{_rarityColor}%%{_typeName}%%nl%&6+%{_salvageValue}% tokens"
         else if {_rarity} is "legendary":
-            set {_displayText} to "&6&lLEGENDARY%nl%%{_rarityColor}%&l%{_typeName}%%nl%&8━━━━━━━━━━━━%nl%&a+%{_bonus}%%% &f%{_statName}%"
+            set {_displayText} to "%{_newPrefix}%&6&lLEGENDARY%nl%%{_rarityColor}%&l%{_typeName}%%nl%&8━━━━━━━━━━━━%nl%&a+%{_bonus}%%% &f%{_statName}%"
         else if {_rarity} is "epic":
-            set {_displayText} to "&d&lEPIC%nl%%{_rarityColor}%%{_typeName}%%nl%&8─────────%nl%&a+%{_bonus}%%% &7%{_statName}%"
+            set {_displayText} to "%{_newPrefix}%&d&lEPIC%nl%%{_rarityColor}%%{_typeName}%%nl%&8─────────%nl%&a+%{_bonus}%%% &7%{_statName}%"
         else if {_rarity} is "rare":
-            set {_displayText} to "&9Rare%nl%%{_rarityColor}%%{_typeName}%%nl%&a+%{_bonus}%%% &7%{_statName}%"
+            set {_displayText} to "%{_newPrefix}%&9Rare%nl%%{_rarityColor}%%{_typeName}%%nl%&a+%{_bonus}%%% &7%{_statName}%"
         else if {_rarity} is "uncommon":
-            set {_displayText} to "&aUncommon%nl%%{_rarityColor}%%{_typeName}%%nl%&a+%{_bonus}%%% &7%{_statName}%"
+            set {_displayText} to "%{_newPrefix}%&aUncommon%nl%%{_rarityColor}%%{_typeName}%%nl%&a+%{_bonus}%%% &7%{_statName}%"
         else:
-            set {_displayText} to "&7Common%nl%%{_rarityColor}%%{_typeName}%%nl%&a+%{_bonus}%%% &7%{_statName}%"
+            set {_displayText} to "%{_newPrefix}%&7Common%nl%%{_rarityColor}%%{_typeName}%%nl%&a+%{_bonus}%%% &7%{_statName}%"
 
         set {_m} to new metadata packet with id {_textId::%{_i}%}:
             display text: {_displayText}

@@ -384,14 +384,23 @@ function pet_playOpeningSequence(p: player, tier: text, amount: number, altarLoc
         set {_shouldSalvage} to filter_shouldSalvagePet({_p}, {_type}, {_rarity})
         set {_results::%{_i}%::salvaged} to {_shouldSalvage}
 
+        # Check if this is a NEW discovery (before creating)
+        set {_isNewDiscovery} to discovery_hasPetDiscovered({_p}, {_type})
+        if {_isNewDiscovery} is false:
+            set {_results::%{_i}%::isNew} to true
+        else:
+            set {_results::%{_i}%::isNew} to false
+
         if {_shouldSalvage} is true:
             # Auto-salvage: don't create pet, track tokens
             set {_salvageValue} to pet_getSalvageValue({_rarity})
             add {_salvageValue} to {_totalSalvageTokens}
             add 1 to {_salvageCount}
             set {_results::%{_i}%::salvageValue} to {_salvageValue}
+            # Still track discovery even if salvaged
+            discovery_discoverPet({_p}, {_type})
         else:
-            # Keep: create the pet normally
+            # Keep: create the pet normally (this also handles discovery)
             set {_petId} to pet_create({_p}, {_type}, {_rarity})
             set {_results::%{_i}%::petId} to {_petId}
             add 1 to {_keptCount}
@@ -689,19 +698,27 @@ function pet_playOpeningSequence(p: player, tier: text, amount: number, altarLoc
         # Build beautiful display text with stats (matching treasure style)
         # Check if this pet was auto-salvaged
         set {_wasSalvaged} to {_results::%{_i}%::salvaged}
+        set {_isNew} to {_results::%{_i}%::isNew}
+
+        # NEW! prefix for first-time discoveries
+        if {_isNew} is true:
+            set {_newPrefix} to "&b&lNEW!%nl%"
+        else:
+            set {_newPrefix} to ""
+
         if {_wasSalvaged} is true:
             set {_salvageValue} to {_results::%{_i}%::salvageValue}
-            set {_displayText} to "&8&l[RECYCLED]%nl%%{_rarityColor::%{_i}%}%%{_petName::%{_i}%}%%nl%&6+%{_salvageValue}% tokens"
+            set {_displayText} to "%{_newPrefix}%&8&l[RECYCLED]%nl%%{_rarityColor::%{_i}%}%%{_petName::%{_i}%}%%nl%&6+%{_salvageValue}% tokens"
         else if {_rarity} = "legendary":
-            set {_displayText} to "&6&l✦ LEGENDARY ✦%nl%%{_rarityColor::%{_i}%}%&l%{_petName::%{_i}%}%%nl%&8━━━━━━━━━━━━%nl%%{_statsText}%"
+            set {_displayText} to "%{_newPrefix}%&6&l✦ LEGENDARY ✦%nl%%{_rarityColor::%{_i}%}%&l%{_petName::%{_i}%}%%nl%&8━━━━━━━━━━━━%nl%%{_statsText}%"
         else if {_rarity} = "epic":
-            set {_displayText} to "&d&l★ EPIC ★%nl%%{_rarityColor::%{_i}%}%%{_petName::%{_i}%}%%nl%&8─────────%nl%%{_statsText}%"
+            set {_displayText} to "%{_newPrefix}%&d&l★ EPIC ★%nl%%{_rarityColor::%{_i}%}%%{_petName::%{_i}%}%%nl%&8─────────%nl%%{_statsText}%"
         else if {_rarity} = "rare":
-            set {_displayText} to "&9✧ Rare%nl%%{_rarityColor::%{_i}%}%%{_petName::%{_i}%}%%nl%%{_statsText}%"
+            set {_displayText} to "%{_newPrefix}%&9✧ Rare%nl%%{_rarityColor::%{_i}%}%%{_petName::%{_i}%}%%nl%%{_statsText}%"
         else if {_rarity} = "uncommon":
-            set {_displayText} to "&a○ Uncommon%nl%%{_rarityColor::%{_i}%}%%{_petName::%{_i}%}%%nl%%{_statsText}%"
+            set {_displayText} to "%{_newPrefix}%&a○ Uncommon%nl%%{_rarityColor::%{_i}%}%%{_petName::%{_i}%}%%nl%%{_statsText}%"
         else:
-            set {_displayText} to "&7• Common%nl%%{_rarityColor::%{_i}%}%%{_petName::%{_i}%}%%nl%%{_statsText}%"
+            set {_displayText} to "%{_newPrefix}%&7• Common%nl%%{_rarityColor::%{_i}%}%%{_petName::%{_i}%}%%nl%%{_statsText}%"
         
         set {_m} to new metadata packet with id {_textId::%{_i}%}:
             display text: {_displayText}

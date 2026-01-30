@@ -13,13 +13,13 @@ command /reset <offlineplayer>:
         set {_target} to arg-1
         set {_uuid} to uuid of {_target}
         set {_name} to name of {_target}
-        
+
         # Confirmation
         send ""
         send "&c&l⚠ RESETTING PLAYER: &f%{_name}%"
         send "&7UUID: &8%{_uuid}%"
         send ""
-        
+
         # ═══════════════════════════════════════
         # ECONOMY
         # ═══════════════════════════════════════
@@ -28,19 +28,21 @@ command /reset <offlineplayer>:
         delete {data::prestige::%{_uuid}%}
         delete {data::prestige::points::%{_uuid}%}
         send "&7• &fEconomy &8- &aCleared"
-        
+
         # ═══════════════════════════════════════
         # ARCHETYPE SELECTION
         # ═══════════════════════════════════════
         delete {data::archetype::%{_uuid}%}
         send "&7• &fArchetype Selection &8- &aCleared"
-        
+
         # ═══════════════════════════════════════
-        # PICKAXE DURABILITY
+        # PICKAXE DURABILITY & SLOTS
         # ═══════════════════════════════════════
         delete {data::durability::%{_uuid}%}
-        send "&7• &fPickaxe Durability &8- &aReset to max"
-        
+        delete {data::maxDurability::%{_uuid}%}
+        delete {data::slots::%{_uuid}%::unlocked}
+        send "&7• &fPickaxe Data &8- &aReset"
+
         # ═══════════════════════════════════════
         # ARCHETYPE LEVELS/XP/PRESTIGE
         # ═══════════════════════════════════════
@@ -48,31 +50,84 @@ command /reset <offlineplayer>:
         delete {mining::precision::%{_uuid}%::level}
         delete {mining::precision::%{_uuid}%::xp}
         delete {mining::precision::%{_uuid}%::prestige}
-        
+
         # Demolition
         delete {mining::demolition::%{_uuid}%::level}
         delete {mining::demolition::%{_uuid}%::xp}
         delete {mining::demolition::%{_uuid}%::prestige}
-        
+
         # Arcane
         delete {mining::arcane::%{_uuid}%::level}
         delete {mining::arcane::%{_uuid}%::xp}
         delete {mining::arcane::%{_uuid}%::prestige}
-        
-        send "&7• &fArchetype Progress &8- &aCleared (all 3)"
-        
+
+        # Global (if exists)
+        delete {mining::global::%{_uuid}%::level}
+        delete {mining::global::%{_uuid}%::xp}
+        delete {mining::global::%{_uuid}%::prestige}
+
+        send "&7• &fArchetype Progress &8- &aCleared (all)"
+
         # ═══════════════════════════════════════
         # ENCHANT LEVELS & EQUIPPED STATUS
         # ═══════════════════════════════════════
         delete {data::enchants::%{_uuid}%::*}
-        send "&7• &fEnchant Data &8- &aCleared (levels + equipped)"
-        
+        send "&7• &fEnchant Data &8- &aCleared"
+
+        # ═══════════════════════════════════════
+        # PETS
+        # ═══════════════════════════════════════
+        delete {pet::owned::%{_uuid}%::*}
+        delete {pet::data::%{_uuid}%::*}
+        delete {pet::equipped::%{_uuid}%::*}
+        delete {pet::slots::%{_uuid}%}
+        send "&7• &fPets &8- &aCleared"
+
+        # ═══════════════════════════════════════
+        # ACCESSORIES
+        # ═══════════════════════════════════════
+        delete {data::accessories::%{_uuid}%::*}
+        send "&7• &fAccessories &8- &aCleared"
+
+        # ═══════════════════════════════════════
+        # ARMOR & GEMS
+        # ═══════════════════════════════════════
+        delete {data::armor::%{_uuid}%::*}
+        delete {data::gems::%{_uuid}%::*}
+        send "&7• &fArmor & Gems &8- &aCleared"
+
+        # ═══════════════════════════════════════
+        # FILTERS (Auto-salvage)
+        # ═══════════════════════════════════════
+        delete {data::filter::pet::%{_uuid}%::*}
+        delete {data::filter::acc::%{_uuid}%::*}
+        send "&7• &fFilters &8- &aCleared"
+
+        # ═══════════════════════════════════════
+        # DISCOVERY (Index unlocks)
+        # ═══════════════════════════════════════
+        delete {data::discovered::pet::%{_uuid}%::*}
+        delete {data::discovered::acc::%{_uuid}%::*}
+        send "&7• &fDiscoveries &8- &aCleared"
+
+        # ═══════════════════════════════════════
+        # TEAM MEMBERSHIP
+        # ═══════════════════════════════════════
+        delete {data::team::%{_uuid}%}
+        send "&7• &fTeam &8- &aRemoved"
+
         # ═══════════════════════════════════════
         # TUTORIAL
         # ═══════════════════════════════════════
         delete {data::tutorial-complete::%{_uuid}%}
-        send "&7• &fTutorial &8- &aReset (will restart on join)"
-        
+        send "&7• &fTutorial &8- &aReset"
+
+        # ═══════════════════════════════════════
+        # LINKED ACCOUNT
+        # ═══════════════════════════════════════
+        delete {data::linked::%{_uuid}%}
+        send "&7• &fLinked Account &8- &aCleared"
+
         # ═══════════════════════════════════════
         # RUNTIME CACHES (if player is online)
         # ═══════════════════════════════════════
@@ -86,20 +141,44 @@ command /reset <offlineplayer>:
         delete {-lightning::%{_uuid}%::*}
         delete {-earthquake::%{_uuid}%::*}
         delete {-amplify::%{_uuid}%::*}
+        delete {-amplified::%{_uuid}%::*}
         delete {-overcharge::%{_uuid}%::*}
         delete {-tutorial::%{_uuid}%::*}
+        delete {-blocksPerSecond::%{_uuid}%}
+        delete {-invFull::%{_uuid}%}
+        delete {-autosell::%{_uuid}%::*}
+        delete {-pet::follow::%{_uuid}%::*}
+        delete {-pet::menu::%{_uuid}%}
+        delete {-pet::altar::%{_uuid}%}
+        delete {-acc::menu::%{_uuid}%}
+        delete {-acc::altar::loc::%{_uuid}%}
+        delete {-acc::altar::menu::%{_uuid}%}
+        delete {-acc::altar::selected::%{_uuid}%}
+        delete {-acc::opening::%{_uuid}%}
+        delete {-acc::sort::%{_uuid}%}
+        delete {-acc::equipTarget::%{_uuid}%}
+        delete {-filter::menu::%{_uuid}%}
+        delete {-armor::menu::%{_uuid}%::*}
+        delete {-guard::multiplier-loop::%{_uuid}%}
+        delete {-guard::pet-follow::%{_uuid}%}
+        delete {-guard::pickaxe-loop::%{_uuid}%}
+        delete {-menuData::%{_uuid}%}
+        delete {-skilltree::session::%{_uuid}%::*}
         send "&7• &fRuntime Cache &8- &aCleared"
-        
+
         send ""
-        send "&a&l✓ Player &f%{_name}% &a&lhas been fully reset!"
+        send "&a&l✓ Player &f%{_name}% &a&lhas been FULLY reset!"
+        send "&7They are now a completely new player."
         send ""
-        
+
         # Notify target if online
         if {_target} is online:
             send "" to {_target}
-            send "&c&l⚠ YOUR DATA HAS BEEN RESET BY AN ADMIN" to {_target}
-            send "&7Please rejoin the server." to {_target}
+            send "&c&l⚠ YOUR DATA HAS BEEN COMPLETELY RESET BY AN ADMIN" to {_target}
+            send "&7All progress has been wiped. Please rejoin the server." to {_target}
             send "" to {_target}
+            # Kick them to force fresh start
+            kick {_target} due to "&cYour data has been reset.%nl%&7Please rejoin to start fresh."
 
 
 # ============================================================
@@ -111,20 +190,28 @@ command /resetconfirm <offlineplayer>:
     trigger:
         set {_target} to arg-1
         set {_name} to name of {_target}
-        
+
         if {-resetPending::%player's uuid%::%{_name}%} is not set:
             send ""
-            send "&c&l⚠ WARNING: This will PERMANENTLY delete all data for &f%{_name}%"
+            send "&c&l⚠ WARNING: This will PERMANENTLY delete ALL data for &f%{_name}%"
             send ""
             send "&7This includes:"
             send "&8 • &7Tokens, Balance, Prestige Points"
             send "&8 • &7All archetype levels, XP, and prestiges"
             send "&8 • &7All enchant levels and equipped status"
+            send "&8 • &7All pets (owned, equipped, slots)"
+            send "&8 • &7All accessories (inventory, bag, slots)"
+            send "&8 • &7All armor and gems"
+            send "&8 • &7Auto-salvage filters"
+            send "&8 • &7Discovery/Index unlocks"
+            send "&8 • &7Team membership"
             send "&8 • &7Tutorial progress"
+            send ""
+            send "&c&lTHIS CANNOT BE UNDONE!"
             send ""
             send "&eType &6/resetconfirm %{_name}% &eagain within 30 seconds to confirm."
             send ""
-            
+
             set {-resetPending::%player's uuid%::%{_name}%} to true
             wait 30 seconds
             delete {-resetPending::%player's uuid%::%{_name}%}
