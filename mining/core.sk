@@ -473,6 +473,7 @@ function miningHandler_main(p: player, l: location):
         mining_removeDurability({_p})
         mining_finishBlock({_p}, {_l})
         tutorial_onBlockMined({_p})
+        team_addBlockProgress({_p})
         
         # ═══ XP SYSTEM ═══
         set {_archetypeId} to player_getArchetype({_p})

@@ -241,6 +241,20 @@ function multiplier_calculateType(p: player, type: text) :: number:
         else if {_type} is "money":
             add 0.50 to {_total}
 
+    # ──────────────────────────────────────────
+    # TEAM BOOSTS
+    # ──────────────────────────────────────────
+    set {_teamId} to team_getPlayerTeamID({_p})
+    if {_teamId} > 0:
+        if {_type} is "token":
+            add team_getBoostPercent({_teamId}, "tokens_boost") / 100 to {_total}
+        else if {_type} is "drops":
+            add team_getBoostPercent({_teamId}, "drops_boost") / 100 to {_total}
+        else if {_type} is "mining_speed":
+            add team_getBoostPercent({_teamId}, "mining_speed_boost") / 100 to {_total}
+        else if {_type} is "damage":
+            add team_getBoostPercent({_teamId}, "damage_boost") / 100 to {_total}
+
     return {_total}
 
 
@@ -278,6 +292,9 @@ function multiplier_onArmorChange(p: player):
     multiplier_recalculate({_p})
 
 function multiplier_onAccessoryChange(p: player):
+    multiplier_recalculate({_p})
+
+function multiplier_onTeamUpgrade(p: player):
     multiplier_recalculate({_p})
 
 
@@ -367,6 +384,19 @@ command /multipliers:
             # Get skill tree bonus for breakdown
             set {_skillBonus} to skilltree_getTotalBonus(player, {_type})
 
+            # Get team bonus for breakdown
+            set {_teamBonus} to 0
+            set {_teamId} to team_getPlayerTeamID(player)
+            if {_teamId} > 0:
+                if {_type} is "token":
+                    set {_teamBonus} to team_getBoostPercent({_teamId}, "tokens_boost") / 100
+                else if {_type} is "drops":
+                    set {_teamBonus} to team_getBoostPercent({_teamId}, "drops_boost") / 100
+                else if {_type} is "mining_speed":
+                    set {_teamBonus} to team_getBoostPercent({_teamId}, "mining_speed_boost") / 100
+                else if {_type} is "damage":
+                    set {_teamBonus} to team_getBoostPercent({_teamId}, "damage_boost") / 100
+
             if {_val} > 1:
                 set {_breakdown} to ""
                 if {_petBonus} > 0:
@@ -381,6 +411,9 @@ command /multipliers:
                 if {_skillBonus} > 0:
                     set {_skillPercent} to round({_skillBonus} * 100)
                     set {_breakdown} to "%{_breakdown}%+%{_skillPercent}%%% skills "
+                if {_teamBonus} > 0:
+                    set {_teamPercent} to round({_teamBonus} * 100 * 100) / 100
+                    set {_breakdown} to "%{_breakdown}%+%{_teamPercent}%%% team "
                 if {_type} is "token" or "money":
                     if {data::linked::%{_uuid}%} is set:
                         set {_breakdown} to "%{_breakdown}%+50%% discord"
