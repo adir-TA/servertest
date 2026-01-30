@@ -152,7 +152,7 @@ function whirlwind_drawForPlayer(p: player, x: number, y: number, z: number, w: 
         # Draw particles around the ring
         set {_particleCount} to 12 + ({_ring} * 4)  # More particles on outer rings
         loop {_particleCount} times:
-            set {_particleIndex} to loop-number
+            set {_particleIndex} to loop-number-2
             set {_particleAngle} to {_ringAngle} + (({_particleIndex} - 1) * (360 / {_particleCount}))
             set {_px} to {_x} + ({_ringRadius} * cos({_particleAngle}))
             set {_pz} to {_z} + ({_ringRadius} * sin({_particleAngle}))
@@ -265,7 +265,7 @@ function whirlwind_spawnDisplays(p: player, center: location):
         set {_entitiesInRing} to 6 + ({_ring} * 2)
 
         loop {_entitiesInRing} times:
-            set {_entityIndex} to loop-number
+            set {_entityIndex} to loop-number-2
             set {_angleOffset} to ({_entityIndex} - 1) * (360 / {_entitiesInRing})
 
             set {_spawnLoc} to location({_x}, {_ringHeight}, {_z}, {_world})
