@@ -187,19 +187,16 @@ function clickHandler_ArchetypeMenu(p: player, slot: slot, menu: inventory, inde
         # Unequip old archetype enchants (keep global ones)
         if {_oldArchetype} > 1:
             enchant_unequipArchetypeEnchants({_p}, {_oldArchetype})
-        
+
         # Set new archetype
         player_setArchetype({_p}, {_id})
-        
+
         # Recalculate multipliers for new archetype
         multiplier_onArchetypeSwitch({_p})
-        
+
         # Update pickaxe lore
         pickaxe_onArchetypeChange({_p})
-        
-        # Tutorial hook
-        tutorial_onArchetypeSelected({_p}, {_id})
-        
+
         set {_name} to pickaxe_getArchetypeNameByID({_id})
         set {_color} to archetype_getColorTitle({_id})
         
