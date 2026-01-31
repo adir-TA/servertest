@@ -577,6 +577,7 @@ function mining_addArchetypeXP(p: player, archetype: text, amount: number):
         send title "&6&lLEVEL UP!" with subtitle "%{_displayName}% &eis now level &6%{_currentLevel}%&e!" to {_p} for 2 seconds
         play sound "entity.player.levelup" with volume 1 and pitch 1.5 to {_p}
         tutorial_onLevelUp({_p}, {_archetype}, {_currentLevel})
+        progression_checkChapterTransition({_p}, {_currentLevel} - 1, {_currentLevel}, {_archetype})
         
         if {_currentLevel} >= {_maxLevel}:
             send "" to {_p}

@@ -569,6 +569,22 @@ function pickaxe_menu_getActualEnchantItem(p: player, id: integer) :: item type:
     set {_isEquipped} to enchant_checkIfEquipped({_p}, {_id})
     set {_archetype} to enchant_getArchetypeNameByEnchantID({_id})
 
+    # Check progression gating
+    set {_canAccess} to progression_canAccessEnchant({_p}, {_id})
+    if {_canAccess} = false:
+        set {_lockedItem} to gray dye named "&c&l🔒 %{_name}%"
+        set {_status} to progression_getEnchantStatus({_p}, {_id})
+        add menu_utils_getMenuItemFirstLoreLine() to {_lockedLore::*}
+        add "" to {_lockedLore::*}
+        add "&7This enchant is locked." to {_lockedLore::*}
+        add "" to {_lockedLore::*}
+        add {_status} to {_lockedLore::*}
+        add "" to {_lockedLore::*}
+        add "&8Keep leveling to unlock!" to {_lockedLore::*}
+        set lore of {_lockedItem} to {_lockedLore::*}
+        set boolean tag "enchantButton;Locked" of custom nbt of {_lockedItem} to true
+        return {_lockedItem}
+
     set {_amount.max} to enchant_getMaxAffordable({_p}, {_id}, {_level})
 
     set {_displayName} to "&4&l%{_name}% Enchantment"
@@ -692,27 +708,35 @@ function enchant_menu_getEquipItem(p: player, id: integer) :: item:
     set {_isEquipped} to enchant_checkIfEquipped({_p}, {_id})
     set {_name} to enchant_getNameByID({_id})
     set {_icon} to enchant_getIcon({_id})
-    
+
+    # Progression locked
+    if progression_canAccessEnchant({_p}, {_id}) = false:
+        set {_status} to progression_getEnchantStatus({_p}, {_id})
+        set {_item} to gray dye named "&c🔒 %{_name}%"
+        set lore of {_item} to "&7This enchant is locked.", "", {_status}
+        set boolean tag "equipItem;ProgressionLocked" of custom nbt of {_item} to true
+        return {_item}
+
     # Already equipped
     if {_isEquipped} = true:
         set {_item} to lime dye named "&a✔ %{_name}%"
         set lore of {_item} to "&7Level: &a%{_level}%", "", "&cAlready equipped"
         set boolean tag "equipItem;AlreadyEquipped" of custom nbt of {_item} to true
         return {_item}
-    
+
     # Not unlocked (level 0)
     if {_level} < 1:
         set {_item} to gray dye named "&c🔒 %{_name}%"
         set lore of {_item} to "&7Level: &c0", "", "&cRequires at least level 1"
         set boolean tag "equipItem;Locked" of custom nbt of {_item} to true
         return {_item}
-    
+
     # Available to equip
     set {_item} to {_icon}
     set name of {_item} to "&b%{_name}%"
     set lore of {_item} to "&7Level: &a%{_level}%", "", "&eClick to equip"
     set int tag "equipItem;ID" of custom nbt of {_item} to {_id}
-    
+
     return {_item}
 
 
@@ -829,6 +853,14 @@ function clickHandler_PickaxeMenuEnchant(p: player, id: integer, click: click ty
     if metadata tag "enchant_cooldown" of {_p} is set:
         stop
     set metadata tag "enchant_cooldown" of {_p} to true
+
+    # Progression check - block upgrades for locked enchants
+    if progression_canAccessEnchant({_p}, {_id}) = false:
+        set {_status} to progression_getEnchantStatus({_p}, {_id})
+        send "&c&l! &c%{_status}%" to {_p}
+        play sound "entity.villager.no" with volume 0.5 and pitch 1 to {_p}
+        delete metadata tag "enchant_cooldown" of {_p}
+        stop
 
     # Tutorial check - block upgrades at certain steps
     if tutorial_canUpgradeEnchant({_p}) = false:
@@ -967,17 +999,23 @@ function clickHandler_PickaxeMenu(p: player, slot: item, click: click type, gui:
 
 function clickHandler_EnchantEquipMenu(p: player, slot: item, click: click type):
     set {_nbt} to custom nbt of {_slot}
-    
+
     # Back button
     if boolean tag "equipMenu;Back" of {_nbt} is true:
         pickaxe_menu_main({_p})
         stop
-    
+
+    # Progression locked
+    if boolean tag "equipItem;ProgressionLocked" of {_nbt} is true:
+        send "&cThis enchant is locked! Keep leveling to unlock it." to {_p}
+        play sound "entity.villager.no" with volume 0.5 and pitch 1 to {_p}
+        stop
+
     # Already equipped
     if boolean tag "equipItem;AlreadyEquipped" of {_nbt} is true:
         send "&cThis enchant is already equipped!" to {_p}
         stop
-    
+
     # Locked (level 0)
     if boolean tag "equipItem;Locked" of {_nbt} is true:
         send "&cYou need at least level 1 to equip this!" to {_p}

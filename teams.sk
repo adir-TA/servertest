@@ -257,10 +257,20 @@ function team_checkIfNameIsOK(name: string) :: string:
     return "OK"
 
 function team_create(p: player, name: string):
+    # Progression check - require Prestige I
+    if progression_canAccessTeams({_p}) = false:
+        send "" to {_p}
+        send "&c&lTEAMS LOCKED" to {_p}
+        send "&7Teams unlock at &6Prestige I&7." to {_p}
+        send "&7Keep mining and prestige to unlock!" to {_p}
+        send "" to {_p}
+        play sound "entity.villager.no" with volume 0.5 and pitch 1 to {_p}
+        stop
+
     if team_getPlayerTeamID({_p}) != 0:
         send team_getMessage("error_already_in_team") to {_p}
         stop
-    
+
     set {_name} to lowercase {_name}
 
     set {_nameCheck} to team_checkIfNameIsOK({_name})
@@ -427,6 +437,16 @@ function team_invite(p: player, target: offlineplayer):
         send team_getMessage("invite_expired", {_name}) to {_target}
 
 function team_join(p: player, id: integer):
+    # Progression check - require Prestige I
+    if progression_canAccessTeams({_p}) = false:
+        send "" to {_p}
+        send "&c&lTEAMS LOCKED" to {_p}
+        send "&7Teams unlock at &6Prestige I&7." to {_p}
+        send "&7Keep mining and prestige to unlock!" to {_p}
+        send "" to {_p}
+        play sound "entity.villager.no" with volume 0.5 and pitch 1 to {_p}
+        stop
+
     set {_name} to team_getTeamName({_id})
 
     set {_isInvited} to metadata tag "team_invited_%{_id}%" of {_p}
@@ -888,6 +908,22 @@ function team_getPlayerContribution(id: integer, p: player) :: integer:
 # ============================================================
 
 function team_openMainMenu(p: player):
+    # Progression check - require Prestige I
+    if progression_canAccessTeams({_p}) = false:
+        send "" to {_p}
+        send "&c&l🔒 TEAMS LOCKED" to {_p}
+        send "" to {_p}
+        send "&7Teams unlock at &6Prestige I&7!" to {_p}
+        send "" to {_p}
+        send "&7Current Progress:" to {_p}
+        set {_prestige} to progression_getPrestige({_p})
+        send "&7  Prestige: &e%{_prestige}%&7/&a1" to {_p}
+        send "" to {_p}
+        send "&7Keep mining and prestige to unlock teams!" to {_p}
+        send "" to {_p}
+        play sound "entity.villager.no" with volume 0.5 and pitch 1 to {_p}
+        stop
+
     set {_id} to team_getPlayerTeamID({_p})
     if {_id} is 0:
         send "" to {_p}

@@ -189,10 +189,14 @@ function prestige_execute(p: player, archetype: text):
     send "&d&m                                " to {_p}
     
     play sound "ui.toast.challenge_complete" with volume 1 and pitch 1 to {_p}
-    
+
     # Update multipliers and pickaxe lore on prestige
     multiplier_onPrestige({_p})
     pickaxe_onPrestige({_p})
+
+    # Check for chapter progression
+    wait 2 seconds
+    progression_checkChapterTransition({_p}, 1, 1, {_archetype})
 
 
 # ============================================================
