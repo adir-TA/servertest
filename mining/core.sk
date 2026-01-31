@@ -222,27 +222,32 @@ function mining_finishBlock(p: player, l: location):
     # Track blocks per second for anti-cheat
     add 1 to {-blocksPerSecond::%{_p}'s uuid%}
 
-    # Clear crack display
-    if {-miningData::%{_p}'s uuid%::damageID::%{_l}%} is set:
-        set {_id} to {-miningData::%{_p}'s uuid%::damageID::%{_l}%}
-        make {_p} see damage of block at {_l} as 0 from {_id}
-
-    # Get block info BEFORE setting to bedrock
-    set {_type} to type of block at {_l}
-    set {_hardness} to mining_getHardness({_type})
-    
     # ═══ IMMEDIATELY LOCK AND SET BEDROCK ═══
     set {_lockX} to floor(x-coord of {_l})
     set {_lockY} to floor(y-coord of {_l})
     set {_lockZ} to floor(z-coord of {_l})
     set {_lockKey} to "%{_lockX}%_%{_lockY}%_%{_lockZ}%"
     set {-miningLocked::%{_p}'s uuid%::%{_lockKey}%} to true
+
+    # Get damage ID for clearing visuals (store for later use after respawn)
+    if {-miningData::%{_p}'s uuid%::damageID::%{_lockKey}%} is set:
+        set {_damageId} to {-miningData::%{_p}'s uuid%::damageID::%{_lockKey}%}
+    else:
+        set {_damageId} to random integer between 1 and 1000000
+
+    # Clear crack display immediately
+    make {_p} see damage of block at {_l} as 0 from {_damageId}
+
+    # Get block info BEFORE setting to bedrock
+    set {_type} to type of block at {_l}
+    set {_hardness} to mining_getHardness({_type})
+
     make {_p} see block at {_l} as bedrock
-    
-    # Clear session data
-    delete {-miningData::%{_p}'s uuid%::progress::%{_l}%}
-    delete {-miningData::%{_p}'s uuid%::lastStage::%{_l}%}
-    delete {-miningData::%{_p}'s uuid%::damageID::%{_l}%}
+
+    # Clear session data using proper key format
+    delete {-miningData::%{_p}'s uuid%::progress::%{_lockKey}%}
+    delete {-miningData::%{_p}'s uuid%::lastStage::%{_lockKey}%}
+    delete {-miningData::%{_p}'s uuid%::damageID::%{_lockKey}%}
     
     # ═══ NOW PROCESS REWARDS (block is already bedrock) ═══
     set {_isAmplified} to amplify_isAmplified({_p}, {_l})
@@ -343,6 +348,8 @@ function mining_finishBlock(p: player, l: location):
     # ═══ RESPAWN TIMER ═══
     wait 5 seconds
     make {_p} see block at {_l} as original
+    # Clear any lingering damage visual after block respawns
+    make {_p} see damage of block at {_l} as 0 from {_damageId}
     delete {-miningLocked::%{_p}'s uuid%::%{_lockKey}%}
 
 
