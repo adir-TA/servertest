@@ -26,10 +26,10 @@ function pet_openMainMenu(p: player, page: number, sortBy: text):
         send "" to {_p}
         send "&c&l🔒 PETS LOCKED" to {_p}
         send "" to {_p}
-        send "&7Pets unlock at &eLevel 10&7!" to {_p}
+        send "&7Pets unlock at &eLevel 5&7!" to {_p}
         send "" to {_p}
         set {_level} to progression_getLevel({_p})
-        send "&7Current Level: &e%{_level}%&7/&a10" to {_p}
+        send "&7Current Level: &e%{_level}%&7/&a5" to {_p}
         send "" to {_p}
         send "&7Keep mining to unlock pets!" to {_p}
         send "" to {_p}

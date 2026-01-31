@@ -10,7 +10,7 @@
 #   2 = Mine 5 blocks
 #   3 = Equip Efficiency (open menu + equip in one step)
 #   4 = Use /sell
-#   5 = Reach level 10
+#   5 = Reach level 5
 #   6 = Complete
 #
 # ============================================================
@@ -344,12 +344,12 @@ function tutorial_step4_complete(p: player):
 
 function tutorial_step5_reachLevel(p: player):
     set {_level} to mining_getGlobalLevel({_p})
-    if {_level} >= 10:
+    if {_level} >= 5:
         tutorial_step5_complete({_p})
         stop
 
-    set {_remaining} to 10 - {_level}
-    tutorial_setTextAnimated({_p}, "&b&lReach Level 10%nl%%nl%&7Mine blocks to gain XP%nl%&7%{_remaining}% levels to go!")
+    set {_remaining} to 5 - {_level}
+    tutorial_setTextAnimated({_p}, "&b&lReach Level 5%nl%%nl%&7Mine blocks to gain XP%nl%&7%{_remaining}% levels to go!")
     play sound "block.note_block.bell" with volume 0.5 and pitch 1.2 to {_p}
 
 
@@ -360,17 +360,17 @@ function tutorial_onGlobalLevelUp(p: player, level: integer):
     set {_step} to tutorial_getStep({_p})
 
     if {_step} = 5:
-        if {_level} >= 10:
+        if {_level} >= 5:
             tutorial_step5_complete({_p})
         else:
-            set {_remaining} to 10 - {_level}
-            tutorial_setText({_p}, "&b&lReach Level 10%nl%%nl%&7%{_remaining}% levels to go!")
+            set {_remaining} to 5 - {_level}
+            tutorial_setText({_p}, "&b&lReach Level 5%nl%%nl%&7%{_remaining}% levels to go!")
             play sound "entity.experience_orb.pickup" with volume 0.5 and pitch 1.2 to {_p}
 
 
 function tutorial_step5_complete(p: player):
     play sound "ui.toast.challenge_complete" with volume 1 and pitch 1 to {_p}
-    tutorial_setTextAnimated({_p}, "&a&l✓ Level 10!%nl%%nl%&d&lPets Unlocked!")
+    tutorial_setTextAnimated({_p}, "&a&l✓ Level 5!%nl%%nl%&d&lPets Unlocked!")
     tutorial_spawnParticles({_p}, "success")
 
     wait 4 seconds
@@ -381,7 +381,7 @@ function tutorial_step5_complete(p: player):
 
 function tutorial_step6_complete(p: player):
     play sound "block.amethyst_block.chime" with volume 1 and pitch 1 to {_p}
-    tutorial_setTextAnimated({_p}, "&f&lYour Journey%nl%%nl%&a✓ &7Level 10 - &dPets%nl%&8○ &7Level 25 - &bArchetype%nl%&8○ &7Level 35 - &aSkill Tree%nl%&8○ &5Prestige &7- &cTeams")
+    tutorial_setTextAnimated({_p}, "&f&lYour Journey%nl%%nl%&a✓ &7Level 5 - &dPets%nl%&8○ &7Level 25 - &bArchetype%nl%&8○ &7Level 35 - &aSkill Tree%nl%&8○ &5Prestige &7- &cTeams")
 
     wait 6 seconds
 

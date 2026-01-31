@@ -352,7 +352,7 @@ function progression_canAccessAccessories(p: player) :: boolean:
 function progression_canAccessPets(p: player) :: boolean:
     set {_level} to progression_getLevel({_p})
     set {_chapter} to progression_getChapter({_p})
-    if {_level} >= 10:
+    if {_level} >= 5:
         return true
     if {_chapter} >= 2:
         return true
