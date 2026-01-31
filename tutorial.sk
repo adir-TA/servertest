@@ -36,7 +36,7 @@ function tutorial_createDisplay(p: player):
         display shadow: true
         display defaultbackground: false
         display background alpha: 140
-        display teleportduration: 1
+        display teleportduration: 30
     send packet {_m} to {_p}
 
 
@@ -140,7 +140,7 @@ function tutorial_startFollowLoop(p: player):
             stop
 
         tutorial_updateDisplayPosition({_p})
-        wait 1 tick
+        wait 30 ticks
 
     delete {-guard::tutorial::%{_uuid}%}
 
