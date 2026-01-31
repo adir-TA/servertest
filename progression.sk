@@ -13,14 +13,26 @@
 
 function progression_getChapter(p: player) :: integer:
     set {_uuid} to {_p}'s uuid
-    set {_archetype} to {data::archetype::{_uuid}} ? 1
+
+    if {data::archetype::%{_uuid}%} is set:
+        set {_archetype} to {data::archetype::%{_uuid}%}
+    else:
+        set {_archetype} to 1
 
     # Check if any archetype has prestige 5+
     set {_maxPrestige} to 0
-    loop "precision", "demolition" and "arcane":
-        set {_pres} to {mining::%loop-value%::{_uuid}::prestige} ? 0
-        if {_pres} > {_maxPrestige}:
-            set {_maxPrestige} to {_pres}
+
+    if {mining::precision::%{_uuid}%::prestige} is set:
+        if {mining::precision::%{_uuid}%::prestige} > {_maxPrestige}:
+            set {_maxPrestige} to {mining::precision::%{_uuid}%::prestige}
+
+    if {mining::demolition::%{_uuid}%::prestige} is set:
+        if {mining::demolition::%{_uuid}%::prestige} > {_maxPrestige}:
+            set {_maxPrestige} to {mining::demolition::%{_uuid}%::prestige}
+
+    if {mining::arcane::%{_uuid}%::prestige} is set:
+        if {mining::arcane::%{_uuid}%::prestige} > {_maxPrestige}:
+            set {_maxPrestige} to {mining::arcane::%{_uuid}%::prestige}
 
     # Chapter 4: Prestige V+ (any archetype)
     if {_maxPrestige} >= 5:
@@ -31,18 +43,22 @@ function progression_getChapter(p: player) :: integer:
         return 3
 
     # Get current level (use active archetype or global)
+    set {_level} to 1
     if {_archetype} = 1:
         # Still on Global - use highest level from any archetype
-        set {_level} to 0
-        loop "precision", "demolition" and "arcane":
-            set {_lvl} to {mining::%loop-value%::{_uuid}::level} ? 1
-            if {_lvl} > {_level}:
-                set {_level} to {_lvl}
-        if {_level} = 0:
-            set {_level} to 1
+        if {mining::precision::%{_uuid}%::level} is set:
+            if {mining::precision::%{_uuid}%::level} > {_level}:
+                set {_level} to {mining::precision::%{_uuid}%::level}
+        if {mining::demolition::%{_uuid}%::level} is set:
+            if {mining::demolition::%{_uuid}%::level} > {_level}:
+                set {_level} to {mining::demolition::%{_uuid}%::level}
+        if {mining::arcane::%{_uuid}%::level} is set:
+            if {mining::arcane::%{_uuid}%::level} > {_level}:
+                set {_level} to {mining::arcane::%{_uuid}%::level}
     else:
         set {_archetypeName} to progression_archetypeIdToName({_archetype})
-        set {_level} to {mining::{_archetypeName}::{_uuid}::level} ? 1
+        if {mining::%{_archetypeName}%::%{_uuid}%::level} is set:
+            set {_level} to {mining::%{_archetypeName}%::%{_uuid}%::level}
 
     # Chapter 2: Level 25-50
     if {_level} >= 25:
@@ -62,19 +78,37 @@ function progression_archetypeIdToName(id: integer) :: text:
 
 function progression_getLevel(p: player) :: integer:
     set {_uuid} to {_p}'s uuid
-    set {_archetype} to {data::archetype::{_uuid}} ? 1
+
+    if {data::archetype::%{_uuid}%} is set:
+        set {_archetype} to {data::archetype::%{_uuid}%}
+    else:
+        set {_archetype} to 1
+
     if {_archetype} = 1:
         return 1
+
     set {_name} to progression_archetypeIdToName({_archetype})
-    return {mining::{_name}::{_uuid}::level} ? 1
+
+    if {mining::%{_name}%::%{_uuid}%::level} is set:
+        return {mining::%{_name}%::%{_uuid}%::level}
+    return 1
 
 function progression_getPrestige(p: player) :: integer:
     set {_uuid} to {_p}'s uuid
-    set {_archetype} to {data::archetype::{_uuid}} ? 1
+
+    if {data::archetype::%{_uuid}%} is set:
+        set {_archetype} to {data::archetype::%{_uuid}%}
+    else:
+        set {_archetype} to 1
+
     if {_archetype} = 1:
         return 0
+
     set {_name} to progression_archetypeIdToName({_archetype})
-    return {mining::{_name}::{_uuid}::prestige} ? 0
+
+    if {mining::%{_name}%::%{_uuid}%::prestige} is set:
+        return {mining::%{_name}%::%{_uuid}%::prestige}
+    return 0
 
 # --------------------------------------------
 # FEATURE UNLOCK CHECKS
@@ -83,16 +117,22 @@ function progression_getPrestige(p: player) :: integer:
 # Can player select an archetype? (Level 25 required)
 function progression_canSelectArchetype(p: player) :: boolean:
     set {_uuid} to {_p}'s uuid
+
     # If already has an archetype (not global), allow switching
-    if {data::archetype::{_uuid}} ? 1 != 1:
-        return true
-    # Otherwise need level 25 in tutorial/early game
-    # For first selection, check if tutorial is complete or at step 5
-    if {data::tutorial-complete::{_uuid}} is true:
-        return true
+    if {data::archetype::%{_uuid}%} is set:
+        if {data::archetype::%{_uuid}%} != 1:
+            return true
+
+    # Otherwise need tutorial complete or at step 5
+    if {data::tutorial-complete::%{_uuid}%} is set:
+        if {data::tutorial-complete::%{_uuid}%} is true:
+            return true
+
     # During tutorial, archetype selection is at step 5
-    if {-tutorial::{_uuid}::step} ? 0 = 5:
-        return true
+    if {-tutorial::%{_uuid}%::step} is set:
+        if {-tutorial::%{_uuid}%::step} = 5:
+            return true
+
     return false
 
 # Can player access specific enchant?
@@ -101,30 +141,59 @@ function progression_canAccessEnchant(p: player, enchantId: integer) :: boolean:
     set {_level} to progression_getLevel({_p})
     set {_prestige} to progression_getPrestige({_p})
     set {_chapter} to progression_getChapter({_p})
-    set {_archetype} to {data::archetype::{_uuid}} ? 1
 
-    set {_enchantArchetype} to {-dataEnchants::{_enchantId}::archetypeID} ? 1
+    if {data::archetype::%{_uuid}%} is set:
+        set {_archetype} to {data::archetype::%{_uuid}%}
+    else:
+        set {_archetype} to 1
+
+    if {-dataEnchants::%{_enchantId}%::archetypeID} is set:
+        set {_enchantArchetype} to {-dataEnchants::%{_enchantId}%::archetypeID}
+    else:
+        set {_enchantArchetype} to 1
 
     # Global enchants (archetypeID = 1)
     if {_enchantArchetype} = 1:
         # Efficiency - Level 5
         if {_enchantId} = 1:
-            return {_level} >= 5 or {_chapter} >= 2
+            if {_level} >= 5:
+                return true
+            if {_chapter} >= 2:
+                return true
+            return false
         # Unbreaking - Level 15
         if {_enchantId} = 2:
-            return {_level} >= 15 or {_chapter} >= 2
+            if {_level} >= 15:
+                return true
+            if {_chapter} >= 2:
+                return true
+            return false
         # Excavator - Level 20
         if {_enchantId} = 3:
-            return {_level} >= 20 or {_chapter} >= 2
+            if {_level} >= 20:
+                return true
+            if {_chapter} >= 2:
+                return true
+            return false
         # Prospecting - Level 10
         if {_enchantId} = 4:
-            return {_level} >= 10 or {_chapter} >= 2
+            if {_level} >= 10:
+                return true
+            if {_chapter} >= 2:
+                return true
+            return false
         # Speed - Chapter 2 (Level 25+)
         if {_enchantId} = 5:
-            return {_chapter} >= 2
+            if {_chapter} >= 2:
+                return true
+            return false
         # Autosell - Chapter 2 (Level 30+)
         if {_enchantId} = 6:
-            return {_level} >= 30 or {_chapter} >= 3
+            if {_level} >= 30:
+                return true
+            if {_chapter} >= 3:
+                return true
+            return false
         return true
 
     # Archetype-specific enchants require Chapter 2+
@@ -139,49 +208,84 @@ function progression_canAccessEnchant(p: player, enchantId: integer) :: boolean:
     # Precision (archetypeID = 2): Focus, Laser, Lucky Miner, Fortune, Critical Hit
     if {_enchantArchetype} = 2:
         if {_enchantId} = 7:  # Focus - Level 25
-            return {_level} >= 25
+            if {_level} >= 25:
+                return true
+            return false
         if {_enchantId} = 8:  # Laser - Level 30
-            return {_level} >= 30
+            if {_level} >= 30:
+                return true
+            return false
         if {_enchantId} = 9:  # Lucky Miner - Level 35
-            return {_level} >= 35
+            if {_level} >= 35:
+                return true
+            return false
         if {_enchantId} = 10: # Fortune - Level 40
-            return {_level} >= 40
+            if {_level} >= 40:
+                return true
+            return false
         if {_enchantId} = 11: # Critical Hit - Level 45
-            return {_level} >= 45
+            if {_level} >= 45:
+                return true
+            return false
 
     # Demolition (archetypeID = 3): Stability, Explosive, Shockwave, Lightning, Earthquake, Treasure Hunter
     if {_enchantArchetype} = 3:
         if {_enchantId} = 12: # Stability - Level 25
-            return {_level} >= 25
+            if {_level} >= 25:
+                return true
+            return false
         if {_enchantId} = 13: # Explosive - Level 25
-            return {_level} >= 25
+            if {_level} >= 25:
+                return true
+            return false
         if {_enchantId} = 14: # Shockwave - Level 30
-            return {_level} >= 30
+            if {_level} >= 30:
+                return true
+            return false
         if {_enchantId} = 15: # Lightning - Level 35
-            return {_level} >= 35
+            if {_level} >= 35:
+                return true
+            return false
         if {_enchantId} = 16: # Earthquake - Level 40
-            return {_level} >= 40
+            if {_level} >= 40:
+                return true
+            return false
         if {_enchantId} = 17: # Treasure Hunter - Level 45
-            return {_level} >= 45
+            if {_level} >= 45:
+                return true
+            return false
 
     # Arcane (archetypeID = 4): Control, Tornado, Magnet, Amplify, Overcharge
     if {_enchantArchetype} = 4:
         if {_enchantId} = 18: # Control - Level 25
-            return {_level} >= 25
+            if {_level} >= 25:
+                return true
+            return false
         if {_enchantId} = 19: # Tornado - Level 25
-            return {_level} >= 25
+            if {_level} >= 25:
+                return true
+            return false
         if {_enchantId} = 20: # Magnet - Level 30
-            return {_level} >= 30
+            if {_level} >= 30:
+                return true
+            return false
         if {_enchantId} = 21: # Amplify - Level 35
-            return {_level} >= 35
+            if {_level} >= 35:
+                return true
+            return false
         if {_enchantId} = 22: # Overcharge - Level 40
-            return {_level} >= 40
+            if {_level} >= 40:
+                return true
+            return false
 
     return true
 
 # Get required level for an enchant
 function progression_getEnchantRequiredLevel(enchantId: integer) :: integer:
-    set {_enchantArchetype} to {-dataEnchants::{_enchantId}::archetypeID} ? 1
+    if {-dataEnchants::%{_enchantId}%::archetypeID} is set:
+        set {_enchantArchetype} to {-dataEnchants::%{_enchantId}%::archetypeID}
+    else:
+        set {_enchantArchetype} to 1
 
     # Global enchants
     if {_enchantArchetype} = 1:
@@ -199,42 +303,93 @@ function progression_getEnchantRequiredLevel(enchantId: integer) :: integer:
             return 30  # Autosell
         return 1
 
-    # Archetype enchants - mapped by ID
-    if {_enchantId} = 7 or {_enchantId} = 12 or {_enchantId} = 13 or {_enchantId} = 18 or {_enchantId} = 19:
-        return 25  # First tier archetype enchants
-    if {_enchantId} = 8 or {_enchantId} = 14 or {_enchantId} = 20:
-        return 30  # Second tier
-    if {_enchantId} = 9 or {_enchantId} = 15 or {_enchantId} = 21:
-        return 35  # Third tier
-    if {_enchantId} = 10 or {_enchantId} = 16 or {_enchantId} = 22:
-        return 40  # Fourth tier
-    if {_enchantId} = 11 or {_enchantId} = 17:
-        return 45  # Fifth tier
+    # Archetype enchants - first tier (Level 25)
+    if {_enchantId} = 7:
+        return 25
+    if {_enchantId} = 12:
+        return 25
+    if {_enchantId} = 13:
+        return 25
+    if {_enchantId} = 18:
+        return 25
+    if {_enchantId} = 19:
+        return 25
+
+    # Second tier (Level 30)
+    if {_enchantId} = 8:
+        return 30
+    if {_enchantId} = 14:
+        return 30
+    if {_enchantId} = 20:
+        return 30
+
+    # Third tier (Level 35)
+    if {_enchantId} = 9:
+        return 35
+    if {_enchantId} = 15:
+        return 35
+    if {_enchantId} = 21:
+        return 35
+
+    # Fourth tier (Level 40)
+    if {_enchantId} = 10:
+        return 40
+    if {_enchantId} = 16:
+        return 40
+    if {_enchantId} = 22:
+        return 40
+
+    # Fifth tier (Level 45)
+    if {_enchantId} = 11:
+        return 45
+    if {_enchantId} = 17:
+        return 45
 
     return 25
 
 # Can player access accessories?
 function progression_canAccessAccessories(p: player) :: boolean:
     set {_level} to progression_getLevel({_p})
-    return {_level} >= 27 or progression_getChapter({_p}) >= 2
+    set {_chapter} to progression_getChapter({_p})
+    if {_level} >= 27:
+        return true
+    if {_chapter} >= 2:
+        return true
+    return false
 
 # Can player access pets menu?
 function progression_canAccessPets(p: player) :: boolean:
     set {_level} to progression_getLevel({_p})
-    return {_level} >= 10 or progression_getChapter({_p}) >= 2
+    set {_chapter} to progression_getChapter({_p})
+    if {_level} >= 10:
+        return true
+    if {_chapter} >= 2:
+        return true
+    return false
 
 # Can player access skill tree?
 function progression_canAccessSkillTree(p: player) :: boolean:
     set {_level} to progression_getLevel({_p})
-    return {_level} >= 35 or progression_getChapter({_p}) >= 3
+    set {_chapter} to progression_getChapter({_p})
+    if {_level} >= 35:
+        return true
+    if {_chapter} >= 3:
+        return true
+    return false
 
 # Can player access teams?
 function progression_canAccessTeams(p: player) :: boolean:
-    return progression_getPrestige({_p}) >= 1
+    set {_prestige} to progression_getPrestige({_p})
+    if {_prestige} >= 1:
+        return true
+    return false
 
 # Can player access armor system?
 function progression_canAccessArmor(p: player) :: boolean:
-    return progression_getPrestige({_p}) >= 2
+    set {_prestige} to progression_getPrestige({_p})
+    if {_prestige} >= 2:
+        return true
+    return false
 
 # --------------------------------------------
 # ACCESSORY TIER GATING
@@ -245,20 +400,32 @@ function progression_canAccessAccessoryTier(p: player, tier: text) :: boolean:
     set {_prestige} to progression_getPrestige({_p})
 
     # Basic & Advanced - Chapter 2+
-    if {_tier} is "basic" or "advanced":
-        return {_chapter} >= 2
+    if {_tier} is "basic":
+        if {_chapter} >= 2:
+            return true
+        return false
+    if {_tier} is "advanced":
+        if {_chapter} >= 2:
+            return true
+        return false
 
     # Ultra - Prestige 3+
     if {_tier} is "ultra":
-        return {_prestige} >= 3
+        if {_prestige} >= 3:
+            return true
+        return false
 
     # Divine - Prestige 5+
     if {_tier} is "divine":
-        return {_prestige} >= 5
+        if {_prestige} >= 5:
+            return true
+        return false
 
     # Mythic - Prestige 10+
     if {_tier} is "mythic":
-        return {_prestige} >= 10
+        if {_prestige} >= 10:
+            return true
+        return false
 
     return false
 
@@ -269,6 +436,7 @@ function progression_canAccessAccessoryTier(p: player, tier: text) :: boolean:
 function progression_canAccessPetRarity(p: player, rarity: text) :: boolean:
     set {_chapter} to progression_getChapter({_p})
     set {_prestige} to progression_getPrestige({_p})
+    set {_level} to progression_getLevel({_p})
 
     # Common - Always
     if {_rarity} is "common":
@@ -276,19 +444,27 @@ function progression_canAccessPetRarity(p: player, rarity: text) :: boolean:
 
     # Uncommon - Level 15+
     if {_rarity} is "uncommon":
-        return progression_getLevel({_p}) >= 15
+        if {_level} >= 15:
+            return true
+        return false
 
     # Rare - Chapter 2+
     if {_rarity} is "rare":
-        return {_chapter} >= 2
+        if {_chapter} >= 2:
+            return true
+        return false
 
     # Epic - Prestige 3+
     if {_rarity} is "epic":
-        return {_prestige} >= 3
+        if {_prestige} >= 3:
+            return true
+        return false
 
     # Legendary - Prestige 5+
     if {_rarity} is "legendary":
-        return {_prestige} >= 5
+        if {_prestige} >= 5:
+            return true
+        return false
 
     return false
 
@@ -306,15 +482,21 @@ function progression_canAccessZone(p: player, zone: text) :: boolean:
 
     # Underground - Chapter 2+
     if {_zone} is "underground":
-        return {_chapter} >= 2
+        if {_chapter} >= 2:
+            return true
+        return false
 
     # Deep Mines - Prestige 1+
     if {_zone} is "deep":
-        return {_prestige} >= 1
+        if {_prestige} >= 1:
+            return true
+        return false
 
     # The Abyss - Prestige 5+
     if {_zone} is "abyss":
-        return {_prestige} >= 5
+        if {_prestige} >= 5:
+            return true
+        return false
 
     return false
 
@@ -343,11 +525,16 @@ function progression_notifyLocked(p: player, feature: text, requirement: text):
 
 function progression_checkChapterTransition(p: player, oldLevel: integer, newLevel: integer, archetype: text):
     set {_uuid} to {_p}'s uuid
-    set {_oldChapter} to {data::progression::chapter::{_uuid}} ? 1
+
+    if {data::progression::chapter::%{_uuid}%} is set:
+        set {_oldChapter} to {data::progression::chapter::%{_uuid}%}
+    else:
+        set {_oldChapter} to 1
+
     set {_newChapter} to progression_getChapter({_p})
 
     if {_newChapter} > {_oldChapter}:
-        set {data::progression::chapter::{_uuid}} to {_newChapter}
+        set {data::progression::chapter::%{_uuid}%} to {_newChapter}
         progression_playCeremony({_p}, {_newChapter})
 
 function progression_playCeremony(p: player, chapter: integer):
@@ -404,13 +591,23 @@ function progression_playCeremony(p: player, chapter: integer):
 # --------------------------------------------
 
 function progression_getEnchantStatus(p: player, enchantId: integer) :: text:
-    if progression_canAccessEnchant({_p}, {_enchantId}):
+    if progression_canAccessEnchant({_p}, {_enchantId}) = true:
         return ""
+
     set {_reqLevel} to progression_getEnchantRequiredLevel({_enchantId})
-    set {_enchantArchetype} to {-dataEnchants::{_enchantId}::archetypeID} ? 1
+
+    if {-dataEnchants::%{_enchantId}%::archetypeID} is set:
+        set {_enchantArchetype} to {-dataEnchants::%{_enchantId}%::archetypeID}
+    else:
+        set {_enchantArchetype} to 1
 
     if {_enchantArchetype} != 1:
-        set {_playerArchetype} to {data::archetype::{_p}'s uuid} ? 1
+        set {_uuid} to {_p}'s uuid
+        if {data::archetype::%{_uuid}%} is set:
+            set {_playerArchetype} to {data::archetype::%{_uuid}%}
+        else:
+            set {_playerArchetype} to 1
+
         if {_playerArchetype} = 1:
             return "<#FF6B6B>Requires archetype selection"
         if {_enchantArchetype} != {_playerArchetype}:
@@ -493,12 +690,20 @@ function progression_canOpenTreasure(p: player, tier: text) :: boolean:
     if {_tier} is "normal":
         return true
     if {_tier} is "ultra":
-        return {_prestige} >= 1
+        if {_prestige} >= 1:
+            return true
+        return false
     if {_tier} is "divine":
-        return {_prestige} >= 3
+        if {_prestige} >= 3:
+            return true
+        return false
     if {_tier} is "mythic":
-        return {_prestige} >= 5
+        if {_prestige} >= 5:
+            return true
+        return false
     if {_tier} is "celestial":
-        return {_prestige} >= 10
+        if {_prestige} >= 10:
+            return true
+        return false
 
     return true
