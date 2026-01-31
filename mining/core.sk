@@ -685,6 +685,7 @@ function mining_addGlobalXP(p: player, amount: number):
         send title "&6&lLEVEL UP!" with subtitle "&f&lGlobal &eis now level &6%{_currentLevel}%&e!" to {_p} for 2 seconds
         play sound "entity.player.levelup" with volume 1 and pitch 1.5 to {_p}
         tutorial_onLevelUp({_p}, "global", {_currentLevel})
+        tutorial_onGlobalLevelUp({_p}, {_currentLevel})
 
         # At level 25 - prompt archetype selection
         if {_currentLevel} >= {_maxLevel}:
