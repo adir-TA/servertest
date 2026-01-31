@@ -594,7 +594,7 @@ function milestone_update(p: player):
 function milestone_getCurrentText(p: player) :: text:
     set {_uuid} to {_p}'s uuid
     set {_level} to progression_getLevel({_p})
-    set {_archetype} to progression_getArchetype({_p})
+    set {_archetypeId} to player_getArchetype({_p})
     set {_prestige} to {data::prestige::%{_uuid}%} ? 0
 
     # Calculate max level for current prestige (15 + prestige * 15)
@@ -603,7 +603,8 @@ function milestone_getCurrentText(p: player) :: text:
     # ========================================
     # PRE-ARCHETYPE (Global levels 1-25)
     # ========================================
-    if {_archetype} = "" or {_archetype} = "none" or {_archetype} is not set:
+    # Archetype ID 0 or 1 = no archetype selected (global)
+    if {_archetypeId} <= 1:
         set {_globalLevel} to mining_getGlobalLevel({_p})
 
         # Level 5: Pets unlock
