@@ -24,15 +24,9 @@ function tutorial_createDisplay(p: player):
     set {_id} to random integer between 100000 and 9999999
     set {-tutorial::%{_p}'s uuid%::displayId} to {_id}
 
-    # Spawn at eye level, 3 blocks in front (horizontal only)
-    set {_eyeLoc} to {_p}'s eye location
-    set {_yaw} to yaw of {_eyeLoc}
-    set {_yawRad} to {_yaw} * 0.01745329
-    set {_dx} to -1 * sin({_yawRad})
-    set {_dz} to cos({_yawRad})
-    set {_x} to x-coord of {_eyeLoc} + ({_dx} * 3)
-    set {_z} to z-coord of {_eyeLoc} + ({_dz} * 3)
-    set {_loc} to location({_x}, y-coord of {_eyeLoc}, {_z}, world of {_eyeLoc})
+    # Spawn 3 blocks in front of player's eyes, but at player Y + 1
+    set {_loc} to location 3 meters in front of {_p}'s eyes
+    set y-coord of {_loc} to y-coord of {_p}'s location + 1
 
     spawn fake text display at {_loc} for {_p} with id {_id}
 
@@ -53,20 +47,10 @@ function tutorial_updateDisplayPosition(p: player):
     if {_id} is not set:
         stop
 
-    # Get position 3 blocks in front, but keep same Y as player's eyes
-    set {_eyeLoc} to {_p}'s eye location
-    set {_yaw} to yaw of {_eyeLoc}
-    set {_yawRad} to {_yaw} * 0.01745329
+    # 3 blocks in front of player's eyes, but fixed Y at player + 1
+    set {_loc} to location 3 meters in front of {_p}'s eyes
+    set y-coord of {_loc} to y-coord of {_p}'s location + 1
 
-    # Only horizontal direction (ignore pitch)
-    set {_dx} to -1 * sin({_yawRad})
-    set {_dz} to cos({_yawRad})
-
-    set {_x} to x-coord of {_eyeLoc} + ({_dx} * 3)
-    set {_z} to z-coord of {_eyeLoc} + ({_dz} * 3)
-    set {_y} to y-coord of {_eyeLoc}
-
-    set {_loc} to location({_x}, {_y}, {_z}, world of {_eyeLoc})
     send teleport packet with id {_id} with location {_loc} to {_p}
 
 
