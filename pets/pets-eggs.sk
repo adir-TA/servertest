@@ -28,12 +28,16 @@ on right click on beacon:
 
 function pet_openTierMenu(p: player):
     set {_menu} to chest inventory with 3 rows named "&d&lEGG SHOP"
-    
+
     # Fill with glass
     set {_filler} to black stained glass pane named "&1"
     loop 27 times:
         set slot loop-number - 1 of {_menu} to {_filler}
-    
+
+    # Get player progression for rarity unlocks
+    set {_prestige} to progression_getPrestige({_p})
+    set {_level} to progression_getLevel({_p})
+
     # Normal Tier - Slot 11
     set {_normalEgg} to lime dye named "&a&lNORMAL EGG"
     set {_cost} to pet_getTierDisplayCost("normal")
@@ -46,13 +50,30 @@ function pet_openTierMenu(p: player):
         set {_name} to pet_getTypeName(loop-value)
         add " &8• &f%{_name}%" to {_normalLore::*}
     add "" to {_normalLore::*}
-    add "&7Legendary Chance: &6&l2%%" to {_normalLore::*}
+    add "&7Rarity Unlocks:" to {_normalLore::*}
+    add " &f• Common &a✓" to {_normalLore::*}
+    if {_level} >= 15:
+        add " &a• Uncommon &a✓" to {_normalLore::*}
+    else:
+        add " &a• Uncommon &8(Lv15)" to {_normalLore::*}
+    if {_level} >= 25:
+        add " &9• Rare &a✓" to {_normalLore::*}
+    else:
+        add " &9• Rare &8(Lv25)" to {_normalLore::*}
+    if {_prestige} >= 3:
+        add " &5• Epic &a✓" to {_normalLore::*}
+    else:
+        add " &5• Epic &8(P3)" to {_normalLore::*}
+    if {_prestige} >= 5:
+        add " &6• Legendary &a✓" to {_normalLore::*}
+    else:
+        add " &6• Legendary &8(P5)" to {_normalLore::*}
     add "" to {_normalLore::*}
     add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ sᴇʟᴇᴄᴛ" to {_normalLore::*}
     set lore of {_normalEgg} to {_normalLore::*}
     set string tag "egg;tier" of custom nbt of {_normalEgg} to "normal"
     set slot 11 of {_menu} to {_normalEgg}
-    
+
     # Ultra Tier - Slot 13
     set {_ultraEgg} to light blue dye named "&b&lULTRA EGG"
     set {_cost} to pet_getTierDisplayCost("ultra")
@@ -65,13 +86,30 @@ function pet_openTierMenu(p: player):
         set {_name} to pet_getTypeName(loop-value)
         add " &8• &f%{_name}%" to {_ultraLore::*}
     add "" to {_ultraLore::*}
-    add "&7Legendary Chance: &6&l1.5%%" to {_ultraLore::*}
+    add "&7Rarity Unlocks:" to {_ultraLore::*}
+    add " &f• Common &a✓" to {_ultraLore::*}
+    if {_level} >= 15:
+        add " &a• Uncommon &a✓" to {_ultraLore::*}
+    else:
+        add " &a• Uncommon &8(Lv15)" to {_ultraLore::*}
+    if {_level} >= 25:
+        add " &9• Rare &a✓" to {_ultraLore::*}
+    else:
+        add " &9• Rare &8(Lv25)" to {_ultraLore::*}
+    if {_prestige} >= 3:
+        add " &5• Epic &a✓" to {_ultraLore::*}
+    else:
+        add " &5• Epic &8(P3)" to {_ultraLore::*}
+    if {_prestige} >= 5:
+        add " &6• Legendary &a✓" to {_ultraLore::*}
+    else:
+        add " &6• Legendary &8(P5)" to {_ultraLore::*}
     add "" to {_ultraLore::*}
     add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ sᴇʟᴇᴄᴛ" to {_ultraLore::*}
     set lore of {_ultraEgg} to {_ultraLore::*}
     set string tag "egg;tier" of custom nbt of {_ultraEgg} to "ultra"
     set slot 13 of {_menu} to {_ultraEgg}
-    
+
     # Divine Tier - Slot 15
     set {_divineEgg} to magenta dye named "&d&lDIVINE EGG"
     set {_cost} to pet_getTierDisplayCost("divine")
@@ -84,13 +122,30 @@ function pet_openTierMenu(p: player):
         set {_name} to pet_getTypeName(loop-value)
         add " &8• &f%{_name}%" to {_divineLore::*}
     add "" to {_divineLore::*}
-    add "&7Legendary Chance: &6&l0.5%%" to {_divineLore::*}
+    add "&7Rarity Unlocks:" to {_divineLore::*}
+    add " &f• Common &a✓" to {_divineLore::*}
+    if {_level} >= 15:
+        add " &a• Uncommon &a✓" to {_ultraLore::*}
+    else:
+        add " &a• Uncommon &8(Lv15)" to {_divineLore::*}
+    if {_level} >= 25:
+        add " &9• Rare &a✓" to {_divineLore::*}
+    else:
+        add " &9• Rare &8(Lv25)" to {_divineLore::*}
+    if {_prestige} >= 3:
+        add " &5• Epic &a✓" to {_divineLore::*}
+    else:
+        add " &5• Epic &8(P3)" to {_divineLore::*}
+    if {_prestige} >= 5:
+        add " &6• Legendary &a✓" to {_divineLore::*}
+    else:
+        add " &6• Legendary &8(P5)" to {_divineLore::*}
     add "" to {_divineLore::*}
     add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ sᴇʟᴇᴄᴛ" to {_divineLore::*}
     set lore of {_divineEgg} to {_divineLore::*}
     set string tag "egg;tier" of custom nbt of {_divineEgg} to "divine"
     set slot 15 of {_menu} to {_divineEgg}
-    
+
     open {_menu} to {_p}
     set {-pet::menu::%{_p}'s uuid%} to "TIER_SELECT"
 

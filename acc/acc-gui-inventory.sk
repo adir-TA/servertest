@@ -64,6 +64,7 @@ function acc_openInventoryGui(p: player, page: number):
     # ════════════════════════════════════════
     
     # Info - Slot 45
+    set {_prestige} to progression_getPrestige({_p})
     set {_info} to book named "&eAccessory Guide"
     delete {_infoLore::*}
     add "&8ᴍᴇɴᴜ" to {_infoLore::*}
@@ -71,6 +72,22 @@ function acc_openInventoryGui(p: player, page: number):
     add "&6What is this?" to {_infoLore::*}
     add "&7Accessories provide passive" to {_infoLore::*}
     add "&7bonuses to your mining stats." to {_infoLore::*}
+    add "" to {_infoLore::*}
+    add "&6Tier Unlocks:" to {_infoLore::*}
+    add " &7• Basic &a✓" to {_infoLore::*}
+    add " &a• Advanced &a✓" to {_infoLore::*}
+    if {_prestige} >= 3:
+        add " &b• Ultra &a✓" to {_infoLore::*}
+    else:
+        add " &b• Ultra &8(P3)" to {_infoLore::*}
+    if {_prestige} >= 5:
+        add " &6• Divine &a✓" to {_infoLore::*}
+    else:
+        add " &6• Divine &8(P5)" to {_infoLore::*}
+    if {_prestige} >= 10:
+        add " &d• Mythic &a✓" to {_infoLore::*}
+    else:
+        add " &d• Mythic &8(P10)" to {_infoLore::*}
     add "" to {_infoLore::*}
     add "&aStorage" to {_infoLore::*}
     add "&7Owned: &8[&a%{_total}%&8/&c%{_max}%&8]" to {_infoLore::*}

@@ -21,7 +21,10 @@ function acc_openChestsGui(p: player):
     # TREASURE CHESTS (Row 2: slots 11-15)
     # ════════════════════════════════════════
 
-    # Normal Chest - Slot 11
+    # Get player prestige
+    set {_prestige} to progression_getPrestige({_p})
+
+    # Normal Chest - Slot 11 (Always available)
     set {_normalKeys} to acc_getKeyCount({_p}, "normal")
     set {_normalChest} to acc_getTreasureChestIcon("normal") named "&a&lNormal Chest"
     delete {_normalLore::*}
@@ -44,12 +47,18 @@ function acc_openChestsGui(p: player):
     set lore of {_normalChest} to {_normalLore::*}
     set slot 11 of {_menu} to {_normalChest}
 
-    # Ultra Chest - Slot 12
+    # Ultra Chest - Slot 12 (Requires Prestige 1+)
     set {_ultraKeys} to acc_getKeyCount({_p}, "ultra")
-    set {_ultraChest} to acc_getTreasureChestIcon("ultra") named "&b&lUltra Chest"
+    if {_prestige} >= 1:
+        set {_ultraChest} to acc_getTreasureChestIcon("ultra") named "&b&lUltra Chest"
+    else:
+        set {_ultraChest} to gray dye named "&8&lUltra Chest &c(LOCKED)"
     delete {_ultraLore::*}
     add "&8ᴛʀᴇᴀsᴜʀᴇ ᴄʜᴇsᴛ" to {_ultraLore::*}
     add "" to {_ultraLore::*}
+    if {_prestige} < 1:
+        add "&c✖ Requires Prestige 1" to {_ultraLore::*}
+        add "" to {_ultraLore::*}
     add "&7Your Keys: &e%{_ultraKeys}%" to {_ultraLore::*}
     add "" to {_ultraLore::*}
     add "&7Drop Rates:" to {_ultraLore::*}
@@ -59,20 +68,29 @@ function acc_openChestsGui(p: player):
     add "  &5Epic: &74%%" to {_ultraLore::*}
     add "  &6Legendary: &71%%" to {_ultraLore::*}
     add "" to {_ultraLore::*}
-    if {_ultraKeys} > 0:
-        add "&aClick to open!" to {_ultraLore::*}
-        set string tag "acc;treasure" of custom nbt of {_ultraChest} to "ultra"
+    if {_prestige} >= 1:
+        if {_ultraKeys} > 0:
+            add "&aClick to open!" to {_ultraLore::*}
+            set string tag "acc;treasure" of custom nbt of {_ultraChest} to "ultra"
+        else:
+            add "&cNo keys available!" to {_ultraLore::*}
     else:
-        add "&cNo keys available!" to {_ultraLore::*}
+        add "&8Unlock at Prestige 1" to {_ultraLore::*}
     set lore of {_ultraChest} to {_ultraLore::*}
     set slot 12 of {_menu} to {_ultraChest}
 
-    # Divine Chest - Slot 13
+    # Divine Chest - Slot 13 (Requires Prestige 3+)
     set {_divineKeys} to acc_getKeyCount({_p}, "divine")
-    set {_divineChest} to acc_getTreasureChestIcon("divine") named "&d&lDivine Chest"
+    if {_prestige} >= 3:
+        set {_divineChest} to acc_getTreasureChestIcon("divine") named "&d&lDivine Chest"
+    else:
+        set {_divineChest} to gray dye named "&8&lDivine Chest &c(LOCKED)"
     delete {_divineLore::*}
     add "&8ᴛʀᴇᴀsᴜʀᴇ ᴄʜᴇsᴛ" to {_divineLore::*}
     add "" to {_divineLore::*}
+    if {_prestige} < 3:
+        add "&c✖ Requires Prestige 3" to {_divineLore::*}
+        add "" to {_divineLore::*}
     add "&7Your Keys: &e%{_divineKeys}%" to {_divineLore::*}
     add "" to {_divineLore::*}
     add "&7Drop Rates:" to {_divineLore::*}
@@ -82,20 +100,29 @@ function acc_openChestsGui(p: player):
     add "  &5Epic: &76%%" to {_divineLore::*}
     add "  &6Legendary: &72%%" to {_divineLore::*}
     add "" to {_divineLore::*}
-    if {_divineKeys} > 0:
-        add "&aClick to open!" to {_divineLore::*}
-        set string tag "acc;treasure" of custom nbt of {_divineChest} to "divine"
+    if {_prestige} >= 3:
+        if {_divineKeys} > 0:
+            add "&aClick to open!" to {_divineLore::*}
+            set string tag "acc;treasure" of custom nbt of {_divineChest} to "divine"
+        else:
+            add "&cNo keys available!" to {_divineLore::*}
     else:
-        add "&cNo keys available!" to {_divineLore::*}
+        add "&8Unlock at Prestige 3" to {_divineLore::*}
     set lore of {_divineChest} to {_divineLore::*}
     set slot 13 of {_menu} to {_divineChest}
 
-    # Mythic Chest - Slot 14
+    # Mythic Chest - Slot 14 (Requires Prestige 5+)
     set {_mythicKeys} to acc_getKeyCount({_p}, "mythic")
-    set {_mythicChest} to acc_getTreasureChestIcon("mythic") named "&6&lMythic Chest"
+    if {_prestige} >= 5:
+        set {_mythicChest} to acc_getTreasureChestIcon("mythic") named "&6&lMythic Chest"
+    else:
+        set {_mythicChest} to gray dye named "&8&lMythic Chest &c(LOCKED)"
     delete {_mythicLore::*}
     add "&8ᴛʀᴇᴀsᴜʀᴇ ᴄʜᴇsᴛ" to {_mythicLore::*}
     add "" to {_mythicLore::*}
+    if {_prestige} < 5:
+        add "&c✖ Requires Prestige 5" to {_mythicLore::*}
+        add "" to {_mythicLore::*}
     add "&7Your Keys: &e%{_mythicKeys}%" to {_mythicLore::*}
     add "" to {_mythicLore::*}
     add "&7Drop Rates:" to {_mythicLore::*}
@@ -105,20 +132,29 @@ function acc_openChestsGui(p: player):
     add "  &5Epic: &79%%" to {_mythicLore::*}
     add "  &6Legendary: &74%%" to {_mythicLore::*}
     add "" to {_mythicLore::*}
-    if {_mythicKeys} > 0:
-        add "&aClick to open!" to {_mythicLore::*}
-        set string tag "acc;treasure" of custom nbt of {_mythicChest} to "mythic"
+    if {_prestige} >= 5:
+        if {_mythicKeys} > 0:
+            add "&aClick to open!" to {_mythicLore::*}
+            set string tag "acc;treasure" of custom nbt of {_mythicChest} to "mythic"
+        else:
+            add "&cNo keys available!" to {_mythicLore::*}
     else:
-        add "&cNo keys available!" to {_mythicLore::*}
+        add "&8Unlock at Prestige 5" to {_mythicLore::*}
     set lore of {_mythicChest} to {_mythicLore::*}
     set slot 14 of {_menu} to {_mythicChest}
 
-    # Celestial Chest - Slot 15
+    # Celestial Chest - Slot 15 (Requires Prestige 10+)
     set {_celestialKeys} to acc_getKeyCount({_p}, "celestial")
-    set {_celestialChest} to acc_getTreasureChestIcon("celestial") named "&c&lCelestial Chest"
+    if {_prestige} >= 10:
+        set {_celestialChest} to acc_getTreasureChestIcon("celestial") named "&c&lCelestial Chest"
+    else:
+        set {_celestialChest} to gray dye named "&8&lCelestial Chest &c(LOCKED)"
     delete {_celestialLore::*}
     add "&8ᴛʀᴇᴀsᴜʀᴇ ᴄʜᴇsᴛ" to {_celestialLore::*}
     add "" to {_celestialLore::*}
+    if {_prestige} < 10:
+        add "&c✖ Requires Prestige 10" to {_celestialLore::*}
+        add "" to {_celestialLore::*}
     add "&7Your Keys: &e%{_celestialKeys}%" to {_celestialLore::*}
     add "" to {_celestialLore::*}
     add "&7Drop Rates:" to {_celestialLore::*}
@@ -128,11 +164,14 @@ function acc_openChestsGui(p: player):
     add "  &5Epic: &713%%" to {_celestialLore::*}
     add "  &6Legendary: &77%%" to {_celestialLore::*}
     add "" to {_celestialLore::*}
-    if {_celestialKeys} > 0:
-        add "&aClick to open!" to {_celestialLore::*}
-        set string tag "acc;treasure" of custom nbt of {_celestialChest} to "celestial"
+    if {_prestige} >= 10:
+        if {_celestialKeys} > 0:
+            add "&aClick to open!" to {_celestialLore::*}
+            set string tag "acc;treasure" of custom nbt of {_celestialChest} to "celestial"
+        else:
+            add "&cNo keys available!" to {_celestialLore::*}
     else:
-        add "&cNo keys available!" to {_celestialLore::*}
+        add "&8Unlock at Prestige 10" to {_celestialLore::*}
     set lore of {_celestialChest} to {_celestialLore::*}
     set slot 15 of {_menu} to {_celestialChest}
 
