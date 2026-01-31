@@ -38,7 +38,7 @@ function tutorial_createDisplay(p: player):
         display shadow: true
         display defaultbackground: false
         display background alpha: 140
-        display teleportduration: 3
+        display teleportduration: 1
     send packet {_m} to {_p}
 
 
@@ -180,18 +180,21 @@ function tutorial_startFollowLoop(p: player):
 
     while {-tutorial::%{_uuid}%::following} is true:
         if {_p} is not online:
-            tutorial_stopFollowLoop({_p})
+            delete {-tutorial::%{_uuid}%::following}
             delete {-guard::tutorial::%{_uuid}%}
             stop
 
+        # Update position to stay in front of player's view
         tutorial_updateDisplayPosition({_p})
-        wait 2 ticks
+        wait 1 tick
 
     delete {-guard::tutorial::%{_uuid}%}
 
 
 function tutorial_stopFollowLoop(p: player):
-    delete {-tutorial::%{_p}'s uuid%::following}
+    set {_uuid} to {_p}'s uuid
+    delete {-tutorial::%{_uuid}%::following}
+    delete {-guard::tutorial::%{_uuid}%}
 
 
 # ============================================================
@@ -227,9 +230,11 @@ function tutorial_resetBlocks(p: player):
     set {-tutorial::%{_p}'s uuid%::blocks} to 0
 
 function tutorial_cleanup(p: player):
-    tutorial_stopFollowLoop({_p})
+    set {_uuid} to {_p}'s uuid
+    delete {-tutorial::%{_uuid}%::following}
+    delete {-guard::tutorial::%{_uuid}%}
     tutorial_removeDisplay({_p})
-    delete {-tutorial::%{_p}'s uuid%::*}
+    delete {-tutorial::%{_uuid}%::*}
 
 
 # ============================================================
