@@ -1,27 +1,25 @@
 # ============================================================
-# TUTORIAL SYSTEM v2
+# TUTORIAL SYSTEM v3
 # ============================================================
-# Uses fake text display entities (packets) for immersive floating text
-# Text always stays at player's eye level, in front of them
+# Progression: Level 5 (Pets) → Level 15 (Prestige) → Level 25 (Archetype)
+# Max level = 15 + (prestige × 15)
 #
 # Steps:
-#   0 = Not started / Completed
 #   1 = Welcome
 #   2 = Mine 5 blocks
-#   3 = Equip Efficiency (open menu + equip in one step)
+#   3 = Equip Efficiency
 #   4 = Use /sell
 #   5 = Reach level 5 (pets unlock)
 #   6 = Equip a pet
-#   7 = Reach level 15
+#   7 = Reach level 15 (prestige available)
 #   8 = Complete
 #
-# After tutorial: Milestone display system shows next goal
-#
+# After tutorial: Milestone display shows next goal
 # ============================================================
 
 
 # ============================================================
-# TEXT DISPLAY SYSTEM (Packet-based)
+# TEXT DISPLAY SYSTEM
 # ============================================================
 
 function tutorial_createDisplay(p: player):
@@ -347,13 +345,12 @@ function tutorial_step5_reachLevel5(p: player):
         stop
 
     set {_remaining} to 5 - {_level}
-    tutorial_setTextAnimated({_p}, "&b&lReach Level 5%nl%%nl%&7Mine to gain XP%nl%&7%{_remaining}% levels to go!")
+    tutorial_setTextAnimated({_p}, "&d&lReach Level 5%nl%&7to unlock &dPets%nl%%nl%&7%{_remaining}% levels to go!")
     play sound "block.note_block.bell" with volume 0.5 and pitch 1.2 to {_p}
 
 
 function tutorial_onGlobalLevelUp(p: player, level: integer):
     if tutorial_isComplete({_p}) = true:
-        # Update milestone display
         milestone_update({_p})
         stop
 
@@ -364,7 +361,7 @@ function tutorial_onGlobalLevelUp(p: player, level: integer):
             tutorial_step5_complete({_p})
         else:
             set {_remaining} to 5 - {_level}
-            tutorial_setText({_p}, "&b&lReach Level 5%nl%%nl%&7%{_remaining}% levels to go!")
+            tutorial_setText({_p}, "&d&lReach Level 5%nl%&7to unlock &dPets%nl%%nl%&7%{_remaining}% levels to go!")
             play sound "entity.experience_orb.pickup" with volume 0.5 and pitch 1.2 to {_p}
 
     if {_step} = 7:
@@ -372,7 +369,7 @@ function tutorial_onGlobalLevelUp(p: player, level: integer):
             tutorial_step7_complete({_p})
         else:
             set {_remaining} to 15 - {_level}
-            tutorial_setText({_p}, "&b&lReach Level 15%nl%%nl%&7%{_remaining}% levels to go!")
+            tutorial_setText({_p}, "&5&lReach Level 15%nl%&7to unlock &5Prestige%nl%%nl%&7%{_remaining}% levels to go!")
             play sound "entity.experience_orb.pickup" with volume 0.5 and pitch 1.2 to {_p}
 
 
@@ -381,7 +378,7 @@ function tutorial_step5_complete(p: player):
     tutorial_setTextAnimated({_p}, "&a&l✓ Level 5!%nl%%nl%&d&lPets Unlocked!")
     tutorial_spawnParticles({_p}, "success")
 
-    # Give player a starter pet
+    # Give starter pet
     set {_petId} to pet_create({_p}, "cow", "common")
 
     wait 4 seconds
@@ -407,7 +404,7 @@ function tutorial_onPetEquip(p: player):
 
 function tutorial_step6_complete(p: player):
     play sound "entity.experience_orb.pickup" with volume 1 and pitch 1.2 to {_p}
-    tutorial_setTextAnimated({_p}, "&a&lPet Equipped!%nl%%nl%&7Pets give you bonus stats")
+    tutorial_setTextAnimated({_p}, "&a&lPet Equipped!%nl%%nl%&7Pets give bonus stats")
     tutorial_spawnParticles({_p}, "happy")
 
     wait 4 seconds
@@ -423,13 +420,13 @@ function tutorial_step7_reachLevel15(p: player):
         stop
 
     set {_remaining} to 15 - {_level}
-    tutorial_setTextAnimated({_p}, "&b&lReach Level 15%nl%%nl%&7Keep mining!%nl%&7%{_remaining}% levels to go!")
+    tutorial_setTextAnimated({_p}, "&5&lReach Level 15%nl%&7to unlock &5Prestige%nl%%nl%&7%{_remaining}% levels to go!")
     play sound "block.note_block.bell" with volume 0.5 and pitch 1.2 to {_p}
 
 
 function tutorial_step7_complete(p: player):
     play sound "ui.toast.challenge_complete" with volume 1 and pitch 1 to {_p}
-    tutorial_setTextAnimated({_p}, "&a&l✓ Level 15!%nl%%nl%&7You're getting stronger!")
+    tutorial_setTextAnimated({_p}, "&a&l✓ Level 15!%nl%%nl%&5&lPrestige Unlocked!")
     tutorial_spawnParticles({_p}, "success")
 
     wait 4 seconds
@@ -440,9 +437,9 @@ function tutorial_step7_complete(p: player):
 
 function tutorial_step8_complete(p: player):
     play sound "block.amethyst_block.chime" with volume 1 and pitch 1 to {_p}
-    tutorial_setTextAnimated({_p}, "&a&l✓ Tutorial Complete!%nl%%nl%&7Keep mining to unlock:%nl%&eLv 25 &8→ &bArchetype%nl%&eLv 35 &8→ &aSkill Tree")
+    tutorial_setTextAnimated({_p}, "&a&l✓ Tutorial Complete!%nl%%nl%&7Your goals will show above%nl%&7Keep mining!")
 
-    wait 6 seconds
+    wait 5 seconds
 
     tutorial_fadeOut({_p})
 
@@ -455,13 +452,12 @@ function tutorial_step8_complete(p: player):
     send "" to {_p}
     send "   &a&l✓ &fTutorial Complete!" to {_p}
     send "" to {_p}
-    send "   &7Your next goal will appear above." to {_p}
-    send "   &7Keep mining to progress!" to {_p}
+    send "   &7Use &5/prestige &7to reset and grow stronger" to {_p}
+    send "   &7Your next goal appears above!" to {_p}
     send "" to {_p}
     send "&a&m                                                   " to {_p}
     send "" to {_p}
 
-    # Start milestone system
     wait 2 seconds
     milestone_start({_p})
 
@@ -528,34 +524,20 @@ function tutorial_onLevelUp(p: player, archetype: text, level: integer):
     if tutorial_isComplete({_p}) = true:
         milestone_update({_p})
 
-    if {_level} = 25:
-        if {_archetype} = "global":
-            stop
-
-    if {_level} = 27:
-        wait 3 seconds
-        send "" to {_p}
-        send "&6&l► &7Accessories unlocked! Use &e/acc" to {_p}
-        send "" to {_p}
-        play sound "block.note_block.pling" with volume 0.5 and pitch 1.5 to {_p}
-
-    if {_level} = 35:
-        wait 3 seconds
-        send "" to {_p}
-        send "&a&l► &7Skill Tree unlocked! Use &e/skilltree" to {_p}
-        send "" to {_p}
-        play sound "block.note_block.pling" with volume 0.5 and pitch 1.5 to {_p}
-
 
 # ============================================================
 # MILESTONE DISPLAY SYSTEM
 # ============================================================
-# Shows current goal as floating text after tutorial
+# Always shows current goal based on progression
 
 function milestone_start(p: player):
     set {_uuid} to {_p}'s uuid
 
-    # Create display
+    # Don't duplicate
+    if {-milestone::%{_uuid}%::displayId} is set:
+        milestone_update({_p})
+        stop
+
     set {_id} to random integer between 100000 and 9999999
     set {-milestone::%{_uuid}%::displayId} to {_id}
 
@@ -575,11 +557,8 @@ function milestone_start(p: player):
         display teleportduration: 30
     send packet {_m} to {_p}
 
-    # Start follow loop
     set {-milestone::%{_uuid}%::active} to true
     milestone_followLoop({_p})
-
-    # Show current milestone
     milestone_update({_p})
 
 
@@ -597,46 +576,80 @@ function milestone_update(p: player):
 
 
 function milestone_getCurrentText(p: player) :: text:
+    set {_uuid} to {_p}'s uuid
     set {_level} to progression_getLevel({_p})
     set {_archetype} to progression_getArchetype({_p})
+    set {_prestige} to {data::prestige::%{_uuid}%} ? 0
 
-    # Check archetype selection (level 25+)
-    if {_level} >= 25:
-        if {_archetype} = "" or {_archetype} = "none" or {_archetype} is not set:
-            return "&6&lChoose Archetype%nl%&7Use &e/arc &7to specialize"
+    # Calculate max level for current prestige (15 + prestige * 15)
+    set {_maxLevel} to 15 + ({_prestige} * 15)
 
-    # Level milestones
-    if {_level} < 25:
-        set {_remaining} to 25 - {_level}
-        return "&b&lLevel %{_level}%&7/&b25%nl%&7Archetype in &e%{_remaining}% &7levels"
+    # Pre-archetype (Global levels 1-25)
+    if {_archetype} = "" or {_archetype} = "none" or {_archetype} is not set:
+        set {_globalLevel} to mining_getGlobalLevel({_p})
 
+        # Before first prestige unlock
+        if {_globalLevel} < 15:
+            set {_remaining} to 15 - {_globalLevel}
+            return "&5&lLevel %{_globalLevel}%&7/&515%nl%&7Prestige in &e%{_remaining}% &7levels"
+
+        # Can prestige but haven't yet
+        if {_globalLevel} >= 15:
+            if {_globalLevel} < 25:
+                set {_remaining} to 25 - {_globalLevel}
+                return "&b&lLevel %{_globalLevel}%&7/&b25%nl%&7Archetype in &e%{_remaining}% &7levels%nl%&8(or &5/prestige&8)"
+
+            # Level 25+ - must choose archetype
+            return "&6&lChoose Archetype!%nl%&7Use &e/arc &7to specialize"
+
+    # Has archetype - show archetype progression
+
+    # At max level for current prestige - prompt prestige
+    if {_level} >= {_maxLevel}:
+        set {_nextPrestige} to {_prestige} + 1
+        return "&5&lMax Level!%nl%&7Use &e/prestige &7for P%{_nextPrestige}%%nl%&8New max: Lv %{_maxLevel} + 15%"
+
+    # Show progress to next milestone
+
+    # Accessories unlock at 27
     if {_level} < 27:
-        set {_remaining} to 27 - {_level}
-        return "&b&lLevel %{_level}%&7/&627%nl%&7Accessories in &e%{_remaining}% &7levels"
+        if {_maxLevel} >= 27:
+            set {_remaining} to 27 - {_level}
+            return "&6&lLevel %{_level}%&7/&627%nl%&7Accessories in &e%{_remaining}% &7levels"
 
+    # Skill Tree unlock at 35
     if {_level} < 35:
-        set {_remaining} to 35 - {_level}
-        return "&b&lLevel %{_level}%&7/&a35%nl%&7Skill Tree in &e%{_remaining}% &7levels"
+        if {_maxLevel} >= 35:
+            set {_remaining} to 35 - {_level}
+            return "&a&lLevel %{_level}%&7/&a35%nl%&7Skill Tree in &e%{_remaining}% &7levels"
 
-    # Check prestige
-    set {_prestige} to {data::prestige::%{_p}'s uuid%} ? 0
+    # Teams unlock at Prestige 1
     if {_prestige} < 1:
-        return "&5&lPrestige Available%nl%&7Use &e/prestige &7to reset & grow"
+        set {_remaining} to {_maxLevel} - {_level}
+        return "&c&lLevel %{_level}%&7/&c%{_maxLevel}%%nl%&7Prestige 1 unlocks &cTeams%nl%&7%{_remaining}% &7levels to prestige"
 
-    # Post-prestige goals
-    if {_level} < 50:
-        set {_remaining} to 50 - {_level}
-        return "&b&lLevel %{_level}%&7/&d50%nl%&7%{_remaining}% &7levels to go"
+    # Deep Mines already unlocked (P1+), show next milestones
 
-    if {_level} < 75:
-        set {_remaining} to 75 - {_level}
-        return "&b&lLevel %{_level}%&7/&d75%nl%&7%{_remaining}% &7levels to go"
+    # Prestige 5 unlocks Abyss
+    if {_prestige} < 5:
+        set {_remaining} to {_maxLevel} - {_level}
+        if {_remaining} <= 0:
+            return "&5&lPrestige to P%{_prestige} + 1%!%nl%&7P5 unlocks &5The Abyss"
+        return "&b&lLevel %{_level}%&7/&b%{_maxLevel}%%nl%&7%{_remaining}% &7to prestige%nl%&8P5 unlocks Abyss"
 
+    # Prestige 5+ - show level progress
+    set {_remaining} to {_maxLevel} - {_level}
+    if {_remaining} <= 0:
+        return "&5&lPrestige Available!%nl%&7Use &e/prestige &7to grow"
+
+    # Level 100 unlocks Milestones
     if {_level} < 100:
-        set {_remaining} to 100 - {_level}
-        return "&6&lLevel %{_level}%&7/&6100%nl%&7%{_remaining}% &7levels to max!"
+        if {_maxLevel} >= 100:
+            set {_toMilestones} to 100 - {_level}
+            return "&6&lLevel %{_level}%&7/&6100%nl%&7Milestones in &e%{_toMilestones}% &7levels"
 
-    return "&a&lMax Level!%nl%&7Prestige to keep growing"
+    # Post level 100 - just show progress
+    return "&b&lLevel %{_level}%&7/&b%{_maxLevel}%%nl%&7%{_remaining}% &7to next prestige"
 
 
 function milestone_followLoop(p: player):
@@ -730,7 +743,6 @@ on join:
             else:
                 tutorial_step8_complete(player)
     else:
-        # Tutorial complete - start milestone display
         wait 1 second
         milestone_start(player)
 
