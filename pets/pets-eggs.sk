@@ -378,6 +378,8 @@ function pet_playOpeningSequence(p: player, tier: text, amount: number, altarLoc
     loop {_amount} times:
         set {_i} to loop-number
         set {_rarity} to pet_rollRarity({_tier})
+        # Cap rarity based on player progression
+        set {_rarity} to progression_capPetRarity({_p}, {_rarity})
         set {_type} to pet_rollType({_tier})
 
         # Check if this pet should be auto-salvaged

@@ -43,6 +43,23 @@ command /skilltree:
 # ============================================================
 
 function skilltree_openPage(p: player, vScroll: number, hScroll: number):
+    # Progression check - require Level 35 or Prestige I
+    if progression_canAccessSkillTree({_p}) = false:
+        send "" to {_p}
+        send "&c&l🔒 SKILL TREE LOCKED" to {_p}
+        send "" to {_p}
+        send "&7Skill Tree unlocks at &eLevel 35&7 or &6Prestige I&7!" to {_p}
+        send "" to {_p}
+        set {_level} to progression_getLevel({_p})
+        set {_prestige} to progression_getPrestige({_p})
+        send "&7Current Level: &e%{_level}%&7/&a35" to {_p}
+        send "&7Current Prestige: &6%{_prestige}%" to {_p}
+        send "" to {_p}
+        send "&7Keep progressing to unlock the skill tree!" to {_p}
+        send "" to {_p}
+        play sound "entity.villager.no" with volume 0.5 and pitch 1 to {_p}
+        stop
+
     set {_uuid} to {_p}'s uuid
     set {_points} to economy_getPrestigePoints({_p})
     set {_spent} to skilltree_getTotalSpent({_p})

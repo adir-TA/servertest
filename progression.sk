@@ -417,3 +417,88 @@ function progression_getEnchantStatus(p: player, enchantId: integer) :: text:
             return "<#FF6B6B>Wrong archetype"
 
     return "<#FF6B6B>Requires Level %{_reqLevel}%"
+
+# --------------------------------------------
+# RARITY CAPPING FOR DROPS
+# Cap rolled rarity based on player progression
+# --------------------------------------------
+
+# Cap pet rarity based on progression
+function progression_capPetRarity(p: player, rolledRarity: text) :: text:
+    set {_prestige} to progression_getPrestige({_p})
+    set {_level} to progression_getLevel({_p})
+
+    # Legendary - requires Prestige 5+
+    if {_rolledRarity} is "legendary":
+        if {_prestige} < 5:
+            return "epic"
+
+    # Epic - requires Prestige 3+
+    if {_rolledRarity} is "epic":
+        if {_prestige} < 3:
+            return "rare"
+
+    # Rare - requires Chapter 2 (Level 25+)
+    if {_rolledRarity} is "rare":
+        if {_level} < 25:
+            return "uncommon"
+
+    # Uncommon - requires Level 15+
+    if {_rolledRarity} is "uncommon":
+        if {_level} < 15:
+            return "common"
+
+    return {_rolledRarity}
+
+# Cap accessory rarity based on progression
+function progression_capAccessoryRarity(p: player, rolledRarity: text) :: text:
+    set {_prestige} to progression_getPrestige({_p})
+    set {_level} to progression_getLevel({_p})
+
+    # Legendary - requires Prestige 5+
+    if {_rolledRarity} is "legendary":
+        if {_prestige} < 5:
+            return "epic"
+
+    # Epic - requires Prestige 3+
+    if {_rolledRarity} is "epic":
+        if {_prestige} < 3:
+            return "rare"
+
+    # Rare - requires Level 30+
+    if {_rolledRarity} is "rare":
+        if {_level} < 30:
+            return "uncommon"
+
+    return {_rolledRarity}
+
+# Get max treasure tier player can access
+function progression_getMaxTreasureTier(p: player) :: text:
+    set {_prestige} to progression_getPrestige({_p})
+
+    if {_prestige} >= 10:
+        return "celestial"
+    if {_prestige} >= 5:
+        return "mythic"
+    if {_prestige} >= 3:
+        return "divine"
+    if {_prestige} >= 1:
+        return "ultra"
+    return "normal"
+
+# Check if player can open a specific treasure tier
+function progression_canOpenTreasure(p: player, tier: text) :: boolean:
+    set {_prestige} to progression_getPrestige({_p})
+
+    if {_tier} is "normal":
+        return true
+    if {_tier} is "ultra":
+        return {_prestige} >= 1
+    if {_tier} is "divine":
+        return {_prestige} >= 3
+    if {_tier} is "mythic":
+        return {_prestige} >= 5
+    if {_tier} is "celestial":
+        return {_prestige} >= 10
+
+    return true

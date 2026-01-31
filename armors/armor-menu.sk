@@ -9,6 +9,21 @@ command /armor:
 
 
 function armor_openMenu(p: player, selectedTier: integer):
+    # Progression check - require Prestige II
+    if progression_canAccessArmor({_p}) = false:
+        send "" to {_p}
+        send "&c&l🔒 ARMOR LOCKED" to {_p}
+        send "" to {_p}
+        send "&7Armor unlocks at &6Prestige II&7!" to {_p}
+        send "" to {_p}
+        set {_prestige} to progression_getPrestige({_p})
+        send "&7Current Prestige: &6%{_prestige}%&7/&a2" to {_p}
+        send "" to {_p}
+        send "&7Keep prestiging to unlock armor!" to {_p}
+        send "" to {_p}
+        play sound "entity.villager.no" with volume 0.5 and pitch 1 to {_p}
+        stop
+
     set {_menu} to chest inventory with 6 rows named "&8Mining Armor"
     
     set {_gemName} to gemstone_getName({_selectedTier})

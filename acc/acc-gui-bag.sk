@@ -14,6 +14,21 @@ command /accessories:
 
 
 function acc_openBagGui(p: player):
+    # Progression check - require Level 27
+    if progression_canAccessAccessories({_p}) = false:
+        send "" to {_p}
+        send "&c&l🔒 ACCESSORIES LOCKED" to {_p}
+        send "" to {_p}
+        send "&7Accessories unlock at &eLevel 27&7!" to {_p}
+        send "" to {_p}
+        set {_level} to progression_getLevel({_p})
+        send "&7Current Level: &e%{_level}%&7/&a27" to {_p}
+        send "" to {_p}
+        send "&7Keep mining to unlock accessories!" to {_p}
+        send "" to {_p}
+        play sound "entity.villager.no" with volume 0.5 and pitch 1 to {_p}
+        stop
+
     set {_uuid} to {_p}'s uuid
     set {_menu} to chest inventory with 4 rows named "&6&lAccessories"
 

@@ -21,6 +21,21 @@ command /pets:
         pet_openMainMenu(player, 1, "tier")
 
 function pet_openMainMenu(p: player, page: number, sortBy: text):
+    # Progression check - require Level 10
+    if progression_canAccessPets({_p}) = false:
+        send "" to {_p}
+        send "&c&l🔒 PETS LOCKED" to {_p}
+        send "" to {_p}
+        send "&7Pets unlock at &eLevel 10&7!" to {_p}
+        send "" to {_p}
+        set {_level} to progression_getLevel({_p})
+        send "&7Current Level: &e%{_level}%&7/&a10" to {_p}
+        send "" to {_p}
+        send "&7Keep mining to unlock pets!" to {_p}
+        send "" to {_p}
+        play sound "entity.villager.no" with volume 0.5 and pitch 1 to {_p}
+        stop
+
     set {_uuid} to {_p}'s uuid
     set {_menu} to chest inventory with 6 rows named "&d&lPets"
     
