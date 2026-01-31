@@ -565,7 +565,8 @@ function mining_getMaxLevel(p: player, archetype: text) :: number:
     return 50 + ({_prestige} * 25)
 
 function mining_getXPRequired(level: number) :: number:
-    return round(100 * {_level} ^ 1.2)
+    # Easier early leveling - reduced from 100 * level^1.2
+    return round(75 * {_level} ^ 1.1)
 
 function mining_calculateXP(hardness: number) :: number:
     set {_base} to random integer between 1 and 10
