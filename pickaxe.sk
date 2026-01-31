@@ -801,6 +801,24 @@ function pickaxe_menu_getInfoBook() :: item:
 
 
 function enchant_getArchetypeMenuIcon(p: player) :: item:
+    # Check if archetype selection is unlocked (Level 25+)
+    if progression_canSelectArchetype({_p}) = false:
+        set {_level} to progression_getLevel({_p})
+        set {_item} to gray dye named "&c&l🔒 Archetype Selection"
+        add menu_utils_getMenuItemFirstLoreLine() to {_lockedLore::*}
+        add "" to {_lockedLore::*}
+        add "&7Choose your mining specialization:" to {_lockedLore::*}
+        add "&b  • Precision &8- &7Speed & precision" to {_lockedLore::*}
+        add "&c  • Demolition &8- &7AOE & explosions" to {_lockedLore::*}
+        add "&d  • Arcane &8- &7Magic & drops" to {_lockedLore::*}
+        add "" to {_lockedLore::*}
+        add "&c&lLOCKED" to {_lockedLore::*}
+        add "&7Requires: &eLevel 25" to {_lockedLore::*}
+        add "&7Current: &c%{_level}%" to {_lockedLore::*}
+        set lore of {_item} to {_lockedLore::*}
+        set boolean tag "enchantButton;ArchetypeLocked" of custom nbt of {_item} to true
+        return {_item}
+
     set {_item} to ender eye
     set {_name} to "&fArchetype Selection Menu"
 
@@ -990,7 +1008,16 @@ function clickHandler_PickaxeMenu(p: player, slot: item, click: click type, gui:
         stop
     
     # ===== ARCHETYPE BUTTON =====
-    
+
+    # Locked archetype button
+    if boolean tag "enchantButton;ArchetypeLocked" of {_nbt} is true:
+        set {_level} to progression_getLevel({_p})
+        send "&c&lARCHETYPE LOCKED" to {_p}
+        send "&7Reach &eLevel 25 &7to choose your archetype." to {_p}
+        send "&7Current level: &c%{_level}%" to {_p}
+        play sound "entity.villager.no" with volume 0.5 and pitch 1 to {_p}
+        stop
+
     set {_archetypeButton} to boolean tag "enchantButton;Archetype" of {_nbt}
     if {_archetypeButton} is set:
         archetype_menu_selection({_p}, true)

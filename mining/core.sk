@@ -406,6 +406,7 @@ on quit:
     delete {-lightning::%player's uuid%::*}
     delete {-earthquake::%player's uuid%::*}
     delete {-autosell::%player's uuid%::*}
+    delete {-maxLevelBlocks::%player's uuid%}
     amplify_clearAll(player)
     overcharge_clearAll(player)
 
@@ -564,39 +565,58 @@ function mining_addArchetypeXP(p: player, archetype: text, amount: number):
     set {_currentXP} to {mining::%{_archetype}%::%{_uuid}%::xp} ? 0
     set {_currentLevel} to {mining::%{_archetype}%::%{_uuid}%::level} ? 1
     set {_maxLevel} to mining_getMaxLevel({_p}, {_archetype})
-    
+
+    # At max level - show prestige reminder periodically
     if {_currentLevel} >= {_maxLevel}:
+        # Clear any excess XP
+        set {mining::%{_archetype}%::%{_uuid}%::xp} to 0
+        # Track blocks mined at max level for periodic reminder
+        if {-maxLevelBlocks::%{_uuid}%} is not set:
+            set {-maxLevelBlocks::%{_uuid}%} to 0
+        add 1 to {-maxLevelBlocks::%{_uuid}%}
+        # Show reminder every 50 blocks
+        if mod({-maxLevelBlocks::%{_uuid}%}, 50) = 0:
+            send action bar "&c&lMAX LEVEL! &7Use &6/prestige &7to keep progressing!" to {_p}
+            play sound "block.note_block.bass" with volume 0.3 and pitch 0.5 to {_p}
         stop
-    
+
     add {_amount} to {_currentXP}
     set {mining::%{_archetype}%::%{_uuid}%::xp} to {_currentXP}
-    
+
     set {_xpNeeded} to mining_getXPRequired({_currentLevel})
-    
+
     while {_currentXP} >= {_xpNeeded}:
         subtract {_xpNeeded} from {_currentXP}
         add 1 to {_currentLevel}
-        
+
         set {mining::%{_archetype}%::%{_uuid}%::level} to {_currentLevel}
         set {mining::%{_archetype}%::%{_uuid}%::xp} to {_currentXP}
-        
+
         set {_displayName} to mining_getArchetypeDisplayName({_archetype})
         send title "&6&lLEVEL UP!" with subtitle "%{_displayName}% &eis now level &6%{_currentLevel}%&e!" to {_p} for 2 seconds
         play sound "entity.player.levelup" with volume 1 and pitch 1.5 to {_p}
         tutorial_onLevelUp({_p}, {_archetype}, {_currentLevel})
         progression_checkChapterTransition({_p}, {_currentLevel} - 1, {_currentLevel}, {_archetype})
-        
+
         if {_currentLevel} >= {_maxLevel}:
+            # Clear excess XP at max
+            set {mining::%{_archetype}%::%{_uuid}%::xp} to 0
+            # Reset max level block counter
+            set {-maxLevelBlocks::%{_uuid}%} to 0
             send "" to {_p}
-            send "&a&m                                  " to {_p}
-            send "&6MAX LEVEL REACHED!" to {_p}
+            send "&5&m                                  " to {_p}
+            send "&6&lMAX LEVEL REACHED!" to {_p}
             send "%{_displayName}% &eis now level &6%{_currentLevel}%&e!" to {_p}
             send "" to {_p}
-            send "&7Use &6/prestige &7to continue progressing!" to {_p}
-            send "&a&m                                  " to {_p}
+            send "&d&lPRESTIGE AVAILABLE!" to {_p}
+            send "&7Use &6/prestige &7to reset and unlock:" to {_p}
+            send "&7  • &a+25 max levels" to {_p}
+            send "&7  • &dPrestige Points" to {_p}
+            send "&7  • &eNew content!" to {_p}
+            send "&5&m                                  " to {_p}
             play sound "ui.toast.challenge_complete" with volume 1 and pitch 1 to {_p}
             stop
-        
+
         set {_xpNeeded} to mining_getXPRequired({_currentLevel})
 
 function mining_getArchetypeDisplayName(archetype: text) :: text:
