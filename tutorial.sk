@@ -2,6 +2,7 @@
 # TUTORIAL SYSTEM v2
 # ============================================================
 # Uses fake text display entities (packets) for immersive floating text
+# Text always stays in front of player with smooth movement
 #
 # Steps:
 #   0 = Not started / Completed
@@ -17,7 +18,7 @@
 
 
 # ============================================================
-# TEXT DISPLAY SYSTEM (Packet-based)
+# TEXT DISPLAY SYSTEM (Packet-based, Smooth Following)
 # ============================================================
 
 function tutorial_createDisplay(p: player):
@@ -37,7 +38,7 @@ function tutorial_createDisplay(p: player):
         display shadow: true
         display defaultbackground: false
         display background alpha: 140
-        display teleportduration: 1
+        display teleportduration: 3
     send packet {_m} to {_p}
 
 
@@ -46,21 +47,26 @@ function tutorial_getDisplayLocation(p: player) :: location:
     set {_yaw} to yaw of {_loc}
     set {_pitch} to pitch of {_loc}
 
-    # Calculate direction vector from yaw/pitch
-    set {_yawRad} to {_yaw} * 3.14159 / 180
-    set {_pitchRad} to {_pitch} * 3.14159 / 180
+    # Clamp pitch so text doesn't go too high/low
+    if {_pitch} > 45:
+        set {_pitch} to 45
+    if {_pitch} < -45:
+        set {_pitch} to -45
 
+    # Convert to radians
+    set {_yawRad} to {_yaw} * 0.01745329
+    set {_pitchRad} to {_pitch} * 0.01745329
+
+    # Direction vector pointing where player looks
     set {_dx} to -1 * sin({_yawRad}) * cos({_pitchRad})
     set {_dy} to -1 * sin({_pitchRad})
     set {_dz} to cos({_yawRad}) * cos({_pitchRad})
 
-    # Move forward 2.5 blocks in that direction
-    add {_dx} * 2.5 to x-coord of {_loc}
-    add {_dy} * 2.5 to y-coord of {_loc}
-    add {_dz} * 2.5 to z-coord of {_loc}
-
-    # Slightly lower
-    subtract 0.3 from y-coord of {_loc}
+    # Move 3 blocks in front of player
+    set {_dist} to 3
+    add {_dx} * {_dist} to x-coord of {_loc}
+    add {_dy} * {_dist} to y-coord of {_loc}
+    add {_dz} * {_dist} to z-coord of {_loc}
 
     return {_loc}
 
@@ -157,23 +163,35 @@ function tutorial_removeDisplay(p: player):
 
 
 # ============================================================
-# DISPLAY FOLLOW LOOP
+# DISPLAY FOLLOW LOOP (Smooth, always in front)
 # ============================================================
 
 function tutorial_startFollowLoop(p: player):
-    set {-tutorial::%{_p}'s uuid%::following} to true
-    tutorial_followLoop({_p})
+    set {_uuid} to {_p}'s uuid
+
+    # Set loop flag
+    set {-tutorial::%{_uuid}%::following} to true
+
+    # Guard against duplicate loops
+    if {-guard::tutorial::%{_uuid}%} is set:
+        stop
+
+    set {-guard::tutorial::%{_uuid}%} to true
+
+    while {-tutorial::%{_uuid}%::following} is true:
+        if {_p} is not online:
+            tutorial_stopFollowLoop({_p})
+            delete {-guard::tutorial::%{_uuid}%}
+            stop
+
+        tutorial_updateDisplayPosition({_p})
+        wait 2 ticks
+
+    delete {-guard::tutorial::%{_uuid}%}
+
 
 function tutorial_stopFollowLoop(p: player):
     delete {-tutorial::%{_p}'s uuid%::following}
-
-function tutorial_followLoop(p: player):
-    while {-tutorial::%{_p}'s uuid%::following} is true:
-        if {_p} is not online:
-            tutorial_stopFollowLoop({_p})
-            stop
-        tutorial_updateDisplayPosition({_p})
-        wait 1 tick
 
 
 # ============================================================
@@ -259,7 +277,7 @@ function tutorial_step1_welcome(p: player):
 
 function tutorial_step2_mine(p: player):
     set {_remaining} to 5 - tutorial_getBlocks({_p})
-    tutorial_setTextAnimated({_p}, "&e&lMine %{_remaining}% blocks\n&7to begin")
+    tutorial_setTextAnimated({_p}, "&e&lMine %{_remaining}% blocks%nl%&7to begin")
     play sound "block.note_block.bell" with volume 0.5 and pitch 1.5 to {_p}
 
 
@@ -275,7 +293,7 @@ function tutorial_onBlockMined(p: player):
         set {_remaining} to 5 - {_count}
 
         if {_remaining} > 0:
-            tutorial_setText({_p}, "&e&lMine %{_remaining}% blocks\n&7to begin")
+            tutorial_setText({_p}, "&e&lMine %{_remaining}% blocks%nl%&7to begin")
             play sound "block.note_block.hat" with volume 0.3 and pitch 1.5 to {_p}
         else:
             tutorial_step2_complete({_p})
@@ -286,7 +304,7 @@ function tutorial_step2_complete(p: player):
     add 1000 to {data::tokens::%{_p}'s uuid%}
 
     play sound "entity.player.levelup" with volume 1 and pitch 1.2 to {_p}
-    tutorial_setTextAnimated({_p}, "&a&l+1,000 Tokens!\n&7Nice work!")
+    tutorial_setTextAnimated({_p}, "&a&l+1,000 Tokens!%nl%&7Nice work!")
     tutorial_spawnParticles({_p}, "happy")
 
     wait 2.5 seconds
@@ -297,7 +315,7 @@ function tutorial_step2_complete(p: player):
 
 
 function tutorial_step3_openPickaxe(p: player):
-    tutorial_setTextAnimated({_p}, "&b&lRight-click\n&7your pickaxe")
+    tutorial_setTextAnimated({_p}, "&b&lRight-click%nl%&7your pickaxe")
     play sound "block.note_block.bell" with volume 0.5 and pitch 1.2 to {_p}
 
 
@@ -312,17 +330,17 @@ function tutorial_onMenuOpen(p: player):
 
     if {_step} = 4:
         wait 10 ticks
-        tutorial_setText({_p}, "&6&lClick Efficiency\n&7to upgrade it")
+        tutorial_setText({_p}, "&6&lClick Efficiency%nl%&7to upgrade it")
 
     if {_step} = 5:
         wait 10 ticks
-        tutorial_setText({_p}, "&d&lClick empty slot\n&7then select Efficiency")
+        tutorial_setText({_p}, "&d&lClick empty slot%nl%&7then select Efficiency")
 
 
 function tutorial_step3_complete(p: player):
     tutorial_setStep({_p}, 4)
     play sound "block.note_block.pling" with volume 0.5 and pitch 1.5 to {_p}
-    tutorial_setText({_p}, "&6&lClick Efficiency\n&7to upgrade it")
+    tutorial_setText({_p}, "&6&lClick Efficiency%nl%&7to upgrade it")
 
 
 function tutorial_onEnchantUpgrade(p: player, enchantName: text, newLevel: integer):
@@ -339,11 +357,11 @@ function tutorial_onEnchantUpgrade(p: player, enchantName: text, newLevel: integ
 function tutorial_step4_complete(p: player):
     tutorial_setStep({_p}, 5)
     play sound "entity.experience_orb.pickup" with volume 1 and pitch 1.2 to {_p}
-    tutorial_setTextAnimated({_p}, "&a&lUpgraded!\n&7Now equip it")
+    tutorial_setTextAnimated({_p}, "&a&lUpgraded!%nl%&7Now equip it")
 
     wait 1.5 seconds
 
-    tutorial_setText({_p}, "&d&lClick empty slot\n&7then select Efficiency")
+    tutorial_setText({_p}, "&d&lClick empty slot%nl%&7then select Efficiency")
 
 
 function tutorial_onEnchantEquip(p: player, enchantName: text):
@@ -363,7 +381,7 @@ function tutorial_step5_complete(p: player):
     wait 5 ticks
 
     play sound "block.enchantment_table.use" with volume 1 and pitch 1.2 to {_p}
-    tutorial_setTextAnimated({_p}, "&a&lEfficiency Equipped!\n&7You'll mine faster now")
+    tutorial_setTextAnimated({_p}, "&a&lEfficiency Equipped!%nl%&7You'll mine faster now")
     tutorial_spawnParticles({_p}, "enchant")
 
     wait 2.5 seconds
@@ -374,7 +392,7 @@ function tutorial_step5_complete(p: player):
 
 
 function tutorial_step6_sell(p: player):
-    tutorial_setTextAnimated({_p}, "&6&lType /sell\n&7to earn money")
+    tutorial_setTextAnimated({_p}, "&6&lType /sell%nl%&7to earn money")
     play sound "block.note_block.bell" with volume 0.5 and pitch 1.2 to {_p}
 
 
@@ -407,7 +425,7 @@ function tutorial_step7_complete(p: player):
     wait 3 seconds
 
     # Show roadmap
-    tutorial_setTextAnimated({_p}, "&f&lYour Journey\n\n&eLv 10 &8→ &7Pets\n&eLv 25 &8→ &bArchetype\n&eLv 35 &8→ &aSkill Tree\n&5Prestige &8→ &cTeams")
+    tutorial_setTextAnimated({_p}, "&f&lYour Journey%nl%%nl%&eLv 10 &8→ &7Pets%nl%&eLv 25 &8→ &bArchetype%nl%&eLv 35 &8→ &aSkill Tree%nl%&5Prestige &8→ &cTeams")
     play sound "block.amethyst_block.chime" with volume 0.8 and pitch 1 to {_p}
 
     wait 5 seconds
@@ -559,9 +577,9 @@ on join:
             else if {_step} = 3:
                 tutorial_step3_openPickaxe(player)
             else if {_step} = 4:
-                tutorial_setText(player, "&6&lClick Efficiency\n&7to upgrade it")
+                tutorial_setText(player, "&6&lClick Efficiency%nl%&7to upgrade it")
             else if {_step} = 5:
-                tutorial_setText(player, "&d&lClick empty slot\n&7then select Efficiency")
+                tutorial_setText(player, "&d&lClick empty slot%nl%&7then select Efficiency")
             else if {_step} = 6:
                 tutorial_step6_sell(player)
             else:
