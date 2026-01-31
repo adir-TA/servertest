@@ -44,17 +44,10 @@ function progression_getChapter(p: player) :: integer:
 
     # Get current level (use active archetype or global)
     set {_level} to 1
-    if {_archetype} = 1:
-        # Still on Global - use highest level from any archetype
-        if {mining::precision::%{_uuid}%::level} is set:
-            if {mining::precision::%{_uuid}%::level} > {_level}:
-                set {_level} to {mining::precision::%{_uuid}%::level}
-        if {mining::demolition::%{_uuid}%::level} is set:
-            if {mining::demolition::%{_uuid}%::level} > {_level}:
-                set {_level} to {mining::demolition::%{_uuid}%::level}
-        if {mining::arcane::%{_uuid}%::level} is set:
-            if {mining::arcane::%{_uuid}%::level} > {_level}:
-                set {_level} to {mining::arcane::%{_uuid}%::level}
+    if {_archetype} <= 1:
+        # Still on Global - use global level
+        if {mining::global::%{_uuid}%::level} is set:
+            set {_level} to {mining::global::%{_uuid}%::level}
     else:
         set {_archetypeName} to progression_archetypeIdToName({_archetype})
         if {mining::%{_archetypeName}%::%{_uuid}%::level} is set:
@@ -84,7 +77,10 @@ function progression_getLevel(p: player) :: integer:
     else:
         set {_archetype} to 1
 
-    if {_archetype} = 1:
+    # Global - return global level
+    if {_archetype} <= 1:
+        if {mining::global::%{_uuid}%::level} is set:
+            return {mining::global::%{_uuid}%::level}
         return 1
 
     set {_name} to progression_archetypeIdToName({_archetype})
@@ -114,23 +110,18 @@ function progression_getPrestige(p: player) :: integer:
 # FEATURE UNLOCK CHECKS
 # --------------------------------------------
 
-# Can player select an archetype? (Level 25 required)
+# Can player select an archetype? (Global Level 25 required)
 function progression_canSelectArchetype(p: player) :: boolean:
     set {_uuid} to {_p}'s uuid
 
     # If already has an archetype (not global), allow switching
     if {data::archetype::%{_uuid}%} is set:
-        if {data::archetype::%{_uuid}%} != 1:
+        if {data::archetype::%{_uuid}%} >= 2:
             return true
 
-    # Otherwise need tutorial complete or at step 5
-    if {data::tutorial-complete::%{_uuid}%} is set:
-        if {data::tutorial-complete::%{_uuid}%} is true:
-            return true
-
-    # During tutorial, archetype selection is at step 5
-    if {-tutorial::%{_uuid}%::step} is set:
-        if {-tutorial::%{_uuid}%::step} = 5:
+    # Need Global level 25 to first select archetype
+    if {mining::global::%{_uuid}%::level} is set:
+        if {mining::global::%{_uuid}%::level} >= 25:
             return true
 
     return false
