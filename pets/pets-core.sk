@@ -225,6 +225,9 @@ function pet_equip(p: player, petId: text) :: boolean:
     send "&a✓ Equipped %{_color}%%{_name}%&a!" to {_p}
     play sound "entity.armor_stand.place" with volume 0.8 and pitch 1.2 to {_p}
 
+    # Tutorial callback
+    tutorial_onPetEquip({_p})
+
     # Recalculate multipliers
     multiplier_recalculate({_p})
 

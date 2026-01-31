@@ -10,8 +10,12 @@
 #   2 = Mine 5 blocks
 #   3 = Equip Efficiency (open menu + equip in one step)
 #   4 = Use /sell
-#   5 = Reach level 5
-#   6 = Complete
+#   5 = Reach level 5 (pets unlock)
+#   6 = Equip a pet
+#   7 = Reach level 15
+#   8 = Complete
+#
+# After tutorial: Milestone display system shows next goal
 #
 # ============================================================
 
@@ -24,7 +28,6 @@ function tutorial_createDisplay(p: player):
     set {_id} to random integer between 100000 and 9999999
     set {-tutorial::%{_p}'s uuid%::displayId} to {_id}
 
-    # Spawn 3 blocks in front of player's eyes, but at player Y + 1
     set {_loc} to location 3 meters in front of {_p}'s eyes
     set y-coord of {_loc} to y-coord of {_p}'s location + 1
 
@@ -47,7 +50,6 @@ function tutorial_updateDisplayPosition(p: player):
     if {_id} is not set:
         stop
 
-    # 3 blocks in front of player's eyes, but fixed Y at player + 1
     set {_loc} to location 3 meters in front of {_p}'s eyes
     set y-coord of {_loc} to y-coord of {_p}'s location + 1
 
@@ -201,17 +203,14 @@ function tutorial_cleanup(p: player):
 # ============================================================
 
 function tutorial_start(p: player):
-    # Reset player state
     enchant_clearEquipped({_p})
     loop enchant_getAllEnchantsIds():
         enchant_setPlayerLevel({_p}, loop-value, 0)
     slot_setUnlockedCount({_p}, 1)
 
-    # Give efficiency level 5 (for equipping in tutorial)
     set {_efficiencyID} to enchant_getIdByString("Efficiency")
     enchant_setPlayerLevel({_p}, {_efficiencyID}, 5)
 
-    # Start display system
     tutorial_createDisplay({_p})
     tutorial_startFollowLoop({_p})
 
@@ -283,7 +282,6 @@ function tutorial_step3_equipPickaxe(p: player):
 
 
 function tutorial_onMenuOpen(p: player):
-    # Not needed - instructions already shown
     stop
 
 
@@ -334,27 +332,29 @@ function tutorial_onSell(p: player):
 
 function tutorial_step4_complete(p: player):
     play sound "entity.experience_orb.pickup" with volume 1 and pitch 1 to {_p}
-    tutorial_setTextAnimated({_p}, "&a&lMoney Earned!%nl%%nl%&7Use money to buy%nl%&7upgrades and pets")
+    tutorial_setTextAnimated({_p}, "&a&lMoney Earned!")
 
-    wait 4 seconds
+    wait 3 seconds
 
     tutorial_setStep({_p}, 5)
-    tutorial_step5_reachLevel({_p})
+    tutorial_step5_reachLevel5({_p})
 
 
-function tutorial_step5_reachLevel(p: player):
+function tutorial_step5_reachLevel5(p: player):
     set {_level} to mining_getGlobalLevel({_p})
     if {_level} >= 5:
         tutorial_step5_complete({_p})
         stop
 
     set {_remaining} to 5 - {_level}
-    tutorial_setTextAnimated({_p}, "&b&lReach Level 5%nl%%nl%&7Mine blocks to gain XP%nl%&7%{_remaining}% levels to go!")
+    tutorial_setTextAnimated({_p}, "&b&lReach Level 5%nl%%nl%&7Mine to gain XP%nl%&7%{_remaining}% levels to go!")
     play sound "block.note_block.bell" with volume 0.5 and pitch 1.2 to {_p}
 
 
 function tutorial_onGlobalLevelUp(p: player, level: integer):
     if tutorial_isComplete({_p}) = true:
+        # Update milestone display
+        milestone_update({_p})
         stop
 
     set {_step} to tutorial_getStep({_p})
@@ -367,21 +367,80 @@ function tutorial_onGlobalLevelUp(p: player, level: integer):
             tutorial_setText({_p}, "&b&lReach Level 5%nl%%nl%&7%{_remaining}% levels to go!")
             play sound "entity.experience_orb.pickup" with volume 0.5 and pitch 1.2 to {_p}
 
+    if {_step} = 7:
+        if {_level} >= 15:
+            tutorial_step7_complete({_p})
+        else:
+            set {_remaining} to 15 - {_level}
+            tutorial_setText({_p}, "&b&lReach Level 15%nl%%nl%&7%{_remaining}% levels to go!")
+            play sound "entity.experience_orb.pickup" with volume 0.5 and pitch 1.2 to {_p}
+
 
 function tutorial_step5_complete(p: player):
     play sound "ui.toast.challenge_complete" with volume 1 and pitch 1 to {_p}
     tutorial_setTextAnimated({_p}, "&a&l✓ Level 5!%nl%%nl%&d&lPets Unlocked!")
     tutorial_spawnParticles({_p}, "success")
 
+    # Give player a starter pet
+    set {_petId} to pet_create({_p}, "cow", "common")
+
     wait 4 seconds
 
     tutorial_setStep({_p}, 6)
-    tutorial_step6_complete({_p})
+    tutorial_step6_equipPet({_p})
+
+
+function tutorial_step6_equipPet(p: player):
+    tutorial_setTextAnimated({_p}, "&d&lEquip Your Pet%nl%%nl%&71. &fType &e/pets%nl%&72. &fClick your pet%nl%&73. &fClick &aEquip")
+    play sound "block.note_block.bell" with volume 0.5 and pitch 1.2 to {_p}
+
+
+function tutorial_onPetEquip(p: player):
+    if tutorial_isComplete({_p}) = true:
+        stop
+
+    set {_step} to tutorial_getStep({_p})
+
+    if {_step} = 6:
+        tutorial_step6_complete({_p})
 
 
 function tutorial_step6_complete(p: player):
+    play sound "entity.experience_orb.pickup" with volume 1 and pitch 1.2 to {_p}
+    tutorial_setTextAnimated({_p}, "&a&lPet Equipped!%nl%%nl%&7Pets give you bonus stats")
+    tutorial_spawnParticles({_p}, "happy")
+
+    wait 4 seconds
+
+    tutorial_setStep({_p}, 7)
+    tutorial_step7_reachLevel15({_p})
+
+
+function tutorial_step7_reachLevel15(p: player):
+    set {_level} to mining_getGlobalLevel({_p})
+    if {_level} >= 15:
+        tutorial_step7_complete({_p})
+        stop
+
+    set {_remaining} to 15 - {_level}
+    tutorial_setTextAnimated({_p}, "&b&lReach Level 15%nl%%nl%&7Keep mining!%nl%&7%{_remaining}% levels to go!")
+    play sound "block.note_block.bell" with volume 0.5 and pitch 1.2 to {_p}
+
+
+function tutorial_step7_complete(p: player):
+    play sound "ui.toast.challenge_complete" with volume 1 and pitch 1 to {_p}
+    tutorial_setTextAnimated({_p}, "&a&l✓ Level 15!%nl%%nl%&7You're getting stronger!")
+    tutorial_spawnParticles({_p}, "success")
+
+    wait 4 seconds
+
+    tutorial_setStep({_p}, 8)
+    tutorial_step8_complete({_p})
+
+
+function tutorial_step8_complete(p: player):
     play sound "block.amethyst_block.chime" with volume 1 and pitch 1 to {_p}
-    tutorial_setTextAnimated({_p}, "&f&lYour Journey%nl%%nl%&a✓ &7Level 5 - &dPets%nl%&8○ &7Level 25 - &bArchetype%nl%&8○ &7Level 35 - &aSkill Tree%nl%&8○ &5Prestige &7- &cTeams")
+    tutorial_setTextAnimated({_p}, "&a&l✓ Tutorial Complete!%nl%%nl%&7Keep mining to unlock:%nl%&eLv 25 &8→ &bArchetype%nl%&eLv 35 &8→ &aSkill Tree")
 
     wait 6 seconds
 
@@ -396,11 +455,15 @@ function tutorial_step6_complete(p: player):
     send "" to {_p}
     send "   &a&l✓ &fTutorial Complete!" to {_p}
     send "" to {_p}
-    send "   &7Check out your new &d/pets &7menu!" to {_p}
-    send "   &7Keep mining to unlock more features." to {_p}
+    send "   &7Your next goal will appear above." to {_p}
+    send "   &7Keep mining to progress!" to {_p}
     send "" to {_p}
     send "&a&m                                                   " to {_p}
     send "" to {_p}
+
+    # Start milestone system
+    wait 2 seconds
+    milestone_start({_p})
 
 
 # ============================================================
@@ -446,8 +509,6 @@ function tutorial_canOpenMenu(p: player) :: boolean:
     return true
 
 function tutorial_canUpgradeEnchant(p: player) :: boolean:
-    if tutorial_isComplete({_p}) = true:
-        return true
     return true
 
 function tutorial_canUnlockSlot(p: player) :: boolean:
@@ -457,18 +518,16 @@ function tutorial_canUnlockSlot(p: player) :: boolean:
 
 
 # ============================================================
-# SLOT UNLOCK CALLBACK
+# CALLBACKS
 # ============================================================
 
 function tutorial_onSlotUnlock(p: player, slotNum: integer):
     stop
 
-
-# ============================================================
-# LEVEL UP NOTIFICATIONS
-# ============================================================
-
 function tutorial_onLevelUp(p: player, archetype: text, level: integer):
+    if tutorial_isComplete({_p}) = true:
+        milestone_update({_p})
+
     if {_level} = 25:
         if {_archetype} = "global":
             stop
@@ -486,6 +545,154 @@ function tutorial_onLevelUp(p: player, archetype: text, level: integer):
         send "&a&l► &7Skill Tree unlocked! Use &e/skilltree" to {_p}
         send "" to {_p}
         play sound "block.note_block.pling" with volume 0.5 and pitch 1.5 to {_p}
+
+
+# ============================================================
+# MILESTONE DISPLAY SYSTEM
+# ============================================================
+# Shows current goal as floating text after tutorial
+
+function milestone_start(p: player):
+    set {_uuid} to {_p}'s uuid
+
+    # Create display
+    set {_id} to random integer between 100000 and 9999999
+    set {-milestone::%{_uuid}%::displayId} to {_id}
+
+    set {_loc} to location 3 meters in front of {_p}'s eyes
+    set y-coord of {_loc} to y-coord of {_p}'s location + 1
+
+    spawn fake text display at {_loc} for {_p} with id {_id}
+
+    set {_m} to new metadata packet with id {_id}:
+        display text: ""
+        display scale: vector(0.8, 0.8, 0.8)
+        display billboard: center
+        display brightness block: 15
+        display shadow: true
+        display defaultbackground: false
+        display background alpha: 100
+        display teleportduration: 30
+    send packet {_m} to {_p}
+
+    # Start follow loop
+    set {-milestone::%{_uuid}%::active} to true
+    milestone_followLoop({_p})
+
+    # Show current milestone
+    milestone_update({_p})
+
+
+function milestone_update(p: player):
+    set {_uuid} to {_p}'s uuid
+    set {_id} to {-milestone::%{_uuid}%::displayId}
+    if {_id} is not set:
+        stop
+
+    set {_text} to milestone_getCurrentText({_p})
+
+    set {_m} to new metadata packet with id {_id}:
+        display text: {_text}
+    send packet {_m} to {_p}
+
+
+function milestone_getCurrentText(p: player) :: text:
+    set {_level} to progression_getLevel({_p})
+    set {_archetype} to progression_getArchetype({_p})
+
+    # Check archetype selection (level 25+)
+    if {_level} >= 25:
+        if {_archetype} = "" or {_archetype} = "none" or {_archetype} is not set:
+            return "&6&lChoose Archetype%nl%&7Use &e/arc &7to specialize"
+
+    # Level milestones
+    if {_level} < 25:
+        set {_remaining} to 25 - {_level}
+        return "&b&lLevel %{_level}%&7/&b25%nl%&7Archetype in &e%{_remaining}% &7levels"
+
+    if {_level} < 27:
+        set {_remaining} to 27 - {_level}
+        return "&b&lLevel %{_level}%&7/&627%nl%&7Accessories in &e%{_remaining}% &7levels"
+
+    if {_level} < 35:
+        set {_remaining} to 35 - {_level}
+        return "&b&lLevel %{_level}%&7/&a35%nl%&7Skill Tree in &e%{_remaining}% &7levels"
+
+    # Check prestige
+    set {_prestige} to {data::prestige::%{_p}'s uuid%} ? 0
+    if {_prestige} < 1:
+        return "&5&lPrestige Available%nl%&7Use &e/prestige &7to reset & grow"
+
+    # Post-prestige goals
+    if {_level} < 50:
+        set {_remaining} to 50 - {_level}
+        return "&b&lLevel %{_level}%&7/&d50%nl%&7%{_remaining}% &7levels to go"
+
+    if {_level} < 75:
+        set {_remaining} to 75 - {_level}
+        return "&b&lLevel %{_level}%&7/&d75%nl%&7%{_remaining}% &7levels to go"
+
+    if {_level} < 100:
+        set {_remaining} to 100 - {_level}
+        return "&6&lLevel %{_level}%&7/&6100%nl%&7%{_remaining}% &7levels to max!"
+
+    return "&a&lMax Level!%nl%&7Prestige to keep growing"
+
+
+function milestone_followLoop(p: player):
+    set {_uuid} to {_p}'s uuid
+
+    if {-guard::milestone::%{_uuid}%} is set:
+        stop
+
+    set {-guard::milestone::%{_uuid}%} to true
+
+    while {-milestone::%{_uuid}%::active} is true:
+        if {_p} is not online:
+            delete {-milestone::%{_uuid}%::active}
+            delete {-guard::milestone::%{_uuid}%}
+            stop
+
+        set {_id} to {-milestone::%{_uuid}%::displayId}
+        if {_id} is set:
+            set {_loc} to location 3 meters in front of {_p}'s eyes
+            set y-coord of {_loc} to y-coord of {_p}'s location + 1
+            send teleport packet with id {_id} with location {_loc} to {_p}
+
+        wait 30 ticks
+
+    delete {-guard::milestone::%{_uuid}%}
+
+
+function milestone_stop(p: player):
+    set {_uuid} to {_p}'s uuid
+    set {_id} to {-milestone::%{_uuid}%::displayId}
+    if {_id} is set:
+        remove fake entity with id {_id} for {_p}
+    delete {-milestone::%{_uuid}%::*}
+    delete {-guard::milestone::%{_uuid}%}
+
+
+function milestone_hide(p: player):
+    set {_uuid} to {_p}'s uuid
+    set {_id} to {-milestone::%{_uuid}%::displayId}
+    if {_id} is set:
+        set {_m} to new metadata packet with id {_id}:
+            display scale: vector(0.01, 0.01, 0.01)
+            display transformation: 3
+            display interpolation: 0
+        send packet {_m} to {_p}
+
+
+function milestone_show(p: player):
+    set {_uuid} to {_p}'s uuid
+    set {_id} to {-milestone::%{_uuid}%::displayId}
+    if {_id} is set:
+        set {_m} to new metadata packet with id {_id}:
+            display scale: vector(0.8, 0.8, 0.8)
+            display transformation: 3
+            display interpolation: 0
+        send packet {_m} to {_p}
 
 
 # ============================================================
@@ -515,13 +722,22 @@ on join:
             else if {_step} = 4:
                 tutorial_step4_sell(player)
             else if {_step} = 5:
-                tutorial_step5_reachLevel(player)
+                tutorial_step5_reachLevel5(player)
+            else if {_step} = 6:
+                tutorial_step6_equipPet(player)
+            else if {_step} = 7:
+                tutorial_step7_reachLevel15(player)
             else:
-                tutorial_step6_complete(player)
+                tutorial_step8_complete(player)
+    else:
+        # Tutorial complete - start milestone display
+        wait 1 second
+        milestone_start(player)
 
 
 on quit:
     tutorial_cleanup(player)
+    milestone_stop(player)
 
 
 # ============================================================
@@ -533,6 +749,7 @@ command /tutorial [<text>] [<integer>]:
     trigger:
         if arg-1 = "reset":
             tutorial_cleanup(player)
+            milestone_stop(player)
             enchant_clearEquipped(player)
             loop enchant_getAllEnchantsIds():
                 enchant_setPlayerLevel(player, loop-value, 0)
@@ -544,6 +761,7 @@ command /tutorial [<text>] [<integer>]:
             tutorial_cleanup(player)
             slot_setUnlockedCount(player, 2)
             tutorial_markComplete(player)
+            milestone_start(player)
             send "&aTutorial skipped."
         else if arg-1 = "step":
             send "&7Current step: &e%tutorial_getStep(player)%"
@@ -553,11 +771,19 @@ command /tutorial [<text>] [<integer>]:
             if arg-2 is set:
                 tutorial_setStep(player, arg-2)
                 send "&aSet step to %arg-2%"
+        else if arg-1 = "milestone":
+            if {-milestone::%player's uuid%::displayId} is set:
+                milestone_update(player)
+                send "&aMilestone refreshed"
+            else:
+                milestone_start(player)
+                send "&aMilestone started"
         else:
             send "&e/tutorial reset &8- &7Reset tutorial"
             send "&e/tutorial skip &8- &7Skip tutorial"
             send "&e/tutorial step &8- &7Check progress"
             send "&e/tutorial setstep <n> &8- &7Set step"
+            send "&e/tutorial milestone &8- &7Refresh milestone"
 
 
 # ============================================================
