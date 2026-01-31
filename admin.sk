@@ -123,6 +123,28 @@ command /reset <offlineplayer>:
         send "&7• &fTutorial &8- &aReset"
 
         # ═══════════════════════════════════════
+        # SKILL TREE
+        # ═══════════════════════════════════════
+        delete {data::skilltree::%{_uuid}%::*}
+        delete {data::skilltree::points::%{_uuid}%}
+        send "&7• &fSkill Tree &8- &aCleared"
+
+        # ═══════════════════════════════════════
+        # MILESTONES
+        # ═══════════════════════════════════════
+        delete {data::milestones::blocks::%{_uuid}%}
+        delete {data::milestones::prestige::%{_uuid}%}
+        delete {data::milestones::claimed::blocks::%{_uuid}%::*}
+        delete {data::milestones::claimed::prestige::%{_uuid}%::*}
+        send "&7• &fMilestones &8- &aCleared"
+
+        # ═══════════════════════════════════════
+        # PROGRESSION CHAPTER
+        # ═══════════════════════════════════════
+        delete {data::progression::chapter::%{_uuid}%}
+        send "&7• &fProgression Chapter &8- &aReset"
+
+        # ═══════════════════════════════════════
         # LINKED ACCOUNT
         # ═══════════════════════════════════════
         delete {data::linked::%{_uuid}%}
