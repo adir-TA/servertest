@@ -1,7 +1,7 @@
 # ============================================================
 # TUTORIAL SYSTEM v2
 # ============================================================
-# Uses text_display entities for immersive floating text
+# Uses fake text display entities (packets) for immersive floating text
 #
 # Steps:
 #   0 = Not started / Completed
@@ -17,91 +17,143 @@
 
 
 # ============================================================
-# TEXT DISPLAY SYSTEM
+# TEXT DISPLAY SYSTEM (Packet-based)
 # ============================================================
 
-function tutorial_createDisplay(p: player) :: entity:
+function tutorial_createDisplay(p: player):
+    # Generate unique ID for this player's display
+    set {_id} to random integer between 100000 and 9999999
+    set {-tutorial::%{_p}'s uuid%::displayId} to {_id}
+
     set {_loc} to tutorial_getDisplayLocation({_p})
-    set {_display} to last spawned entity
-    spawn text display at {_loc}
-    set {_display} to last spawned entity
 
-    # Configure display properties
-    set billboard of {_display} to center
-    set text opacity of {_display} to 0
-    set see through of {_display} to false
-    set text shadow of {_display} to true
-    set background color of {_display} to bukkit color from rgb 0, 0, 0 with alpha 120
+    spawn fake text display at {_loc} for {_p} with id {_id}
 
-    # Store reference
-    set {-tutorial::%{_p}'s uuid%::display} to {_display}
+    set {_m} to new metadata packet with id {_id}:
+        display text: ""
+        display scale: vector(0.01, 0.01, 0.01)
+        display billboard: center
+        display brightness block: 15
+        display shadow: true
+        display defaultbackground: false
+        display background alpha: 140
+        display teleportduration: 1
+    send packet {_m} to {_p}
 
-    return {_display}
 
 function tutorial_getDisplayLocation(p: player) :: location:
     set {_loc} to {_p}'s eye location
-    set {_dir} to {_p}'s direction
-    set {_loc} to {_loc} ~ ({_dir} * 2.5)
+    set {_yaw} to yaw of {_loc}
+    set {_pitch} to pitch of {_loc}
+
+    # Calculate direction vector from yaw/pitch
+    set {_yawRad} to {_yaw} * 3.14159 / 180
+    set {_pitchRad} to {_pitch} * 3.14159 / 180
+
+    set {_dx} to -1 * sin({_yawRad}) * cos({_pitchRad})
+    set {_dy} to -1 * sin({_pitchRad})
+    set {_dz} to cos({_yawRad}) * cos({_pitchRad})
+
+    # Move forward 2.5 blocks in that direction
+    add {_dx} * 2.5 to x-coord of {_loc}
+    add {_dy} * 2.5 to y-coord of {_loc}
+    add {_dz} * 2.5 to z-coord of {_loc}
+
+    # Slightly lower
     subtract 0.3 from y-coord of {_loc}
+
     return {_loc}
 
+
 function tutorial_updateDisplayPosition(p: player):
-    set {_display} to {-tutorial::%{_p}'s uuid%::display}
-    if {_display} is not set:
-        stop
-    if {_display} is not a text display:
+    set {_id} to {-tutorial::%{_p}'s uuid%::displayId}
+    if {_id} is not set:
         stop
 
-    set {_targetLoc} to tutorial_getDisplayLocation({_p})
-    teleport {_display} to {_targetLoc}
+    set {_loc} to tutorial_getDisplayLocation({_p})
+    send teleport packet with id {_id} with location {_loc} to {_p}
+
 
 function tutorial_setText(p: player, text: text):
-    set {_display} to {-tutorial::%{_p}'s uuid%::display}
-    if {_display} is not set:
-        set {_display} to tutorial_createDisplay({_p})
+    set {_id} to {-tutorial::%{_p}'s uuid%::displayId}
+    if {_id} is not set:
+        tutorial_createDisplay({_p})
+        set {_id} to {-tutorial::%{_p}'s uuid%::displayId}
 
-    set displayed text of {_display} to {_text}
+    set {_m} to new metadata packet with id {_id}:
+        display text: {_text}
+        display scale: vector(1, 1, 1)
+        display transformation: 0
+        display interpolation: 0
+    send packet {_m} to {_p}
+
 
 function tutorial_setTextAnimated(p: player, text: text, fadeIn: boolean=true):
-    set {_display} to {-tutorial::%{_p}'s uuid%::display}
-    if {_display} is not set:
-        set {_display} to tutorial_createDisplay({_p})
+    set {_id} to {-tutorial::%{_p}'s uuid%::displayId}
+    if {_id} is not set:
+        tutorial_createDisplay({_p})
+        set {_id} to {-tutorial::%{_p}'s uuid%::displayId}
 
     if {_fadeIn} = true:
-        # Fade out old text
-        set text opacity of {_display} to 0
+        # Shrink out old text
+        set {_m} to new metadata packet with id {_id}:
+            display scale: vector(0.01, 0.01, 0.01)
+            display transformation: 2
+            display interpolation: 0
+        send packet {_m} to {_p}
+
         wait 2 ticks
 
-    set displayed text of {_display} to {_text}
+    # Set new text
+    set {_m} to new metadata packet with id {_id}:
+        display text: {_text}
+    send packet {_m} to {_p}
 
     if {_fadeIn} = true:
-        # Fade in new text
-        loop 10 times:
-            set {_opacity} to loop-number * 25
-            if {_opacity} > 255:
-                set {_opacity} to 255
-            set text opacity of {_display} to {_opacity}
-            wait 1 tick
-
-function tutorial_fadeOut(p: player):
-    set {_display} to {-tutorial::%{_p}'s uuid%::display}
-    if {_display} is not set:
-        stop
-
-    loop 10 times:
-        set {_opacity} to 255 - (loop-number * 25)
-        if {_opacity} < 0:
-            set {_opacity} to 0
-        set text opacity of {_display} to {_opacity}
         wait 1 tick
 
-    set displayed text of {_display} to ""
+        # Pop in animation
+        set {_m} to new metadata packet with id {_id}:
+            display scale: vector(1.1, 1.1, 1.1)
+            display transformation: 3
+            display interpolation: 0
+        send packet {_m} to {_p}
+
+        wait 3 ticks
+
+        # Settle to normal size
+        set {_m} to new metadata packet with id {_id}:
+            display scale: vector(1, 1, 1)
+            display transformation: 3
+            display interpolation: 0
+        send packet {_m} to {_p}
+
+
+function tutorial_fadeOut(p: player):
+    set {_id} to {-tutorial::%{_p}'s uuid%::displayId}
+    if {_id} is not set:
+        stop
+
+    # Shrink out
+    set {_m} to new metadata packet with id {_id}:
+        display scale: vector(0.01, 0.01, 0.01)
+        display transformation: 4
+        display interpolation: 0
+    send packet {_m} to {_p}
+
+    wait 4 ticks
+
+    # Clear text
+    set {_m} to new metadata packet with id {_id}:
+        display text: ""
+    send packet {_m} to {_p}
+
 
 function tutorial_removeDisplay(p: player):
-    set {_display} to {-tutorial::%{_p}'s uuid%::display}
-    if {_display} is set:
-        kill {_display}
-    delete {-tutorial::%{_p}'s uuid%::display}
+    set {_id} to {-tutorial::%{_p}'s uuid%::displayId}
+    if {_id} is set:
+        remove fake entity with id {_id} for {_p}
+    delete {-tutorial::%{_p}'s uuid%::displayId}
 
 
 # ============================================================
@@ -435,6 +487,16 @@ function tutorial_canUnlockSlot(p: player) :: boolean:
     if tutorial_isComplete({_p}) = true:
         return true
     return false
+
+
+# ============================================================
+# SLOT UNLOCK CALLBACK (called by pickaxe.sk)
+# ============================================================
+
+function tutorial_onSlotUnlock(p: player, slotNum: integer):
+    # No special handling during tutorial since slots are locked
+    # This function exists to prevent errors from pickaxe.sk calling it
+    stop
 
 
 # ============================================================
