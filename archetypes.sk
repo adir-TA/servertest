@@ -197,6 +197,9 @@ function clickHandler_ArchetypeMenu(p: player, slot: slot, menu: inventory, inde
         # Update pickaxe lore
         pickaxe_onArchetypeChange({_p})
 
+        # Update milestone display
+        milestone_update({_p})
+
         set {_name} to pickaxe_getArchetypeNameByID({_id})
         set {_color} to archetype_getColorTitle({_id})
         

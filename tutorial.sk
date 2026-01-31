@@ -1,10 +1,10 @@
 # ============================================================
-# TUTORIAL SYSTEM v3
+# TUTORIAL SYSTEM v4
 # ============================================================
 # Progression: Level 5 (Pets) → Level 15 (Prestige) → Level 25 (Archetype)
 # Max level = 15 + (prestige × 15)
 #
-# Steps:
+# Tutorial Steps:
 #   1 = Welcome
 #   2 = Mine 5 blocks
 #   3 = Equip Efficiency
@@ -14,7 +14,23 @@
 #   7 = Reach level 15 (prestige available)
 #   8 = Complete
 #
-# After tutorial: Milestone display shows next goal
+# Milestone System (post-tutorial):
+#   Level Unlocks:
+#     - Level 5: Pets
+#     - Level 10: Uncommon Pets
+#     - Level 15: Prestige
+#     - Level 25: Archetype, Rare Pets
+#     - Level 27: Accessories
+#     - Level 35: Skill Tree
+#     - Level 100: Milestones
+#
+#   Prestige Unlocks:
+#     - P1: Teams, Ultra Treasure, Deep Mines, Pet Slot 4
+#     - P2: Armor System
+#     - P3: Epic Pets, Ultra Accessories, Divine Treasure, Pet Slot 5
+#     - P5: Legendary Pets, Divine Accessories, The Abyss, Mythic Treasure
+#     - P7: Amethyst Gems
+#     - P10: Mythic Accessories, Celestial Treasure
 # ============================================================
 
 
@@ -584,72 +600,129 @@ function milestone_getCurrentText(p: player) :: text:
     # Calculate max level for current prestige (15 + prestige * 15)
     set {_maxLevel} to 15 + ({_prestige} * 15)
 
-    # Pre-archetype (Global levels 1-25)
+    # ========================================
+    # PRE-ARCHETYPE (Global levels 1-25)
+    # ========================================
     if {_archetype} = "" or {_archetype} = "none" or {_archetype} is not set:
         set {_globalLevel} to mining_getGlobalLevel({_p})
 
-        # Before first prestige unlock
+        # Level 5: Pets unlock
+        if {_globalLevel} < 5:
+            set {_remaining} to 5 - {_globalLevel}
+            return "&d&lLevel %{_globalLevel}%&7/&d5%nl%&dPets &7unlock in &e%{_remaining}% &7levels"
+
+        # Level 10: Uncommon pets
+        if {_globalLevel} < 10:
+            set {_remaining} to 10 - {_globalLevel}
+            return "&a&lLevel %{_globalLevel}%&7/&a10%nl%&aUncommon Pets &7in &e%{_remaining}% &7levels"
+
+        # Level 15: First prestige
         if {_globalLevel} < 15:
             set {_remaining} to 15 - {_globalLevel}
-            return "&5&lLevel %{_globalLevel}%&7/&515%nl%&7Prestige in &e%{_remaining}% &7levels"
+            return "&5&lLevel %{_globalLevel}%&7/&515%nl%&5Prestige &7in &e%{_remaining}% &7levels"
 
-        # Can prestige but haven't yet
-        if {_globalLevel} >= 15:
-            if {_globalLevel} < 25:
-                set {_remaining} to 25 - {_globalLevel}
-                return "&b&lLevel %{_globalLevel}%&7/&b25%nl%&7Archetype in &e%{_remaining}% &7levels%nl%&8(or &5/prestige&8)"
+        # Level 25: Archetype
+        if {_globalLevel} < 25:
+            set {_remaining} to 25 - {_globalLevel}
+            return "&b&lLevel %{_globalLevel}%&7/&b25%nl%&bArchetype &7in &e%{_remaining}% &7levels%nl%&8(or &5/prestige&8)"
 
-            # Level 25+ - must choose archetype
-            return "&6&lChoose Archetype!%nl%&7Use &e/arc &7to specialize"
+        # Level 25+ - must choose archetype
+        return "&6&lChoose Archetype!%nl%&7Use &e/arc &7to specialize"
 
-    # Has archetype - show archetype progression
+    # ========================================
+    # HAS ARCHETYPE - PROGRESSIVE MILESTONES
+    # ========================================
 
-    # At max level for current prestige - prompt prestige
+    # At max level - show what next prestige unlocks
     if {_level} >= {_maxLevel}:
         set {_nextPrestige} to {_prestige} + 1
-        return "&5&lMax Level!%nl%&7Use &e/prestige &7for P%{_nextPrestige}%%nl%&8New max: Lv %{_maxLevel} + 15%"
+        set {_unlock} to milestone_getPrestigeUnlock({_nextPrestige})
+        return "&5&lMax Level!%nl%&7/prestige &7for P%{_nextPrestige}%%nl%&8Unlocks: %{_unlock}%"
 
-    # Show progress to next milestone
+    # ========================================
+    # LEVEL-BASED UNLOCKS (within prestige)
+    # ========================================
 
-    # Accessories unlock at 27
+    # Level 27: Accessories
     if {_level} < 27:
         if {_maxLevel} >= 27:
             set {_remaining} to 27 - {_level}
-            return "&6&lLevel %{_level}%&7/&627%nl%&7Accessories in &e%{_remaining}% &7levels"
+            return "&6&lLevel %{_level}%&7/&627%nl%&6Accessories &7in &e%{_remaining}% &7levels"
+        else:
+            # Can't reach 27 this prestige
+            set {_remaining} to {_maxLevel} - {_level}
+            set {_unlock} to milestone_getPrestigeUnlock({_prestige} + 1)
+            return "&5&lLevel %{_level}%&7/&5%{_maxLevel}%%nl%&7Prestige for: %{_unlock}%%nl%&7%{_remaining}% &7levels left"
 
-    # Skill Tree unlock at 35
+    # Level 35: Skill Tree (requires P1+)
     if {_level} < 35:
         if {_maxLevel} >= 35:
             set {_remaining} to 35 - {_level}
-            return "&a&lLevel %{_level}%&7/&a35%nl%&7Skill Tree in &e%{_remaining}% &7levels"
+            return "&a&lLevel %{_level}%&7/&a35%nl%&aSkill Tree &7in &e%{_remaining}% &7levels"
 
-    # Teams unlock at Prestige 1
-    if {_prestige} < 1:
-        set {_remaining} to {_maxLevel} - {_level}
-        return "&c&lLevel %{_level}%&7/&c%{_maxLevel}%%nl%&7Prestige 1 unlocks &cTeams%nl%&7%{_remaining}% &7levels to prestige"
-
-    # Deep Mines already unlocked (P1+), show next milestones
-
-    # Prestige 5 unlocks Abyss
-    if {_prestige} < 5:
-        set {_remaining} to {_maxLevel} - {_level}
-        if {_remaining} <= 0:
-            return "&5&lPrestige to P%{_prestige} + 1%!%nl%&7P5 unlocks &5The Abyss"
-        return "&b&lLevel %{_level}%&7/&b%{_maxLevel}%%nl%&7%{_remaining}% &7to prestige%nl%&8P5 unlocks Abyss"
-
-    # Prestige 5+ - show level progress
-    set {_remaining} to {_maxLevel} - {_level}
-    if {_remaining} <= 0:
-        return "&5&lPrestige Available!%nl%&7Use &e/prestige &7to grow"
-
-    # Level 100 unlocks Milestones
+    # Level 100: Milestones system
     if {_level} < 100:
         if {_maxLevel} >= 100:
-            set {_toMilestones} to 100 - {_level}
-            return "&6&lLevel %{_level}%&7/&6100%nl%&7Milestones in &e%{_toMilestones}% &7levels"
+            set {_remaining} to 100 - {_level}
+            return "&e&lLevel %{_level}%&7/&e100%nl%&eMilestones &7in &e%{_remaining}% &7levels"
 
-    # Post level 100 - just show progress
-    return "&b&lLevel %{_level}%&7/&b%{_maxLevel}%%nl%&7%{_remaining}% &7to next prestige"
+    # ========================================
+    # PRESTIGE-BASED UNLOCKS
+    # ========================================
+
+    # Show progress to next prestige with unlock preview
+    set {_remaining} to {_maxLevel} - {_level}
+    set {_nextPrestige} to {_prestige} + 1
+    set {_unlock} to milestone_getPrestigeUnlock({_nextPrestige})
+
+    if {_unlock} != "":
+        return "&b&lLevel %{_level}%&7/&b%{_maxLevel}%%nl%&7P%{_nextPrestige}% unlocks: %{_unlock}%%nl%&7%{_remaining}% &7levels left"
+
+    # High prestige - just show progress
+    return "&b&lLevel %{_level}%&7/&b%{_maxLevel}%%nl%&7%{_remaining}% &7to P%{_nextPrestige}%"
+
+
+# Returns what unlocks at a specific prestige level
+function milestone_getPrestigeUnlock(prestige: integer) :: text:
+    # P1: Teams, Ultra Treasure, Deep Mines, Pet Slot 4
+    if {_prestige} = 1:
+        return "&cTeams&7, &6Ultra Treasure"
+
+    # P2: Armor system
+    if {_prestige} = 2:
+        return "&9Armor System"
+
+    # P3: Epic pets, Ultra accessories, Divine Treasure, Pet Slot 5
+    if {_prestige} = 3:
+        return "&5Epic Pets&7, &bDivine Treasure"
+
+    # P5: Legendary pets, Divine accessories, Abyss, Mythic Treasure
+    if {_prestige} = 5:
+        return "&6Legendary Pets&7, &5The Abyss"
+
+    # P7: Amethyst gemstones
+    if {_prestige} = 7:
+        return "&dAmethyst Gems"
+
+    # P10: Mythic accessories, Celestial Treasure
+    if {_prestige} = 10:
+        return "&cMythic Acc&7, &eCelestial Chest"
+
+    # P4, P6, P8, P9 - show generic
+    if {_prestige} = 4:
+        return "&7Higher max level"
+    if {_prestige} = 6:
+        return "&7Higher max level"
+    if {_prestige} = 8:
+        return "&7Higher max level"
+    if {_prestige} = 9:
+        return "&7Higher max level"
+
+    # Beyond P10
+    if {_prestige} > 10:
+        return ""
+
+    return ""
 
 
 function milestone_followLoop(p: player):

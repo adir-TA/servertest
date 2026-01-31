@@ -194,6 +194,9 @@ function prestige_execute(p: player, archetype: text):
     multiplier_onPrestige({_p})
     pickaxe_onPrestige({_p})
 
+    # Update milestone display
+    milestone_update({_p})
+
     # Check for chapter progression
     wait 2 seconds
     progression_checkChapterTransition({_p}, 1, 1, {_archetype})
