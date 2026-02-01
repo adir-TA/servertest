@@ -101,12 +101,24 @@ function slot_registerAll():
 
 
 # ============================================================
-# SLOT PLAYER DATA
+# SLOT PLAYER DATA (Research-based)
 # ============================================================
 
 function slot_getUnlockedCount(p: player) :: integer:
-    set {_count} to {data::slots::%{_p}'s uuid%::unlocked} ? 1
-    return {_count}
+    # New research-based system
+    set {_researchSlots} to research_getUnlockedEnchantSlots({_p})
+
+    # Legacy system (for backwards compatibility)
+    set {_legacySlots} to {data::slots::%{_p}'s uuid%::unlocked} ? 0
+
+    # Return the higher of the two (keeps old progress)
+    if {_researchSlots} > {_legacySlots}:
+        return {_researchSlots}
+    if {_legacySlots} > 0:
+        return {_legacySlots}
+
+    # Default: 0 slots until first research is done
+    return 0
 
 function slot_setUnlockedCount(p: player, amount: integer):
     set {data::slots::%{_p}'s uuid%::unlocked} to {_amount}

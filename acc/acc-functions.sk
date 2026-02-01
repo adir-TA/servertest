@@ -28,13 +28,25 @@ function acc_getTotalPrestige(p: player) :: number:
 
 
 # ============================================================
-# SLOT MANAGEMENT
+# SLOT MANAGEMENT (Research-based)
 # ============================================================
 
 function acc_getUnlockedSlots(p: player) :: number:
+    # New research-based system
+    set {_researchSlots} to research_getUnlockedAccSlots({_p})
+
+    # Legacy system (for backwards compatibility)
     set {_uuid} to {_p}'s uuid
-    set {_unlocked} to {data::accessories::%{_uuid}%::slots} ? 1
-    return {_unlocked}
+    set {_legacySlots} to {data::accessories::%{_uuid}%::slots} ? 0
+
+    # Return the higher of the two (keeps old progress)
+    if {_researchSlots} > {_legacySlots}:
+        return {_researchSlots}
+    if {_legacySlots} > 0:
+        return {_legacySlots}
+
+    # Default: 0 slots until first research is done
+    return 0
 
 
 function acc_meetsSlotPrestigeReq(p: player, slot: number) :: boolean:

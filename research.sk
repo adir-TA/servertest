@@ -378,6 +378,9 @@ function research_complete(p: player, slot: integer):
     send title "&a&lRESEARCH COMPLETE!" with subtitle "&7%{_name}%" to {_p} for 3 seconds with fade in 0.5 seconds and fade out 1 second
     play sound "ui.toast.challenge_complete" with volume 1 and pitch 1 to {_p}
 
+    # Notify tutorial system
+    tutorial_onResearchComplete({_p}, {_id})
+
 
 # Apply research reward
 function research_applyReward(p: player, id: text):
