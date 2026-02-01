@@ -386,7 +386,8 @@ function researchHolo_spawnNode(p: player, researchId: text, x: number, y: numbe
         set {_block} to gold block
         set {_color} to "&e"
         set {_progress} to research_getProgress({_p}, {_researchId})
-        set {_stateText} to "&e%{_progress}%%%"
+        set {_progress} to floor({_progress})
+        set {_stateText} to "&e(%{_progress}%%%)"
     else if {_state} = "available":
         set {_block} to diamond block
         set {_color} to "&b"
@@ -394,7 +395,7 @@ function researchHolo_spawnNode(p: player, researchId: text, x: number, y: numbe
     else if {_state} = "prestige_locked":
         set {_block} to redstone block
         set {_color} to "&c"
-        set {_reqPrestiges} to research_getRequiredPrestiges({_researchId})
+        set {_reqPrestiges} to research_getPrestigeReq({_researchId})
         set {_stateText} to "&c(P%{_reqPrestiges}% required)"
     else:
         # locked (prerequisite)

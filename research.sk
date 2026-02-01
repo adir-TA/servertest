@@ -161,6 +161,24 @@ function research_getProgressPercent(p: player, slot: integer) :: number:
         return 100
     return {_percent}
 
+# Get progress by research ID (returns 0-100 percent)
+function research_getProgress(p: player, id: text) :: number:
+    # Check if it's active in any slot
+    set {_slot} to research_getSlotOf({_p}, {_id})
+    if {_slot} > 0:
+        return research_getProgressPercent({_p}, {_slot})
+    # Check for saved progress
+    set {_saved} to research_getSavedProgress({_p}, {_id})
+    if {_saved} > 0:
+        set {_required} to research_getTimeRequired({_id})
+        if {_required} <= 0:
+            return 0
+        set {_percent} to ({_saved} / {_required}) * 100
+        if {_percent} > 100:
+            return 100
+        return {_percent}
+    return 0
+
 # Get time remaining in seconds
 function research_getTimeRemaining(p: player, slot: integer) :: number:
     set {_id} to research_getActiveInSlot({_p}, {_slot})
