@@ -106,6 +106,10 @@ function progression_getPrestige(p: player) :: integer:
         return {mining::%{_name}%::%{_uuid}%::prestige}
     return 0
 
+# Get total prestiges across ALL archetypes (alias for economy function)
+function progression_getTotalPrestiges(p: player) :: integer:
+    return economy_getTotalPrestiges({_p})
+
 # --------------------------------------------
 # FEATURE UNLOCK CHECKS
 # --------------------------------------------

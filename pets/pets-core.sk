@@ -78,15 +78,26 @@ function pet_getOwnedCount(p: player) :: number:
 
 
 # ============================================================
-# SLOT SYSTEM
+# SLOT SYSTEM (Research-based)
 # ============================================================
 
-# Get number of unlocked slots (defaults to 1)
+# Get number of unlocked slots via Research system
+# Falls back to legacy data for backwards compatibility
 function pet_getUnlockedSlots(p: player) :: number:
-    set {_slots} to {pet::slots::%{_p}'s uuid%}
-    if {_slots} is not set:
-        return 1
-    return {_slots}
+    # New research-based system
+    set {_researchSlots} to research_getUnlockedPetSlots({_p})
+
+    # Legacy system (for backwards compatibility)
+    set {_legacySlots} to {pet::slots::%{_p}'s uuid%} ? 0
+
+    # Return the higher of the two (keeps old progress)
+    if {_researchSlots} > {_legacySlots}:
+        return {_researchSlots}
+    if {_legacySlots} > 0:
+        return {_legacySlots}
+
+    # Default: 0 slots until first research is done
+    return 0
 
 # Get number of equipped pets
 function pet_getEquippedCount(p: player) :: number:

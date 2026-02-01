@@ -1,0 +1,461 @@
+# ============================================================
+# RESEARCH TREE GUI
+# ============================================================
+# Tabbed interface showing research trees for:
+# - Pets (slots 1-5)
+# - Enchants (slots 1-6)
+# - Accessories (slots 1-14)
+# ============================================================
+
+# ============================================================
+# MAIN GUI FUNCTION
+# ============================================================
+
+function research_openGUI(p: player, category: text):
+    set {_menu} to menu_create("&d&lResearch Tree", 6)
+    menu_fill({_menu}, 6, gray stained glass pane)
+
+    # ──────────────────────────────────────────
+    # TOP ROW - Category Tabs + Status
+    # ──────────────────────────────────────────
+
+    # Pets Tab (slot 1)
+    if {_category} is "pets":
+        set {_petsTab} to lime dye named "&a&lPETS"
+    else:
+        set {_petsTab} to gray dye named "&7&lPETS"
+    delete {_petsLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_petsLore::*}
+    add "" to {_petsLore::*}
+    set {_petSlots} to research_getUnlockedPetSlots({_p})
+    add "&7Unlocked: &a%{_petSlots}%&7/&f5 slots" to {_petsLore::*}
+    add "" to {_petsLore::*}
+    if {_category} is "pets":
+        add "&a&lCURRENT TAB" to {_petsLore::*}
+    else:
+        add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴠɪᴇᴡ" to {_petsLore::*}
+    set lore of {_petsTab} to {_petsLore::*}
+    set string tag "research;tab" of custom nbt of {_petsTab} to "pets"
+    set slot 1 of {_menu} to {_petsTab}
+
+    # Enchants Tab (slot 2)
+    if {_category} is "enchants":
+        set {_enchTab} to purple dye named "&d&lENCHANTS"
+    else:
+        set {_enchTab} to gray dye named "&7&lENCHANTS"
+    delete {_enchLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_enchLore::*}
+    add "" to {_enchLore::*}
+    set {_enchSlots} to research_getUnlockedEnchantSlots({_p})
+    add "&7Unlocked: &d%{_enchSlots}%&7/&f6 slots" to {_enchLore::*}
+    add "" to {_enchLore::*}
+    if {_category} is "enchants":
+        add "&d&lCURRENT TAB" to {_enchLore::*}
+    else:
+        add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴠɪᴇᴡ" to {_enchLore::*}
+    set lore of {_enchTab} to {_enchLore::*}
+    set string tag "research;tab" of custom nbt of {_enchTab} to "enchants"
+    set slot 2 of {_menu} to {_enchTab}
+
+    # Accessories Tab (slot 3)
+    if {_category} is "accessories":
+        set {_accTab} to orange dye named "&6&lACCESSORIES"
+    else:
+        set {_accTab} to gray dye named "&7&lACCESSORIES"
+    delete {_accLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_accLore::*}
+    add "" to {_accLore::*}
+    set {_accSlots} to research_getUnlockedAccSlots({_p})
+    add "&7Unlocked: &6%{_accSlots}%&7/&f14 slots" to {_accLore::*}
+    add "" to {_accLore::*}
+    if {_category} is "accessories":
+        add "&6&lCURRENT TAB" to {_accLore::*}
+    else:
+        add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴠɪᴇᴡ" to {_accLore::*}
+    set lore of {_accTab} to {_accLore::*}
+    set string tag "research;tab" of custom nbt of {_accTab} to "accessories"
+    set slot 3 of {_menu} to {_accTab}
+
+    # Status Display (slot 5)
+    set {_statusItem} to clock named "&e&lRESEARCH STATUS"
+    delete {_statusLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_statusLore::*}
+    add "" to {_statusLore::*}
+
+    set {_maxSlots} to research_getMaxSlots({_p})
+    set {_activeCount} to 0
+    add "&7Research Slots: &e%{_maxSlots}%" to {_statusLore::*}
+    add "" to {_statusLore::*}
+
+    # Show active researches
+    set {_hasActive} to false
+    loop integers from 1 to {_maxSlots}:
+        set {_slotNum} to loop-value
+        set {_activeId} to research_getActiveInSlot({_p}, {_slotNum})
+        if {_activeId} is not "":
+            set {_hasActive} to true
+            set {_name} to research_getName({_activeId})
+            set {_percent} to floor(research_getProgressPercent({_p}, {_slotNum}))
+            set {_remaining} to research_getTimeRemaining({_p}, {_slotNum})
+            set {_timeStr} to research_formatTime({_remaining})
+            add "&7Slot %{_slotNum}%: &e%{_name}%" to {_statusLore::*}
+            add "&8  Progress: &a%{_percent}%%% &8| &f%{_timeStr}%" to {_statusLore::*}
+
+    if {_hasActive} is false:
+        add "&7No active research" to {_statusLore::*}
+        add "&7Click a node to start!" to {_statusLore::*}
+
+    add "" to {_statusLore::*}
+    set {_totalPrestiges} to progression_getTotalPrestiges({_p})
+    add "&7Total Prestiges: &d%{_totalPrestiges}%" to {_statusLore::*}
+
+    set lore of {_statusItem} to {_statusLore::*}
+    set slot 5 of {_menu} to {_statusItem}
+
+    # Info (slot 7)
+    set {_infoItem} to book named "&f&lHOW IT WORKS"
+    delete {_infoLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_infoLore::*}
+    add "" to {_infoLore::*}
+    add "&7Research unlocks slots for" to {_infoLore::*}
+    add "&7pets, enchants, and accessories." to {_infoLore::*}
+    add "" to {_infoLore::*}
+    add "&aOnline: &f100%% research speed" to {_infoLore::*}
+    add "&eOffline: &f50%% research speed" to {_infoLore::*}
+    add "" to {_infoLore::*}
+    add "&7Cancel research to save &a50%%" to {_infoLore::*}
+    add "&7of your progress for later." to {_infoLore::*}
+    set lore of {_infoItem} to {_infoLore::*}
+    set slot 7 of {_menu} to {_infoItem}
+
+    # ──────────────────────────────────────────
+    # CATEGORY CONTENT
+    # ──────────────────────────────────────────
+
+    if {_category} is "pets":
+        research_drawPetsTree({_p}, {_menu})
+    else if {_category} is "enchants":
+        research_drawEnchantsTree({_p}, {_menu})
+    else if {_category} is "accessories":
+        research_drawAccessoriesTree({_p}, {_menu})
+
+    # ──────────────────────────────────────────
+    # BOTTOM ROW - Close
+    # ──────────────────────────────────────────
+
+    set {_close} to barrier named "&c&lCLOSE"
+    delete {_closeLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_closeLore::*}
+    add "" to {_closeLore::*}
+    add "&7Close this menu." to {_closeLore::*}
+    add "" to {_closeLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴄʟᴏsᴇ" to {_closeLore::*}
+    set lore of {_close} to {_closeLore::*}
+    set string tag "research;action" of custom nbt of {_close} to "close"
+    set slot 49 of {_menu} to {_close}
+
+    open {_menu} to {_p}
+    set metadata tag "research_category" of {_p} to {_category}
+    menu_setCurrentMenu({_p}, "RESEARCH")
+
+
+# ============================================================
+# DRAW PETS TREE
+# ============================================================
+# Layout (Row 2-4):
+#   [1] --> [2] --> [3] --> [4] --> [5]
+# ============================================================
+
+function research_drawPetsTree(p: player, menu: inventory):
+    # Slot positions: 19, 20(arrow), 21, 22(arrow), 23, 24(arrow), 25, 26(arrow), (need to fit 5)
+    # Let's use: 19=slot1, 21=slot2, 23=slot3, 25=slot4, 27(row3)=slot5
+    # Better: Row 2 center: slots 19-25 for the 5 nodes with arrows
+
+    # Pet Slot 1 (slot 19)
+    research_drawNode({_p}, {_menu}, "pet_slot_1", 19, "&a")
+
+    # Arrow
+    set slot 20 of {_menu} to arrow named "&7&l-->"
+
+    # Pet Slot 2 (slot 21)
+    research_drawNode({_p}, {_menu}, "pet_slot_2", 21, "&a")
+
+    # Arrow
+    set slot 22 of {_menu} to arrow named "&7&l-->"
+
+    # Pet Slot 3 (slot 23)
+    research_drawNode({_p}, {_menu}, "pet_slot_3", 23, "&a")
+
+    # Arrow
+    set slot 24 of {_menu} to arrow named "&7&l-->"
+
+    # Pet Slot 4 (slot 25)
+    research_drawNode({_p}, {_menu}, "pet_slot_4", 25, "&a")
+
+    # Second row for slot 5
+    # Arrow down (slot 34)
+    set slot 34 of {_menu} to arrow named "&7&l|"
+    set slot 35 of {_menu} to arrow named "&7&l<--"
+
+    # Pet Slot 5 (slot 43)
+    research_drawNode({_p}, {_menu}, "pet_slot_5", 43, "&a")
+
+
+# ============================================================
+# DRAW ENCHANTS TREE
+# ============================================================
+# Layout:
+#   [1] --> [2] --> [3] --> [4] --> [5] --> [6]
+# ============================================================
+
+function research_drawEnchantsTree(p: player, menu: inventory):
+    # Row 2: slots 18-26 (9 slots)
+    # 18=E1, 19=arrow, 20=E2, 21=arrow, 22=E3, 23=arrow, 24=E4, 25=arrow, 26=E5
+    # Row 3: 35=arrow down, 34=E6
+
+    # Enchant Slot 1 (slot 18)
+    research_drawNode({_p}, {_menu}, "enchant_slot_1", 18, "&d")
+
+    # Arrow
+    set slot 19 of {_menu} to arrow named "&7&l-->"
+
+    # Enchant Slot 2 (slot 20)
+    research_drawNode({_p}, {_menu}, "enchant_slot_2", 20, "&d")
+
+    # Arrow
+    set slot 21 of {_menu} to arrow named "&7&l-->"
+
+    # Enchant Slot 3 (slot 22)
+    research_drawNode({_p}, {_menu}, "enchant_slot_3", 22, "&d")
+
+    # Arrow
+    set slot 23 of {_menu} to arrow named "&7&l-->"
+
+    # Enchant Slot 4 (slot 24)
+    research_drawNode({_p}, {_menu}, "enchant_slot_4", 24, "&d")
+
+    # Arrow
+    set slot 25 of {_menu} to arrow named "&7&l-->"
+
+    # Enchant Slot 5 (slot 26)
+    research_drawNode({_p}, {_menu}, "enchant_slot_5", 26, "&d")
+
+    # Arrow down
+    set slot 35 of {_menu} to arrow named "&7&l|"
+    set slot 34 of {_menu} to arrow named "&7&l<--"
+
+    # Enchant Slot 6 (slot 43)
+    research_drawNode({_p}, {_menu}, "enchant_slot_6", 43, "&d")
+
+
+# ============================================================
+# DRAW ACCESSORIES TREE
+# ============================================================
+# Layout (14 slots - need 2 rows):
+#   Row 2: [1] [2] [3] [4] [5] [6] [7]
+#   Row 4: [8] [9] [10] [11] [12] [13] [14]
+# ============================================================
+
+function research_drawAccessoriesTree(p: player, menu: inventory):
+    # Row 2 (slots 18-26): slots 1-7 with arrows between
+    # Using: 18, 19, 20, 21, 22, 23, 24 for nodes (skip arrows to fit all)
+
+    # Row 2: Slots 1-7
+    research_drawNode({_p}, {_menu}, "acc_slot_1", 10, "&6")
+    research_drawNode({_p}, {_menu}, "acc_slot_2", 11, "&6")
+    research_drawNode({_p}, {_menu}, "acc_slot_3", 12, "&6")
+    research_drawNode({_p}, {_menu}, "acc_slot_4", 13, "&6")
+    research_drawNode({_p}, {_menu}, "acc_slot_5", 14, "&6")
+    research_drawNode({_p}, {_menu}, "acc_slot_6", 15, "&6")
+    research_drawNode({_p}, {_menu}, "acc_slot_7", 16, "&6")
+
+    # Connector arrow (slot 25 down to row 4)
+    set slot 25 of {_menu} to arrow named "&7&l..."
+
+    # Row 4: Slots 8-14 (slots 37-43)
+    research_drawNode({_p}, {_menu}, "acc_slot_8", 37, "&6")
+    research_drawNode({_p}, {_menu}, "acc_slot_9", 38, "&6")
+    research_drawNode({_p}, {_menu}, "acc_slot_10", 39, "&6")
+    research_drawNode({_p}, {_menu}, "acc_slot_11", 40, "&6")
+    research_drawNode({_p}, {_menu}, "acc_slot_12", 41, "&6")
+    research_drawNode({_p}, {_menu}, "acc_slot_13", 42, "&6")
+    research_drawNode({_p}, {_menu}, "acc_slot_14", 43, "&6")
+
+
+# ============================================================
+# DRAW SINGLE NODE
+# ============================================================
+
+function research_drawNode(p: player, menu: inventory, id: text, slot: integer, color: text):
+    set {_state} to research_getState({_p}, {_id})
+    set {_name} to research_getName({_id})
+    set {_prestige} to research_getPrestigeReq({_id})
+    set {_time} to research_getTimeRequired({_id})
+    set {_timeStr} to research_formatTime({_time})
+    set {_prereq} to research_getPrerequisite({_id})
+
+    # Determine item based on state
+    if {_state} is "completed":
+        set {_item} to lime concrete named "%{_color}%&l%{_name}%"
+    else if {_state} is "in_progress":
+        set {_item} to yellow concrete named "&e&l%{_name}%"
+    else if {_state} is "available":
+        set {_item} to white concrete named "&f&l%{_name}%"
+    else if {_state} is "prestige_locked":
+        set {_item} to red concrete named "&c&l%{_name}%"
+    else:  # locked
+        set {_item} to gray concrete named "&8&l%{_name}%"
+
+    # Build lore
+    delete {_lore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_lore::*}
+    add "" to {_lore::*}
+
+    # Status line
+    if {_state} is "completed":
+        add "&a&lUNLOCKED" to {_lore::*}
+    else if {_state} is "in_progress":
+        set {_researchSlot} to research_getSlotOf({_p}, {_id})
+        set {_percent} to floor(research_getProgressPercent({_p}, {_researchSlot}))
+        set {_remaining} to research_getTimeRemaining({_p}, {_researchSlot})
+        set {_remainStr} to research_formatTime({_remaining})
+        set {_bar} to research_getProgressBar({_percent}, 15)
+        add "&e&lIN PROGRESS" to {_lore::*}
+        add "" to {_lore::*}
+        add "&8[%{_bar}%&8] &f%{_percent}%%%" to {_lore::*}
+        add "&7Time left: &f%{_remainStr}%" to {_lore::*}
+    else if {_state} is "available":
+        add "&f&lAVAILABLE" to {_lore::*}
+    else if {_state} is "prestige_locked":
+        add "&c&lPRESTIGE LOCKED" to {_lore::*}
+    else:
+        add "&8&lLOCKED" to {_lore::*}
+
+    add "" to {_lore::*}
+
+    # Requirements
+    if {_state} is not "completed":
+        # Prestige requirement
+        set {_totalPrestiges} to progression_getTotalPrestiges({_p})
+        if {_prestige} > 0:
+            if {_totalPrestiges} >= {_prestige}:
+                add "&7Prestige: &a%{_prestige}% (P%{_prestige}%+)" to {_lore::*}
+            else:
+                add "&7Prestige: &c%{_prestige}% &8(you: %{_totalPrestiges}%)" to {_lore::*}
+        else:
+            add "&7Prestige: &aNone required" to {_lore::*}
+
+        # Prerequisite
+        if {_prereq} is not "none":
+            set {_prereqName} to research_getName({_prereq})
+            if research_isCompleted({_p}, {_prereq}):
+                add "&7Requires: &a%{_prereqName}%" to {_lore::*}
+            else:
+                add "&7Requires: &c%{_prereqName}%" to {_lore::*}
+
+        # Time
+        add "&7Research time: &f%{_timeStr}%" to {_lore::*}
+
+        # Saved progress?
+        set {_saved} to research_getSavedProgress({_p}, {_id})
+        if {_saved} > 0:
+            set {_savedPercent} to floor(({_saved} / {_time}) * 100)
+            add "&7Saved progress: &a%{_savedPercent}%%%" to {_lore::*}
+
+        add "" to {_lore::*}
+
+        # Action
+        if {_state} is "in_progress":
+            add "&c&lSHIFT-CLICK TO CANCEL" to {_lore::*}
+        else if {_state} is "available":
+            add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ sᴛᴀʀᴛ" to {_lore::*}
+        else if {_state} is "prestige_locked":
+            add "&cNeed %{_prestige}% total prestiges" to {_lore::*}
+        else:
+            add "&cComplete previous research first" to {_lore::*}
+
+    set lore of {_item} to {_lore::*}
+    set string tag "research;id" of custom nbt of {_item} to {_id}
+    set slot {_slot} of {_menu} to {_item}
+
+
+# ============================================================
+# CLICK HANDLER
+# ============================================================
+
+on inventory click:
+    if menu_getCurrentMenu(player) is "RESEARCH":
+        cancel event
+        if clicked slot is air:
+            stop
+
+        set {_nbt} to custom nbt of clicked slot
+        set {_action} to string tag "research;action" of {_nbt}
+        set {_tab} to string tag "research;tab" of {_nbt}
+        set {_id} to string tag "research;id" of {_nbt}
+
+        # Close button
+        if {_action} is "close":
+            close inventory of player
+            play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+            stop
+
+        # Tab switch
+        if {_tab} is set:
+            if {_tab} is not "":
+                play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+                research_openGUI(player, {_tab})
+                stop
+
+        # Research node
+        if {_id} is set:
+            if {_id} is not "":
+                set {_state} to research_getState(player, {_id})
+
+                # If in progress and shift-click = cancel
+                if {_state} is "in_progress":
+                    if click type is left mouse button with shift:
+                        set {_slot} to research_getSlotOf(player, {_id})
+                        research_cancel(player, {_slot})
+                        set {_cat} to metadata tag "research_category" of player
+                        research_openGUI(player, {_cat})
+                        stop
+                    else:
+                        send "&eShift-click to cancel this research!" to player
+                        play sound "entity.villager.no" with volume 0.5 and pitch 1 to player
+                        stop
+
+                # If available = start
+                if {_state} is "available":
+                    set {_success} to research_start(player, {_id})
+                    if {_success} is true:
+                        set {_cat} to metadata tag "research_category" of player
+                        research_openGUI(player, {_cat})
+                    else:
+                        send "&cCannot start this research!" to player
+                        play sound "entity.villager.no" with volume 0.5 and pitch 1 to player
+                    stop
+
+                # If locked or prestige locked
+                if {_state} is "locked":
+                    send "&cComplete the previous research first!" to player
+                    play sound "entity.villager.no" with volume 0.5 and pitch 1 to player
+                    stop
+
+                if {_state} is "prestige_locked":
+                    set {_req} to research_getPrestigeReq({_id})
+                    send "&cYou need &d%{_req}% total prestiges &cto unlock this!" to player
+                    play sound "entity.villager.no" with volume 0.5 and pitch 1 to player
+                    stop
+
+                # If completed
+                if {_state} is "completed":
+                    send "&aYou've already completed this research!" to player
+                    play sound "entity.experience_orb.pickup" with volume 0.5 and pitch 1 to player
+                    stop
+
+
+on inventory close:
+    if menu_getCurrentMenu(player) is "RESEARCH":
+        menu_deleteSession(player)
+        delete metadata tag "research_category" of player

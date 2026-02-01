@@ -1,0 +1,630 @@
+# ============================================================
+# RESEARCH TREE SYSTEM
+# ============================================================
+# Time-based research to unlock slots (pets, enchants, accessories)
+# - Online: 100% research speed
+# - Offline: 50% research speed
+# - Cancel: Keep 50% progress saved
+# - Multiple research slots (expandable)
+# ============================================================
+
+# ============================================================
+# RESEARCH DEFINITIONS (on load)
+# ============================================================
+
+on script load:
+    # Clear old definitions
+    delete {-research::*}
+
+    # ──────────────────────────────────────────
+    # TUTORIAL RESEARCHES (3 seconds each)
+    # ──────────────────────────────────────────
+    research_define("pet_slot_1", "First Pet Slot", "pets", 0, 3, "none", "pet_slot:1")
+    research_define("enchant_slot_1", "First Enchant Slot", "enchants", 0, 3, "none", "enchant_slot:1")
+    research_define("acc_slot_1", "First Accessory Slot", "accessories", 0, 3, "none", "acc_slot:1")
+
+    # ──────────────────────────────────────────
+    # PET SLOTS (slots 2-5)
+    # ──────────────────────────────────────────
+    research_define("pet_slot_2", "Pet Slot 2", "pets", 0, 1800, "pet_slot_1", "pet_slot:2")      # 30 min
+    research_define("pet_slot_3", "Pet Slot 3", "pets", 1, 7200, "pet_slot_2", "pet_slot:3")      # 2 hours
+    research_define("pet_slot_4", "Pet Slot 4", "pets", 3, 21600, "pet_slot_3", "pet_slot:4")     # 6 hours
+    research_define("pet_slot_5", "Pet Slot 5", "pets", 5, 86400, "pet_slot_4", "pet_slot:5")     # 24 hours
+
+    # ──────────────────────────────────────────
+    # ENCHANT SLOTS (slots 2-6)
+    # ──────────────────────────────────────────
+    research_define("enchant_slot_2", "Enchant Slot 2", "enchants", 0, 1800, "enchant_slot_1", "enchant_slot:2")    # 30 min
+    research_define("enchant_slot_3", "Enchant Slot 3", "enchants", 1, 7200, "enchant_slot_2", "enchant_slot:3")    # 2 hours
+    research_define("enchant_slot_4", "Enchant Slot 4", "enchants", 2, 14400, "enchant_slot_3", "enchant_slot:4")   # 4 hours
+    research_define("enchant_slot_5", "Enchant Slot 5", "enchants", 4, 28800, "enchant_slot_4", "enchant_slot:5")   # 8 hours
+    research_define("enchant_slot_6", "Enchant Slot 6", "enchants", 6, 57600, "enchant_slot_5", "enchant_slot:6")   # 16 hours
+
+    # ──────────────────────────────────────────
+    # ACCESSORY SLOTS (slots 2-14)
+    # ──────────────────────────────────────────
+    research_define("acc_slot_2", "Accessory Slot 2", "accessories", 0, 1800, "acc_slot_1", "acc_slot:2")       # 30 min
+    research_define("acc_slot_3", "Accessory Slot 3", "accessories", 1, 3600, "acc_slot_2", "acc_slot:3")       # 1 hour
+    research_define("acc_slot_4", "Accessory Slot 4", "accessories", 2, 7200, "acc_slot_3", "acc_slot:4")       # 2 hours
+    research_define("acc_slot_5", "Accessory Slot 5", "accessories", 3, 10800, "acc_slot_4", "acc_slot:5")      # 3 hours
+    research_define("acc_slot_6", "Accessory Slot 6", "accessories", 4, 14400, "acc_slot_5", "acc_slot:6")      # 4 hours
+    research_define("acc_slot_7", "Accessory Slot 7", "accessories", 5, 21600, "acc_slot_6", "acc_slot:7")      # 6 hours
+    research_define("acc_slot_8", "Accessory Slot 8", "accessories", 6, 28800, "acc_slot_7", "acc_slot:8")      # 8 hours
+    research_define("acc_slot_9", "Accessory Slot 9", "accessories", 7, 36000, "acc_slot_8", "acc_slot:9")      # 10 hours
+    research_define("acc_slot_10", "Accessory Slot 10", "accessories", 8, 43200, "acc_slot_9", "acc_slot:10")   # 12 hours
+    research_define("acc_slot_11", "Accessory Slot 11", "accessories", 9, 57600, "acc_slot_10", "acc_slot:11")  # 16 hours
+    research_define("acc_slot_12", "Accessory Slot 12", "accessories", 10, 72000, "acc_slot_11", "acc_slot:12") # 20 hours
+    research_define("acc_slot_13", "Accessory Slot 13", "accessories", 12, 86400, "acc_slot_12", "acc_slot:13") # 24 hours
+    research_define("acc_slot_14", "Accessory Slot 14", "accessories", 15, 172800, "acc_slot_13", "acc_slot:14")# 48 hours
+
+    # Build category lists
+    delete {-research::categories::*}
+    add "pets", "enchants" and "accessories" to {-research::categories::*}
+
+    # Build lists per category
+    loop {-research::all::*}:
+        set {_id} to loop-value
+        set {_cat} to {-research::%{_id}%::category}
+        add {_id} to {-research::byCategory::%{_cat}%::*}
+
+
+# Helper function to define a research
+function research_define(id: text, name: text, category: text, prestige: integer, time: integer, requires: text, reward: text):
+    add {_id} to {-research::all::*}
+    set {-research::%{_id}%::name} to {_name}
+    set {-research::%{_id}%::category} to {_category}
+    set {-research::%{_id}%::prestige} to {_prestige}
+    set {-research::%{_id}%::time} to {_time}
+    set {-research::%{_id}%::requires} to {_requires}
+    set {-research::%{_id}%::reward} to {_reward}
+
+
+# ============================================================
+# GETTERS - Research Definitions
+# ============================================================
+
+function research_getName(id: text) :: text:
+    return {-research::%{_id}%::name}
+
+function research_getCategory(id: text) :: text:
+    return {-research::%{_id}%::category}
+
+function research_getPrestigeReq(id: text) :: integer:
+    return {-research::%{_id}%::prestige}
+
+function research_getTimeRequired(id: text) :: integer:
+    return {-research::%{_id}%::time}
+
+function research_getPrerequisite(id: text) :: text:
+    return {-research::%{_id}%::requires}
+
+function research_getReward(id: text) :: text:
+    return {-research::%{_id}%::reward}
+
+function research_getAllInCategory(category: text) :: texts:
+    return {-research::byCategory::%{_category}%::*}
+
+function research_exists(id: text) :: boolean:
+    if {-research::%{_id}%::name} is set:
+        return true
+    return false
+
+
+# ============================================================
+# GETTERS - Player Data
+# ============================================================
+
+# Get max research slots a player has
+function research_getMaxSlots(p: player) :: integer:
+    set {_slots} to {data::research::%{_p}'s uuid%::maxSlots}
+    if {_slots} is not set:
+        return 1
+    return {_slots}
+
+# Get active research in a slot (1-indexed)
+function research_getActiveInSlot(p: player, slot: integer) :: text:
+    return ({data::research::%{_p}'s uuid%::active::%{_slot}%} ? "")
+
+# Get accumulated progress in seconds for a slot
+function research_getSlotProgress(p: player, slot: integer) :: number:
+    return ({data::research::%{_p}'s uuid%::progress::%{_slot}%} ? 0)
+
+# Get saved progress from cancelled research
+function research_getSavedProgress(p: player, id: text) :: number:
+    return ({data::research::%{_p}'s uuid%::saved::%{_id}%} ? 0)
+
+# Get last update timestamp
+function research_getLastUpdate(p: player) :: number:
+    return ({data::research::%{_p}'s uuid%::lastUpdate} ? 0)
+
+# Check if research is completed
+function research_isCompleted(p: player, id: text) :: boolean:
+    if {data::research::%{_p}'s uuid%::completed::*} contains {_id}:
+        return true
+    return false
+
+# Get all completed researches
+function research_getCompleted(p: player) :: texts:
+    return {data::research::%{_p}'s uuid%::completed::*}
+
+# Get progress as percentage (0-100)
+function research_getProgressPercent(p: player, slot: integer) :: number:
+    set {_id} to research_getActiveInSlot({_p}, {_slot})
+    if {_id} is "":
+        return 0
+    set {_progress} to research_getSlotProgress({_p}, {_slot})
+    set {_required} to research_getTimeRequired({_id})
+    if {_required} <= 0:
+        return 100
+    set {_percent} to ({_progress} / {_required}) * 100
+    if {_percent} > 100:
+        return 100
+    return {_percent}
+
+# Get time remaining in seconds
+function research_getTimeRemaining(p: player, slot: integer) :: number:
+    set {_id} to research_getActiveInSlot({_p}, {_slot})
+    if {_id} is "":
+        return 0
+    set {_progress} to research_getSlotProgress({_p}, {_slot})
+    set {_required} to research_getTimeRequired({_id})
+    set {_remaining} to {_required} - {_progress}
+    if {_remaining} < 0:
+        return 0
+    return {_remaining}
+
+
+# ============================================================
+# SETTERS - Player Data
+# ============================================================
+
+function research_setMaxSlots(p: player, slots: integer):
+    set {data::research::%{_p}'s uuid%::maxSlots} to {_slots}
+
+function research_setActiveInSlot(p: player, slot: integer, id: text):
+    set {data::research::%{_p}'s uuid%::active::%{_slot}%} to {_id}
+
+function research_setSlotProgress(p: player, slot: integer, progress: number):
+    set {data::research::%{_p}'s uuid%::progress::%{_slot}%} to {_progress}
+
+function research_setSavedProgress(p: player, id: text, progress: number):
+    set {data::research::%{_p}'s uuid%::saved::%{_id}%} to {_progress}
+
+function research_setLastUpdate(p: player, timestamp: number):
+    set {data::research::%{_p}'s uuid%::lastUpdate} to {_timestamp}
+
+function research_addCompleted(p: player, id: text):
+    add {_id} to {data::research::%{_p}'s uuid%::completed::*}
+
+
+# ============================================================
+# CHECKS
+# ============================================================
+
+# Check if player has the prestige requirement (total prestiges across all archetypes)
+function research_hasPrestigeReq(p: player, id: text) :: boolean:
+    set {_required} to research_getPrestigeReq({_id})
+    set {_total} to progression_getTotalPrestiges({_p})
+    if {_total} >= {_required}:
+        return true
+    return false
+
+# Check if player has completed the prerequisite
+function research_hasPrerequisite(p: player, id: text) :: boolean:
+    set {_prereq} to research_getPrerequisite({_id})
+    if {_prereq} is "none":
+        return true
+    return research_isCompleted({_p}, {_prereq})
+
+# Check if player can start this research
+function research_canStart(p: player, id: text) :: boolean:
+    # Already completed?
+    if research_isCompleted({_p}, {_id}):
+        return false
+    # Already researching this?
+    if research_isActive({_p}, {_id}):
+        return false
+    # Has prerequisite?
+    if research_hasPrerequisite({_p}, {_id}) is false:
+        return false
+    # Has prestige requirement?
+    if research_hasPrestigeReq({_p}, {_id}) is false:
+        return false
+    # Has empty slot?
+    if research_hasEmptySlot({_p}) is false:
+        return false
+    return true
+
+# Check if player has an empty research slot
+function research_hasEmptySlot(p: player) :: boolean:
+    set {_max} to research_getMaxSlots({_p})
+    loop integers from 1 to {_max}:
+        set {_active} to research_getActiveInSlot({_p}, loop-value)
+        if {_active} is "":
+            return true
+    return false
+
+# Get first empty slot number (0 if none)
+function research_getEmptySlot(p: player) :: integer:
+    set {_max} to research_getMaxSlots({_p})
+    loop integers from 1 to {_max}:
+        set {_active} to research_getActiveInSlot({_p}, loop-value)
+        if {_active} is "":
+            return loop-value
+    return 0
+
+# Check if a research is currently active
+function research_isActive(p: player, id: text) :: boolean:
+    set {_max} to research_getMaxSlots({_p})
+    loop integers from 1 to {_max}:
+        if research_getActiveInSlot({_p}, loop-value) is {_id}:
+            return true
+    return false
+
+# Get which slot a research is in (0 if not active)
+function research_getSlotOf(p: player, id: text) :: integer:
+    set {_max} to research_getMaxSlots({_p})
+    loop integers from 1 to {_max}:
+        if research_getActiveInSlot({_p}, loop-value) is {_id}:
+            return loop-value
+    return 0
+
+# Get state of a research for GUI display
+# Returns: "locked", "prestige_locked", "available", "in_progress", "completed"
+function research_getState(p: player, id: text) :: text:
+    if research_isCompleted({_p}, {_id}):
+        return "completed"
+    if research_isActive({_p}, {_id}):
+        return "in_progress"
+    if research_hasPrerequisite({_p}, {_id}) is false:
+        return "locked"
+    if research_hasPrestigeReq({_p}, {_id}) is false:
+        return "prestige_locked"
+    return "available"
+
+
+# ============================================================
+# ACTIONS
+# ============================================================
+
+# Start a research
+function research_start(p: player, id: text) :: boolean:
+    # Validate
+    if research_canStart({_p}, {_id}) is false:
+        return false
+
+    # Find empty slot
+    set {_slot} to research_getEmptySlot({_p})
+    if {_slot} is 0:
+        return false
+
+    # Get saved progress (from previous cancel)
+    set {_saved} to research_getSavedProgress({_p}, {_id})
+
+    # Set active research
+    research_setActiveInSlot({_p}, {_slot}, {_id})
+    research_setSlotProgress({_p}, {_slot}, {_saved})
+    research_setLastUpdate({_p}, now)
+
+    # Clear saved progress
+    delete {data::research::%{_p}'s uuid%::saved::%{_id}%}
+
+    # Notify player
+    set {_name} to research_getName({_id})
+    send "" to {_p}
+    send "&a&lRESEARCH STARTED!" to {_p}
+    send "&7Now researching: &e%{_name}%" to {_p}
+    if {_saved} > 0:
+        set {_percent} to floor(research_getProgressPercent({_p}, {_slot}))
+        send "&7Restored &a%{_percent}%%% &7progress from before!" to {_p}
+    send "" to {_p}
+    play sound "block.beacon.activate" with volume 0.7 and pitch 1.2 to {_p}
+
+    return true
+
+
+# Cancel a research (saves 50% progress)
+function research_cancel(p: player, slot: integer) :: boolean:
+    set {_id} to research_getActiveInSlot({_p}, {_slot})
+    if {_id} is "":
+        return false
+
+    # Save 50% of current progress
+    set {_progress} to research_getSlotProgress({_p}, {_slot})
+    set {_saved} to {_progress} * 0.5
+    research_setSavedProgress({_p}, {_id}, {_saved})
+
+    # Clear slot
+    delete {data::research::%{_p}'s uuid%::active::%{_slot}%}
+    delete {data::research::%{_p}'s uuid%::progress::%{_slot}%}
+
+    # Notify player
+    set {_name} to research_getName({_id})
+    set {_savedPercent} to floor(({_saved} / research_getTimeRequired({_id})) * 100)
+    send "" to {_p}
+    send "&6&lRESEARCH CANCELLED" to {_p}
+    send "&7Cancelled: &e%{_name}%" to {_p}
+    send "&7Saved &a%{_savedPercent}%%% &7progress for later." to {_p}
+    send "" to {_p}
+    play sound "block.beacon.deactivate" with volume 0.7 and pitch 0.8 to {_p}
+
+    return true
+
+
+# Complete a research
+function research_complete(p: player, slot: integer):
+    set {_id} to research_getActiveInSlot({_p}, {_slot})
+    if {_id} is "":
+        stop
+
+    # Mark as completed
+    research_addCompleted({_p}, {_id})
+
+    # Clear slot
+    delete {data::research::%{_p}'s uuid%::active::%{_slot}%}
+    delete {data::research::%{_p}'s uuid%::progress::%{_slot}%}
+
+    # Apply reward
+    research_applyReward({_p}, {_id})
+
+    # Notify player
+    set {_name} to research_getName({_id})
+    send "" to {_p}
+    send "&a&lRESEARCH COMPLETE!" to {_p}
+    send "&7Unlocked: &e%{_name}%" to {_p}
+    send "" to {_p}
+
+    # Title + sound
+    send title "&a&lRESEARCH COMPLETE!" with subtitle "&7%{_name}%" to {_p} for 3 seconds with fade in 0.5 seconds and fade out 1 second
+    play sound "ui.toast.challenge_complete" with volume 1 and pitch 1 to {_p}
+
+
+# Apply research reward
+function research_applyReward(p: player, id: text):
+    set {_reward} to research_getReward({_id})
+    set {_parts::*} to {_reward} split by ":"
+    set {_type} to {_parts::1}
+    set {_value} to {_parts::2} parsed as integer
+
+    # The reward just marks the research as complete
+    # The slot count functions check completed researches
+    # So no additional action needed here - it's automatic!
+
+
+# ============================================================
+# PROGRESS UPDATE SYSTEM
+# ============================================================
+
+# Update progress for online player (called periodically)
+function research_updateOnline(p: player, seconds: number):
+    set {_max} to research_getMaxSlots({_p})
+    loop integers from 1 to {_max}:
+        set {_slot} to loop-value
+        set {_id} to research_getActiveInSlot({_p}, {_slot})
+        if {_id} is not "":
+            # Add progress (100% speed online)
+            set {_current} to research_getSlotProgress({_p}, {_slot})
+            set {_new} to {_current} + {_seconds}
+            research_setSlotProgress({_p}, {_slot}, {_new})
+
+            # Check completion
+            set {_required} to research_getTimeRequired({_id})
+            if {_new} >= {_required}:
+                research_complete({_p}, {_slot})
+
+    research_setLastUpdate({_p}, now)
+
+
+# Update progress for player joining (calculate offline progress)
+function research_updateOffline(p: player):
+    set {_lastUpdate} to research_getLastUpdate({_p})
+    if {_lastUpdate} is 0:
+        research_setLastUpdate({_p}, now)
+        stop
+
+    # Calculate offline seconds
+    set {_now} to now
+    set {_diff} to unix timestamp of {_now} - unix timestamp of {_lastUpdate}
+
+    if {_diff} <= 0:
+        research_setLastUpdate({_p}, now)
+        stop
+
+    # Apply offline progress (50% speed)
+    set {_offlineProgress} to {_diff} * 0.5
+
+    set {_max} to research_getMaxSlots({_p})
+    set {_completedAny} to false
+
+    loop integers from 1 to {_max}:
+        set {_slot} to loop-value
+        set {_id} to research_getActiveInSlot({_p}, {_slot})
+        if {_id} is not "":
+            set {_current} to research_getSlotProgress({_p}, {_slot})
+            set {_new} to {_current} + {_offlineProgress}
+            research_setSlotProgress({_p}, {_slot}, {_new})
+
+            # Check completion
+            set {_required} to research_getTimeRequired({_id})
+            if {_new} >= {_required}:
+                research_complete({_p}, {_slot})
+                set {_completedAny} to true
+
+    research_setLastUpdate({_p}, now)
+
+    # Show offline progress summary if player had active research
+    if {_diff} > 60:  # Only show if offline for more than 1 minute
+        set {_hours} to floor({_diff} / 3600)
+        set {_minutes} to floor(mod({_diff}, 3600) / 60)
+        set {_progressHours} to floor({_offlineProgress} / 3600)
+        set {_progressMinutes} to floor(mod({_offlineProgress}, 3600) / 60)
+
+        # Check if player has any active research to show message
+        set {_hasActive} to false
+        loop integers from 1 to {_max}:
+            if research_getActiveInSlot({_p}, loop-value) is not "":
+                set {_hasActive} to true
+
+        if {_hasActive} is true:
+            wait 20 ticks  # Wait for player to fully load
+            send "" to {_p}
+            send "&e&lOFFLINE RESEARCH PROGRESS" to {_p}
+            send "&7You were offline for &f%{_hours}%h %{_minutes}%m" to {_p}
+            send "&7Research progressed by &a%{_progressHours}%h %{_progressMinutes}%m &7(50%% speed)" to {_p}
+            send "" to {_p}
+
+
+# ============================================================
+# SLOT COUNT FUNCTIONS (for integration)
+# ============================================================
+
+# Get number of pet slots unlocked (1 = first slot from tutorial research)
+function research_getUnlockedPetSlots(p: player) :: integer:
+    set {_count} to 0
+    if research_isCompleted({_p}, "pet_slot_1"):
+        add 1 to {_count}
+    if research_isCompleted({_p}, "pet_slot_2"):
+        add 1 to {_count}
+    if research_isCompleted({_p}, "pet_slot_3"):
+        add 1 to {_count}
+    if research_isCompleted({_p}, "pet_slot_4"):
+        add 1 to {_count}
+    if research_isCompleted({_p}, "pet_slot_5"):
+        add 1 to {_count}
+    return {_count}
+
+# Get number of enchant slots unlocked
+function research_getUnlockedEnchantSlots(p: player) :: integer:
+    set {_count} to 0
+    if research_isCompleted({_p}, "enchant_slot_1"):
+        add 1 to {_count}
+    if research_isCompleted({_p}, "enchant_slot_2"):
+        add 1 to {_count}
+    if research_isCompleted({_p}, "enchant_slot_3"):
+        add 1 to {_count}
+    if research_isCompleted({_p}, "enchant_slot_4"):
+        add 1 to {_count}
+    if research_isCompleted({_p}, "enchant_slot_5"):
+        add 1 to {_count}
+    if research_isCompleted({_p}, "enchant_slot_6"):
+        add 1 to {_count}
+    return {_count}
+
+# Get number of accessory slots unlocked
+function research_getUnlockedAccSlots(p: player) :: integer:
+    set {_count} to 0
+    loop integers from 1 to 14:
+        if research_isCompleted({_p}, "acc_slot_%loop-value%"):
+            add 1 to {_count}
+    return {_count}
+
+
+# ============================================================
+# RESEARCH SLOT UNLOCKS (via prestige milestones)
+# ============================================================
+
+# Get required total prestiges for each research slot
+function research_getSlotPrestigeReq(slotNum: integer) :: integer:
+    if {_slotNum} is 1:
+        return 0   # Everyone starts with 1 slot
+    if {_slotNum} is 2:
+        return 5   # 5 total prestiges
+    if {_slotNum} is 3:
+        return 15  # 15 total prestiges
+    if {_slotNum} is 4:
+        return 30  # 30 total prestiges
+    return 999
+
+# Check and update max research slots based on prestiges
+function research_checkSlotUnlocks(p: player):
+    set {_totalPrestiges} to progression_getTotalPrestiges({_p})
+    set {_currentMax} to research_getMaxSlots({_p})
+
+    # Check each slot tier
+    loop integers from 2 to 4:
+        set {_slotNum} to loop-value
+        set {_required} to research_getSlotPrestigeReq({_slotNum})
+        if {_totalPrestiges} >= {_required}:
+            if {_currentMax} < {_slotNum}:
+                research_setMaxSlots({_p}, {_slotNum})
+                send "" to {_p}
+                send "&d&lRESEARCH SLOT UNLOCKED!" to {_p}
+                send "&7You now have &d%{_slotNum}% research slots&7!" to {_p}
+                send "" to {_p}
+                play sound "entity.player.levelup" with volume 1 and pitch 1.5 to {_p}
+
+
+# ============================================================
+# TIME FORMATTING
+# ============================================================
+
+function research_formatTime(seconds: number) :: text:
+    if {_seconds} <= 0:
+        return "Complete!"
+
+    set {_hours} to floor({_seconds} / 3600)
+    set {_minutes} to floor(mod({_seconds}, 3600) / 60)
+    set {_secs} to floor(mod({_seconds}, 60))
+
+    if {_hours} > 0:
+        return "%{_hours}%h %{_minutes}%m"
+    if {_minutes} > 0:
+        return "%{_minutes}%m %{_secs}%s"
+    return "%{_secs}%s"
+
+
+# ============================================================
+# PROGRESS BAR
+# ============================================================
+
+function research_getProgressBar(percent: number, length: integer) :: text:
+    set {_filled} to floor({_percent} / 100 * {_length})
+    if {_filled} > {_length}:
+        set {_filled} to {_length}
+    if {_filled} < 0:
+        set {_filled} to 0
+    set {_empty} to {_length} - {_filled}
+
+    set {_bar} to ""
+    loop {_filled} times:
+        set {_bar} to "%{_bar}%&a|"
+    loop {_empty} times:
+        set {_bar} to "%{_bar}%&7|"
+
+    return {_bar}
+
+
+# ============================================================
+# COMMAND
+# ============================================================
+
+command /research:
+    trigger:
+        research_openGUI(player, "pets")
+
+
+# ============================================================
+# EVENTS
+# ============================================================
+
+on join:
+    wait 3 ticks
+    research_updateOffline(player)
+    research_checkSlotUnlocks(player)
+    research_startLoop(player)
+
+on quit:
+    research_setLastUpdate(player, now)
+    delete {-research::loop::%player's uuid%}
+
+
+# Online progress loop
+function research_startLoop(p: player):
+    set {-research::loop::%{_p}'s uuid%} to true
+    while {-research::loop::%{_p}'s uuid%} is true:
+        wait 10 seconds
+        if {_p} is online:
+            research_updateOnline({_p}, 10)
+        else:
+            delete {-research::loop::%{_p}'s uuid%}
+            stop
