@@ -348,7 +348,8 @@ function research_drawNode(p: player, menu: inventory, id: text, slot: integer, 
         # Prerequisite
         if {_prereq} is not "none":
             set {_prereqName} to research_getName({_prereq})
-            if research_isCompleted({_p}, {_prereq}):
+            set {_prereqDone} to research_isCompleted({_p}, {_prereq})
+            if {_prereqDone} is true:
                 add "&7Requires: &a%{_prereqName}%" to {_lore::*}
             else:
                 add "&7Requires: &c%{_prereqName}%" to {_lore::*}

@@ -359,9 +359,6 @@ function tutorial_step3_researchComplete(p: player):
 # ============================================================
 
 function tutorial_step4_equipPickaxe(p: player):
-
-
-function tutorial_step4_equipPickaxe(p: player):
     tutorial_setTextAnimated({_p}, "&b&lEquip Efficiency%nl%%nl%&f➊ &eRight-click &7your pickaxe%nl%&f➋ &eClick &aempty slot%nl%&f➌ &eSelect &bEfficiency")
     play sound "block.note_block.bell" with volume 0.5 and pitch 1.2 to {_p}
 
@@ -997,19 +994,23 @@ on join:
             else if {_step} = 2:
                 tutorial_step2_mine(player)
             else if {_step} = 3:
-                tutorial_step3_equipPickaxe(player)
+                tutorial_step3_researchEnchant(player)
             else if {_step} = 4:
-                tutorial_step4_sell(player)
+                tutorial_step4_equipPickaxe(player)
             else if {_step} = 5:
-                tutorial_step5_unlockSlot(player)
+                tutorial_step5_sell(player)
             else if {_step} = 6:
-                tutorial_step6_reachLevel5(player)
+                tutorial_step6_unlockSlot(player)
             else if {_step} = 7:
-                tutorial_step7_equipPet(player)
+                tutorial_step7_researchPet(player)
             else if {_step} = 8:
-                tutorial_step8_reachLevel15(player)
+                tutorial_step8_equipPet(player)
+            else if {_step} = 9:
+                tutorial_step9_reachLevel15(player)
+            else if {_step} = 10:
+                tutorial_step10_researchAccessory(player)
             else:
-                tutorial_step9_complete(player)
+                tutorial_step11_complete(player)
     else:
         wait 1 second
         milestone_start(player)

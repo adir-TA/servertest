@@ -219,19 +219,24 @@ function research_hasPrerequisite(p: player, id: text) :: boolean:
 # Check if player can start this research
 function research_canStart(p: player, id: text) :: boolean:
     # Already completed?
-    if research_isCompleted({_p}, {_id}):
+    set {_completed} to research_isCompleted({_p}, {_id})
+    if {_completed} is true:
         return false
     # Already researching this?
-    if research_isActive({_p}, {_id}):
+    set {_active} to research_isActive({_p}, {_id})
+    if {_active} is true:
         return false
     # Has prerequisite?
-    if research_hasPrerequisite({_p}, {_id}) is false:
+    set {_hasPrereq} to research_hasPrerequisite({_p}, {_id})
+    if {_hasPrereq} is false:
         return false
     # Has prestige requirement?
-    if research_hasPrestigeReq({_p}, {_id}) is false:
+    set {_hasPrestige} to research_hasPrestigeReq({_p}, {_id})
+    if {_hasPrestige} is false:
         return false
     # Has empty slot?
-    if research_hasEmptySlot({_p}) is false:
+    set {_hasSlot} to research_hasEmptySlot({_p})
+    if {_hasSlot} is false:
         return false
     return true
 
@@ -272,13 +277,17 @@ function research_getSlotOf(p: player, id: text) :: integer:
 # Get state of a research for GUI display
 # Returns: "locked", "prestige_locked", "available", "in_progress", "completed"
 function research_getState(p: player, id: text) :: text:
-    if research_isCompleted({_p}, {_id}):
+    set {_completed} to research_isCompleted({_p}, {_id})
+    if {_completed} is true:
         return "completed"
-    if research_isActive({_p}, {_id}):
+    set {_active} to research_isActive({_p}, {_id})
+    if {_active} is true:
         return "in_progress"
-    if research_hasPrerequisite({_p}, {_id}) is false:
+    set {_hasPrereq} to research_hasPrerequisite({_p}, {_id})
+    if {_hasPrereq} is false:
         return "locked"
-    if research_hasPrestigeReq({_p}, {_id}) is false:
+    set {_hasPrestige} to research_hasPrestigeReq({_p}, {_id})
+    if {_hasPrestige} is false:
         return "prestige_locked"
     return "available"
 
@@ -304,7 +313,7 @@ function research_start(p: player, id: text) :: boolean:
     # Set active research
     research_setActiveInSlot({_p}, {_slot}, {_id})
     research_setSlotProgress({_p}, {_slot}, {_saved})
-    research_setLastUpdate({_p}, now)
+    research_setLastUpdate({_p}, unix timestamp of now)
 
     # Clear saved progress
     delete {data::research::%{_p}'s uuid%::saved::%{_id}%}
@@ -415,14 +424,14 @@ function research_updateOnline(p: player, seconds: number):
             if {_new} >= {_required}:
                 research_complete({_p}, {_slot})
 
-    research_setLastUpdate({_p}, now)
+    research_setLastUpdate({_p}, unix timestamp of now)
 
 
 # Update progress for player joining (calculate offline progress)
 function research_updateOffline(p: player):
     set {_lastUpdate} to research_getLastUpdate({_p})
     if {_lastUpdate} is 0:
-        research_setLastUpdate({_p}, now)
+        research_setLastUpdate({_p}, unix timestamp of now)
         stop
 
     # Calculate offline seconds
@@ -430,7 +439,7 @@ function research_updateOffline(p: player):
     set {_diff} to unix timestamp of {_now} - unix timestamp of {_lastUpdate}
 
     if {_diff} <= 0:
-        research_setLastUpdate({_p}, now)
+        research_setLastUpdate({_p}, unix timestamp of now)
         stop
 
     # Apply offline progress (50% speed)
@@ -453,7 +462,7 @@ function research_updateOffline(p: player):
                 research_complete({_p}, {_slot})
                 set {_completedAny} to true
 
-    research_setLastUpdate({_p}, now)
+    research_setLastUpdate({_p}, unix timestamp of now)
 
     # Show offline progress summary if player had active research
     if {_diff} > 60:  # Only show if offline for more than 1 minute
@@ -484,32 +493,32 @@ function research_updateOffline(p: player):
 # Get number of pet slots unlocked (1 = first slot from tutorial research)
 function research_getUnlockedPetSlots(p: player) :: integer:
     set {_count} to 0
-    if research_isCompleted({_p}, "pet_slot_1"):
+    if {data::research::%{_p}'s uuid%::completed::*} contains "pet_slot_1":
         add 1 to {_count}
-    if research_isCompleted({_p}, "pet_slot_2"):
+    if {data::research::%{_p}'s uuid%::completed::*} contains "pet_slot_2":
         add 1 to {_count}
-    if research_isCompleted({_p}, "pet_slot_3"):
+    if {data::research::%{_p}'s uuid%::completed::*} contains "pet_slot_3":
         add 1 to {_count}
-    if research_isCompleted({_p}, "pet_slot_4"):
+    if {data::research::%{_p}'s uuid%::completed::*} contains "pet_slot_4":
         add 1 to {_count}
-    if research_isCompleted({_p}, "pet_slot_5"):
+    if {data::research::%{_p}'s uuid%::completed::*} contains "pet_slot_5":
         add 1 to {_count}
     return {_count}
 
 # Get number of enchant slots unlocked
 function research_getUnlockedEnchantSlots(p: player) :: integer:
     set {_count} to 0
-    if research_isCompleted({_p}, "enchant_slot_1"):
+    if {data::research::%{_p}'s uuid%::completed::*} contains "enchant_slot_1":
         add 1 to {_count}
-    if research_isCompleted({_p}, "enchant_slot_2"):
+    if {data::research::%{_p}'s uuid%::completed::*} contains "enchant_slot_2":
         add 1 to {_count}
-    if research_isCompleted({_p}, "enchant_slot_3"):
+    if {data::research::%{_p}'s uuid%::completed::*} contains "enchant_slot_3":
         add 1 to {_count}
-    if research_isCompleted({_p}, "enchant_slot_4"):
+    if {data::research::%{_p}'s uuid%::completed::*} contains "enchant_slot_4":
         add 1 to {_count}
-    if research_isCompleted({_p}, "enchant_slot_5"):
+    if {data::research::%{_p}'s uuid%::completed::*} contains "enchant_slot_5":
         add 1 to {_count}
-    if research_isCompleted({_p}, "enchant_slot_6"):
+    if {data::research::%{_p}'s uuid%::completed::*} contains "enchant_slot_6":
         add 1 to {_count}
     return {_count}
 
@@ -517,7 +526,7 @@ function research_getUnlockedEnchantSlots(p: player) :: integer:
 function research_getUnlockedAccSlots(p: player) :: integer:
     set {_count} to 0
     loop integers from 1 to 14:
-        if research_isCompleted({_p}, "acc_slot_%loop-value%"):
+        if {data::research::%{_p}'s uuid%::completed::*} contains "acc_slot_%loop-value%":
             add 1 to {_count}
     return {_count}
 
@@ -617,7 +626,7 @@ on join:
     research_startLoop(player)
 
 on quit:
-    research_setLastUpdate(player, now)
+    research_setLastUpdate(player, unix timestamp of now)
     delete {-research::loop::%player's uuid%}
 
 
