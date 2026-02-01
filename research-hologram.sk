@@ -1,0 +1,723 @@
+# ============================================================
+# RESEARCH TREE HOLOGRAM DISPLAY
+# ============================================================
+# Visual holographic display of the research tree
+# Spawns above a cauldron, toggled by right-click
+# Animated spawn (bottom→top) and despawn (top→bottom)
+# ============================================================
+
+# ============================================================
+# CONFIGURATION
+# ============================================================
+
+on load:
+    # Respawn the indicator if location is set
+    set {_loc} to {data::researchHolo::location}
+    if {_loc} is set:
+        wait 5 ticks
+        researchHolo_spawnIndicator()
+
+
+# ============================================================
+# LOCATION MANAGEMENT
+# ============================================================
+
+function researchHolo_setLocation(loc: location):
+    # Remove old indicator if exists
+    researchHolo_removeIndicator()
+
+    # Save new location (center of block)
+    set {_centered} to block at {_loc}
+    set {_centered} to location of {_centered}
+    add 0.5 to x-coord of {_centered}
+    add 0.5 to z-coord of {_centered}
+    set {data::researchHolo::location} to {_centered}
+
+    # Spawn new indicator
+    researchHolo_spawnIndicator()
+
+
+function researchHolo_removeLocation():
+    researchHolo_removeIndicator()
+    # Close hologram for all viewers
+    loop {-researchHolo::viewers::*}:
+        set {_p} to loop-value
+        researchHolo_hide({_p})
+    delete {data::researchHolo::location}
+
+
+function researchHolo_spawnIndicator():
+    set {_loc} to {data::researchHolo::location}
+    if {_loc} is not set:
+        stop
+
+    # Remove existing indicator
+    if {-researchHolo::indicatorId} is set:
+        loop all players:
+            remove fake entity with id {-researchHolo::indicatorId} for loop-player
+
+    # Spawn indicator 1.5 blocks above cauldron
+    set {_indicatorLoc} to {_loc}
+    add 1.5 to y-coord of {_indicatorLoc}
+
+    set {_id} to random integer between 100000 and 9999999
+    set {-researchHolo::indicatorId} to {_id}
+
+    loop all players:
+        spawn fake text display at {_indicatorLoc} for loop-player with id {_id}
+
+        set {_m} to new metadata packet with id {_id}:
+            display text: "&d&lResearch Tree%nl%&7Right-click to view"
+            display scale: vector(1, 1, 1)
+            display billboard: center
+            display brightness block: 15
+            display shadow: true
+            display defaultbackground: false
+            display background alpha: 120
+        send packet {_m} to loop-player
+
+
+function researchHolo_removeIndicator():
+    if {-researchHolo::indicatorId} is set:
+        loop all players:
+            remove fake entity with id {-researchHolo::indicatorId} for loop-player
+        delete {-researchHolo::indicatorId}
+
+
+# Show indicator to joining players
+on join:
+    wait 10 ticks
+    if {-researchHolo::indicatorId} is set:
+        set {_loc} to {data::researchHolo::location}
+        if {_loc} is set:
+            set {_indicatorLoc} to {_loc}
+            add 1.5 to y-coord of {_indicatorLoc}
+
+            spawn fake text display at {_indicatorLoc} for player with id {-researchHolo::indicatorId}
+
+            set {_m} to new metadata packet with id {-researchHolo::indicatorId}:
+                display text: "&d&lResearch Tree%nl%&7Right-click to view"
+                display scale: vector(1, 1, 1)
+                display billboard: center
+                display brightness block: 15
+                display shadow: true
+                display defaultbackground: false
+                display background alpha: 120
+            send packet {_m} to player
+
+
+# ============================================================
+# TOGGLE HOLOGRAM
+# ============================================================
+
+function researchHolo_toggle(p: player):
+    set {_uuid} to {_p}'s uuid
+
+    if {-researchHolo::viewing::%{_uuid}%} is true:
+        researchHolo_hide({_p})
+    else:
+        researchHolo_show({_p})
+
+
+function researchHolo_isViewing(p: player) :: boolean:
+    set {_uuid} to {_p}'s uuid
+    if {-researchHolo::viewing::%{_uuid}%} is true:
+        return true
+    return false
+
+
+# ============================================================
+# SHOW HOLOGRAM (ANIMATED BOTTOM → TOP)
+# ============================================================
+
+function researchHolo_show(p: player):
+    set {_uuid} to {_p}'s uuid
+    set {_loc} to {data::researchHolo::location}
+    if {_loc} is not set:
+        stop
+
+    # Mark as viewing
+    set {-researchHolo::viewing::%{_uuid}%} to true
+    add {_p} to {-researchHolo::viewers::*}
+
+    # Update indicator text
+    researchHolo_updateIndicator({_p}, true)
+
+    # Play start sound
+    play sound "block.beacon.activate" with volume 0.5 and pitch 1.5 to {_p}
+
+    # Calculate layout positions
+    # Base is 2.5 blocks above cauldron
+    set {_baseY} to y-coord of {_loc} + 2.5
+
+    # Category X positions (centered on cauldron)
+    set {_petsX} to x-coord of {_loc} - 4
+    set {_enchantsX} to x-coord of {_loc}
+    set {_accLeftX} to x-coord of {_loc} + 3.5
+    set {_accRightX} to x-coord of {_loc} + 5
+    set {_baseZ} to z-coord of {_loc}
+
+    # Vertical spacing
+    set {_spacing} to 1.1
+
+    # ========================================
+    # ROW 1: Bottom row (Slot 1s + Acc 1 & 8)
+    # ========================================
+    set {_row1Y} to {_baseY}
+
+    # Pet Slot 1
+    researchHolo_spawnNode({_p}, "pet_slot_1", {_petsX}, {_row1Y}, {_baseZ})
+    # Enchant Slot 1
+    researchHolo_spawnNode({_p}, "enchant_slot_1", {_enchantsX}, {_row1Y}, {_baseZ})
+    # Acc Slot 1 (left column)
+    researchHolo_spawnNode({_p}, "acc_slot_1", {_accLeftX}, {_row1Y}, {_baseZ})
+    # Acc Slot 8 (right column)
+    researchHolo_spawnNode({_p}, "acc_slot_8", {_accRightX}, {_row1Y}, {_baseZ})
+
+    play sound "block.amethyst_block.chime" with volume 0.3 and pitch 1.8 to {_p}
+    wait 3 ticks
+
+    # Check if still viewing
+    if {-researchHolo::viewing::%{_uuid}%} is not true:
+        stop
+
+    # ========================================
+    # ROW 2
+    # ========================================
+    set {_row2Y} to {_baseY} + {_spacing}
+
+    researchHolo_spawnNode({_p}, "pet_slot_2", {_petsX}, {_row2Y}, {_baseZ})
+    researchHolo_spawnNode({_p}, "enchant_slot_2", {_enchantsX}, {_row2Y}, {_baseZ})
+    researchHolo_spawnNode({_p}, "acc_slot_2", {_accLeftX}, {_row2Y}, {_baseZ})
+    researchHolo_spawnNode({_p}, "acc_slot_9", {_accRightX}, {_row2Y}, {_baseZ})
+
+    play sound "block.amethyst_block.chime" with volume 0.3 and pitch 1.7 to {_p}
+    wait 3 ticks
+
+    if {-researchHolo::viewing::%{_uuid}%} is not true:
+        stop
+
+    # ========================================
+    # ROW 3
+    # ========================================
+    set {_row3Y} to {_baseY} + ({_spacing} * 2)
+
+    researchHolo_spawnNode({_p}, "pet_slot_3", {_petsX}, {_row3Y}, {_baseZ})
+    researchHolo_spawnNode({_p}, "enchant_slot_3", {_enchantsX}, {_row3Y}, {_baseZ})
+    researchHolo_spawnNode({_p}, "acc_slot_3", {_accLeftX}, {_row3Y}, {_baseZ})
+    researchHolo_spawnNode({_p}, "acc_slot_10", {_accRightX}, {_row3Y}, {_baseZ})
+
+    play sound "block.amethyst_block.chime" with volume 0.3 and pitch 1.6 to {_p}
+    wait 3 ticks
+
+    if {-researchHolo::viewing::%{_uuid}%} is not true:
+        stop
+
+    # ========================================
+    # ROW 4
+    # ========================================
+    set {_row4Y} to {_baseY} + ({_spacing} * 3)
+
+    researchHolo_spawnNode({_p}, "pet_slot_4", {_petsX}, {_row4Y}, {_baseZ})
+    researchHolo_spawnNode({_p}, "enchant_slot_4", {_enchantsX}, {_row4Y}, {_baseZ})
+    researchHolo_spawnNode({_p}, "acc_slot_4", {_accLeftX}, {_row4Y}, {_baseZ})
+    researchHolo_spawnNode({_p}, "acc_slot_11", {_accRightX}, {_row4Y}, {_baseZ})
+
+    play sound "block.amethyst_block.chime" with volume 0.3 and pitch 1.5 to {_p}
+    wait 3 ticks
+
+    if {-researchHolo::viewing::%{_uuid}%} is not true:
+        stop
+
+    # ========================================
+    # ROW 5
+    # ========================================
+    set {_row5Y} to {_baseY} + ({_spacing} * 4)
+
+    researchHolo_spawnNode({_p}, "pet_slot_5", {_petsX}, {_row5Y}, {_baseZ})
+    researchHolo_spawnNode({_p}, "enchant_slot_5", {_enchantsX}, {_row5Y}, {_baseZ})
+    researchHolo_spawnNode({_p}, "acc_slot_5", {_accLeftX}, {_row5Y}, {_baseZ})
+    researchHolo_spawnNode({_p}, "acc_slot_12", {_accRightX}, {_row5Y}, {_baseZ})
+
+    play sound "block.amethyst_block.chime" with volume 0.3 and pitch 1.4 to {_p}
+    wait 3 ticks
+
+    if {-researchHolo::viewing::%{_uuid}%} is not true:
+        stop
+
+    # ========================================
+    # ROW 6
+    # ========================================
+    set {_row6Y} to {_baseY} + ({_spacing} * 5)
+
+    # No more pet slots, pets header here
+    researchHolo_spawnHeader({_p}, "pets", {_petsX}, {_row6Y}, {_baseZ})
+    researchHolo_spawnNode({_p}, "enchant_slot_6", {_enchantsX}, {_row6Y}, {_baseZ})
+    researchHolo_spawnNode({_p}, "acc_slot_6", {_accLeftX}, {_row6Y}, {_baseZ})
+    researchHolo_spawnNode({_p}, "acc_slot_13", {_accRightX}, {_row6Y}, {_baseZ})
+
+    play sound "block.amethyst_block.chime" with volume 0.3 and pitch 1.3 to {_p}
+    wait 3 ticks
+
+    if {-researchHolo::viewing::%{_uuid}%} is not true:
+        stop
+
+    # ========================================
+    # ROW 7
+    # ========================================
+    set {_row7Y} to {_baseY} + ({_spacing} * 6)
+
+    # Enchants header
+    researchHolo_spawnHeader({_p}, "enchants", {_enchantsX}, {_row7Y}, {_baseZ})
+    researchHolo_spawnNode({_p}, "acc_slot_7", {_accLeftX}, {_row7Y}, {_baseZ})
+    researchHolo_spawnNode({_p}, "acc_slot_14", {_accRightX}, {_row7Y}, {_baseZ})
+
+    play sound "block.amethyst_block.chime" with volume 0.3 and pitch 1.2 to {_p}
+    wait 3 ticks
+
+    if {-researchHolo::viewing::%{_uuid}%} is not true:
+        stop
+
+    # ========================================
+    # ROW 8: Accessories Header
+    # ========================================
+    set {_row8Y} to {_baseY} + ({_spacing} * 7)
+
+    # Accessories header (centered between columns)
+    set {_accCenterX} to ({_accLeftX} + {_accRightX}) / 2
+    researchHolo_spawnHeader({_p}, "accessories", {_accCenterX}, {_row8Y}, {_baseZ})
+
+    play sound "block.amethyst_block.chime" with volume 0.3 and pitch 1.1 to {_p}
+    wait 3 ticks
+
+    if {-researchHolo::viewing::%{_uuid}%} is not true:
+        stop
+
+    # ========================================
+    # ROW 9: Main Title
+    # ========================================
+    set {_row9Y} to {_baseY} + ({_spacing} * 8) + 0.3
+
+    researchHolo_spawnTitle({_p}, x-coord of {_loc}, {_row9Y}, {_baseZ})
+
+    play sound "block.beacon.power_select" with volume 0.5 and pitch 1.2 to {_p}
+
+    # Start particle connections
+    researchHolo_startParticles({_p})
+
+
+# ============================================================
+# HIDE HOLOGRAM (ANIMATED TOP → BOTTOM)
+# ============================================================
+
+function researchHolo_hide(p: player):
+    set {_uuid} to {_p}'s uuid
+
+    # Stop particles first
+    delete {-researchHolo::particles::%{_uuid}%}
+
+    # Mark as closing (prevents new spawns during animation)
+    set {-researchHolo::closing::%{_uuid}%} to true
+    delete {-researchHolo::viewing::%{_uuid}%}
+    remove {_p} from {-researchHolo::viewers::*}
+
+    # Update indicator
+    researchHolo_updateIndicator({_p}, false)
+
+    play sound "block.beacon.deactivate" with volume 0.5 and pitch 1.2 to {_p}
+
+    # Remove entities in reverse order (top to bottom)
+    set {_entities::*} to {-researchHolo::entities::%{_uuid}%::*}
+    set {_count} to size of {_entities::*}
+
+    if {_count} > 0:
+        # Group entities by row (roughly by their spawn order)
+        # We spawned ~4 entities per row, 9 rows = ~36 entities
+        # Remove in batches from end to start
+
+        set {_batchSize} to 4
+        set {_current} to {_count}
+
+        while {_current} > 0:
+            # Remove batch
+            loop {_batchSize} times:
+                if {_current} > 0:
+                    set {_id} to {_entities::%{_current}%}
+                    if {_id} is set:
+                        # Shrink animation
+                        set {_m} to new metadata packet with id {_id}:
+                            display scale: vector(0.01, 0.01, 0.01)
+                            display transformation: 3
+                            display interpolation: 0
+                        send packet {_m} to {_p}
+                    subtract 1 from {_current}
+
+            play sound "block.amethyst_block.fall" with volume 0.2 and pitch 1.5 to {_p}
+            wait 2 ticks
+
+        # Actually remove all entities after animation
+        wait 3 ticks
+        loop {_entities::*}:
+            remove fake entity with id loop-value for {_p}
+
+    # Cleanup
+    delete {-researchHolo::entities::%{_uuid}%::*}
+    delete {-researchHolo::closing::%{_uuid}%}
+
+
+# ============================================================
+# SPAWN INDIVIDUAL ELEMENTS
+# ============================================================
+
+function researchHolo_spawnNode(p: player, researchId: text, x: number, y: number, z: number):
+    set {_uuid} to {_p}'s uuid
+    set {_loc} to location({_x}, {_y}, {_z}, world "mine")
+
+    # Get research state
+    set {_state} to research_getState({_p}, {_researchId})
+    set {_name} to research_getName({_researchId})
+
+    # Determine block and color based on state
+    if {_state} = "completed":
+        set {_block} to emerald block
+        set {_color} to "&a"
+        set {_stateText} to "&a(Completed)"
+    else if {_state} = "in_progress":
+        set {_block} to gold block
+        set {_color} to "&e"
+        set {_progress} to research_getProgress({_p}, {_researchId})
+        set {_stateText} to "&e%{_progress}%%%"
+    else if {_state} = "available":
+        set {_block} to diamond block
+        set {_color} to "&b"
+        set {_stateText} to "&b(Available)"
+    else if {_state} = "prestige_locked":
+        set {_block} to redstone block
+        set {_color} to "&c"
+        set {_reqPrestiges} to research_getRequiredPrestiges({_researchId})
+        set {_stateText} to "&c(P%{_reqPrestiges}% required)"
+    else:
+        # locked (prerequisite)
+        set {_block} to coal block
+        set {_color} to "&8"
+        set {_stateText} to "&8(Locked)"
+
+    # Spawn block display (starts tiny, grows)
+    set {_blockId} to random integer between 100000 and 9999999
+    spawn fake block display at {_loc} for {_p} with id {_blockId}
+
+    set {_m} to new metadata packet with id {_blockId}:
+        display block: {_block}
+        display scale: vector(0.01, 0.01, 0.01)
+        display billboard: center
+        display brightness block: 15
+        display shadow: true
+        display transformation: 0
+        display interpolation: 0
+    send packet {_m} to {_p}
+
+    # Grow animation
+    wait 1 tick
+    set {_m} to new metadata packet with id {_blockId}:
+        display scale: vector(0.45, 0.45, 0.45)
+        display transformation: 5
+        display interpolation: 0
+    send packet {_m} to {_p}
+
+    # Store entity ID
+    add {_blockId} to {-researchHolo::entities::%{_uuid}%::*}
+
+    # Spawn text label below block
+    set {_textLoc} to location({_x}, {_y} - 0.4, {_z}, world "mine")
+    set {_textId} to random integer between 100000 and 9999999
+    spawn fake text display at {_textLoc} for {_p} with id {_textId}
+
+    set {_m} to new metadata packet with id {_textId}:
+        display text: "%{_color}%%{_name}%%nl%&7%{_stateText}%"
+        display scale: vector(0.01, 0.01, 0.01)
+        display billboard: center
+        display brightness block: 15
+        display shadow: true
+        display defaultbackground: false
+        display background alpha: 0
+    send packet {_m} to {_p}
+
+    # Grow text
+    wait 1 tick
+    set {_m} to new metadata packet with id {_textId}:
+        display scale: vector(0.5, 0.5, 0.5)
+        display transformation: 5
+        display interpolation: 0
+    send packet {_m} to {_p}
+
+    add {_textId} to {-researchHolo::entities::%{_uuid}%::*}
+
+    # Spawn particle burst
+    draw 5 end rod at {_loc} with extra 0.05
+
+
+function researchHolo_spawnHeader(p: player, category: text, x: number, y: number, z: number):
+    set {_uuid} to {_p}'s uuid
+    set {_loc} to location({_x}, {_y}, {_z}, world "mine")
+
+    # Category styling
+    if {_category} = "pets":
+        set {_text} to "&d&lPETS"
+        set {_icon} to magenta glazed terracotta
+    else if {_category} = "enchants":
+        set {_text} to "&b&lENCHANTS"
+        set {_icon} to light blue glazed terracotta
+    else if {_category} = "accessories":
+        set {_text} to "&6&lACCESSORIES"
+        set {_icon} to orange glazed terracotta
+
+    # Spawn header text
+    set {_textId} to random integer between 100000 and 9999999
+    spawn fake text display at {_loc} for {_p} with id {_textId}
+
+    set {_m} to new metadata packet with id {_textId}:
+        display text: {_text}
+        display scale: vector(0.01, 0.01, 0.01)
+        display billboard: center
+        display brightness block: 15
+        display shadow: true
+        display defaultbackground: false
+        display background alpha: 100
+    send packet {_m} to {_p}
+
+    # Grow animation
+    wait 1 tick
+    set {_m} to new metadata packet with id {_textId}:
+        display scale: vector(0.8, 0.8, 0.8)
+        display transformation: 5
+        display interpolation: 0
+    send packet {_m} to {_p}
+
+    add {_textId} to {-researchHolo::entities::%{_uuid}%::*}
+
+    # Particles
+    draw 8 end rod at {_loc} with extra 0.1
+
+
+function researchHolo_spawnTitle(p: player, x: number, y: number, z: number):
+    set {_uuid} to {_p}'s uuid
+    set {_loc} to location({_x}, {_y}, {_z}, world "mine")
+
+    # Main title
+    set {_titleId} to random integer between 100000 and 9999999
+    spawn fake text display at {_loc} for {_p} with id {_titleId}
+
+    set {_m} to new metadata packet with id {_titleId}:
+        display text: "&5&lRESEARCH TREE"
+        display scale: vector(0.01, 0.01, 0.01)
+        display billboard: center
+        display brightness block: 15
+        display shadow: true
+        display defaultbackground: false
+        display background alpha: 140
+    send packet {_m} to {_p}
+
+    # Grow animation (bigger for title)
+    wait 1 tick
+    set {_m} to new metadata packet with id {_titleId}:
+        display scale: vector(1.2, 1.2, 1.2)
+        display transformation: 5
+        display interpolation: 0
+    send packet {_m} to {_p}
+
+    add {_titleId} to {-researchHolo::entities::%{_uuid}%::*}
+
+    # Big particle burst for finale
+    draw 20 end rod at {_loc} with extra 0.15
+    draw 15 totem of undying at {_loc}
+
+
+# ============================================================
+# PARTICLE CONNECTIONS
+# ============================================================
+
+function researchHolo_startParticles(p: player):
+    set {_uuid} to {_p}'s uuid
+    set {-researchHolo::particles::%{_uuid}%} to true
+
+    # Start particle loop
+    researchHolo_particleLoop({_p})
+
+
+function researchHolo_particleLoop(p: player):
+    set {_uuid} to {_p}'s uuid
+
+    if {-researchHolo::particles::%{_uuid}%} is not true:
+        stop
+
+    if {_p} is not online:
+        delete {-researchHolo::particles::%{_uuid}%}
+        stop
+
+    set {_loc} to {data::researchHolo::location}
+    if {_loc} is not set:
+        stop
+
+    set {_baseY} to y-coord of {_loc} + 2.5
+    set {_petsX} to x-coord of {_loc} - 4
+    set {_enchantsX} to x-coord of {_loc}
+    set {_accLeftX} to x-coord of {_loc} + 3.5
+    set {_accRightX} to x-coord of {_loc} + 5
+    set {_baseZ} to z-coord of {_loc}
+    set {_spacing} to 1.1
+
+    # Draw vertical lines for each column
+    # Pets column (5 nodes)
+    loop 5 times:
+        if loop-number < 5:
+            set {_y1} to {_baseY} + ({_spacing} * (loop-number - 1)) + 0.2
+            set {_y2} to {_baseY} + ({_spacing} * loop-number) - 0.2
+            researchHolo_drawLine({_p}, {_petsX}, {_y1}, {_baseZ}, {_petsX}, {_y2}, {_baseZ}, "magenta")
+
+    # Enchants column (6 nodes)
+    loop 6 times:
+        if loop-number < 6:
+            set {_y1} to {_baseY} + ({_spacing} * (loop-number - 1)) + 0.2
+            set {_y2} to {_baseY} + ({_spacing} * loop-number) - 0.2
+            researchHolo_drawLine({_p}, {_enchantsX}, {_y1}, {_baseZ}, {_enchantsX}, {_y2}, {_baseZ}, "cyan")
+
+    # Accessories left column (1-7)
+    loop 7 times:
+        if loop-number < 7:
+            set {_y1} to {_baseY} + ({_spacing} * (loop-number - 1)) + 0.2
+            set {_y2} to {_baseY} + ({_spacing} * loop-number) - 0.2
+            researchHolo_drawLine({_p}, {_accLeftX}, {_y1}, {_baseZ}, {_accLeftX}, {_y2}, {_baseZ}, "orange")
+
+    # Accessories right column (8-14)
+    loop 7 times:
+        if loop-number < 7:
+            set {_y1} to {_baseY} + ({_spacing} * (loop-number - 1)) + 0.2
+            set {_y2} to {_baseY} + ({_spacing} * loop-number) - 0.2
+            researchHolo_drawLine({_p}, {_accRightX}, {_y1}, {_baseZ}, {_accRightX}, {_y2}, {_baseZ}, "orange")
+
+    # Connection from acc slot 7 to slot 8 (horizontal line at row 1)
+    researchHolo_drawLine({_p}, {_accLeftX} + 0.3, {_baseY}, {_baseZ}, {_accRightX} - 0.3, {_baseY}, {_baseZ}, "gold")
+
+    # Schedule next update
+    wait 15 ticks
+    researchHolo_particleLoop({_p})
+
+
+function researchHolo_drawLine(p: player, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, color: text):
+    set {_steps} to 5
+    set {_dx} to ({_x2} - {_x1}) / {_steps}
+    set {_dy} to ({_y2} - {_y1}) / {_steps}
+    set {_dz} to ({_z2} - {_z1}) / {_steps}
+
+    loop {_steps} times:
+        set {_x} to {_x1} + ({_dx} * (loop-number - 1))
+        set {_y} to {_y1} + ({_dy} * (loop-number - 1))
+        set {_z} to {_z1} + ({_dz} * (loop-number - 1))
+        set {_particleLoc} to location({_x}, {_y}, {_z}, world "mine")
+
+        if {_color} = "magenta":
+            draw 1 dust using dustOption(rgb(255, 85, 255), 0.5) at {_particleLoc} for {_p}
+        else if {_color} = "cyan":
+            draw 1 dust using dustOption(rgb(85, 255, 255), 0.5) at {_particleLoc} for {_p}
+        else if {_color} = "orange":
+            draw 1 dust using dustOption(rgb(255, 170, 0), 0.5) at {_particleLoc} for {_p}
+        else if {_color} = "gold":
+            draw 1 dust using dustOption(rgb(255, 215, 0), 0.5) at {_particleLoc} for {_p}
+
+
+# ============================================================
+# UPDATE INDICATOR
+# ============================================================
+
+function researchHolo_updateIndicator(p: player, viewing: boolean):
+    set {_id} to {-researchHolo::indicatorId}
+    if {_id} is not set:
+        stop
+
+    if {_viewing} is true:
+        set {_text} to "&d&lResearch Tree%nl%&eRight-click to close"
+    else:
+        set {_text} to "&d&lResearch Tree%nl%&7Right-click to view"
+
+    set {_m} to new metadata packet with id {_id}:
+        display text: {_text}
+    send packet {_m} to {_p}
+
+
+# ============================================================
+# CAULDRON INTERACTION
+# ============================================================
+
+on right click on cauldron:
+    set {_loc} to {data::researchHolo::location}
+    if {_loc} is not set:
+        stop
+
+    # Check if clicking the correct cauldron
+    set {_blockLoc} to location of clicked block
+    add 0.5 to x-coord of {_blockLoc}
+    add 0.5 to z-coord of {_blockLoc}
+
+    if distance between {_blockLoc} and {_loc} < 1:
+        cancel event
+        researchHolo_toggle(player)
+
+
+on right click on water cauldron:
+    set {_loc} to {data::researchHolo::location}
+    if {_loc} is not set:
+        stop
+
+    set {_blockLoc} to location of clicked block
+    add 0.5 to x-coord of {_blockLoc}
+    add 0.5 to z-coord of {_blockLoc}
+
+    if distance between {_blockLoc} and {_loc} < 1:
+        cancel event
+        researchHolo_toggle(player)
+
+
+# ============================================================
+# CLEANUP ON QUIT
+# ============================================================
+
+on quit:
+    set {_uuid} to player's uuid
+    if {-researchHolo::viewing::%{_uuid}%} is true:
+        delete {-researchHolo::viewing::%{_uuid}%}
+        delete {-researchHolo::particles::%{_uuid}%}
+        remove player from {-researchHolo::viewers::*}
+        loop {-researchHolo::entities::%{_uuid}%::*}:
+            remove fake entity with id loop-value for player
+        delete {-researchHolo::entities::%{_uuid}%::*}
+
+
+# ============================================================
+# ADMIN COMMANDS
+# ============================================================
+
+command /researchlocation [<text>]:
+    permission: op
+    trigger:
+        if arg-1 = "set":
+            set {_block} to target block of player
+            if {_block} is cauldron or water cauldron or lava cauldron or powder snow cauldron:
+                researchHolo_setLocation(location of {_block})
+                send "&aResearch hologram location set!"
+                send "&7Location: &e%location of {_block}%"
+            else:
+                send "&cYou must be looking at a cauldron!"
+
+        else if arg-1 = "remove":
+            researchHolo_removeLocation()
+            send "&cResearch hologram location removed."
+
+        else if arg-1 = "refresh":
+            researchHolo_removeIndicator()
+            researchHolo_spawnIndicator()
+            send "&aIndicator refreshed."
+
+        else:
+            send "&e/researchlocation set &8- &7Set cauldron location (look at cauldron)"
+            send "&e/researchlocation remove &8- &7Remove location"
+            send "&e/researchlocation refresh &8- &7Refresh indicator"
