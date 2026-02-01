@@ -242,7 +242,7 @@ function multiplier_calculateType(p: player, type: text) :: number:
             add 0.50 to {_total}
 
     # ──────────────────────────────────────────
-    # TEAM BOOSTS
+    # TEAM BOOSTS (Purchased Upgrades)
     # ──────────────────────────────────────────
     set {_teamId} to team_getPlayerTeamID({_p})
     if {_teamId} > 0:
@@ -254,6 +254,15 @@ function multiplier_calculateType(p: player, type: text) :: number:
             add team_getBoostPercent({_teamId}, "mining_speed_boost") / 100 to {_total}
         else if {_type} is "damage":
             add team_getBoostPercent({_teamId}, "damage_boost") / 100 to {_total}
+
+    # ──────────────────────────────────────────
+    # TEAM ONLINE BONUS (+3% per online member)
+    # ──────────────────────────────────────────
+    if {_teamId} > 0:
+        if {_type} is "token":
+            add team_getOnlineBonusPercent({_teamId}) to {_total}
+        else if {_type} is "money":
+            add team_getOnlineBonusPercent({_teamId}) to {_total}
 
     return {_total}
 
@@ -384,18 +393,22 @@ command /multipliers:
             # Get skill tree bonus for breakdown
             set {_skillBonus} to skilltree_getTotalBonus(player, {_type})
 
-            # Get team bonus for breakdown
+            # Get team bonus for breakdown (purchased upgrades)
             set {_teamBonus} to 0
+            set {_teamOnlineBonus} to 0
             set {_teamId} to team_getPlayerTeamID(player)
             if {_teamId} > 0:
                 if {_type} is "token":
                     set {_teamBonus} to team_getBoostPercent({_teamId}, "tokens_boost") / 100
+                    set {_teamOnlineBonus} to team_getOnlineBonusPercent({_teamId})
                 else if {_type} is "drops":
                     set {_teamBonus} to team_getBoostPercent({_teamId}, "drops_boost") / 100
                 else if {_type} is "mining_speed":
                     set {_teamBonus} to team_getBoostPercent({_teamId}, "mining_speed_boost") / 100
                 else if {_type} is "damage":
                     set {_teamBonus} to team_getBoostPercent({_teamId}, "damage_boost") / 100
+                else if {_type} is "money":
+                    set {_teamOnlineBonus} to team_getOnlineBonusPercent({_teamId})
 
             if {_val} > 1:
                 set {_breakdown} to ""
@@ -414,6 +427,9 @@ command /multipliers:
                 if {_teamBonus} > 0:
                     set {_teamPercent} to round({_teamBonus} * 100 * 100) / 100
                     set {_breakdown} to "%{_breakdown}%+%{_teamPercent}%%% team "
+                if {_teamOnlineBonus} > 0:
+                    set {_onlinePercent} to round({_teamOnlineBonus} * 100)
+                    set {_breakdown} to "%{_breakdown}%+%{_onlinePercent}%%% online "
                 if {_type} is "token" or "money":
                     if {data::linked::%{_uuid}%} is set:
                         set {_breakdown} to "%{_breakdown}%+50%% discord"

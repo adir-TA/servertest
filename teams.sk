@@ -612,6 +612,35 @@ function team_demote(p: player, target: offlineplayer):
             send team_getMessage("demote_success", "%{_target}%", "%{_p}%") to {_member}
 
 
+# ============================================================
+# TEAM ONLINE BONUS - JOIN/QUIT HANDLERS
+# ============================================================
+# Recalculate multipliers for all online team members when
+# someone joins or leaves, so the online bonus updates.
+# ============================================================
+
+on join:
+    wait 5 ticks  # Wait for player to fully load
+    set {_id} to team_getPlayerTeamID(player)
+    if {_id} > 0:
+        # Recalculate multipliers for all online team members
+        loop team_getAllMembers({_id}):
+            set {_member} to loop-value parsed as offline player
+            if {_member} is online:
+                multiplier_recalculate({_member})
+
+on quit:
+    set {_id} to team_getPlayerTeamID(player)
+    if {_id} > 0:
+        # Schedule recalculation for remaining team members after quit
+        set {_teamId} to {_id}
+        wait 1 tick  # Wait for player to fully quit
+        loop team_getAllMembers({_teamId}):
+            set {_member} to loop-value parsed as offline player
+            if {_member} is online:
+                multiplier_recalculate({_member})
+
+
 on chat:
     set {_message} to message
     if metadata tag "team_disband_confirm" of player = true:
@@ -854,6 +883,43 @@ function team_getUpgradeDisplayName(upgrade: text) :: text:
 
 
 # ============================================================
+# TEAM ONLINE BONUS SYSTEM
+# ============================================================
+# +3% Money and +3% Tokens per online team member
+# Encourages teams to play together / AFK together
+# ============================================================
+
+# Count online team members (including the player themselves)
+function team_getOnlineMemberCount(id: integer) :: integer:
+    if {_id} is 0:
+        return 0
+    set {_count} to 0
+    loop team_getAllMembers({_id}):
+        set {_member} to loop-value parsed as offline player
+        if {_member} is online:
+            add 1 to {_count}
+    return {_count}
+
+# Get online bonus percentage (3% per online member)
+# Returns as decimal (e.g., 0.09 for 3 members = 9%)
+function team_getOnlineBonusPercent(id: integer) :: number:
+    if {_id} is 0:
+        return 0
+    set {_onlineCount} to team_getOnlineMemberCount({_id})
+    # 3% per online member = 0.03 per member
+    return {_onlineCount} * 0.03
+
+# Get online bonus for display (returns percentage like 9.0 for 9%)
+function team_getOnlineBonusDisplay(id: integer) :: number:
+    return team_getOnlineBonusPercent({_id}) * 100
+
+# Get online bonus for a specific player
+function team_getPlayerOnlineBonus(p: player) :: number:
+    set {_id} to team_getPlayerTeamID({_p})
+    return team_getOnlineBonusPercent({_id})
+
+
+# ============================================================
 # TEAM TROPHIES SYSTEM
 # ============================================================
 # Every 500 blocks a player breaks, add 1 trophy to their team
@@ -945,13 +1011,14 @@ function team_openMainMenu(p: player):
     add "" to {_infoLore::*}
 
     set {_memberCount} to size of team_getAllMembers({_id})
+    set {_onlineCount} to team_getOnlineMemberCount({_id})
     set {_maxMembers} to team_getUpgrade_maxMembers({_id})
     set {_trophies} to team_getTrophies({_id})
     set {_owner} to team_getTeamOwner({_id}) parsed as offline player
     set {_rank} to team_getPlayerRank({_p})
 
     add "&7Owner: &f%{_owner}%" to {_infoLore::*}
-    add "&7Members: &e%{_memberCount}%&7/&a%{_maxMembers}%" to {_infoLore::*}
+    add "&7Members: &e%{_memberCount}%&7/&a%{_maxMembers}% &8(&a%{_onlineCount}% online&8)" to {_infoLore::*}
     add "&7Trophies: &6%{_trophies}% ⏃" to {_infoLore::*}
     add "&7Your Rank: &a%{_rank}%" to {_infoLore::*}
     add "" to {_infoLore::*}
@@ -977,12 +1044,31 @@ function team_openMainMenu(p: player):
     set lore of {_trophyItem} to {_trophyLore::*}
     set slot 13 of {_menu} to {_trophyItem}
 
-    # Boosts Overview (slot 22)
+    # Online Bonus Display (slot 21)
+    set {_onlineCount} to team_getOnlineMemberCount({_id})
+    set {_onlineBonusDisplay} to team_getOnlineBonusDisplay({_id})
+    set {_onlineItem} to emerald named "&a&lONLINE BONUS"
+    delete {_onlineLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_onlineLore::*}
+    add "" to {_onlineLore::*}
+    add "&7Online Members: &a%{_onlineCount}%" to {_onlineLore::*}
+    add "" to {_onlineLore::*}
+    add "&7Bonus per member: &e+3%%" to {_onlineLore::*}
+    add "&7Current Bonus:" to {_onlineLore::*}
+    add " &8• &6Tokens: &a+%{_onlineBonusDisplay}%%%" to {_onlineLore::*}
+    add " &8• &eMoney: &a+%{_onlineBonusDisplay}%%%" to {_onlineLore::*}
+    add "" to {_onlineLore::*}
+    add "&7Play together for bigger" to {_onlineLore::*}
+    add "&7bonuses!" to {_onlineLore::*}
+    set lore of {_onlineItem} to {_onlineLore::*}
+    set slot 21 of {_menu} to {_onlineItem}
+
+    # Boosts Overview (slot 23)
     set {_boostItem} to blaze powder named "&e&lTEAM BOOSTS"
     delete {_boostLore::*}
     add menu_utils_getMenuItemFirstLoreLine() to {_boostLore::*}
     add "" to {_boostLore::*}
-    add "&7Active Boosts:" to {_boostLore::*}
+    add "&7Purchased Boosts:" to {_boostLore::*}
     set {_tokensBoost} to team_getBoostPercent({_id}, "tokens_boost")
     set {_dropsBoost} to team_getBoostPercent({_id}, "drops_boost")
     set {_speedBoost} to team_getBoostPercent({_id}, "mining_speed_boost")
@@ -995,7 +1081,7 @@ function team_openMainMenu(p: player):
     add "&7Upgrade boosts in the" to {_boostLore::*}
     add "&7upgrades menu!" to {_boostLore::*}
     set lore of {_boostItem} to {_boostLore::*}
-    set slot 22 of {_menu} to {_boostItem}
+    set slot 23 of {_menu} to {_boostItem}
 
     # Members List (slots 28-34)
     set {_members::*} to team_getAllMembers({_id})
