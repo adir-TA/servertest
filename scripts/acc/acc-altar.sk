@@ -502,12 +502,10 @@ function acc_playTreasureAnimation(p: player, treasureId: text, amount: integer)
     loop {_amount} times:
         acc_useKey({_p}, {_treasureId})
 
-    # Get altar location
-    set {_altarLoc} to {-acc::altar::loc::%{_p}'s uuid%}
+    # Always use the fixed altar location from world
+    # Treasure Chest is at (50, 193, 85) in season world
+    set {_altarLoc} to location(50, 193, 85, world "season")
     delete {-acc::altar::loc::%{_p}'s uuid%}
-
-    if {_altarLoc} is not set:
-        set {_altarLoc} to location of {_p}
 
     # Get treasure info
     set {_color} to acc_getTreasureColor({_treasureId})

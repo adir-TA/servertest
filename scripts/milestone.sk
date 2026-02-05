@@ -71,7 +71,7 @@ function milestone_getCurrentText(p: player) :: text:
     set {_uuid} to {_p}'s uuid
     set {_level} to progression_getLevel({_p})
     set {_archetypeId} to player_getArchetype({_p})
-    set {_prestige} to {data::prestige::%{_uuid}%} ? 0
+    set {_prestige} to economy_getTotalPrestiges({_p})
 
     # Calculate max level for current prestige (15 + prestige * 15)
     set {_maxLevel} to 15 + ({_prestige} * 15)
