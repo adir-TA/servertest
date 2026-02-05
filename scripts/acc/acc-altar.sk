@@ -513,6 +513,7 @@ function acc_playTreasureAnimation(p: player, treasureId: text, amount: integer)
     set {_color} to acc_getTreasureColor({_treasureId})
     set {_treasureName} to acc_getTreasureName({_treasureId})
     set {_chestIcon} to acc_getTreasureChestIcon({_treasureId})
+    set {_chestBlock} to type of {_chestIcon}  # Get the actual block type from icon
     set {_keyIcon} to acc_getTreasureKeyIcon({_treasureId})
 
     # Setup center location - centered on altar block
@@ -645,12 +646,11 @@ function acc_playTreasureAnimation(p: player, treasureId: text, amount: integer)
         set {_i} to loop-number
         set {_spawnLoc} to location({_chestX::%{_i}%}, {_chestY::%{_i}%}, {_chestZ::%{_i}%}, {_world})
 
-        spawn fake item display at {_spawnLoc} for {_p} with id {_chestId::%{_i}%}
+        spawn fake block display at {_spawnLoc} for {_p} with id {_chestId::%{_i}%}
 
         set {_m} to new metadata packet with id {_chestId::%{_i}%}:
-            display item: {_chestIcon}
+            display block: {_chestBlock}
             display scale: vector(0.01, 0.01, 0.01)
-            display billboard: center
             display brightness block: 15
             display teleportduration: 2
             display transformation: 3
