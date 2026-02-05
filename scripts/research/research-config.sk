@@ -46,11 +46,13 @@ function research_loadConfig():
     set {-research::config::enchants::slots::timeMultiplier} to 2.5
     set {-research::config::enchants::slots::reward} to "enchant_slot"
     set {-research::config::enchants::slots::description} to "Unlock more enchant slots."
-    # Prestige requirements: T1-3: P0, T4: P5, T5: P8, T6: P12, T7: P18
-    set {-research::config::enchants::slots::prestigeReq::4} to 5
-    set {-research::config::enchants::slots::prestigeReq::5} to 8
-    set {-research::config::enchants::slots::prestigeReq::6} to 12
-    set {-research::config::enchants::slots::prestigeReq::7} to 18
+    # Prestige requirements: P0, P3, P6, P9, P12, P16, P20
+    set {-research::config::enchants::slots::prestigeReq::2} to 3
+    set {-research::config::enchants::slots::prestigeReq::3} to 6
+    set {-research::config::enchants::slots::prestigeReq::4} to 9
+    set {-research::config::enchants::slots::prestigeReq::5} to 12
+    set {-research::config::enchants::slots::prestigeReq::6} to 16
+    set {-research::config::enchants::slots::prestigeReq::7} to 20
     # Money costs
     set {-research::config::enchants::slots::moneyCost::2} to 10000
     set {-research::config::enchants::slots::moneyCost::3} to 50000
@@ -78,10 +80,11 @@ function research_loadConfig():
     set {-research::config::pets::slots::timeMultiplier} to 3
     set {-research::config::pets::slots::reward} to "pet_slot"
     set {-research::config::pets::slots::description} to "Equip more pets at once."
-    # Prestige requirements: T1-2: P0, T3: P3, T4: P6, T5: P8
-    set {-research::config::pets::slots::prestigeReq::3} to 3
-    set {-research::config::pets::slots::prestigeReq::4} to 6
-    set {-research::config::pets::slots::prestigeReq::5} to 8
+    # Prestige requirements: P0, P5, P10, P16, P22
+    set {-research::config::pets::slots::prestigeReq::2} to 5
+    set {-research::config::pets::slots::prestigeReq::3} to 10
+    set {-research::config::pets::slots::prestigeReq::4} to 16
+    set {-research::config::pets::slots::prestigeReq::5} to 22
     # Money costs
     set {-research::config::pets::slots::moneyCost::2} to 15000
     set {-research::config::pets::slots::moneyCost::3} to 75000
@@ -98,11 +101,12 @@ function research_loadConfig():
     set {-research::config::pets::storage::rewardAmount} to 20
     set {-research::config::pets::storage::baseValue} to 50
     set {-research::config::pets::storage::description} to "+20 pet storage per tier."
-    # Prestige requirements: T1: P0, T2: P3, T3: P8, T4: P15, T5: P22
-    set {-research::config::pets::storage::prestigeReq::2} to 3
-    set {-research::config::pets::storage::prestigeReq::3} to 8
-    set {-research::config::pets::storage::prestigeReq::4} to 15
-    set {-research::config::pets::storage::prestigeReq::5} to 22
+    # Prestige requirements: P2, P8, P14, P20, P26
+    set {-research::config::pets::storage::prestigeReq::1} to 2
+    set {-research::config::pets::storage::prestigeReq::2} to 8
+    set {-research::config::pets::storage::prestigeReq::3} to 14
+    set {-research::config::pets::storage::prestigeReq::4} to 20
+    set {-research::config::pets::storage::prestigeReq::5} to 26
     # Money costs
     set {-research::config::pets::storage::moneyCost::1} to 30000
     set {-research::config::pets::storage::moneyCost::2} to 150000
@@ -125,12 +129,12 @@ function research_loadConfig():
     set {-research::config::pets::pet_fusion::tierDesc::4} to "Diamond Fusion - Ultra Pets"
     set {-research::config::pets::pet_fusion::tierDesc::5} to "Gold Fusion - Divine Pets"
     set {-research::config::pets::pet_fusion::tierDesc::6} to "Diamond Fusion - Divine Pets"
-    # Prestige requirements: T1: P3, T2: P8, T3: P10, T4: P15, T5: P20, T6: P30
+    # Prestige requirements: P3, P8, P13, P18, P24, P30
     set {-research::config::pets::pet_fusion::prestigeReq::1} to 3
     set {-research::config::pets::pet_fusion::prestigeReq::2} to 8
-    set {-research::config::pets::pet_fusion::prestigeReq::3} to 10
-    set {-research::config::pets::pet_fusion::prestigeReq::4} to 15
-    set {-research::config::pets::pet_fusion::prestigeReq::5} to 20
+    set {-research::config::pets::pet_fusion::prestigeReq::3} to 13
+    set {-research::config::pets::pet_fusion::prestigeReq::4} to 18
+    set {-research::config::pets::pet_fusion::prestigeReq::5} to 24
     set {-research::config::pets::pet_fusion::prestigeReq::6} to 30
     # Money costs
     set {-research::config::pets::pet_fusion::moneyCost::1} to 500000
@@ -159,19 +163,20 @@ function research_loadConfig():
     set {-research::config::accessories::slots::timeMultiplier} to 2
     set {-research::config::accessories::slots::reward} to "acc_slot"
     set {-research::config::accessories::slots::description} to "Equip more accessories."
-    # Prestige requirements: T1-2: P0, T3: P2, T4: P4, T5: P6, T6: P8, T7: P10, T8: P12, T9: P14, T10: P16, T11: P18, T12: P20, T13: P23, T14: P26
-    set {-research::config::accessories::slots::prestigeReq::3} to 2
-    set {-research::config::accessories::slots::prestigeReq::4} to 4
-    set {-research::config::accessories::slots::prestigeReq::5} to 6
-    set {-research::config::accessories::slots::prestigeReq::6} to 8
-    set {-research::config::accessories::slots::prestigeReq::7} to 10
-    set {-research::config::accessories::slots::prestigeReq::8} to 12
-    set {-research::config::accessories::slots::prestigeReq::9} to 14
-    set {-research::config::accessories::slots::prestigeReq::10} to 16
-    set {-research::config::accessories::slots::prestigeReq::11} to 18
-    set {-research::config::accessories::slots::prestigeReq::12} to 20
-    set {-research::config::accessories::slots::prestigeReq::13} to 23
-    set {-research::config::accessories::slots::prestigeReq::14} to 26
+    # Prestige requirements: P0, P2, P4, P6, P9, P12, P15, P18, P21, P24, P27, P29, P31, P32
+    set {-research::config::accessories::slots::prestigeReq::2} to 2
+    set {-research::config::accessories::slots::prestigeReq::3} to 4
+    set {-research::config::accessories::slots::prestigeReq::4} to 6
+    set {-research::config::accessories::slots::prestigeReq::5} to 9
+    set {-research::config::accessories::slots::prestigeReq::6} to 12
+    set {-research::config::accessories::slots::prestigeReq::7} to 15
+    set {-research::config::accessories::slots::prestigeReq::8} to 18
+    set {-research::config::accessories::slots::prestigeReq::9} to 21
+    set {-research::config::accessories::slots::prestigeReq::10} to 24
+    set {-research::config::accessories::slots::prestigeReq::11} to 27
+    set {-research::config::accessories::slots::prestigeReq::12} to 29
+    set {-research::config::accessories::slots::prestigeReq::13} to 31
+    set {-research::config::accessories::slots::prestigeReq::14} to 32
     # Money costs
     set {-research::config::accessories::slots::moneyCost::2} to 5000
     set {-research::config::accessories::slots::moneyCost::3} to 15000
@@ -197,11 +202,12 @@ function research_loadConfig():
     set {-research::config::accessories::storage::rewardAmount} to 20
     set {-research::config::accessories::storage::baseValue} to 150
     set {-research::config::accessories::storage::description} to "+20 accessory storage per tier."
-    # Prestige requirements: T1: P0, T2: P3, T3: P8, T4: P15, T5: P22
-    set {-research::config::accessories::storage::prestigeReq::2} to 3
-    set {-research::config::accessories::storage::prestigeReq::3} to 8
-    set {-research::config::accessories::storage::prestigeReq::4} to 15
-    set {-research::config::accessories::storage::prestigeReq::5} to 22
+    # Prestige requirements: P4, P10, P16, P22, P28
+    set {-research::config::accessories::storage::prestigeReq::1} to 4
+    set {-research::config::accessories::storage::prestigeReq::2} to 10
+    set {-research::config::accessories::storage::prestigeReq::3} to 16
+    set {-research::config::accessories::storage::prestigeReq::4} to 22
+    set {-research::config::accessories::storage::prestigeReq::5} to 28
     # Money costs
     set {-research::config::accessories::storage::moneyCost::1} to 50000
     set {-research::config::accessories::storage::moneyCost::2} to 200000
@@ -228,11 +234,11 @@ function research_loadConfig():
     set {-research::config::boosters::slots::timeMultiplier} to 3
     set {-research::config::boosters::slots::reward} to "booster_slot"
     set {-research::config::boosters::slots::description} to "Run more boosters at once."
-    # Prestige requirements: T1: P0, T2: P4, T3: P8, T4: P14, T5: P20
-    set {-research::config::boosters::slots::prestigeReq::2} to 4
-    set {-research::config::boosters::slots::prestigeReq::3} to 8
-    set {-research::config::boosters::slots::prestigeReq::4} to 14
-    set {-research::config::boosters::slots::prestigeReq::5} to 20
+    # Prestige requirements: P0, P6, P12, P18, P25
+    set {-research::config::boosters::slots::prestigeReq::2} to 6
+    set {-research::config::boosters::slots::prestigeReq::3} to 12
+    set {-research::config::boosters::slots::prestigeReq::4} to 18
+    set {-research::config::boosters::slots::prestigeReq::5} to 25
     # Money costs
     set {-research::config::boosters::slots::moneyCost::2} to 100000
     set {-research::config::boosters::slots::moneyCost::3} to 400000
@@ -249,12 +255,12 @@ function research_loadConfig():
     set {-research::config::boosters::storage::rewardAmount} to 15
     set {-research::config::boosters::storage::baseValue} to 75
     set {-research::config::boosters::storage::description} to "+15 booster storage per tier."
-    # Prestige requirements: T1: P4, T2: P8, T3: P14, T4: P20, T5: P25
-    set {-research::config::boosters::storage::prestigeReq::1} to 4
-    set {-research::config::boosters::storage::prestigeReq::2} to 8
-    set {-research::config::boosters::storage::prestigeReq::3} to 14
-    set {-research::config::boosters::storage::prestigeReq::4} to 20
-    set {-research::config::boosters::storage::prestigeReq::5} to 25
+    # Prestige requirements: P5, P11, P17, P23, P29
+    set {-research::config::boosters::storage::prestigeReq::1} to 5
+    set {-research::config::boosters::storage::prestigeReq::2} to 11
+    set {-research::config::boosters::storage::prestigeReq::3} to 17
+    set {-research::config::boosters::storage::prestigeReq::4} to 23
+    set {-research::config::boosters::storage::prestigeReq::5} to 29
     # Money costs
     set {-research::config::boosters::storage::moneyCost::1} to 150000
     set {-research::config::boosters::storage::moneyCost::2} to 500000
@@ -281,15 +287,15 @@ function research_loadConfig():
     set {-research::config::gems::gem_types::timeMultiplier} to 1.8
     set {-research::config::gems::gem_types::reward} to "gem_type"
     set {-research::config::gems::gem_types::description} to "Unlock higher tier gems."
-    # Prestige requirements: T1: P12, T2: P14, T3: P16, T4: P18, T5: P21, T6: P24, T7: P27, T8: P30
-    set {-research::config::gems::gem_types::prestigeReq::1} to 12
-    set {-research::config::gems::gem_types::prestigeReq::2} to 14
+    # Prestige requirements: P10, P13, P16, P19, P22, P25, P28, P31
+    set {-research::config::gems::gem_types::prestigeReq::1} to 10
+    set {-research::config::gems::gem_types::prestigeReq::2} to 13
     set {-research::config::gems::gem_types::prestigeReq::3} to 16
-    set {-research::config::gems::gem_types::prestigeReq::4} to 18
-    set {-research::config::gems::gem_types::prestigeReq::5} to 21
-    set {-research::config::gems::gem_types::prestigeReq::6} to 24
-    set {-research::config::gems::gem_types::prestigeReq::7} to 27
-    set {-research::config::gems::gem_types::prestigeReq::8} to 30
+    set {-research::config::gems::gem_types::prestigeReq::4} to 19
+    set {-research::config::gems::gem_types::prestigeReq::5} to 22
+    set {-research::config::gems::gem_types::prestigeReq::6} to 25
+    set {-research::config::gems::gem_types::prestigeReq::7} to 28
+    set {-research::config::gems::gem_types::prestigeReq::8} to 31
     # Money costs
     set {-research::config::gems::gem_types::moneyCost::1} to 15000
     set {-research::config::gems::gem_types::moneyCost::2} to 40000
@@ -328,8 +334,8 @@ function research_loadConfig():
     set {-research::config::archetypes::archetypes::timeMultiplier} to 1
     set {-research::config::archetypes::archetypes::reward} to "archetype"
     set {-research::config::archetypes::archetypes::description} to "Unlock new archetypes."
-    # Prestige requirements: Precision: P0, Arcane: P12, Demolition: P25
-    set {-research::config::archetypes::archetypes::prestigeReq::2} to 12
+    # Prestige requirements: Precision: P0, Arcane: P15, Demolition: P25
+    set {-research::config::archetypes::archetypes::prestigeReq::2} to 15
     set {-research::config::archetypes::archetypes::prestigeReq::3} to 25
     # Money costs
     set {-research::config::archetypes::archetypes::moneyCost::2} to 1500000

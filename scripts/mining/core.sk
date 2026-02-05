@@ -497,7 +497,7 @@ function miningHandler_main(p: player, l: location):
         set {_archetypeId} to player_getArchetype({_p})
         set {_xpAmount} to mining_calculateXP({_hardness}) * multiplier_getXP({_p})
 
-        # Global (ID 0 or 1) - levels 1-25, then must choose archetype
+        # Global (ID 0 or 1) - no level cap, archetypes unlocked via research
         if {_archetypeId} <= 1:
             mining_addGlobalXP({_p}, {_xpAmount})
         else:
@@ -520,9 +520,6 @@ function mining_getArchetypeBar(p: player) :: text:
     if {_archetypeId} <= 1:
         set {_level} to {mining::global::%{_uuid}%::level} ? 1
         set {_xp} to {mining::global::%{_uuid}%::xp} ? 0
-        set {_maxLevel} to 25
-        if {_level} >= {_maxLevel}:
-            return "&f&lGlobal &7[&eLv%{_level}%&7] &6&lCHOOSE ARCHETYPE!"
         set {_xpNeeded} to mining_getXPRequired({_level})
         return "&f&lGlobal &7[&eLv%{_level}%&7] &a%{_xp}%&7/&a%{_xpNeeded}%"
 
@@ -574,7 +571,7 @@ function mining_getMaxLevel(p: player, archetype: text) :: number:
 
 function mining_getXPRequired(level: number) :: number:
     # Easy leveling - fast early, moderate scaling
-    return round(50 * {_level} ^ 1.05)
+    return round(50 * {_level} ^ 1.03)
 
 function mining_calculateXP(hardness: number) :: number:
     set {_base} to random integer between 5 and 15
@@ -663,21 +660,6 @@ function mining_addGlobalXP(p: player, amount: number):
     set {_uuid} to {_p}'s uuid
     set {_currentXP} to {mining::global::%{_uuid}%::xp} ? 0
     set {_currentLevel} to {mining::global::%{_uuid}%::level} ? 1
-    set {_maxLevel} to 25
-
-    # At max global level - must choose archetype
-    if {_currentLevel} >= {_maxLevel}:
-        # Clear excess XP
-        set {mining::global::%{_uuid}%::xp} to 0
-        # Track blocks for periodic reminder
-        if {-globalMaxBlocks::%{_uuid}%} is not set:
-            set {-globalMaxBlocks::%{_uuid}%} to 0
-        add 1 to {-globalMaxBlocks::%{_uuid}%}
-        # Reminder every 25 blocks
-        if mod({-globalMaxBlocks::%{_uuid}%}, 25) = 0:
-            send action bar "&6&lLEVEL 25! &7Use &e/arc &7to choose your archetype!" to {_p}
-            play sound "block.note_block.bell" with volume 0.5 and pitch 1.5 to {_p}
-        stop
 
     add {_amount} to {_currentXP}
     set {mining::global::%{_uuid}%::xp} to {_currentXP}
@@ -695,23 +677,6 @@ function mining_addGlobalXP(p: player, amount: number):
         play sound "entity.player.levelup" with volume 1 and pitch 1.5 to {_p}
         tutorial_onLevelUp({_p}, "global", {_currentLevel})
         tutorial_onGlobalLevelUp({_p}, {_currentLevel})
-
-        # At level 25 - prompt archetype selection
-        if {_currentLevel} >= {_maxLevel}:
-            set {mining::global::%{_uuid}%::xp} to 0
-            set {-globalMaxBlocks::%{_uuid}%} to 0
-            send "" to {_p}
-            send "&6&m                                        " to {_p}
-            send "" to {_p}
-            send "   &6&lGLOBAL LEVEL 25 REACHED!" to {_p}
-            send "" to {_p}
-            send "   &7You've mastered the basics." to {_p}
-            send "   &7It's time to &especialize&7." to {_p}
-            send "" to {_p}
-            send "   &fChoose your &bArchetype&f:" to {_p}
-            send "   &b• Precision &8- &7Speed & critical hits" to {_p}
-            send "   &c• Demolition &8- &7Explosions & AOE" to {_p}
-            send "   &d• Arcane &8- &7Magic & rare drops" to {_p}
             send "" to {_p}
             send "   &eUse &6/arc &eto choose!" to {_p}
             send "" to {_p}

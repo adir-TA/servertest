@@ -106,7 +106,7 @@ function skilltree_initConfig():
     set {-skilltree::node::power_6::costs::*} to 275
     set {-skilltree::node::power_6::requires} to "power_5"
     set {-skilltree::node::power_6::icon} to nether star
-    set {-skilltree::node::power_6::desc} to "Mining has a 5%% chance to deal 3x damage"
+    set {-skilltree::node::power_6::desc} to "Mining has a 10%% chance to deal 3x damage"
     set {-skilltree::node::power_6::mechanic} to "overload"
 
     # ── FORTUNE BRANCH ────────────────────
@@ -176,7 +176,7 @@ function skilltree_initConfig():
     set {-skilltree::node::fortune_6::costs::*} to 275
     set {-skilltree::node::fortune_6::requires} to "fortune_5"
     set {-skilltree::node::fortune_6::icon} to nether star
-    set {-skilltree::node::fortune_6::desc} to "Mining has a 5%% chance to double all drops"
+    set {-skilltree::node::fortune_6::desc} to "Mining has a 10%% chance to double all drops"
     set {-skilltree::node::fortune_6::mechanic} to "fortunes_favor"
 
     # ── EFFICIENCY BRANCH ─────────────────
@@ -246,7 +246,7 @@ function skilltree_initConfig():
     set {-skilltree::node::efficiency_6::costs::*} to 275
     set {-skilltree::node::efficiency_6::requires} to "efficiency_5"
     set {-skilltree::node::efficiency_6::icon} to nether star
-    set {-skilltree::node::efficiency_6::desc} to "Mining has a 5%% chance to double XP & Tokens"
+    set {-skilltree::node::efficiency_6::desc} to "Mining has a 10%% chance to double XP & Tokens"
     set {-skilltree::node::efficiency_6::mechanic} to "double_down"
 
     # ════════════════════════════════════════

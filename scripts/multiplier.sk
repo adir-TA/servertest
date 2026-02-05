@@ -27,7 +27,7 @@
 #   +30% XP
 #
 # DEMOLITION - Tanky AOE miner
-#   -20% Tokens
+#   -15% Tokens
 #   -10% XP
 #   -10% Enchant Proc
 #   +30% Durability
@@ -36,7 +36,7 @@
 #   -10% Damage
 #   +10% XP
 #   +30% Drops
-#   -60% Durability
+#   -40% Durability
 #
 # ============================================================
 # ARMOR BONUSES (XP ONLY)
@@ -138,7 +138,7 @@ function multiplier_getArchetypeBonus(archetype: text, type: text) :: number:
     
     # ──────────────────────────────────────────
     # DEMOLITION - Tanky AOE miner
-    # -20% Tokens
+    # -15% Tokens
     # -10% XP
     # -10% Enchant Proc
     # +30% Durability
@@ -149,7 +149,7 @@ function multiplier_getArchetypeBonus(archetype: text, type: text) :: number:
         if {_type} = "damage":
             return 0
         if {_type} = "token":
-            return -0.20
+            return -0.15
         if {_type} = "xp":
             return -0.10
         if {_type} = "drops":
@@ -164,7 +164,7 @@ function multiplier_getArchetypeBonus(archetype: text, type: text) :: number:
     # -10% Damage
     # +10% XP
     # +30% Drops
-    # -60% Durability
+    # -40% Durability
     # ──────────────────────────────────────────
     else if {_archetype} = "arcane":
         if {_type} = "mining_speed":
@@ -180,7 +180,7 @@ function multiplier_getArchetypeBonus(archetype: text, type: text) :: number:
         if {_type} = "enchant_proc":
             return 0
         if {_type} = "durability":
-            return -0.60
+            return -0.40
     
     # ──────────────────────────────────────────
     # GLOBAL (or unknown) - No bonuses

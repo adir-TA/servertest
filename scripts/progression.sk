@@ -42,22 +42,11 @@ function progression_getChapter(p: player) :: integer:
     if {_maxPrestige} >= 1:
         return 3
 
-    # Get current level (use active archetype or global)
-    set {_level} to 1
-    if {_archetype} <= 1:
-        # Still on Global - use global level
-        if {mining::global::%{_uuid}%::level} is set:
-            set {_level} to {mining::global::%{_uuid}%::level}
-    else:
-        set {_archetypeName} to progression_archetypeIdToName({_archetype})
-        if {mining::%{_archetypeName}%::%{_uuid}%::level} is set:
-            set {_level} to {mining::%{_archetypeName}%::%{_uuid}%::level}
-
-    # Chapter 2: Level 25-50
-    if {_level} >= 25:
+    # Chapter 2: Has selected an archetype (unlocked via research)
+    if {_archetype} > 1:
         return 2
 
-    # Chapter 1: Level 1-24
+    # Chapter 1: No archetype selected yet (Global)
     return 1
 
 function progression_archetypeIdToName(id: integer) :: text:
@@ -114,9 +103,9 @@ function progression_getTotalPrestiges(p: player) :: integer:
 # FEATURE UNLOCK CHECKS
 # --------------------------------------------
 
-# Can player select an archetype? (Global Level 25 required)
+# Can player select an archetype? (Unlocked via research)
 function progression_canSelectArchetype(p: player) :: boolean:
-    # No requirements for now - always allow access
+    # Archetypes are unlocked via research system - no level requirements
     return true
 
 # Can player access specific enchant?
@@ -513,16 +502,16 @@ function progression_checkChapterTransition(p: player, oldLevel: integer, newLev
 
 function progression_playCeremony(p: player, chapter: integer):
     if {_chapter} = 2:
-        # Chapter 2: Archetype Selection Ready
+        # Chapter 2: Archetype Selected
         send "" to {_p}
         send "<#FFD700><bold>========================================" to {_p}
         send "<#FFD700><bold>       CHAPTER 2: THE SPECIALIST" to {_p}
         send "<#FFD700><bold>========================================" to {_p}
         send "" to {_p}
-        send "<#FFFFFF>You have proven yourself as a miner." to {_p}
-        send "<#FFFFFF>It is time to choose your path." to {_p}
+        send "<#FFFFFF>You have chosen your path!" to {_p}
+        send "<#FFFFFF>Master your archetype and unlock its full potential." to {_p}
         send "" to {_p}
-        send "<#AAAAAA>Use <#FFAA00>/arc<#AAAAAA> to select your archetype." to {_p}
+        send "<#AAAAAA>Continue mining to level up and unlock new abilities!" to {_p}
         send "" to {_p}
         play sound "ui.toast.challenge_complete" at volume 1 at pitch 1 to {_p}
 
