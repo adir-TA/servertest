@@ -98,29 +98,7 @@ function archetype_getMenuItem(p: player, id: integer) :: item:
     set {_color.title} to archetype_getColorTitle({_id})
     set {_color.subtitle} to archetype_getColorSubtitle({_id})
 
-    # Check if archetype is unlocked via research
-    set {_archName} to {_name} in lowercase
-    set {_isUnlocked} to research_hasArchetype({_p}, {_archName})
-
-    # If not unlocked, show locked item
-    if {_isUnlocked} is false:
-        set {_item} to gray stained glass pane
-        set {_displayname} to "&8&l🔒 %{_color.title}%%{_name} in uppercase% &8LOCKED"
-
-        add menu_utils_getMenuItemFirstLoreLine() to {_lore::*}
-        add "" to {_lore::*}
-        add "&8This archetype is locked." to {_lore::*}
-        add "" to {_lore::*}
-        add "&7Research this archetype in" to {_lore::*}
-        add "&6/research &7→ &6Archetypes" to {_lore::*}
-        add "" to {_lore::*}
-        add "&c&lLOCKED" to {_lore::*}
-
-        set name of {_item} to {_displayname}
-        set lore of {_item} to {_lore::*}
-        return {_item}
-
-    # Archetype is unlocked
+    # All archetypes are now available from the start
     if player_getArchetype({_p}) = {_id}:
         set {_isEquipped} to true
 
@@ -246,14 +224,4 @@ function clickHandler_ArchetypeMenu(p: player, slot: slot, menu: inventory, inde
 
 command arc:
     trigger:
-        # Check progression gating
-        if progression_canSelectArchetype(player) = false:
-            set {_level} to progression_getLevel(player)
-            send "" to player
-            send "&c&lARCHETYPE LOCKED" to player
-            send "&7Reach &eLevel 25 &7to choose your archetype." to player
-            send "&7Current level: &c%{_level}%" to player
-            send "" to player
-            play sound "entity.villager.no" with volume 0.5 and pitch 1 to player
-            stop
         archetype_menu_selection(player)

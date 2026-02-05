@@ -89,7 +89,13 @@ function economy_hasPrestigePoints(p: player, amount: number) :: boolean:
 # ============================================================
 
 function economy_getTotalPrestiges(p: player) :: number:
-    return {data::prestige::%{_p}'s uuid%} ? 0
+    set {_uuid} to {_p}'s uuid
+    set {_total} to 0
+    # Sum only the 3 main archetypes (exclude Global/tutorial)
+    add ({mining::precision::%{_uuid}%::prestige} ? 0) to {_total}
+    add ({mining::demolition::%{_uuid}%::prestige} ? 0) to {_total}
+    add ({mining::arcane::%{_uuid}%::prestige} ? 0) to {_total}
+    return {_total}
 
 function economy_addTotalPrestige(p: player):
     add 1 to {data::prestige::%{_p}'s uuid%}

@@ -627,58 +627,37 @@ function tutorial_step13_prestige(p: player):
 
 function tutorial_step13_complete(p: player):
     play sound "ui.toast.challenge_complete" with volume 1 and pitch 1.2 to {_p}
-    tutorial_setTextAnimated({_p}, "&5&lPrestige 1!%nl%%nl%&7Now research your archetype!")
+    tutorial_setTextAnimated({_p}, "&5&lPrestige 1!%nl%%nl%&7Now select your archetype!")
     tutorial_spawnParticles({_p}, "success")
 
     wait 2.5 seconds
 
     tutorial_setStep({_p}, 14)
-    tutorial_step14_researchArchetype({_p})
+    tutorial_step14_selectArchetype({_p})
 
 
 # ============================================================
-# STEP 14: RESEARCH ARCHETYPE
+# STEP 14: SELECT ARCHETYPE
 # ============================================================
 
-function tutorial_step14_researchArchetype(p: player):
-    tutorial_setTextAnimated({_p}, "&6&lResearch Archetype%nl%%nl%&7Open &6/research &7and start%nl%&7researching &6Archetypes&7!")
-    play sound "block.note_block.bell" with volume 0.5 and pitch 1.2 to {_p}
-    set {-tutorial::%{_p}'s uuid%::waitingResearch} to "archetypes"
-
-
-function tutorial_step14_slotUnlocked(p: player):
-    play sound "entity.player.levelup" with volume 1 and pitch 1.2 to {_p}
-    tutorial_setTextAnimated({_p}, "&a&lArchetype Unlocked!%nl%%nl%&7Now select it in &b/arc&7!")
-    tutorial_spawnParticles({_p}, "success")
-
-    wait 2.5 seconds
-
-    tutorial_setStep({_p}, 15)
-    tutorial_step15_selectArchetype({_p})
-
-
-# ============================================================
-# STEP 15: SELECT ARCHETYPE
-# ============================================================
-
-function tutorial_step15_selectArchetype(p: player):
+function tutorial_step14_selectArchetype(p: player):
     tutorial_setTextAnimated({_p}, "&b&lChoose Your Archetype%nl%%nl%&7Use &b/arc &7to pick your%nl%&7specialization path!")
     play sound "block.note_block.bell" with volume 0.5 and pitch 1.2 to {_p}
 
 
-function tutorial_step15_complete(p: player):
+function tutorial_step14_complete(p: player):
     play sound "entity.ender_dragon.growl" with volume 0.5 and pitch 1.5 to {_p}
     tutorial_setTextAnimated({_p}, "&b&lArchetype Selected!%nl%%nl%&7You're ready to dominate!")
     tutorial_spawnParticles({_p}, "success")
 
     wait 2.5 seconds
 
-    tutorial_setStep({_p}, 16)
-    tutorial_step16_complete({_p})
+    tutorial_setStep({_p}, 15)
+    tutorial_step15_complete({_p})
 
 
 # ============================================================
-# STEP 16: TUTORIAL COMPLETE
+# STEP 15: TUTORIAL COMPLETE
 # ============================================================
 
 function tutorial_step16_complete(p: player):
@@ -775,14 +754,6 @@ function tutorial_onResearchComplete(p: player, category: text, track: text):
                 if {_track} = "slots":
                     delete {-tutorial::%{_p}'s uuid%::waitingResearch}
                     tutorial_step11_slotUnlocked({_p})
-
-    # Step 14: Waiting for archetypes research
-    if {_step} is 14:
-        if {_waiting} = "archetypes":
-            if {_category} = "archetypes":
-                if {_track} = "archetypes":
-                    delete {-tutorial::%{_p}'s uuid%::waitingResearch}
-                    tutorial_step14_slotUnlocked({_p})
 
 
 function tutorial_onEnchantEquip(p: player, enchantName: text):
@@ -891,8 +862,8 @@ function tutorial_onArchetypeSelect(p: player):
 
     set {_step} to tutorial_getStep({_p})
 
-    if {_step} is 15:
-        tutorial_step15_complete({_p})
+    if {_step} is 14:
+        tutorial_step14_complete({_p})
 
 
 function tutorial_onLevelUp(p: player, archetype: text, level: integer):
@@ -1015,11 +986,9 @@ on join:
             else if {_step} is 13:
                 tutorial_step13_prestige(player)
             else if {_step} is 14:
-                tutorial_step14_researchArchetype(player)
-            else if {_step} is 15:
-                tutorial_step15_selectArchetype(player)
+                tutorial_step14_selectArchetype(player)
             else:
-                tutorial_step16_complete(player)
+                tutorial_step15_complete(player)
 
 
 on quit:

@@ -86,6 +86,6 @@ on load:
     enchant_register(4, "Control", 401, compass with nbt from "{""minecraft:attribute_modifiers"":{modifiers:[],show_in_tooltip:0}}", (30), 30, 15, 40, 80, "Increases the activation chance of all enchantments.")
     enchant_register(4, "Tornado", 402, hopper with nbt from "{""minecraft:attribute_modifiers"":{modifiers:[],show_in_tooltip:0}}", (50), 45, 25, 65, 140, "Chance to summon a tornado that damages nearby blocks.")
     enchant_register(4, "Magnet", 403, daylight detector with nbt from "{""minecraft:attribute_modifiers"":{modifiers:[],show_in_tooltip:0}}", (20), 35, 20, 50, 100, "Chance to gain multiple tokens from Excavator.")
-    enchant_register(4, "Prospecting", 104, amethyst shard with nbt from "{""minecraft:attribute_modifiers"":{modifiers:[],show_in_tooltip:0}}", (100), 45, 25, 65, 130, "Gives a chance to find gemstones while mining blocks.")
+    enchant_register(1, "Prospecting", 104, amethyst shard with nbt from "{""minecraft:attribute_modifiers"":{modifiers:[],show_in_tooltip:0}}", (100), 45, 25, 65, 130, "Gives a chance to find gemstones while mining blocks.")
     enchant_register(4, "Amplify", 404, beacon with nbt from "{""minecraft:attribute_modifiers"":{modifiers:[],show_in_tooltip:0}}", (50), 50, 30, 75, 150, "Chance to upgrade nearby blocks to their best form.")
     enchant_register(4, "Overcharge", 405, soul campfire with nbt from "{""minecraft:attribute_modifiers"":{modifiers:[],show_in_tooltip:0}}", (100), 40, 25, 65, 130, "Break blocks to reach overcharge, then deal a huge damage bonus to the next block")

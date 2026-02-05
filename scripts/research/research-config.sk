@@ -25,7 +25,7 @@ function research_loadConfig():
     # ════════════════════════════════════════
     # MAIN CATEGORIES
     # ════════════════════════════════════════
-    set {-research::categories::*} to "enchants", "pets", "accessories", "boosters", "gems" and "archetypes"
+    set {-research::categories::*} to "enchants", "pets", "accessories", "boosters" and "gems"
 
     # ════════════════════════════════════════
     # ENCHANTS CATEGORY
@@ -314,40 +314,6 @@ function research_loadConfig():
     set {-research::config::gems::gem_types::tierDesc::6} to "Obsidian Gems"
     set {-research::config::gems::gem_types::tierDesc::7} to "Tanzanite Gems"
     set {-research::config::gems::gem_types::tierDesc::8} to "Amethyst Gems"
-
-    # ════════════════════════════════════════
-    # ARCHETYPES CATEGORY
-    # ════════════════════════════════════════
-    set {-research::config::archetypes::name} to "&6Archetypes"
-    set {-research::config::archetypes::icon} to nether star
-    set {-research::config::archetypes::color} to "&6"
-    set {-research::config::archetypes::description} to "Unlock archetypes to|specialize your build."
-
-    # Tracks in archetypes
-    set {-research::tracks::archetypes::*} to "archetypes"
-
-    # Archetypes Track (3 tiers: Precision, Arcane, Demolition)
-    set {-research::config::archetypes::archetypes::name} to "&6Archetypes"
-    set {-research::config::archetypes::archetypes::icon} to nether star
-    set {-research::config::archetypes::archetypes::maxTier} to 3
-    set {-research::config::archetypes::archetypes::baseTime} to 10
-    set {-research::config::archetypes::archetypes::timeMultiplier} to 1
-    set {-research::config::archetypes::archetypes::reward} to "archetype"
-    set {-research::config::archetypes::archetypes::description} to "Unlock new archetypes."
-    # Prestige requirements: Precision: P0, Arcane: P15, Demolition: P25
-    set {-research::config::archetypes::archetypes::prestigeReq::2} to 15
-    set {-research::config::archetypes::archetypes::prestigeReq::3} to 25
-    # Money costs
-    set {-research::config::archetypes::archetypes::moneyCost::2} to 1500000
-    set {-research::config::archetypes::archetypes::moneyCost::3} to 8000000
-
-    # Archetype tier names (for display)
-    set {-research::config::archetypes::archetypes::tierName::1} to "&bPrecision"
-    set {-research::config::archetypes::archetypes::tierName::2} to "&dArcane"
-    set {-research::config::archetypes::archetypes::tierName::3} to "&cDemolition"
-    set {-research::config::archetypes::archetypes::tierIcon::1} to diamond pickaxe
-    set {-research::config::archetypes::archetypes::tierIcon::2} to ender eye
-    set {-research::config::archetypes::archetypes::tierIcon::3} to tnt
 
 
 # ============================================================
