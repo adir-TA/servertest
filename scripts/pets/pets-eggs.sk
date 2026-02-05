@@ -18,17 +18,6 @@
 on right click on beacon:
     cancel event
     if player has permission "pets.use":
-        # Check if player has unlocked pet eggs (requires pets slots research T1)
-        set {_uuid} to player's uuid
-        set {_petSlotsResearched} to {data::research::%{_uuid}%::pets::slots} ? 0
-        if {_petSlotsResearched} < 1:
-            send "" to player
-            send "&c&lPET EGGS LOCKED" to player
-            send "&7You need to unlock pet slots first!" to player
-            send "&7Research &d/research &7→ &dPets &7→ &dPet Slots" to player
-            send "" to player
-            play sound "entity.villager.no" with volume 0.5 and pitch 1 to player
-            stop
         set {-pet::altar::%player's uuid%} to location of clicked block
         pet_openTierMenu(player)
 
@@ -48,114 +37,152 @@ function pet_openTierMenu(p: player):
     # Get player progression for rarity unlocks
     set {_prestige} to progression_getPrestige({_p})
     set {_level} to progression_getLevel({_p})
+    set {_uuid} to {_p}'s uuid
+    set {_eggResearch} to {data::research::%{_uuid}%::pets::pet_eggs} ? 0
 
-    # Normal Tier - Slot 11
-    set {_normalEgg} to lime dye named "&a&lNORMAL EGG"
-    set {_cost} to pet_getTierDisplayCost("normal")
-    add menu_utils_getMenuItemFirstLoreLine() to {_normalLore::*}
-    add "" to {_normalLore::*}
-    add "&7Cost: &a%{_cost}% &7per egg" to {_normalLore::*}
-    add "" to {_normalLore::*}
-    add "&6Contains:" to {_normalLore::*}
-    loop {-pet::tier::normal::types::*}:
-        set {_name} to pet_getTypeName(loop-value)
-        add " &8• &f%{_name}%" to {_normalLore::*}
-    add "" to {_normalLore::*}
-    add "&7Rarity Unlocks:" to {_normalLore::*}
-    add " &f• Common &a✓" to {_normalLore::*}
-    if {_level} >= 15:
-        add " &a• Uncommon &a✓" to {_normalLore::*}
+    # Normal Tier - Slot 11 (Requires T1 research)
+    if {_eggResearch} >= 1:
+        set {_normalEgg} to lime dye named "&a&lNORMAL EGG"
+        set {_cost} to pet_getTierDisplayCost("normal")
+        add menu_utils_getMenuItemFirstLoreLine() to {_normalLore::*}
+        add "" to {_normalLore::*}
+        add "&7Cost: &a%{_cost}% &7per egg" to {_normalLore::*}
+        add "" to {_normalLore::*}
+        add "&6Contains:" to {_normalLore::*}
+        loop {-pet::tier::normal::types::*}:
+            set {_name} to pet_getTypeName(loop-value)
+            add " &8• &f%{_name}%" to {_normalLore::*}
+        add "" to {_normalLore::*}
+        add "&7Rarity Unlocks:" to {_normalLore::*}
+        add " &f• Common &a✓" to {_normalLore::*}
+        if {_level} >= 15:
+            add " &a• Uncommon &a✓" to {_normalLore::*}
+        else:
+            add " &a• Uncommon &8(Lv15)" to {_normalLore::*}
+        if {_level} >= 25:
+            add " &9• Rare &a✓" to {_normalLore::*}
+        else:
+            add " &9• Rare &8(Lv25)" to {_normalLore::*}
+        if {_prestige} >= 3:
+            add " &5• Epic &a✓" to {_normalLore::*}
+        else:
+            add " &5• Epic &8(P3)" to {_normalLore::*}
+        if {_prestige} >= 5:
+            add " &6• Legendary &a✓" to {_normalLore::*}
+        else:
+            add " &6• Legendary &8(P5)" to {_normalLore::*}
+        add "" to {_normalLore::*}
+        add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ sᴇʟᴇᴄᴛ" to {_normalLore::*}
+        set lore of {_normalEgg} to {_normalLore::*}
+        set string tag "egg;tier" of custom nbt of {_normalEgg} to "normal"
+        set slot 11 of {_menu} to {_normalEgg}
     else:
-        add " &a• Uncommon &8(Lv15)" to {_normalLore::*}
-    if {_level} >= 25:
-        add " &9• Rare &a✓" to {_normalLore::*}
-    else:
-        add " &9• Rare &8(Lv25)" to {_normalLore::*}
-    if {_prestige} >= 3:
-        add " &5• Epic &a✓" to {_normalLore::*}
-    else:
-        add " &5• Epic &8(P3)" to {_normalLore::*}
-    if {_prestige} >= 5:
-        add " &6• Legendary &a✓" to {_normalLore::*}
-    else:
-        add " &6• Legendary &8(P5)" to {_normalLore::*}
-    add "" to {_normalLore::*}
-    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ sᴇʟᴇᴄᴛ" to {_normalLore::*}
-    set lore of {_normalEgg} to {_normalLore::*}
-    set string tag "egg;tier" of custom nbt of {_normalEgg} to "normal"
-    set slot 11 of {_menu} to {_normalEgg}
+        set {_locked} to gray dye named "&8&l🔒 NORMAL EGG"
+        add menu_utils_getMenuItemFirstLoreLine() to {_lockedLore::*}
+        add "" to {_lockedLore::*}
+        add "&7This egg tier is locked." to {_lockedLore::*}
+        add "" to {_lockedLore::*}
+        add "&7Research &d/research &7→ &dPets &7→ &dPet Eggs" to {_lockedLore::*}
+        add "" to {_lockedLore::*}
+        add "&c&lLOCKED" to {_lockedLore::*}
+        set lore of {_locked} to {_lockedLore::*}
+        set slot 11 of {_menu} to {_locked}
 
-    # Ultra Tier - Slot 13
-    set {_ultraEgg} to light blue dye named "&b&lULTRA EGG"
-    set {_cost} to pet_getTierDisplayCost("ultra")
-    add menu_utils_getMenuItemFirstLoreLine() to {_ultraLore::*}
-    add "" to {_ultraLore::*}
-    add "&7Cost: &b%{_cost}% &7per egg" to {_ultraLore::*}
-    add "" to {_ultraLore::*}
-    add "&6Contains:" to {_ultraLore::*}
-    loop {-pet::tier::ultra::types::*}:
-        set {_name} to pet_getTypeName(loop-value)
-        add " &8• &f%{_name}%" to {_ultraLore::*}
-    add "" to {_ultraLore::*}
-    add "&7Rarity Unlocks:" to {_ultraLore::*}
-    add " &f• Common &a✓" to {_ultraLore::*}
-    if {_level} >= 15:
-        add " &a• Uncommon &a✓" to {_ultraLore::*}
+    # Ultra Tier - Slot 13 (Requires T2 research)
+    if {_eggResearch} >= 2:
+        set {_ultraEgg} to light blue dye named "&b&lULTRA EGG"
+        set {_cost} to pet_getTierDisplayCost("ultra")
+        add menu_utils_getMenuItemFirstLoreLine() to {_ultraLore::*}
+        add "" to {_ultraLore::*}
+        add "&7Cost: &b%{_cost}% &7per egg" to {_ultraLore::*}
+        add "" to {_ultraLore::*}
+        add "&6Contains:" to {_ultraLore::*}
+        loop {-pet::tier::ultra::types::*}:
+            set {_name} to pet_getTypeName(loop-value)
+            add " &8• &f%{_name}%" to {_ultraLore::*}
+        add "" to {_ultraLore::*}
+        add "&7Rarity Unlocks:" to {_ultraLore::*}
+        add " &f• Common &a✓" to {_ultraLore::*}
+        if {_level} >= 15:
+            add " &a• Uncommon &a✓" to {_ultraLore::*}
+        else:
+            add " &a• Uncommon &8(Lv15)" to {_ultraLore::*}
+        if {_level} >= 25:
+            add " &9• Rare &a✓" to {_ultraLore::*}
+        else:
+            add " &9• Rare &8(Lv25)" to {_ultraLore::*}
+        if {_prestige} >= 3:
+            add " &5• Epic &a✓" to {_ultraLore::*}
+        else:
+            add " &5• Epic &8(P3)" to {_ultraLore::*}
+        if {_prestige} >= 5:
+            add " &6• Legendary &a✓" to {_ultraLore::*}
+        else:
+            add " &6• Legendary &8(P5)" to {_ultraLore::*}
+        add "" to {_ultraLore::*}
+        add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ sᴇʟᴇᴄᴛ" to {_ultraLore::*}
+        set lore of {_ultraEgg} to {_ultraLore::*}
+        set string tag "egg;tier" of custom nbt of {_ultraEgg} to "ultra"
+        set slot 13 of {_menu} to {_ultraEgg}
     else:
-        add " &a• Uncommon &8(Lv15)" to {_ultraLore::*}
-    if {_level} >= 25:
-        add " &9• Rare &a✓" to {_ultraLore::*}
-    else:
-        add " &9• Rare &8(Lv25)" to {_ultraLore::*}
-    if {_prestige} >= 3:
-        add " &5• Epic &a✓" to {_ultraLore::*}
-    else:
-        add " &5• Epic &8(P3)" to {_ultraLore::*}
-    if {_prestige} >= 5:
-        add " &6• Legendary &a✓" to {_ultraLore::*}
-    else:
-        add " &6• Legendary &8(P5)" to {_ultraLore::*}
-    add "" to {_ultraLore::*}
-    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ sᴇʟᴇᴄᴛ" to {_ultraLore::*}
-    set lore of {_ultraEgg} to {_ultraLore::*}
-    set string tag "egg;tier" of custom nbt of {_ultraEgg} to "ultra"
-    set slot 13 of {_menu} to {_ultraEgg}
+        set {_locked} to gray dye named "&8&l🔒 ULTRA EGG"
+        add menu_utils_getMenuItemFirstLoreLine() to {_lockedLore::*}
+        add "" to {_lockedLore::*}
+        add "&7This egg tier is locked." to {_lockedLore::*}
+        add "" to {_lockedLore::*}
+        add "&7Research &d/research &7→ &dPets &7→ &dPet Eggs (T2)" to {_lockedLore::*}
+        add "" to {_lockedLore::*}
+        add "&c&lLOCKED" to {_lockedLore::*}
+        set lore of {_locked} to {_lockedLore::*}
+        set slot 13 of {_menu} to {_locked}
 
-    # Divine Tier - Slot 15
-    set {_divineEgg} to magenta dye named "&d&lDIVINE EGG"
-    set {_cost} to pet_getTierDisplayCost("divine")
-    add menu_utils_getMenuItemFirstLoreLine() to {_divineLore::*}
-    add "" to {_divineLore::*}
-    add "&7Cost: &d%{_cost}% &7per egg" to {_divineLore::*}
-    add "" to {_divineLore::*}
-    add "&6Contains:" to {_divineLore::*}
-    loop {-pet::tier::divine::types::*}:
-        set {_name} to pet_getTypeName(loop-value)
-        add " &8• &f%{_name}%" to {_divineLore::*}
-    add "" to {_divineLore::*}
-    add "&7Rarity Unlocks:" to {_divineLore::*}
-    add " &f• Common &a✓" to {_divineLore::*}
-    if {_level} >= 15:
-        add " &a• Uncommon &a✓" to {_ultraLore::*}
+    # Divine Tier - Slot 15 (Requires T3 research)
+    if {_eggResearch} >= 3:
+        set {_divineEgg} to magenta dye named "&d&lDIVINE EGG"
+        set {_cost} to pet_getTierDisplayCost("divine")
+        add menu_utils_getMenuItemFirstLoreLine() to {_divineLore::*}
+        add "" to {_divineLore::*}
+        add "&7Cost: &d%{_cost}% &7per egg" to {_divineLore::*}
+        add "" to {_divineLore::*}
+        add "&6Contains:" to {_divineLore::*}
+        loop {-pet::tier::divine::types::*}:
+            set {_name} to pet_getTypeName(loop-value)
+            add " &8• &f%{_name}%" to {_divineLore::*}
+        add "" to {_divineLore::*}
+        add "&7Rarity Unlocks:" to {_divineLore::*}
+        add " &f• Common &a✓" to {_divineLore::*}
+        if {_level} >= 15:
+            add " &a• Uncommon &a✓" to {_divineLore::*}
+        else:
+            add " &a• Uncommon &8(Lv15)" to {_divineLore::*}
+        if {_level} >= 25:
+            add " &9• Rare &a✓" to {_divineLore::*}
+        else:
+            add " &9• Rare &8(Lv25)" to {_divineLore::*}
+        if {_prestige} >= 3:
+            add " &5• Epic &a✓" to {_divineLore::*}
+        else:
+            add " &5• Epic &8(P3)" to {_divineLore::*}
+        if {_prestige} >= 5:
+            add " &6• Legendary &a✓" to {_divineLore::*}
+        else:
+            add " &6• Legendary &8(P5)" to {_divineLore::*}
+        add "" to {_divineLore::*}
+        add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ sᴇʟᴇᴄᴛ" to {_divineLore::*}
+        set lore of {_divineEgg} to {_divineLore::*}
+        set string tag "egg;tier" of custom nbt of {_divineEgg} to "divine"
+        set slot 15 of {_menu} to {_divineEgg}
     else:
-        add " &a• Uncommon &8(Lv15)" to {_divineLore::*}
-    if {_level} >= 25:
-        add " &9• Rare &a✓" to {_divineLore::*}
-    else:
-        add " &9• Rare &8(Lv25)" to {_divineLore::*}
-    if {_prestige} >= 3:
-        add " &5• Epic &a✓" to {_divineLore::*}
-    else:
-        add " &5• Epic &8(P3)" to {_divineLore::*}
-    if {_prestige} >= 5:
-        add " &6• Legendary &a✓" to {_divineLore::*}
-    else:
-        add " &6• Legendary &8(P5)" to {_divineLore::*}
-    add "" to {_divineLore::*}
-    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ sᴇʟᴇᴄᴛ" to {_divineLore::*}
-    set lore of {_divineEgg} to {_divineLore::*}
-    set string tag "egg;tier" of custom nbt of {_divineEgg} to "divine"
-    set slot 15 of {_menu} to {_divineEgg}
+        set {_locked} to gray dye named "&8&l🔒 DIVINE EGG"
+        add menu_utils_getMenuItemFirstLoreLine() to {_lockedLore::*}
+        add "" to {_lockedLore::*}
+        add "&7This egg tier is locked." to {_lockedLore::*}
+        add "" to {_lockedLore::*}
+        add "&7Research &d/research &7→ &dPets &7→ &dPet Eggs (T3)" to {_lockedLore::*}
+        add "" to {_lockedLore::*}
+        add "&c&lLOCKED" to {_lockedLore::*}
+        set lore of {_locked} to {_lockedLore::*}
+        set slot 15 of {_menu} to {_locked}
 
     open {_menu} to {_p}
     set {-pet::menu::%{_p}'s uuid%} to "TIER_SELECT"

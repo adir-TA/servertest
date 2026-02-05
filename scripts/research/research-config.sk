@@ -70,7 +70,7 @@ function research_loadConfig():
     set {-research::config::pets::description} to "Unlock pet slots and|increase storage capacity."
 
     # Tracks in pets
-    set {-research::tracks::pets::*} to "slots", "storage" and "pet_fusion"
+    set {-research::tracks::pets::*} to "slots", "storage", "pet_fusion" and "pet_eggs"
 
     # Pet Slots Track
     set {-research::config::pets::slots::name} to "&dPet Slots"
@@ -131,6 +131,25 @@ function research_loadConfig():
     # Money costs
     set {-research::config::pets::pet_fusion::moneyCost::1} to 750000
     set {-research::config::pets::pet_fusion::moneyCost::2} to 5000000
+
+    # Pet Eggs Track (3 tiers: Normal, Ultra, Divine)
+    set {-research::config::pets::pet_eggs::name} to "&dPet Eggs"
+    set {-research::config::pets::pet_eggs::icon} to turtle egg
+    set {-research::config::pets::pet_eggs::maxTier} to 3
+    set {-research::config::pets::pet_eggs::baseTime} to 30
+    set {-research::config::pets::pet_eggs::timeMultiplier} to 2
+    set {-research::config::pets::pet_eggs::reward} to "pet_egg"
+    set {-research::config::pets::pet_eggs::description} to "Unlock pet egg tiers."
+    # Tier descriptions
+    set {-research::config::pets::pet_eggs::tierDesc::1} to "Normal Eggs"
+    set {-research::config::pets::pet_eggs::tierDesc::2} to "Ultra Eggs"
+    set {-research::config::pets::pet_eggs::tierDesc::3} to "Divine Eggs"
+    # Prestige requirements: P0, P7, P17
+    set {-research::config::pets::pet_eggs::prestigeReq::2} to 7
+    set {-research::config::pets::pet_eggs::prestigeReq::3} to 17
+    # Money costs
+    set {-research::config::pets::pet_eggs::moneyCost::2} to 500000
+    set {-research::config::pets::pet_eggs::moneyCost::3} to 3000000
 
     # ════════════════════════════════════════
     # ACCESSORIES CATEGORY

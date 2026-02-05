@@ -148,8 +148,12 @@ function progression_canAccessEnchant(p: player, enchantId: integer) :: boolean:
             if {_chapter} >= 2:
                 return true
             return false
-        # Prospecting - Level 10
-        if {_enchantId} = 4:
+        # Prospecting - Level 10 + Requires 1 gem research tier
+        if {_enchantId} = 104:
+            # Check if player has researched at least 1 gem tier
+            set {_gemResearch} to {data::research::%{_uuid}%::gems::gem_types} ? 0
+            if {_gemResearch} < 1:
+                return false
             if {_level} >= 10:
                 return true
             if {_chapter} >= 2:
@@ -268,7 +272,7 @@ function progression_getEnchantRequiredLevel(enchantId: integer) :: integer:
             return 15  # Unbreaking
         if {_enchantId} = 3:
             return 20  # Excavator
-        if {_enchantId} = 4:
+        if {_enchantId} = 104:
             return 10  # Prospecting
         if {_enchantId} = 5:
             return 25  # Speed
@@ -563,6 +567,13 @@ function progression_getEnchantStatus(p: player, enchantId: integer) :: text:
         set {_enchantArchetype} to {-dataEnchants::%{_enchantId}%::archetypeID}
     else:
         set {_enchantArchetype} to 1
+
+    # Special case for Prospecting - check gem research
+    if {_enchantId} = 104:
+        set {_uuid} to {_p}'s uuid
+        set {_gemResearch} to {data::research::%{_uuid}%::gems::gem_types} ? 0
+        if {_gemResearch} < 1:
+            return "<#FF6B6B>Requires Gem Research (T1+)"
 
     if {_enchantArchetype} != 1:
         set {_uuid} to {_p}'s uuid
