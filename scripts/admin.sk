@@ -134,6 +134,8 @@ command /reset <offlineplayer>:
         # TUTORIAL
         # ═══════════════════════════════════════
         delete {data::tutorial-complete::%{_uuid}%}
+        delete {data::tutorial-step::%{_uuid}%}
+        delete {data::tutorial-blocks::%{_uuid}%}
         send "&7• &fTutorial &8- &aReset"
 
         # ═══════════════════════════════════════

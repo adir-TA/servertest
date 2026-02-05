@@ -365,13 +365,14 @@ function pet_playOpeningSequence(p: player, tier: text, amount: number, altarLoc
         stop
     
     set {-pet::opening::%{_p}'s uuid%} to true
-    
+
     # Use altar location (beacon) as spawn point - centered on block
+    set {_blockLoc} to location(floor(x-coord of {_altarLoc}), floor(y-coord of {_altarLoc}), floor(z-coord of {_altarLoc}), world of {_altarLoc})
     set {_centerX} to floor(x-coord of {_altarLoc}) + 0.5
     set {_centerY} to floor(y-coord of {_altarLoc}) + 1.2
     set {_centerZ} to floor(z-coord of {_altarLoc}) + 0.5
-    set {_loc} to {_altarLoc}
-    
+    set {_loc} to location({_centerX}, {_centerY}, {_centerZ}, world of {_altarLoc})
+
     # Calculate direction to face player - SNAP to 4 cardinal directions (no diagonals)
     set {_playerX} to x-coord of {_p}'s location
     set {_playerZ} to z-coord of {_p}'s location
@@ -399,7 +400,7 @@ function pet_playOpeningSequence(p: player, tier: text, amount: number, altarLoc
     set {_perpZ} to {_dirX}
     
     # Hide the beacon block (show as air)
-    make {_p} see block at {_altarLoc} as air
+    make {_p} see block at {_blockLoc} as air
     
     # Get tier color for glow
     if {_tier} = "normal":
@@ -425,7 +426,7 @@ function pet_playOpeningSequence(p: player, tier: text, amount: number, altarLoc
         send "&cNot enough pet storage space!" to {_p}
         send "&7You have &e%{_currentPets}%/%{_petStorageMax}% &7pets. Need space for &e%{_spaceNeeded}%&7." to {_p}
         send "&7Salvage some pets first!" to {_p}
-        make {_p} see block at {_altarLoc} as beacon
+        make {_p} see block at {_blockLoc} as beacon
         delete {-pet::opening::%{_p}'s uuid%}
         stop
     
@@ -856,7 +857,7 @@ function pet_playOpeningSequence(p: player, tier: text, amount: number, altarLoc
         remove fake entity with id {_textId::%{_i}%} for {_p}
     
     # Restore the beacon block
-    make {_p} see block at {_altarLoc} as beacon
+    make {_p} see block at {_blockLoc} as beacon
     
     # Summary
     send "" to {_p}
