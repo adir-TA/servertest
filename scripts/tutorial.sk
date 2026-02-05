@@ -975,6 +975,7 @@ function tutorial_getRequiredResearch(p: player) :: text:
 on join:
     wait 5 ticks
     console command "attribute %player% minecraft:block_break_speed base set 0"
+    apply night vision without particles to player for 9999 minutes
 
     if tutorial_isComplete(player) is false:
         if tutorial_getStep(player) is 0:
