@@ -9,17 +9,17 @@ command /armor:
 
 
 function armor_openMenu(p: player, selectedTier: integer):
-    # Progression check - require Prestige II
-    if progression_canAccessArmor({_p}) = false:
+    # Progression check - require Gem Research T1
+    set {_uuid} to {_p}'s uuid
+    set {_gemResearch} to {data::research::%{_uuid}%::gems::gem_types} ? 0
+    if {_gemResearch} < 1:
         send "" to {_p}
         send "&c&l🔒 ARMOR LOCKED" to {_p}
         send "" to {_p}
-        send "&7Armor unlocks at &6Prestige II&7!" to {_p}
+        send "&7Armor unlocks with &aGem Research&7!" to {_p}
         send "" to {_p}
-        set {_prestige} to progression_getPrestige({_p})
-        send "&7Current Prestige: &6%{_prestige}%&7/&a2" to {_p}
-        send "" to {_p}
-        send "&7Keep prestiging to unlock armor!" to {_p}
+        send "&7Complete &a/research &7→ &aGems &7→ &aGem Types T1" to {_p}
+        send "&7to unlock armor crafting!" to {_p}
         send "" to {_p}
         play sound "entity.villager.no" with volume 0.5 and pitch 1 to {_p}
         stop
@@ -36,53 +36,80 @@ function armor_openMenu(p: player, selectedTier: integer):
         set slot loop-number - 1 of {_menu} to black stained glass pane named " "
     
     # ════════════════════════════════════════
-    # ROW 0: TIER TABS (dyes)
+    # ROW 0: TIER TABS (dyes) - All 8 gem types
     # ════════════════════════════════════════
-    
-    # Jade - slot 2
+
+    # Jade - slot 1
     if {_selectedTier} = 1:
         set {_dye} to lime dye named "&a&lJADE"
     else:
         set {_dye} to gray dye named "&aJade"
     set lore of {_dye} to "&8ᴍᴇɴᴜ ɪᴛᴇᴍ", "", "&7Gems: &a%gem_getCount({_p}, 1)%"
     set int tag "tier" of custom nbt of {_dye} to 1
-    set slot 2 of {_menu} to {_dye}
-    
-    # Topaz - slot 3
+    set slot 1 of {_menu} to {_dye}
+
+    # Citrine - slot 2
     if {_selectedTier} = 2:
-        set {_dye} to orange dye named "&6&lTOPAZ"
+        set {_dye} to yellow dye named "&e&lCITRINE"
     else:
-        set {_dye} to gray dye named "&6Topaz"
-    set lore of {_dye} to "&8ᴍᴇɴᴜ ɪᴛᴇᴍ", "", "&7Gems: &6%gem_getCount({_p}, 2)%"
+        set {_dye} to gray dye named "&eCitrine"
+    set lore of {_dye} to "&8ᴍᴇɴᴜ ɪᴛᴇᴍ", "", "&7Gems: &e%gem_getCount({_p}, 2)%"
     set int tag "tier" of custom nbt of {_dye} to 2
-    set slot 3 of {_menu} to {_dye}
-    
-    # Sapphire - slot 4
+    set slot 2 of {_menu} to {_dye}
+
+    # Aquamarine - slot 3
     if {_selectedTier} = 3:
-        set {_dye} to light blue dye named "&b&lSAPPHIRE"
+        set {_dye} to light blue dye named "&b&lAQUAMARINE"
     else:
-        set {_dye} to gray dye named "&bSapphire"
+        set {_dye} to gray dye named "&bAquamarine"
     set lore of {_dye} to "&8ᴍᴇɴᴜ ɪᴛᴇᴍ", "", "&7Gems: &b%gem_getCount({_p}, 3)%"
     set int tag "tier" of custom nbt of {_dye} to 3
-    set slot 4 of {_menu} to {_dye}
-    
-    # Ruby - slot 5
+    set slot 3 of {_menu} to {_dye}
+
+    # Garnet - slot 4
     if {_selectedTier} = 4:
-        set {_dye} to red dye named "&c&lRUBY"
+        set {_dye} to red dye named "&c&lGARNET"
     else:
-        set {_dye} to gray dye named "&cRuby"
+        set {_dye} to gray dye named "&cGarnet"
     set lore of {_dye} to "&8ᴍᴇɴᴜ ɪᴛᴇᴍ", "", "&7Gems: &c%gem_getCount({_p}, 4)%"
     set int tag "tier" of custom nbt of {_dye} to 4
-    set slot 5 of {_menu} to {_dye}
-    
-    # Amethyst - slot 6
+    set slot 4 of {_menu} to {_dye}
+
+    # Moonstone - slot 5
     if {_selectedTier} = 5:
-        set {_dye} to purple dye named "&d&lAMETHYST"
+        set {_dye} to white dye named "&f&lMOONSTONE"
+    else:
+        set {_dye} to gray dye named "&fMoonstone"
+    set lore of {_dye} to "&8ᴍᴇɴᴜ ɪᴛᴇᴍ", "", "&7Gems: &f%gem_getCount({_p}, 5)%"
+    set int tag "tier" of custom nbt of {_dye} to 5
+    set slot 5 of {_menu} to {_dye}
+
+    # Obsidian - slot 6
+    if {_selectedTier} = 6:
+        set {_dye} to gray dye named "&8&lOBSIDIAN"
+    else:
+        set {_dye} to light gray dye named "&8Obsidian"
+    set lore of {_dye} to "&8ᴍᴇɴᴜ ɪᴛᴇᴍ", "", "&7Gems: &8%gem_getCount({_p}, 6)%"
+    set int tag "tier" of custom nbt of {_dye} to 6
+    set slot 6 of {_menu} to {_dye}
+
+    # Tanzanite - slot 7
+    if {_selectedTier} = 7:
+        set {_dye} to purple dye named "&5&lTANZANITE"
+    else:
+        set {_dye} to gray dye named "&5Tanzanite"
+    set lore of {_dye} to "&8ᴍᴇɴᴜ ɪᴛᴇᴍ", "", "&7Gems: &5%gem_getCount({_p}, 7)%"
+    set int tag "tier" of custom nbt of {_dye} to 7
+    set slot 7 of {_menu} to {_dye}
+
+    # Amethyst - slot 8
+    if {_selectedTier} = 8:
+        set {_dye} to pink dye named "&d&lAMETHYST"
     else:
         set {_dye} to gray dye named "&dAmethyst"
-    set lore of {_dye} to "&8ᴍᴇɴᴜ ɪᴛᴇᴍ", "", "&7Gems: &d%gem_getCount({_p}, 5)%"
-    set int tag "tier" of custom nbt of {_dye} to 5
-    set slot 6 of {_menu} to {_dye}
+    set lore of {_dye} to "&8ᴍᴇɴᴜ ɪᴛᴇᴍ", "", "&7Gems: &d%gem_getCount({_p}, 8)%"
+    set int tag "tier" of custom nbt of {_dye} to 8
+    set slot 8 of {_menu} to {_dye}
     
     # ════════════════════════════════════════
     # ROW 1: COLORED GLASS SEPARATOR
@@ -279,25 +306,37 @@ on inventory click:
         set {_tier} to {-armor::menu::%player's uuid%::tier} ? 1
         set {_slot} to index of clicked slot
         
-        # Tier tabs (slots 2-6)
-        if {_slot} = 2:
+        # Tier tabs (slots 1-8)
+        if {_slot} = 1:
             armor_openMenu(player, 1)
             play sound "ui.button.click" with volume 0.5 to player
             stop
-        if {_slot} = 3:
+        if {_slot} = 2:
             armor_openMenu(player, 2)
             play sound "ui.button.click" with volume 0.5 to player
             stop
-        if {_slot} = 4:
+        if {_slot} = 3:
             armor_openMenu(player, 3)
             play sound "ui.button.click" with volume 0.5 to player
             stop
-        if {_slot} = 5:
+        if {_slot} = 4:
             armor_openMenu(player, 4)
             play sound "ui.button.click" with volume 0.5 to player
             stop
-        if {_slot} = 6:
+        if {_slot} = 5:
             armor_openMenu(player, 5)
+            play sound "ui.button.click" with volume 0.5 to player
+            stop
+        if {_slot} = 6:
+            armor_openMenu(player, 6)
+            play sound "ui.button.click" with volume 0.5 to player
+            stop
+        if {_slot} = 7:
+            armor_openMenu(player, 7)
+            play sound "ui.button.click" with volume 0.5 to player
+            stop
+        if {_slot} = 8:
+            armor_openMenu(player, 8)
             play sound "ui.button.click" with volume 0.5 to player
             stop
         
