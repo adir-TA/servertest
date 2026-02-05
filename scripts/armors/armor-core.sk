@@ -14,17 +14,20 @@ on script load:
 
 function armor_registerAll():
     armor_clearRegistry()
-    
+
     armor_registerTier(1, 0.04, 0.09)
     armor_registerTier(2, 0.07, 0.12)
     armor_registerTier(3, 0.10, 0.15)
     armor_registerTier(4, 0.14, 0.19)
     armor_registerTier(5, 0.18, 0.28)
-    
-    armor_registerPiece("helmet", 128)
-    armor_registerPiece("chestplate", 512)
-    armor_registerPiece("leggings", 256)
-    armor_registerPiece("boots", 64)
+
+    # Register pieces with cost and XP multiplier
+    # Format: armor_registerPiece(piece, cost, xpMultiplier)
+    # XP multiplier affects the tier's base XP bonus (1.0 = 100% of tier bonus)
+    armor_registerPiece("helmet", 128, 0.8)
+    armor_registerPiece("chestplate", 512, 1.3)
+    armor_registerPiece("leggings", 256, 1.1)
+    armor_registerPiece("boots", 64, 0.6)
 
 
 function armor_clearRegistry():
@@ -37,8 +40,9 @@ function armor_registerTier(tier: integer, xpBonus: number, setBonus: number):
     add {_tier} to {-dataArmor::tiers::list::*}
 
 
-function armor_registerPiece(piece: string, cost: integer):
+function armor_registerPiece(piece: string, cost: integer, xpMultiplier: number):
     set {-dataArmor::pieces::%{_piece}%::cost} to {_cost}
+    set {-dataArmor::pieces::%{_piece}%::xpMultiplier} to {_xpMultiplier}
     add {_piece} to {-dataArmor::pieces::list::*}
 
 
@@ -54,6 +58,9 @@ function armor_getSetBonus(tier: integer) :: number:
 
 function armor_getPieceCost(piece: string) :: integer:
     return {-dataArmor::pieces::%{_piece}%::cost} ? 0
+
+function armor_getPieceXPMultiplier(piece: string) :: number:
+    return {-dataArmor::pieces::%{_piece}%::xpMultiplier} ? 1.0
 
 function armor_getAllPieces() :: strings:
     return {-dataArmor::pieces::list::*}
@@ -193,11 +200,13 @@ function armor_getTotalBonus(p: player, type: string) :: number:
     loop armor_getAllPieces():
         set {_piece} to loop-value
         set {_tier} to armor_getEquipped({_p}, {_piece})
-        
+
         if {_tier} > 0:
             add 1 to {_equippedCount}
-            add armor_getXPBonus({_tier}) to {_totalBonus}
-            
+            # Apply piece-specific XP multiplier to tier bonus
+            set {_pieceBonus} to armor_getXPBonus({_tier}) * armor_getPieceXPMultiplier({_piece})
+            add {_pieceBonus} to {_totalBonus}
+
             if {_firstTier} = 0:
                 set {_firstTier} to {_tier}
             else if {_tier} != {_firstTier}:
