@@ -119,7 +119,7 @@ function prestige_getCurrentFormattedLevel(p: player) :: text:
     return "&70"
 
 # Get formatted total prestige (across all archetypes)
-# Uses same color system as individual prestige display
+# Uses archetype colors instead of prestige tier colors
 function prestige_getFormattedTotalPrestige(p: player) :: text:
     set {_totalPrestige} to economy_getTotalPrestiges({_p})
 
@@ -128,40 +128,22 @@ function prestige_getFormattedTotalPrestige(p: player) :: text:
 
     set {_roman} to {_totalPrestige} as roman numeral
 
-    # Color based on total prestige tier (same colors as prestige_getFormattedPrestige)
-    if {_totalPrestige} <= 1:
-        return "&7&l(%{_roman}%) "
-    else if {_totalPrestige} <= 2:
-        return "&f&l(%{_roman}%) "
-    else if {_totalPrestige} <= 3:
-        return "&a&l(%{_roman}%) "
-    else if {_totalPrestige} <= 4:
-        return "&2&l(%{_roman}%) "
-    else if {_totalPrestige} <= 5:
+    # Get current archetype to determine color
+    set {_id} to player_getArchetype({_p})
+
+    # Color based on archetype (matching GUI colors)
+    if {_id} = 2:
+        # Precision - Cyan/Blue
         return "&b&l(%{_roman}%) "
-    else if {_totalPrestige} <= 6:
-        return "&3&l(%{_roman}%) "
-    else if {_totalPrestige} <= 7:
-        return "&9&l(%{_roman}%) "
-    else if {_totalPrestige} <= 8:
-        return "&5&l(%{_roman}%) "
-    else if {_totalPrestige} <= 9:
-        return "&d&l(%{_roman}%) "
-    else if {_totalPrestige} <= 10:
-        return "&6&l(%{_roman}%) "
-    else if {_totalPrestige} <= 12:
-        return "<#FF6B00>&l(%{_roman}%) "
-    else if {_totalPrestige} <= 14:
+    else if {_id} = 3:
+        # Demolition - Red
         return "&c&l(%{_roman}%) "
-    else if {_totalPrestige} <= 16:
-        return "<#FF3366>&l(%{_roman}%) "
-    else if {_totalPrestige} <= 18:
-        return "<#AA00FF>&l(%{_roman}%) "
-    else if {_totalPrestige} <= 20:
-        return "<#00FFAA>&l(%{_roman}%) "
+    else if {_id} = 4:
+        # Arcane - Purple/Pink
+        return "&d&l(%{_roman}%) "
     else:
-        # 21+ rainbow/special
-        return "<#FFD700>&l(✦%{_roman}%✦) "
+        # Global/No archetype - Gray
+        return "&7&l(%{_roman}%) "
 
 
 # ============================================================
