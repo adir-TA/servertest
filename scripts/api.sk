@@ -102,11 +102,11 @@ placeholderapi placeholder with the prefix "api":
     if the identifier is "archetype_short":
         set {_id} to player_getArchetype(player)
         if {_id} = 2:
-            set the result to "&b&lPRC"
+            set the result to "<#F621FF>&lPRC"
         else if {_id} = 3:
-            set the result to "&c&lDEM"
+            set the result to "<#FF1F1F>&lDEM"
         else if {_id} = 4:
-            set the result to "&d&lARC"
+            set the result to "<#0E61C2>&lARC"
         else:
             set the result to "&7&lGBL"
         stop
