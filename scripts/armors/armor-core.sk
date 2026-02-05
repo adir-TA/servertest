@@ -20,6 +20,9 @@ function armor_registerAll():
     armor_registerTier(3, 0.10, 0.15)
     armor_registerTier(4, 0.14, 0.19)
     armor_registerTier(5, 0.18, 0.28)
+    armor_registerTier(6, 0.23, 0.38)
+    armor_registerTier(7, 0.29, 0.49)
+    armor_registerTier(8, 0.36, 0.61)
 
     # Register pieces with cost and XP multiplier
     # Format: armor_registerPiece(piece, cost, xpMultiplier)
@@ -279,13 +282,19 @@ function armor_getDyeColor(tier: integer) :: color:
     if {_tier} = 1:
         return rgb(85, 170, 85)      # Jade - green
     if {_tier} = 2:
-        return rgb(255, 170, 0)      # Topaz - gold
+        return rgb(255, 170, 0)      # Citrine - gold
     if {_tier} = 3:
-        return rgb(85, 170, 255)     # Sapphire - blue
+        return rgb(85, 170, 255)     # Aquamarine - blue
     if {_tier} = 4:
-        return rgb(255, 85, 85)      # Ruby - red
+        return rgb(255, 85, 85)      # Garnet - red
     if {_tier} = 5:
-        return rgb(170, 85, 255)     # Amethyst - purple
+        return rgb(170, 85, 255)     # Moonstone - white/purple
+    if {_tier} = 6:
+        return rgb(64, 64, 64)       # Obsidian - dark gray
+    if {_tier} = 7:
+        return rgb(138, 43, 226)     # Tanzanite - purple
+    if {_tier} = 8:
+        return rgb(255, 85, 255)     # Amethyst - pink
     return rgb(200, 200, 200)
 
 

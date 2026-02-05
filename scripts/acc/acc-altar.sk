@@ -545,9 +545,23 @@ function acc_playTreasureAnimation(p: player, treasureId: text, amount: integer)
     set {_perpX} to 0 - {_dirZ}
     set {_perpZ} to {_dirX}
 
-    # Store and hide the altar block (show as air)
+    # Store original block and hide it
     set {_originalBlock} to type of block at {_altarLoc}
     make {_p} see block at {_altarLoc} as air
+
+    # Base ID for entities
+    set {_baseId} to random integer between 100000 and 9999999
+
+    # Spawn ender chest block display at the actual altar location
+    set {_altarChestId} to {_baseId} - 1
+    set {_altarDisplayLoc} to location({_altarLoc})
+    spawn fake block display at {_altarDisplayLoc} for {_p} with id {_altarChestId}
+
+    set {_m} to new metadata packet with id {_altarChestId}:
+        display block: ender chest
+        display scale: vector(1.0, 1.0, 1.0)
+        display brightness block: 15
+    send packet {_m} to {_p}
 
     # Get tier glow color
     if {_treasureId} is "normal":
@@ -565,9 +579,6 @@ function acc_playTreasureAnimation(p: player, treasureId: text, amount: integer)
     else:
         set {_glowColor} to rgb(255, 85, 85)
         set {_dustColor} to dustOption(rgb(255, 85, 85), 1.2)
-
-    # Base ID for entities
-    set {_baseId} to random integer between 100000 and 9999999
 
     # Roll all rewards and setup positions (LINE UP like pet eggs)
     set {_totalSalvageTokens} to 0
@@ -1088,6 +1099,9 @@ function acc_playTreasureAnimation(p: player, treasureId: text, amount: integer)
         set {_i} to loop-number
         remove fake entity with id {_itemId::%{_i}%} for {_p}
         remove fake entity with id {_textId::%{_i}%} for {_p}
+
+    # Remove the altar chest display
+    remove fake entity with id {_altarChestId} for {_p}
 
     # Restore the altar block
     make {_p} see block at {_altarLoc} as {_originalBlock}
