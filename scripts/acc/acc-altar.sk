@@ -554,8 +554,7 @@ function acc_playTreasureAnimation(p: player, treasureId: text, amount: integer)
 
     # Spawn ender chest block display at the actual altar location
     set {_altarChestId} to {_baseId} - 1
-    set {_altarDisplayLoc} to location({_altarLoc})
-    spawn fake block display at {_altarDisplayLoc} for {_p} with id {_altarChestId}
+    spawn fake block display at {_altarLoc} for {_p} with id {_altarChestId}
 
     set {_m} to new metadata packet with id {_altarChestId}:
         display block: ender chest
