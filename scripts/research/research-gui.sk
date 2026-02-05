@@ -1,0 +1,773 @@
+# ============================================================
+# RESEARCH SYSTEM - GUI
+# ============================================================
+#
+# Two-screen GUI system:
+#   1. Main Menu - 4 category selection + active research
+#   2. Category View - Shows all tracks with their tiers
+#
+# Layout (Main Menu - 5 rows):
+#   Row 1: Header
+#   Row 2: 4 Categories centered
+#   Row 3: Active Research display
+#   Row 4: Spacer
+#   Row 5: Info + Close
+#
+# Layout (Category View - 5 rows):
+#   Row 1: Back + Title + Info
+#   Row 2: Track 1 label + tiers
+#   Row 3: Track 2 label + tiers (if exists)
+#   Row 4: Spacer
+#   Row 5: Close
+#
+# ============================================================
+
+# ============================================================
+# HELPER FUNCTIONS
+# ============================================================
+
+# Format money for display (e.g., 1500000 -> "$1.5M")
+function research_formatMoney(amount: number) :: text:
+    if {_amount} >= 1000000:
+        set {_millions} to {_amount} / 1000000
+        set {_rounded} to floor({_millions} * 10) / 10
+        return "&6$%{_rounded}%M"
+    else if {_amount} >= 1000:
+        set {_thousands} to {_amount} / 1000
+        set {_rounded} to floor({_thousands} * 10) / 10
+        return "&6$%{_rounded}%K"
+    else if {_amount} > 0:
+        return "&6$%{_amount}%"
+    else:
+        return "&aFree"
+
+# ============================================================
+# COMMAND
+# ============================================================
+
+command /research:
+    aliases: /res
+    trigger:
+        research_openMainMenu(player)
+
+
+# ============================================================
+# MAIN MENU (Category Selection)
+# ============================================================
+
+function research_openMainMenu(p: player):
+    set {_uuid} to {_p}'s uuid
+    set {_menu} to chest inventory with 5 rows named "&8Research Lab"
+
+    # Fill with black glass
+    set {_filler} to black stained glass pane named "&7"
+    loop 45 times:
+        set slot loop-number - 1 of {_menu} to {_filler}
+
+    # ════════════════════════════════════════
+    # ROW 1: HEADER (slots 0-8)
+    # ════════════════════════════════════════
+    set {_header} to gray stained glass pane named "&7"
+    loop integers from 0 to 8:
+        set slot loop-number of {_menu} to {_header}
+
+    # Title - slot 4
+    set {_title} to nether star named "&d&lResearch Lab"
+    delete {_titleLore::*}
+    add "&8ᴍᴇɴᴜ" to {_titleLore::*}
+    add "" to {_titleLore::*}
+    add "&7Research upgrades to unlock" to {_titleLore::*}
+    add "&7new slots and storage." to {_titleLore::*}
+    add "" to {_titleLore::*}
+    add "&6How it works:" to {_titleLore::*}
+    add "&7• Select a category below" to {_titleLore::*}
+    add "&7• Choose a research track" to {_titleLore::*}
+    add "&7• Progress continues offline!" to {_titleLore::*}
+    set lore of {_title} to {_titleLore::*}
+    set slot 4 of {_menu} to {_title}
+
+    # ════════════════════════════════════════
+    # ROW 2: CATEGORIES (slots 9-17)
+    # 6 categories centered: slots 10, 11, 12, 13, 14, 15
+    # ════════════════════════════════════════
+    research_setMainCategoryItem({_menu}, {_p}, "enchants", 10)
+    research_setMainCategoryItem({_menu}, {_p}, "pets", 11)
+    research_setMainCategoryItem({_menu}, {_p}, "gems", 12)
+    research_setMainCategoryItem({_menu}, {_p}, "archetypes", 13)
+    research_setMainCategoryItem({_menu}, {_p}, "accessories", 14)
+    research_setMainCategoryItem({_menu}, {_p}, "boosters", 15)
+
+    # ════════════════════════════════════════
+    # ROW 3: ACTIVE RESEARCH (slots 18-26)
+    # ════════════════════════════════════════
+    research_setActiveResearchItem({_menu}, {_p}, 22)
+
+    # ════════════════════════════════════════
+    # ROW 5: CONTROLS (slots 36-44)
+    # ════════════════════════════════════════
+
+    # Info - slot 36
+    set {_info} to book named "&eResearch Guide"
+    delete {_infoLore::*}
+    add "&8ᴍᴇɴᴜ" to {_infoLore::*}
+    add "" to {_infoLore::*}
+    add "&6Categories:" to {_infoLore::*}
+    add " &5• Enchants &8(slots)" to {_infoLore::*}
+    add " &d• Pets &8(slots + storage)" to {_infoLore::*}
+    add " &a• Gems &8(unlock types)" to {_infoLore::*}
+    add " &6• Archetypes &8(unlock builds)" to {_infoLore::*}
+    add " &e• Accessories &8(slots + storage)" to {_infoLore::*}
+    add " &b• Boosters &8(slots + storage)" to {_infoLore::*}
+    add "" to {_infoLore::*}
+    add "&6Tips:" to {_infoLore::*}
+    add "&7• Only one research at a time" to {_infoLore::*}
+    add "&7• Earlier tiers are faster" to {_infoLore::*}
+    set lore of {_info} to {_infoLore::*}
+    set slot 36 of {_menu} to {_info}
+
+    # Close - slot 44
+    set {_close} to barrier named "&c&lClose"
+    delete {_closeLore::*}
+    add "&8ᴀᴄᴛɪᴏɴ" to {_closeLore::*}
+    add "" to {_closeLore::*}
+    add "&7Close this menu." to {_closeLore::*}
+    add "" to {_closeLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴄʟᴏsᴇ" to {_closeLore::*}
+    set lore of {_close} to {_closeLore::*}
+    set string tag "research;action" of custom nbt of {_close} to "close"
+    set slot 44 of {_menu} to {_close}
+
+    open {_menu} to {_p}
+    set {-research::menu::%{_uuid}%} to "MAIN"
+
+
+# Helper: Category item for main menu
+function research_setMainCategoryItem(menu: inventory, p: player, category: text, slot: number):
+    set {_name} to research_getCategoryName({_category})
+    set {_icon} to research_getCategoryIcon({_category})
+    set {_color} to research_getCategoryColor({_category})
+    set {_descLines::*} to research_getCategoryDescription({_category})
+    set {_progress} to research_getCategoryProgress({_p}, {_category})
+    set {_maxProgress} to research_getCategoryMaxProgress({_category})
+
+    if research_isCategoryComplete({_p}, {_category}) is true:
+        set {_item} to lime stained glass pane named "%{_name}% &a✓"
+    else:
+        set {_item} to {_icon} named {_name}
+
+    delete {_lore::*}
+    add "&8ᴄᴀᴛᴇɢᴏʀʏ" to {_lore::*}
+    add "" to {_lore::*}
+
+    loop {_descLines::*}:
+        add "&7%loop-value%" to {_lore::*}
+    add "" to {_lore::*}
+
+    add "&6Progress:" to {_lore::*}
+    add " &7Completed: %{_color}%%{_progress}%&7/%{_color}%%{_maxProgress}%" to {_lore::*}
+    add "" to {_lore::*}
+
+    if research_isCategoryComplete({_p}, {_category}) is true:
+        add "&a✓ Fully Researched!" to {_lore::*}
+    else:
+        add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴠɪᴇᴡ" to {_lore::*}
+        set string tag "research;action" of custom nbt of {_item} to "open_category"
+        set string tag "research;category" of custom nbt of {_item} to {_category}
+
+    set lore of {_item} to {_lore::*}
+    set slot {_slot} of {_menu} to {_item}
+
+
+# Helper: Active research display
+function research_setActiveResearchItem(menu: inventory, p: player, slot: number):
+    if research_hasActive({_p}) is true:
+        set {_category} to research_getActiveCategory({_p})
+        set {_track} to research_getActiveTrack({_p})
+        set {_tier} to research_getActiveTier({_p})
+        set {_trackName} to research_getTrackName({_category}, {_track})
+        set {_color} to research_getCategoryColor({_category})
+        set {_percent} to research_getProgressPercent({_p})
+        set {_remaining} to research_getRemainingTime({_p})
+        set {_remainingFormatted} to research_formatTime({_remaining})
+        set {_progressBar} to research_createProgressBar({_percent})
+        set {_reward} to research_getRewardDescription({_category}, {_track}, {_tier})
+
+        set {_item} to clock named "&e&lActive Research"
+        delete {_lore::*}
+        add "&8sᴛᴀᴛᴜs" to {_lore::*}
+        add "" to {_lore::*}
+        add "&6Researching:" to {_lore::*}
+        add " %{_trackName}% &7Tier %{_color}%%{_tier}%" to {_lore::*}
+        add "" to {_lore::*}
+        add "&6Progress:" to {_lore::*}
+        add " %{_progressBar}%" to {_lore::*}
+        add "" to {_lore::*}
+        add "&6Time Remaining:" to {_lore::*}
+        add " &e%{_remainingFormatted}%" to {_lore::*}
+        add "" to {_lore::*}
+        add "&6Reward:" to {_lore::*}
+        add " %{_reward}%" to {_lore::*}
+        add "" to {_lore::*}
+        add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴠɪᴇᴡ" to {_lore::*}
+        add "&c&lsʜɪғᴛ-ᴄʟɪᴄᴋ ᴛᴏ ᴄᴀɴᴄᴇʟ" to {_lore::*}
+        set lore of {_item} to {_lore::*}
+        set string tag "research;action" of custom nbt of {_item} to "view_active"
+    else:
+        set {_item} to gray dye named "&7No Active Research"
+        delete {_lore::*}
+        add "&8sᴛᴀᴛᴜs" to {_lore::*}
+        add "" to {_lore::*}
+        add "&7You have no research" to {_lore::*}
+        add "&7in progress." to {_lore::*}
+        add "" to {_lore::*}
+        add "&7Select a category to start!" to {_lore::*}
+        set lore of {_item} to {_lore::*}
+
+    set slot {_slot} of {_menu} to {_item}
+
+
+# ============================================================
+# CATEGORY VIEW (Shows Tracks)
+# ============================================================
+
+function research_openCategoryMenu(p: player, category: text):
+    set {_uuid} to {_p}'s uuid
+    set {_catName} to research_getCategoryName({_category})
+    set {_color} to research_getCategoryColor({_category})
+    set {_tracks::*} to research_getTracks({_category})
+
+    # Strip color for title
+    set {_plainName} to {_catName}
+    replace all "&5" with "" in {_plainName}
+    replace all "&d" with "" in {_plainName}
+    replace all "&e" with "" in {_plainName}
+    replace all "&b" with "" in {_plainName}
+    replace all "&6" with "" in {_plainName}
+
+    set {_menu} to chest inventory with 6 rows named "&8%{_plainName}%"
+
+    # Fill with black glass
+    set {_filler} to black stained glass pane named "&7"
+    loop 54 times:
+        set slot loop-number - 1 of {_menu} to {_filler}
+
+    # ════════════════════════════════════════
+    # ROW 1: HEADER (slots 0-8)
+    # ════════════════════════════════════════
+    set {_headerGlass} to gray stained glass pane named "&7"
+    loop integers from 0 to 8:
+        set slot loop-number of {_menu} to {_headerGlass}
+
+    # Back - slot 0
+    set {_back} to arrow named "&c&lBack"
+    delete {_backLore::*}
+    add "&8ᴀᴄᴛɪᴏɴ" to {_backLore::*}
+    add "" to {_backLore::*}
+    add "&7Return to main menu." to {_backLore::*}
+    add "" to {_backLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ɢᴏ ʙᴀᴄᴋ" to {_backLore::*}
+    set lore of {_back} to {_backLore::*}
+    set string tag "research;action" of custom nbt of {_back} to "back"
+    set slot 0 of {_menu} to {_back}
+
+    # Title - slot 4
+    set {_titleIcon} to research_getCategoryIcon({_category})
+    set {_title} to {_titleIcon} named "%{_catName}%"
+    set {_progress} to research_getCategoryProgress({_p}, {_category})
+    set {_maxProgress} to research_getCategoryMaxProgress({_category})
+    delete {_titleLore::*}
+    add "&8ᴄᴀᴛᴇɢᴏʀʏ" to {_titleLore::*}
+    add "" to {_titleLore::*}
+    add "&6Progress:" to {_titleLore::*}
+    add " &7Completed: %{_color}%%{_progress}%&7/%{_color}%%{_maxProgress}%" to {_titleLore::*}
+    if research_isCategoryComplete({_p}, {_category}) is true:
+        add "" to {_titleLore::*}
+        add "&a✓ Fully Researched!" to {_titleLore::*}
+    set lore of {_title} to {_titleLore::*}
+    set slot 4 of {_menu} to {_title}
+
+    # Info - slot 8
+    set {_info} to book named "&eInfo"
+    delete {_infoLore::*}
+    add "&8ᴍᴇɴᴜ" to {_infoLore::*}
+    add "" to {_infoLore::*}
+    add "&6States:" to {_infoLore::*}
+    add " &a✓ &7= Completed" to {_infoLore::*}
+    add " &e⌛ &7= In Progress" to {_infoLore::*}
+    add " &b▶ &7= Available" to {_infoLore::*}
+    add " &8🔒 &7= Locked" to {_infoLore::*}
+    add "" to {_infoLore::*}
+    add "&7Click an available tier" to {_infoLore::*}
+    add "&7to start researching." to {_infoLore::*}
+    set lore of {_info} to {_infoLore::*}
+    set slot 8 of {_menu} to {_info}
+
+    # ════════════════════════════════════════
+    # ROWS 2-4: TRACKS WITH TIERS
+    # ════════════════════════════════════════
+    # Row 2 starts at slot 9, Row 3 at 18, Row 4 at 27
+    # Track label at slot 9/18/27, tiers at slots 10-17 / 19-26 / 28-35
+
+    set {_trackIndex} to 0
+    loop {_tracks::*}:
+        set {_track} to loop-value
+        set {_trackIndex} to {_trackIndex} + 1
+
+        if {_trackIndex} = 1:
+            set {_rowStart} to 9
+        else if {_trackIndex} = 2:
+            set {_rowStart} to 18
+        else if {_trackIndex} = 3:
+            set {_rowStart} to 27
+        else:
+            # More than 3 tracks - skip (shouldn't happen)
+            continue
+
+        # Track label
+        research_setTrackLabel({_menu}, {_p}, {_category}, {_track}, {_rowStart})
+
+        # Track tiers (slots after label)
+        set {_maxTier} to research_getTrackMaxTier({_category}, {_track})
+        loop integers from 1 to {_maxTier}:
+            set {_tier} to loop-number
+            if {_tier} <= 8:  # Max 8 tiers per row (slots 10-17 / 19-26 / 28-35)
+                set {_tierSlot} to {_rowStart} + {_tier}
+                research_setTierItem({_menu}, {_p}, {_category}, {_track}, {_tier}, {_tierSlot})
+
+    # ════════════════════════════════════════
+    # ROW 6: CONTROLS (slots 45-53)
+    # ════════════════════════════════════════
+
+    # Close - slot 53
+    set {_close} to barrier named "&c&lClose"
+    delete {_closeLore::*}
+    add "&8ᴀᴄᴛɪᴏɴ" to {_closeLore::*}
+    add "" to {_closeLore::*}
+    add "&7Close this menu." to {_closeLore::*}
+    add "" to {_closeLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴄʟᴏsᴇ" to {_closeLore::*}
+    set lore of {_close} to {_closeLore::*}
+    set string tag "research;action" of custom nbt of {_close} to "close"
+    set slot 53 of {_menu} to {_close}
+
+    open {_menu} to {_p}
+    set {-research::menu::%{_uuid}%} to "CATEGORY"
+    set {-research::menu::%{_uuid}%::category} to {_category}
+
+
+# Helper: Track label item
+function research_setTrackLabel(menu: inventory, p: player, category: text, track: text, slot: number):
+    set {_trackName} to research_getTrackName({_category}, {_track})
+    set {_trackIcon} to research_getTrackIcon({_category}, {_track})
+    set {_trackDesc} to research_getTrackDescription({_category}, {_track})
+    set {_color} to research_getCategoryColor({_category})
+    set {_completed} to research_getCompletedTier({_p}, {_category}, {_track})
+    set {_maxTier} to research_getTrackMaxTier({_category}, {_track})
+
+    if research_isTrackComplete({_p}, {_category}, {_track}) is true:
+        set {_item} to lime stained glass pane named "%{_trackName}% &a✓"
+    else:
+        set {_item} to {_trackIcon} named {_trackName}
+
+    delete {_lore::*}
+    add "&8ᴛʀᴀᴄᴋ" to {_lore::*}
+    add "" to {_lore::*}
+    add "&7%{_trackDesc}%" to {_lore::*}
+    add "" to {_lore::*}
+    add "&6Progress:" to {_lore::*}
+    add " &7Completed: %{_color}%%{_completed}%&7/%{_color}%%{_maxTier}%" to {_lore::*}
+
+    set lore of {_item} to {_lore::*}
+    set slot {_slot} of {_menu} to {_item}
+
+
+# Helper: Tier item
+function research_setTierItem(menu: inventory, p: player, category: text, track: text, tier: number, slot: number):
+    set {_color} to research_getCategoryColor({_category})
+    set {_completed} to research_getCompletedTier({_p}, {_category}, {_track})
+    set {_timeRequired} to research_getTimeRequiredForPlayer({_p}, {_category}, {_track}, {_tier})
+    set {_timeFormatted} to research_formatTime({_timeRequired})
+    set {_reward} to research_getRewardDescription({_category}, {_track}, {_tier})
+
+    # Check for custom tier name (e.g., archetypes)
+    set {_displayTier} to "%{_tier}%"
+    if research_hasCustomTierNames({_category}, {_track}) is true:
+        set {_displayTier} to research_getTierName({_category}, {_track}, {_tier})
+
+    # Determine state
+    set {_isComplete} to false
+    set {_isAvailable} to false
+    set {_isActive} to false
+    set {_isLocked} to false
+
+    if {_tier} <= {_completed}:
+        set {_isComplete} to true
+    else if {_tier} = {_completed} + 1:
+        if research_hasActive({_p}) is true:
+            set {_activeCategory} to research_getActiveCategory({_p})
+            set {_activeTrack} to research_getActiveTrack({_p})
+            set {_activeTier} to research_getActiveTier({_p})
+            if {_activeCategory} = {_category}:
+                if {_activeTrack} = {_track}:
+                    if {_activeTier} = {_tier}:
+                        set {_isActive} to true
+        if {_isActive} is false:
+            set {_isAvailable} to true
+    else:
+        set {_isLocked} to true
+
+    # Create item based on state
+    if {_isComplete} is true:
+        set {_item} to lime stained glass pane named "%{_displayTier}% &a✓"
+        delete {_lore::*}
+        add "&8ᴄᴏᴍᴘʟᴇᴛᴇ" to {_lore::*}
+        add "" to {_lore::*}
+        add "&a✓ Completed!" to {_lore::*}
+        add "" to {_lore::*}
+        add "&6Unlocked:" to {_lore::*}
+        add " %{_reward}%" to {_lore::*}
+        set lore of {_item} to {_lore::*}
+
+    else if {_isActive} is true:
+        set {_percent} to research_getProgressPercent({_p})
+        set {_remaining} to research_getRemainingTime({_p})
+        set {_remainingFormatted} to research_formatTime({_remaining})
+        set {_progressBar} to research_createProgressBar({_percent})
+
+        set {_item} to yellow stained glass pane named "%{_displayTier}% &e⌛"
+        delete {_lore::*}
+        add "&8ɪɴ ᴘʀᴏɢʀᴇss" to {_lore::*}
+        add "" to {_lore::*}
+        add "&e⌛ Researching..." to {_lore::*}
+        add "" to {_lore::*}
+        add "&6Progress:" to {_lore::*}
+        add " %{_progressBar}%" to {_lore::*}
+        add "" to {_lore::*}
+        add "&6Time Remaining:" to {_lore::*}
+        add " &e%{_remainingFormatted}%" to {_lore::*}
+        add "" to {_lore::*}
+        add "&6Reward:" to {_lore::*}
+        add " %{_reward}%" to {_lore::*}
+        add "" to {_lore::*}
+        add "&c&lsʜɪғᴛ-ᴄʟɪᴄᴋ ᴛᴏ ᴄᴀɴᴄᴇʟ" to {_lore::*}
+        set lore of {_item} to {_lore::*}
+        set string tag "research;action" of custom nbt of {_item} to "cancel"
+
+    else if {_isAvailable} is true:
+        # Get money cost for display
+        set {_moneyCost} to research_getMoneyCost({_category}, {_track}, {_tier})
+        set {_moneyFormatted} to research_formatMoney({_moneyCost})
+
+        if research_hasActive({_p}) is true:
+            set {_item} to orange stained glass pane named "%{_displayTier}% &6⏸"
+            delete {_lore::*}
+            add "&8ᴡᴀɪᴛɪɴɢ" to {_lore::*}
+            add "" to {_lore::*}
+            add "&6⚠ Another research active" to {_lore::*}
+            add "" to {_lore::*}
+            add "&7Complete or cancel your" to {_lore::*}
+            add "&7current research first." to {_lore::*}
+            add "" to {_lore::*}
+            add "&6Time: &e%{_timeFormatted}%" to {_lore::*}
+            add "&6Cost: %{_moneyFormatted}%" to {_lore::*}
+            add "&6Reward: %{_reward}%" to {_lore::*}
+            set lore of {_item} to {_lore::*}
+        else:
+            # Check if blocked by prestige requirement
+            set {_prestigeReq} to research_getPrestigeRequirement({_category}, {_track}, {_tier})
+            if {_prestigeReq} > 0:
+                if research_meetsPrestigeRequirement({_p}, {_category}, {_track}, {_tier}) is false:
+                    set {_item} to red stained glass pane named "%{_displayTier}% &c🔒"
+                    delete {_lore::*}
+                    add "&8ᴘʀᴇsᴛɪɢᴇ ʟᴏᴄᴋᴇᴅ" to {_lore::*}
+                    add "" to {_lore::*}
+                    add "&c🔒 Prestige Required" to {_lore::*}
+                    add "" to {_lore::*}
+                    add "&7Requires &6Prestige %{_prestigeReq}%+" to {_lore::*}
+                    add "&7to unlock this research." to {_lore::*}
+                    add "" to {_lore::*}
+                    add "&6Time: &7%{_timeFormatted}%" to {_lore::*}
+                    add "&6Cost: %{_moneyFormatted}%" to {_lore::*}
+                    add "&6Reward: &7%{_reward}%" to {_lore::*}
+                    set lore of {_item} to {_lore::*}
+                    set slot {_slot} of {_menu} to {_item}
+                    stop
+
+            # Check if blocked by money requirement
+            if research_canAfford({_p}, {_category}, {_track}, {_tier}) is false:
+                set {_item} to red stained glass pane named "%{_displayTier}% &c💰"
+                delete {_lore::*}
+                add "&8ɴᴏᴛ ᴇɴᴏᴜɢʜ ᴍᴏɴᴇʏ" to {_lore::*}
+                add "" to {_lore::*}
+                add "&c💰 Not Enough Money" to {_lore::*}
+                add "" to {_lore::*}
+                add "&7You need %{_moneyFormatted}%" to {_lore::*}
+                add "&7to start this research." to {_lore::*}
+                add "" to {_lore::*}
+                add "&6Time: &7%{_timeFormatted}%" to {_lore::*}
+                add "&6Cost: %{_moneyFormatted}%" to {_lore::*}
+                add "&6Reward: &7%{_reward}%" to {_lore::*}
+                set lore of {_item} to {_lore::*}
+                set slot {_slot} of {_menu} to {_item}
+                stop
+
+            # Check if blocked by tutorial
+            if tutorial_isComplete({_p}) is false:
+                if research_isTutorialAllowed({_p}, {_category}, {_track}) is false:
+                    set {_item} to purple stained glass pane named "%{_displayTier}% &5🔒"
+                    delete {_lore::*}
+                    add "&8ᴛᴜᴛᴏʀɪᴀʟ" to {_lore::*}
+                    add "" to {_lore::*}
+                    add "&5🔒 Complete Tutorial First" to {_lore::*}
+                    add "" to {_lore::*}
+                    add "&7This research unlocks after" to {_lore::*}
+                    add "&7you finish the tutorial." to {_lore::*}
+                    set lore of {_item} to {_lore::*}
+                    set slot {_slot} of {_menu} to {_item}
+                    stop
+
+            set {_item} to light blue stained glass pane named "%{_displayTier}% &b▶"
+            delete {_lore::*}
+            add "&8ᴀᴠᴀɪʟᴀʙʟᴇ" to {_lore::*}
+            add "" to {_lore::*}
+            add "&b▶ Ready to research!" to {_lore::*}
+            add "" to {_lore::*}
+            add "&6Time: &e%{_timeFormatted}%" to {_lore::*}
+            add "&6Cost: %{_moneyFormatted}%" to {_lore::*}
+            add "&6Reward: %{_reward}%" to {_lore::*}
+            add "" to {_lore::*}
+            add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ sᴛᴀʀᴛ" to {_lore::*}
+            set lore of {_item} to {_lore::*}
+            set string tag "research;action" of custom nbt of {_item} to "start"
+            set string tag "research;category" of custom nbt of {_item} to {_category}
+            set string tag "research;track" of custom nbt of {_item} to {_track}
+            set int tag "research;tier" of custom nbt of {_item} to {_tier}
+
+    else:
+        # Get money cost for display
+        set {_moneyCost} to research_getMoneyCost({_category}, {_track}, {_tier})
+        set {_moneyFormatted} to research_formatMoney({_moneyCost})
+
+        # Check if locked by prestige (for future tiers)
+        set {_prestigeReq} to research_getPrestigeRequirement({_category}, {_track}, {_tier})
+        if {_prestigeReq} > 0:
+            if research_meetsPrestigeRequirement({_p}, {_category}, {_track}, {_tier}) is false:
+                set {_item} to red stained glass pane named "&7%{_displayTier}% &c🔒"
+                delete {_lore::*}
+                add "&8ᴘʀᴇsᴛɪɢᴇ ʟᴏᴄᴋᴇᴅ" to {_lore::*}
+                add "" to {_lore::*}
+                add "&c🔒 Prestige Required" to {_lore::*}
+                add "" to {_lore::*}
+                add "&7Requires &6Prestige %{_prestigeReq}%+" to {_lore::*}
+                add "" to {_lore::*}
+                add "&6Time: &7%{_timeFormatted}%" to {_lore::*}
+                add "&6Cost: %{_moneyFormatted}%" to {_lore::*}
+                add "&6Reward: &7%{_reward}%" to {_lore::*}
+                set lore of {_item} to {_lore::*}
+                set slot {_slot} of {_menu} to {_item}
+                stop
+
+        set {_item} to gray stained glass pane named "&7%{_displayTier}% &8🔒"
+        delete {_lore::*}
+        add "&8ʟᴏᴄᴋᴇᴅ" to {_lore::*}
+        add "" to {_lore::*}
+        add "&8🔒 Locked" to {_lore::*}
+        add "" to {_lore::*}
+        add "&7Complete tier %{_tier} - 1% first." to {_lore::*}
+        add "" to {_lore::*}
+        add "&6Time: &7%{_timeFormatted}%" to {_lore::*}
+        add "&6Cost: %{_moneyFormatted}%" to {_lore::*}
+        add "&6Reward: &7%{_reward}%" to {_lore::*}
+        set lore of {_item} to {_lore::*}
+
+    set slot {_slot} of {_menu} to {_item}
+
+
+# ============================================================
+# CANCEL CONFIRMATION
+# ============================================================
+
+function research_openCancelConfirm(p: player):
+    if research_hasActive({_p}) is false:
+        send "&c&l! &7You have no active research to cancel." to {_p}
+        stop
+
+    set {_uuid} to {_p}'s uuid
+    set {_category} to research_getActiveCategory({_p})
+    set {_track} to research_getActiveTrack({_p})
+    set {_tier} to research_getActiveTier({_p})
+    set {_trackName} to research_getTrackName({_category}, {_track})
+    set {_color} to research_getCategoryColor({_category})
+    set {_percent} to research_getProgressPercent({_p})
+    set {_progressBar} to research_createProgressBar({_percent})
+
+    set {_menu} to chest inventory with 3 rows named "&cCancel Research?"
+
+    # Fill with black glass
+    set {_filler} to black stained glass pane named "&7"
+    loop 27 times:
+        set slot loop-number - 1 of {_menu} to {_filler}
+
+    # Warning border
+    set {_warning} to red stained glass pane named "&7"
+    set slot 0,1,2,3,4,5,6,7,8,9,17,18,26 of {_menu} to {_warning}
+
+    # Info - slot 13
+    set {_info} to clock named "&e&lCancel Research?"
+    delete {_infoLore::*}
+    add "&8ᴡᴀʀɴɪɴɢ" to {_infoLore::*}
+    add "" to {_infoLore::*}
+    add "&7This will cancel:" to {_infoLore::*}
+    add " %{_trackName}% &7Tier %{_color}%%{_tier}%" to {_infoLore::*}
+    add " %{_progressBar}%" to {_infoLore::*}
+    add "" to {_infoLore::*}
+    add "&c⚠ All progress will be lost!" to {_infoLore::*}
+    set lore of {_info} to {_infoLore::*}
+    set slot 13 of {_menu} to {_info}
+
+    # Confirm - slot 11
+    set {_confirm} to lime dye named "&a&lConfirm"
+    delete {_confirmLore::*}
+    add "&8ᴀᴄᴛɪᴏɴ" to {_confirmLore::*}
+    add "" to {_confirmLore::*}
+    add "&7Cancel and lose progress." to {_confirmLore::*}
+    add "" to {_confirmLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴄᴏɴғɪʀᴍ" to {_confirmLore::*}
+    set lore of {_confirm} to {_confirmLore::*}
+    set string tag "research;action" of custom nbt of {_confirm} to "confirm_cancel"
+    set slot 11 of {_menu} to {_confirm}
+
+    # Go back - slot 15
+    set {_cancel} to red dye named "&c&lGo Back"
+    delete {_cancelLore::*}
+    add "&8ᴀᴄᴛɪᴏɴ" to {_cancelLore::*}
+    add "" to {_cancelLore::*}
+    add "&7Keep researching." to {_cancelLore::*}
+    add "" to {_cancelLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ɢᴏ ʙᴀᴄᴋ" to {_cancelLore::*}
+    set lore of {_cancel} to {_cancelLore::*}
+    set string tag "research;action" of custom nbt of {_cancel} to "cancel_cancel"
+    set slot 15 of {_menu} to {_cancel}
+
+    open {_menu} to {_p}
+    set {-research::menu::%{_uuid}%} to "CANCEL_CONFIRM"
+
+
+# ============================================================
+# CLICK HANDLER
+# ============================================================
+
+on inventory click:
+    set {_uuid} to player's uuid
+    set {_menuType} to {-research::menu::%{_uuid}%}
+
+    if {_menuType} is not set:
+        stop
+
+    if {_menuType} does not contain "MAIN":
+        if {_menuType} does not contain "CATEGORY":
+            if {_menuType} does not contain "CANCEL":
+                stop
+
+    cancel event
+
+    set {_nbt} to custom nbt of clicked slot
+    set {_action} to string tag "research;action" of {_nbt}
+
+    if {_action} is not set:
+        stop
+
+    # ════════════════════════════════════════
+    # COMMON ACTIONS
+    # ════════════════════════════════════════
+
+    if {_action} = "close":
+        play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+        close inventory of player
+        stop
+
+    if {_action} = "back":
+        play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+        research_openMainMenu(player)
+        stop
+
+    # ════════════════════════════════════════
+    # MAIN MENU ACTIONS
+    # ════════════════════════════════════════
+
+    if {_menuType} = "MAIN":
+        if {_action} = "open_category":
+            set {_category} to string tag "research;category" of {_nbt}
+            play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+            research_openCategoryMenu(player, {_category})
+            stop
+
+        if {_action} = "view_active":
+            if click type is left mouse button with shift:
+                play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+                research_openCancelConfirm(player)
+                stop
+            set {_category} to research_getActiveCategory(player)
+            if {_category} is set:
+                play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+                research_openCategoryMenu(player, {_category})
+            stop
+
+    # ════════════════════════════════════════
+    # CATEGORY MENU ACTIONS
+    # ════════════════════════════════════════
+
+    if {_menuType} = "CATEGORY":
+        if {_action} = "start":
+            set {_category} to string tag "research;category" of {_nbt}
+            set {_track} to string tag "research;track" of {_nbt}
+            set {_tier} to int tag "research;tier" of {_nbt}
+
+            if research_start(player, {_category}, {_track}, {_tier}) is true:
+                research_openCategoryMenu(player, {_category})
+            else:
+                send "&c&l! &7Cannot start this research." to player
+                play sound "entity.villager.no" with volume 0.5 and pitch 1 to player
+            stop
+
+        if {_action} = "cancel":
+            if click type is left mouse button with shift:
+                play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+                research_openCancelConfirm(player)
+            stop
+
+    # ════════════════════════════════════════
+    # CANCEL CONFIRM ACTIONS
+    # ════════════════════════════════════════
+
+    if {_menuType} = "CANCEL_CONFIRM":
+        if {_action} = "confirm_cancel":
+            set {_category} to research_getActiveCategory(player)
+            research_cancel(player)
+            if {_category} is set:
+                research_openCategoryMenu(player, {_category})
+            else:
+                research_openMainMenu(player)
+            stop
+
+        if {_action} = "cancel_cancel":
+            play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+            set {_category} to {-research::menu::%{_uuid}%::category}
+            if {_category} is set:
+                research_openCategoryMenu(player, {_category})
+            else:
+                research_openMainMenu(player)
+            stop
+
+
+# ============================================================
+# INVENTORY CLOSE HANDLER
+# ============================================================
+
+on inventory close:
+    set {_uuid} to player's uuid
+    set {_menu} to {-research::menu::%{_uuid}%}
+
+    if {_menu} is set:
+        delete {-research::menu::%{_uuid}%}
+        delete {-research::menu::%{_uuid}%::category}

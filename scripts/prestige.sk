@@ -1,0 +1,506 @@
+# ============================================================
+# PRESTIGE SYSTEM
+# ============================================================
+#
+# Variables:
+#   {mining::<archetype>::%uuid%::level}
+#   {mining::<archetype>::%uuid%::xp}
+#   {mining::<archetype>::%uuid%::prestige}
+#
+# Economy variables handled by economy.sk
+# ============================================================
+
+# ============================================================
+# FORMATTED DISPLAY FUNCTIONS
+# ============================================================
+
+# Get colored prestige with roman numeral
+# Colors scale with prestige level
+function prestige_getFormattedPrestige(p: player, archetype: text) :: text:
+    set {_prestige} to {mining::%{_archetype}%::%{_p}'s uuid%::prestige} ? 0
+    
+    if {_prestige} = 0:
+        return ""
+    
+    set {_roman} to {_prestige} as roman numeral
+    
+    # Color based on prestige tier
+    if {_prestige} <= 1:
+        return "&7&l(%{_roman}%) "
+    else if {_prestige} <= 2:
+        return "&f&l(%{_roman}%) "
+    else if {_prestige} <= 3:
+        return "&a&l(%{_roman}%) "
+    else if {_prestige} <= 4:
+        return "&2&l(%{_roman}%) "
+    else if {_prestige} <= 5:
+        return "&b&l(%{_roman}%) "
+    else if {_prestige} <= 6:
+        return "&3&l(%{_roman}%) "
+    else if {_prestige} <= 7:
+        return "&9&l(%{_roman}%) "
+    else if {_prestige} <= 8:
+        return "&5&l(%{_roman}%) "
+    else if {_prestige} <= 9:
+        return "&d&l(%{_roman}%) "
+    else if {_prestige} <= 10:
+        return "&6&l(%{_roman}%) "
+    else if {_prestige} <= 12:
+        return "<#FF6B00>&l(%{_roman}%) "
+    else if {_prestige} <= 14:
+        return "&c&l(%{_roman}%) "
+    else if {_prestige} <= 16:
+        return "<#FF3366>&l(%{_roman}%) "
+    else if {_prestige} <= 18:
+        return "<#AA00FF>&l(%{_roman}%) "
+    else if {_prestige} <= 20:
+        return "<#00FFAA>&l(%{_roman}%) "
+    else:
+        # 21+ rainbow/special
+        return "<#FFD700>&l(✦%{_roman}%✦) "
+
+# Get colored level
+# Colors scale with level (different from prestige colors)
+function prestige_getFormattedLevel(p: player, archetype: text) :: text:
+    set {_level} to {mining::%{_archetype}%::%{_p}'s uuid%::level} ? 1
+    
+    if {_level} <= 10:
+        return "&7%{_level}%"
+    else if {_level} <= 20:
+        return "&f%{_level}%"
+    else if {_level} <= 30:
+        return "&e%{_level}%"
+    else if {_level} <= 40:
+        return "&6%{_level}%"
+    else if {_level} <= 50:
+        return "<#FFAA00>%{_level}%"
+    else if {_level} <= 60:
+        return "<#FF8800>%{_level}%"
+    else if {_level} <= 70:
+        return "<#FF5500>%{_level}%"
+    else if {_level} <= 80:
+        return "&c%{_level}%"
+    else if {_level} <= 90:
+        return "<#FF3366>%{_level}%"
+    else if {_level} <= 100:
+        return "&4%{_level}%"
+    else if {_level} <= 125:
+        return "&5%{_level}%"
+    else if {_level} <= 150:
+        return "&d%{_level}%"
+    else if {_level} <= 175:
+        return "<#00DDFF>%{_level}%"
+    else if {_level} <= 200:
+        return "&b%{_level}%"
+    else:
+        # 200+ special
+        return "<#FFD700>★%{_level}%★"
+
+# Get current archetype's formatted prestige
+function prestige_getCurrentFormattedPrestige(p: player) :: text:
+    set {_id} to player_getArchetype({_p})
+    if {_id} = 2:
+        return prestige_getFormattedPrestige({_p}, "precision")
+    else if {_id} = 3:
+        return prestige_getFormattedPrestige({_p}, "demolition")
+    else if {_id} = 4:
+        return prestige_getFormattedPrestige({_p}, "arcane")
+    return "&8-"
+
+# Get current archetype's formatted level
+function prestige_getCurrentFormattedLevel(p: player) :: text:
+    set {_id} to player_getArchetype({_p})
+    if {_id} = 2:
+        return prestige_getFormattedLevel({_p}, "precision")
+    else if {_id} = 3:
+        return prestige_getFormattedLevel({_p}, "demolition")
+    else if {_id} = 4:
+        return prestige_getFormattedLevel({_p}, "arcane")
+    return "&70"
+
+
+# ============================================================
+# PRESTIGE CORE FUNCTIONS
+# ============================================================
+
+function prestige_getMaxLevel(p: player, archetype: text) :: number:
+    set {_prestige} to {mining::%{_archetype}%::%{_p}'s uuid%::prestige} ? 0
+    return 15 + ({_prestige} * 15)
+
+function prestige_getCost(p: player, archetype: text) :: number:
+    set {_prestige} to {mining::%{_archetype}%::%{_p}'s uuid%::prestige} ? 0
+    return 100000 * ({_prestige} + 1)
+
+function prestige_canPrestige(p: player, archetype: text) :: boolean:
+    set {_uuid} to {_p}'s uuid
+    set {_level} to {mining::%{_archetype}%::%{_uuid}%::level} ? 1
+    set {_maxLevel} to prestige_getMaxLevel({_p}, {_archetype})
+    set {_cost} to prestige_getCost({_p}, {_archetype})
+    
+    if {_level} < {_maxLevel}:
+        return false
+    if economy_hasMoney({_p}, {_cost}) = false:
+        return false
+    return true
+
+function prestige_execute(p: player, archetype: text):
+    if prestige_canPrestige({_p}, {_archetype}) = false:
+        stop
+    
+    set {_uuid} to {_p}'s uuid
+    set {_cost} to prestige_getCost({_p}, {_archetype})
+    set {_oldMaxLevel} to prestige_getMaxLevel({_p}, {_archetype})
+    
+    economy_removeMoney({_p}, {_cost})
+    
+    set {mining::%{_archetype}%::%{_uuid}%::level} to 1
+    set {mining::%{_archetype}%::%{_uuid}%::xp} to 0
+    add 1 to {mining::%{_archetype}%::%{_uuid}%::prestige}
+    
+    set {_newPrestige} to {mining::%{_archetype}%::%{_uuid}%::prestige}
+    economy_addTotalPrestige({_p})
+    
+    set {_pointsEarned} to 100 * {_newPrestige}
+    economy_addPrestigePoints({_p}, {_pointsEarned})
+    
+    set {_newMaxLevel} to prestige_getMaxLevel({_p}, {_archetype})
+    set {_totalPoints} to economy_getPrestigePoints({_p})
+
+    if {_archetype} = "demolition":
+        set {_displayName} to "&c&lDemolition"
+    else if {_archetype} = "precision":
+        set {_displayName} to "&b&lPrecision"
+    else if {_archetype} = "arcane":
+        set {_displayName} to "&d&lArcane"
+    else if {_archetype} = "global":
+        set {_displayName} to "&7&lGlobal"
+    else:
+        set {_displayName} to "&f&l%{_archetype}%"
+
+    send "" to {_p}
+    send "&d&m                                " to {_p}
+    send "&d&l⭐ PRESTIGE!" to {_p}
+    send "%{_displayName}% &7→ &6Prestige %{_newPrestige}%" to {_p}
+    send "" to {_p}
+    send "&7New Max Level: &e%{_oldMaxLevel}% &7→ &a%{_newMaxLevel}%" to {_p}
+    send "&7Prestige Points: &d+%formatNum({_pointsEarned})%" to {_p}
+    send "&7Total Points: &d%formatNum({_totalPoints})%" to {_p}
+    send "&7Money Spent: &c-$%formatNum({_cost})%" to {_p}
+    send "" to {_p}
+    send "&aYou can now level up to &e%{_newMaxLevel}%&a!" to {_p}
+    send "&d&m                                " to {_p}
+    
+    play sound "ui.toast.challenge_complete" with volume 1 and pitch 1 to {_p}
+
+    # Update multipliers and pickaxe lore on prestige
+    multiplier_onPrestige({_p})
+    pickaxe_onPrestige({_p})
+
+    # Update milestone display
+    milestone_update({_p})
+
+    # Tutorial callback
+    tutorial_onPrestige({_p}, {_newPrestige})
+
+    # Check for chapter progression
+    wait 2 seconds
+    progression_checkChapterTransition({_p}, 1, 1, {_archetype})
+
+
+# ============================================================
+# PRESTIGE GUI - MENU ITEM
+# ============================================================
+
+function prestige_getMenuItem(p: player, archetype: text) :: item:
+    set {_uuid} to {_p}'s uuid
+    set {_level} to {mining::%{_archetype}%::%{_uuid}%::level} ? 1
+    set {_xp} to {mining::%{_archetype}%::%{_uuid}%::xp} ? 0
+    set {_prestige} to {mining::%{_archetype}%::%{_uuid}%::prestige} ? 0
+    set {_maxLevel} to prestige_getMaxLevel({_p}, {_archetype})
+    set {_cost} to prestige_getCost({_p}, {_archetype})
+    set {_balance} to economy_getMoney({_p})
+    set {_xpNeeded} to round(100 * {_level} ^ 1.2)
+    
+    if {_archetype} = "demolition":
+        set {_item} to tnt
+        set {_colorTitle} to "&c"
+        set {_colorSub} to "&4"
+        set {_displayName} to "&c&lDEMOLITION PRESTIGE"
+    else if {_archetype} = "precision":
+        set {_item} to diamond pickaxe
+        set {_colorTitle} to "&b"
+        set {_colorSub} to "&3"
+        set {_displayName} to "&b&lPRECISION PRESTIGE"
+    else if {_archetype} = "arcane":
+        set {_item} to ender eye
+        set {_colorTitle} to "&d"
+        set {_colorSub} to "&5"
+        set {_displayName} to "&d&lARCANE PRESTIGE"
+    else if {_archetype} = "global":
+        set {_item} to nether star
+        set {_colorTitle} to "&7"
+        set {_colorSub} to "&8"
+        set {_displayName} to "&7&lFIRST PRESTIGE"
+    else:
+        set {_item} to nether star
+        set {_colorTitle} to "&f"
+        set {_colorSub} to "&7"
+        set {_displayName} to "&f&l%{_archetype} in uppercase% PRESTIGE"
+    
+    add menu_utils_getMenuItemFirstLoreLine() to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Current Prestige: &6%{_prestige}%" to {_lore::*}
+    add "&7Current Level: &e%{_level}%&7/&a%{_maxLevel}%" to {_lore::*}
+    add "&7Current XP: &a%{_xp}%&7/&a%{_xpNeeded}%" to {_lore::*}
+    add "" to {_lore::*}
+    add "%{_colorSub}%Requirements:" to {_lore::*}
+    
+    if {_level} >= {_maxLevel}:
+        add "&a  ✔ &7Level %{_maxLevel}% reached" to {_lore::*}
+        set {_levelMet} to true
+    else:
+        add "&c  ✖ &7Need level &e%{_maxLevel}% &7(currently &c%{_level}%&7)" to {_lore::*}
+        set {_levelMet} to false
+    
+    if {_balance} >= {_cost}:
+        add "&a  ✔ &7Have &6$%formatNum({_cost})%" to {_lore::*}
+        set {_moneyMet} to true
+    else:
+        add "&c  ✖ &7Need &6$%formatNum({_cost})% &7(have &c$%formatNum({_balance})%&7)" to {_lore::*}
+        set {_moneyMet} to false
+    
+    add "" to {_lore::*}
+    add "%{_colorSub}%Rewards:" to {_lore::*}
+    set {_nextPrestige} to {_prestige} + 1
+    set {_pointsReward} to 100 * {_nextPrestige}
+    set {_newMaxLevel} to {_maxLevel} + 25
+    add "&7  ✦ &d%formatNum({_pointsReward})% Prestige Points" to {_lore::*}
+    add "&7  ✦ New max level: &a%{_newMaxLevel}%" to {_lore::*}
+    add "" to {_lore::*}
+    
+    if {_levelMet} = true:
+        if {_moneyMet} = true:
+            add "&a&lCLICK TO PRESTIGE!" to {_lore::*}
+            set string tag "prestige;archetype" of custom nbt of {_item} to {_archetype}
+        else:
+            add "&c&lNOT ENOUGH MONEY" to {_lore::*}
+    else:
+        add "&c&lREACH MAX LEVEL FIRST" to {_lore::*}
+    
+    set name of {_item} to {_displayName}
+    set lore of {_item} to {_lore::*}
+    
+    return {_item}
+
+
+# ============================================================
+# PRESTIGE GUI - MENU
+# ============================================================
+
+function prestige_menu_main(p: player):
+    # Get current archetype
+    set {_archetypeId} to player_getArchetype({_p})
+
+    # Handle global/no archetype - use "global" for first prestige
+    if {_archetypeId} <= 1:
+        set {_archetype} to "global"
+        set {_glassColor} to gray stained glass pane
+    else if {_archetypeId} = 2:
+        set {_archetype} to "precision"
+        set {_glassColor} to cyan stained glass pane
+    else if {_archetypeId} = 3:
+        set {_archetype} to "demolition"
+        set {_glassColor} to red stained glass pane
+    else if {_archetypeId} = 4:
+        set {_archetype} to "arcane"
+        set {_glassColor} to purple stained glass pane
+    else:
+        set {_archetype} to "global"
+        set {_glassColor} to gray stained glass pane
+    
+    set {_menu} to menu_create("⭐ Prestige", 3)
+    menu_fill({_menu}, 3, black stained glass pane)
+    
+    # Colored glass around the item
+    set slot 3,4,5,12,14,21,22,23 of {_menu} to {_glassColor} named "&1"
+    
+    # Archetype item in center
+    set slot 13 of {_menu} to prestige_getMenuItem({_p}, {_archetype})
+    
+    # Info book top left
+    set {_infoBook} to book named "&e&lPRESTIGE INFO"
+    add menu_utils_getMenuItemFirstLoreLine() to {_infoLore::*}
+    add "" to {_infoLore::*}
+    add "&7Prestiging resets your level" to {_infoLore::*}
+    add "&7back to 1, but increases your" to {_infoLore::*}
+    add "&7maximum level cap by &a+25&7!" to {_infoLore::*}
+    add "" to {_infoLore::*}
+    add "&7You also earn &dPrestige Points" to {_infoLore::*}
+    add "&7which can be spent on special" to {_infoLore::*}
+    add "&7rewards and upgrades." to {_infoLore::*}
+    add "" to {_infoLore::*}
+    set {_uuid} to {_p}'s uuid
+    set {_totalPrestiges} to economy_getTotalPrestiges({_p})
+    set {_prestigePoints} to economy_getPrestigePoints({_p})
+    add "&7Total Prestiges: &6%formatNum({_totalPrestiges})%" to {_infoLore::*}
+    add "&7Prestige Points: &d%formatNum({_prestigePoints})%" to {_infoLore::*}
+    set lore of {_infoBook} to {_infoLore::*}
+    set slot 0 of {_menu} to {_infoBook}
+    
+    open {_menu} to {_p}
+    menu_setCurrentMenu({_p}, "PRESTIGE_MENU")
+
+
+# ============================================================
+# PRESTIGE GUI - CLICK HANDLER
+# ============================================================
+
+function clickHandler_PrestigeMenu(p: player, slot: item):
+    set {_nbt} to custom nbt of {_slot}
+    set {_archetype} to string tag "prestige;archetype" of {_nbt}
+    
+    if {_archetype} is set:
+        if prestige_canPrestige({_p}, {_archetype}) = false:
+            play sound "entity.villager.no" with volume 0.8 and pitch 1 to {_p}
+            send "&cYou don't meet the requirements to prestige!" to {_p}
+            prestige_menu_main({_p})
+            stop
+        
+        close inventory of {_p}
+        prestige_execute({_p}, {_archetype})
+
+
+# ============================================================
+# EVENTS
+# ============================================================
+
+on inventory click:
+    if menu_getCurrentMenu(player) = "PRESTIGE_MENU":
+        cancel event
+        if clicked slot is not air:
+            clickHandler_PrestigeMenu(player, clicked slot)
+
+
+# ============================================================
+# COMMANDS
+# ============================================================
+
+command /prestige:
+    trigger:
+        prestige_menu_main(player)
+
+
+command /stats:
+    trigger:
+        set {_uuid} to player's uuid
+        
+        send "" to player
+        send "&6&m                                " to player
+        send "&e&l⛏ MINING STATS" to player
+        send "&6&m                                " to player
+        send "" to player
+        
+        set {_currentId} to player_getArchetype(player)
+        
+        if {_currentId} = 2:
+            set {_currentDisplay} to "&b&lPrecision"
+        else if {_currentId} = 3:
+            set {_currentDisplay} to "&c&lDemolition"
+        else if {_currentId} = 4:
+            set {_currentDisplay} to "&d&lArcane"
+        else:
+            set {_currentDisplay} to "&f&lGlobal"
+        
+        send "&7Active Archetype: %{_currentDisplay}%" to player
+        send "" to player
+        
+        send "&7➤ %prestige_getStatLine(player, "demolition")%" to player
+        send "&7➤ %prestige_getStatLine(player, "precision")%" to player
+        send "&7➤ %prestige_getStatLine(player, "arcane")%" to player
+        send "&7➤ &f&lGlobal&7: No XP progression" to player
+        send "" to player
+        
+        set {_total} to 0
+        loop "demolition", "precision" and "arcane":
+            set {_lvl} to {mining::%loop-value%::%{_uuid}%::level} ? 1
+            add {_lvl} to {_total}
+        set {_avg} to round(({_total} / 3) * 10) / 10
+        
+        set {_totalPrestiges} to economy_getTotalPrestiges(player)
+        set {_prestigePoints} to economy_getPrestigePoints(player)
+        
+        send "&7Average Level: &e%{_avg}%" to player
+        send "&7Total Prestiges: &6%formatNum({_totalPrestiges})%" to player
+        send "&7Prestige Points: &d%formatNum({_prestigePoints})%" to player
+        send "" to player
+        send "&7Use &6/prestige &7to open the prestige menu!" to player
+        send "&6&m                                " to player
+
+
+function prestige_getStatLine(p: player, archetype: text) :: text:
+    set {_uuid} to {_p}'s uuid
+    set {_level} to {mining::%{_archetype}%::%{_uuid}%::level} ? 1
+    set {_xp} to {mining::%{_archetype}%::%{_uuid}%::xp} ? 0
+    set {_prestige} to {mining::%{_archetype}%::%{_uuid}%::prestige} ? 0
+    set {_maxLevel} to prestige_getMaxLevel({_p}, {_archetype})
+    set {_xpNeeded} to round(100 * {_level} ^ 1.2)
+
+    if {_archetype} = "demolition":
+        set {_displayName} to "&c&lDemolition"
+    else if {_archetype} = "precision":
+        set {_displayName} to "&b&lPrecision"
+    else if {_archetype} = "arcane":
+        set {_displayName} to "&d&lArcane"
+    else:
+        set {_displayName} to "&f&l%{_archetype}%"
+
+    if {_level} >= {_maxLevel}:
+        return "%{_displayName}%&7: [&6P%{_prestige}%&7] Level &e%{_level}% &c&lMAX"
+
+    return "%{_displayName}%&7: [&6P%{_prestige}%&7] Level &e%{_level}% &7(&a%{_xp}%&7/&a%{_xpNeeded}% XP&7)"
+
+
+# ============================================================
+# ADMIN COMMANDS
+# ============================================================
+
+command /setprestige <text> <player> <integer>:
+    permission: op
+    permission message: &cYou don't have permission to use this command.
+    usage: &c/setprestige <archetype> <player> <value>
+    trigger:
+        set {_archetype} to arg-1 in lower case
+        set {_target} to arg-2
+        set {_value} to arg-3
+
+        # Validate archetype
+        if {_archetype} is not "precision", "demolition", "arcane" or "global":
+            send "&cInvalid archetype! Use: precision, demolition, arcane, or global" to player
+            stop
+
+        # Validate value
+        if {_value} < 0:
+            send "&cPrestige value cannot be negative!" to player
+            stop
+
+        set {_uuid} to {_target}'s uuid
+        set {_oldPrestige} to {mining::%{_archetype}%::%{_uuid}%::prestige} ? 0
+        set {mining::%{_archetype}%::%{_uuid}%::prestige} to {_value}
+
+        # Get display name for archetype
+        if {_archetype} = "precision":
+            set {_displayName} to "&b&lPrecision"
+        else if {_archetype} = "demolition":
+            set {_displayName} to "&c&lDemolition"
+        else if {_archetype} = "arcane":
+            set {_displayName} to "&d&lArcane"
+        else:
+            set {_displayName} to "&f&lGlobal"
+
+        send "&aSet %{_displayName}% &aprestige for &e%{_target}% &afrom &6%{_oldPrestige}% &ato &6%{_value}%" to player
+
+        if {_target} is online:
+            send "&eYour %{_displayName}% &eprestige was set to &6%{_value}% &eby an admin." to {_target}
+            # Update multipliers and pickaxe for the target
+            multiplier_onPrestige({_target})
+            pickaxe_onPrestige({_target})

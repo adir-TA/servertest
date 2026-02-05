@@ -1,0 +1,269 @@
+# ============================================================
+# DISCOVERY SYSTEM
+# ============================================================
+#
+# Tracks which pets and accessories each player has discovered.
+# Shows "Unknown" in index for undiscovered items.
+# Shows "NEW" animation when discovering for the first time.
+# Tracks global discovery count per type.
+#
+# Variables:
+#   {data::discovered::pet::%uuid%::%type%}   → true if player discovered pet
+#   {data::discovered::acc::%uuid%::%type%}   → true if player discovered acc
+#   {data::global::discovered::pet::%type%}   → count of players who found pet
+#   {data::global::discovered::acc::%type%}   → count of players who found acc
+#
+# ============================================================
+
+
+# ============================================================
+# PET DISCOVERY
+# ============================================================
+
+function discovery_hasPetDiscovered(p: player, petType: text) :: boolean:
+    set {_uuid} to {_p}'s uuid
+    if {data::discovered::pet::%{_uuid}%::%{_petType}%} is set:
+        return true
+    return false
+
+
+function discovery_discoverPet(p: player, petType: text) :: boolean:
+    set {_uuid} to {_p}'s uuid
+
+    # Already discovered - no action needed
+    if {data::discovered::pet::%{_uuid}%::%{_petType}%} is set:
+        return false
+
+    # Mark as discovered
+    set {data::discovered::pet::%{_uuid}%::%{_petType}%} to true
+
+    # Increment global discovery count
+    if {data::global::discovered::pet::%{_petType}%} is not set:
+        set {data::global::discovered::pet::%{_petType}%} to 0
+    add 1 to {data::global::discovered::pet::%{_petType}%}
+
+    # Return true to indicate this was a NEW discovery
+    return true
+
+
+function discovery_getGlobalPetCount(petType: text) :: integer:
+    return ({data::global::discovered::pet::%{_petType}%} ? 0)
+
+
+function discovery_getPlayerPetCount(p: player) :: integer:
+    set {_uuid} to {_p}'s uuid
+    return size of {data::discovered::pet::%{_uuid}%::*}
+
+
+function discovery_getTotalPetTypes() :: integer:
+    return size of {-pet::types::*}
+
+
+# ============================================================
+# ACCESSORY DISCOVERY
+# ============================================================
+
+function discovery_hasAccDiscovered(p: player, accType: text) :: boolean:
+    set {_uuid} to {_p}'s uuid
+    if {data::discovered::acc::%{_uuid}%::%{_accType}%} is set:
+        return true
+    return false
+
+
+function discovery_discoverAcc(p: player, accType: text) :: boolean:
+    set {_uuid} to {_p}'s uuid
+
+    # Already discovered - no action needed
+    if {data::discovered::acc::%{_uuid}%::%{_accType}%} is set:
+        return false
+
+    # Mark as discovered
+    set {data::discovered::acc::%{_uuid}%::%{_accType}%} to true
+
+    # Increment global discovery count
+    if {data::global::discovered::acc::%{_accType}%} is not set:
+        set {data::global::discovered::acc::%{_accType}%} to 0
+    add 1 to {data::global::discovered::acc::%{_accType}%}
+
+    # Return true to indicate this was a NEW discovery
+    return true
+
+
+function discovery_getGlobalAccCount(accType: text) :: integer:
+    return ({data::global::discovered::acc::%{_accType}%} ? 0)
+
+
+function discovery_getPlayerAccCount(p: player) :: integer:
+    set {_uuid} to {_p}'s uuid
+    return size of {data::discovered::acc::%{_uuid}%::*}
+
+
+function discovery_getTotalAccTypes() :: integer:
+    return size of {-acc::allTypes::*}
+
+
+# ============================================================
+# GEM DISCOVERY
+# ============================================================
+
+function discovery_hasGemDiscovered(p: player, gemTier: integer) :: boolean:
+    set {_uuid} to {_p}'s uuid
+    if {data::discovered::gem::%{_uuid}%::%{_gemTier}%} is set:
+        return true
+    return false
+
+
+function discovery_discoverGem(p: player, gemTier: integer) :: boolean:
+    set {_uuid} to {_p}'s uuid
+
+    # Already discovered - no action needed
+    if {data::discovered::gem::%{_uuid}%::%{_gemTier}%} is set:
+        return false
+
+    # Mark as discovered
+    set {data::discovered::gem::%{_uuid}%::%{_gemTier}%} to true
+
+    # Increment global discovery count
+    if {data::global::discovered::gem::%{_gemTier}%} is not set:
+        set {data::global::discovered::gem::%{_gemTier}%} to 0
+    add 1 to {data::global::discovered::gem::%{_gemTier}%}
+
+    # Return true to indicate this was a NEW discovery
+    return true
+
+
+function discovery_getGlobalGemCount(gemTier: integer) :: integer:
+    return ({data::global::discovered::gem::%{_gemTier}%} ? 0)
+
+
+function discovery_getPlayerGemCount(p: player) :: integer:
+    set {_uuid} to {_p}'s uuid
+    return size of {data::discovered::gem::%{_uuid}%::*}
+
+
+function discovery_getTotalGemTypes() :: integer:
+    return 8
+
+
+# ============================================================
+# NEW DISCOVERY ANIMATION
+# ============================================================
+
+function discovery_showNewPetAnimation(p: player, petType: text, loc: location):
+    # Spawn "NEW" text display above the location
+    set {_textId} to random integer between 100000 and 9999999
+
+    set {_x} to x-coord of {_loc}
+    set {_y} to y-coord of {_loc} + 1.5
+    set {_z} to z-coord of {_loc}
+    set {_textLoc} to location({_x}, {_y}, {_z}, world of {_loc})
+
+    spawn fake text display at {_textLoc} for {_p} with id {_textId}
+
+    set {_m} to new metadata packet with id {_textId}:
+        display text: "&a&lNEW!"
+        display scale: vector(0.01, 0.01, 0.01)
+        display billboard: center
+        display brightness block: 15
+        display teleportduration: 2
+        display background alpha: 0
+    send packet {_m} to {_p}
+
+    # Sound effects
+    play sound "entity.player.levelup" with volume 0.6 and pitch 1.5 to {_p}
+    play sound "block.note_block.chime" with volume 0.5 and pitch 2.0 to {_p}
+
+    wait 1 tick
+
+    # Pop in animation
+    set {_m} to new metadata packet with id {_textId}:
+        display scale: vector(1.5, 1.5, 1.5)
+        display transformation: 3
+        display interpolation: 0
+    send packet {_m} to {_p}
+
+    wait 3 ticks
+
+    # Settle
+    set {_m} to new metadata packet with id {_textId}:
+        display scale: vector(1.0, 1.0, 1.0)
+        display transformation: 3
+        display interpolation: 0
+    send packet {_m} to {_p}
+
+    # Float up
+    set {_endLoc} to location({_x}, {_y} + 0.5, {_z}, world of {_loc})
+    send teleport packet with id {_textId} with location {_endLoc} to {_p}
+
+    wait 20 ticks
+
+    # Fade out
+    set {_m} to new metadata packet with id {_textId}:
+        display scale: vector(0.01, 0.01, 0.01)
+        display transformation: 4
+        display interpolation: 0
+    send packet {_m} to {_p}
+
+    wait 4 ticks
+
+    remove fake entity with id {_textId} for {_p}
+
+
+function discovery_showNewAccAnimation(p: player, accType: text, loc: location):
+    # Spawn "NEW" text display above the location
+    set {_textId} to random integer between 100000 and 9999999
+
+    set {_x} to x-coord of {_loc}
+    set {_y} to y-coord of {_loc} + 1.5
+    set {_z} to z-coord of {_loc}
+    set {_textLoc} to location({_x}, {_y}, {_z}, world of {_loc})
+
+    spawn fake text display at {_textLoc} for {_p} with id {_textId}
+
+    set {_m} to new metadata packet with id {_textId}:
+        display text: "&a&lNEW!"
+        display scale: vector(0.01, 0.01, 0.01)
+        display billboard: center
+        display brightness block: 15
+        display teleportduration: 2
+        display background alpha: 0
+    send packet {_m} to {_p}
+
+    # Sound effects
+    play sound "entity.player.levelup" with volume 0.6 and pitch 1.5 to {_p}
+    play sound "block.note_block.chime" with volume 0.5 and pitch 2.0 to {_p}
+
+    wait 1 tick
+
+    # Pop in animation
+    set {_m} to new metadata packet with id {_textId}:
+        display scale: vector(1.5, 1.5, 1.5)
+        display transformation: 3
+        display interpolation: 0
+    send packet {_m} to {_p}
+
+    wait 3 ticks
+
+    # Settle
+    set {_m} to new metadata packet with id {_textId}:
+        display scale: vector(1.0, 1.0, 1.0)
+        display transformation: 3
+        display interpolation: 0
+    send packet {_m} to {_p}
+
+    # Float up
+    set {_endLoc} to location({_x}, {_y} + 0.5, {_z}, world of {_loc})
+    send teleport packet with id {_textId} with location {_endLoc} to {_p}
+
+    wait 20 ticks
+
+    # Fade out
+    set {_m} to new metadata packet with id {_textId}:
+        display scale: vector(0.01, 0.01, 0.01)
+        display transformation: 4
+        display interpolation: 0
+    send packet {_m} to {_p}
+
+    wait 4 ticks
+
+    remove fake entity with id {_textId} for {_p}

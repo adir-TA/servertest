@@ -1,0 +1,34 @@
+
+on join:
+    menu_deleteSession(player)
+    # Apply Speed enchant if equipped
+    enchant_applySpeed(player)
+    # Spawn pet follow displays after short delay (let client load)
+    wait 5 ticks
+    petFollow_spawnAll(player)
+    petFollow_startLoop(player)
+
+    # ════════════════════════════════════════
+    # BOOSTER SYSTEM
+    # ════════════════════════════════════════
+    # Cleanup any expired boosters (remaining <= 0)
+    set {_uuid} to player's uuid
+    loop integers from 1 to 5:
+        set {_slot} to loop-value
+        if {data::boosters::%{_uuid}%::equipped::%{_slot}%::remaining} is set:
+            if {data::boosters::%{_uuid}%::equipped::%{_slot}%::remaining} is less than or equal to 0:
+                delete {data::boosters::%{_uuid}%::equipped::%{_slot}%::data}
+                delete {data::boosters::%{_uuid}%::equipped::%{_slot}%::remaining}
+                delete {data::boosters::%{_uuid}%::equipped::%{_slot}%::original}
+
+    # Notify if has active boosters
+    if booster_hasAnyEquipped(player) is true:
+        wait 2 seconds
+        send "" to player
+        send "&6&l[BOOSTER] &eYou have active boosters from your last session!" to player
+        send "&7Use &e/boosters &7to view them." to player
+        send "" to player
+        play sound "block.note_block.pling" with volume 0.7 and pitch 1.2 to player
+
+    # Start booster loop
+    booster_startLoop(player)

@@ -1,0 +1,990 @@
+# ============================================================
+# BOOSTER SYSTEM v2 (with Tiers & Rarities)
+# ============================================================
+# Personal and Global temporary multiplier boosters
+#
+# Encoding format: "tier|rarity|type1:amount1,type2:amount2|duration"
+# Examples:
+#   "basic|common|xp:50|1800"
+#   "ultra|epic|xp:50,token:25|3600"
+#   "mythic|legendary|xp:100,token:80,drops:60|7200"
+#
+# Tiers: basic, advanced, ultra, divine, mythic
+# Rarities: common, uncommon, rare, epic, legendary
+#
+# Storage: Max 50 boosters in bag
+# Equipped: 5 slots (unlocked via research)
+# Cap: 300% base, upgradable to 500% via research
+# Max Effects: 2 default, upgradable to 6 via research
+# ============================================================
+
+# ============================================================
+# CONSTANTS
+# ============================================================
+
+function booster_getStorageMax(p: player) :: number:
+    set {_uuid} to {_p}'s uuid
+    set {_base} to 75
+    return {data::storage::boosters::%{_uuid}%} ? {_base}
+
+function booster_getMaxSlots() :: number:
+    return 5
+
+function booster_getBaseCap() :: number:
+    return 3.0  # 300%
+
+# ============================================================
+# TIER & RARITY REGISTRY
+# ============================================================
+
+on script load:
+    # Clear old data
+    delete {-booster::tiers::*}
+    delete {-booster::rarities::*}
+
+    # Register tiers
+    booster_registerTier("basic", "&fBasic", 1.0)
+    booster_registerTier("advanced", "&aAdvanced", 1.25)
+    booster_registerTier("ultra", "&bUltra", 1.5)
+    booster_registerTier("divine", "&dDivine", 2.0)
+    booster_registerTier("mythic", "&6Mythic", 3.0)
+
+    # Register rarities
+    booster_registerRarity("common", "&7Common", 1.0)
+    booster_registerRarity("uncommon", "&aUncommon", 1.25)
+    booster_registerRarity("rare", "&9Rare", 1.5)
+    booster_registerRarity("epic", "&5Epic", 2.0)
+    booster_registerRarity("legendary", "&6Legendary", 2.5)
+
+    # Clear guards on reload
+    delete {-guard::booster-global-loop}
+    delete {-booster::global::loop}
+
+    # Start global loop
+    booster_startGlobalLoop()
+
+function booster_registerTier(id: text, name: text, durationMult: number):
+    add {_id} to {-booster::tiers::*}
+    set {-booster::tier::%{_id}%::name} to {_name}
+    set {-booster::tier::%{_id}%::durationMult} to {_durationMult}
+
+function booster_registerRarity(id: text, name: text, effectMult: number):
+    add {_id} to {-booster::rarities::*}
+    set {-booster::rarity::%{_id}%::name} to {_name}
+    set {-booster::rarity::%{_id}%::effectMult} to {_effectMult}
+
+# ============================================================
+# TIER & RARITY GETTERS
+# ============================================================
+
+function booster_getTierName(tier: text) :: text:
+    return {-booster::tier::%{_tier}%::name} ? "&fUnknown"
+
+function booster_getTierDurationMult(tier: text) :: number:
+    return {-booster::tier::%{_tier}%::durationMult} ? 1.0
+
+function booster_getTierColor(tier: text) :: text:
+    set {_name} to {-booster::tier::%{_tier}%::name} ? "&f"
+    return first 2 characters of {_name}
+
+function booster_getRarityName(rarity: text) :: text:
+    return {-booster::rarity::%{_rarity}%::name} ? "&7Unknown"
+
+function booster_getRarityEffectMult(rarity: text) :: number:
+    return {-booster::rarity::%{_rarity}%::effectMult} ? 1.0
+
+function booster_getRarityColor(rarity: text) :: text:
+    set {_name} to {-booster::rarity::%{_rarity}%::name} ? "&7"
+    return first 2 characters of {_name}
+
+function booster_getNextRarity(rarity: text) :: text:
+    if {_rarity} is "common":
+        return "uncommon"
+    if {_rarity} is "uncommon":
+        return "rare"
+    if {_rarity} is "rare":
+        return "epic"
+    if {_rarity} is "epic":
+        return "legendary"
+    return ""  # legendary has no next
+
+function booster_isMaxRarity(rarity: text) :: boolean:
+    if {_rarity} is "legendary":
+        return true
+    return false
+
+function booster_getAllTiers() :: texts:
+    return {-booster::tiers::*}
+
+function booster_getAllRarities() :: texts:
+    return {-booster::rarities::*}
+
+# ============================================================
+# ENCODING / DECODING
+# ============================================================
+
+# Encode a booster with tier and rarity
+# booster_encode("basic", "common", ("xp", "token"), (50, 25), 1800) → "basic|common|xp:50,token:25|1800"
+function booster_encode(tier: text, rarity: text, types: texts, amounts: numbers, duration: number) :: text:
+    set {_effectParts} to ""
+    set {_i} to 1
+    loop {_types::*}:
+        set {_type} to loop-value
+        set {_amount} to {_amounts::%{_i}%}
+        if {_i} > 1:
+            set {_effectParts} to "%{_effectParts}%,"
+        set {_effectParts} to "%{_effectParts}%%{_type}%:%{_amount}%"
+        add 1 to {_i}
+    return "%{_tier}%|%{_rarity}%|%{_effectParts}%|%{_duration}%"
+
+# Get tier from encoded booster
+function booster_getTier(encoded: text) :: text:
+    set {_split::*} to {_encoded} split by "|"
+    return {_split::1} ? "basic"
+
+# Get rarity from encoded booster
+function booster_getRarity(encoded: text) :: text:
+    set {_split::*} to {_encoded} split by "|"
+    return {_split::2} ? "common"
+
+# Get all effect types from encoded booster
+function booster_getTypes(encoded: text) :: texts:
+    set {_split::*} to {_encoded} split by "|"
+    set {_effectPart} to {_split::3}
+    if {_effectPart} is not set:
+        return {_empty::*}
+    set {_pairs::*} to {_effectPart} split by ","
+    loop {_pairs::*}:
+        set {_pair::*} to loop-value split by ":"
+        add {_pair::1} to {_result::*}
+    return {_result::*}
+
+# Get amount for a specific type from encoded booster (raw, before rarity multiplier)
+function booster_getAmount(encoded: text, type: text) :: number:
+    set {_split::*} to {_encoded} split by "|"
+    set {_effectPart} to {_split::3}
+    if {_effectPart} is not set:
+        return 0
+    set {_pairs::*} to {_effectPart} split by ","
+    loop {_pairs::*}:
+        set {_pair::*} to loop-value split by ":"
+        if {_pair::1} is {_type}:
+            return {_pair::2} parsed as number
+    return 0
+
+# Get effective amount (with rarity multiplier applied)
+function booster_getEffectiveAmount(encoded: text, type: text) :: number:
+    set {_baseAmount} to booster_getAmount({_encoded}, {_type})
+    set {_rarity} to booster_getRarity({_encoded})
+    set {_mult} to booster_getRarityEffectMult({_rarity})
+    return {_baseAmount} * {_mult}
+
+# Get base duration from encoded booster
+function booster_getDuration(encoded: text) :: number:
+    set {_split::*} to {_encoded} split by "|"
+    return {_split::4} parsed as number ? 0
+
+# Get effective duration (with tier multiplier applied)
+function booster_getEffectiveDuration(encoded: text) :: number:
+    set {_baseDuration} to booster_getDuration({_encoded})
+    set {_tier} to booster_getTier({_encoded})
+    set {_mult} to booster_getTierDurationMult({_tier})
+    return floor({_baseDuration} * {_mult})
+
+# Get effect count
+function booster_getEffectCount(encoded: text) :: number:
+    set {_types::*} to booster_getTypes({_encoded})
+    return size of {_types::*}
+
+# Re-encode with new duration
+function booster_reencodeWithDuration(encoded: text, newDuration: number) :: text:
+    set {_split::*} to {_encoded} split by "|"
+    set {_tier} to {_split::1}
+    set {_rarity} to {_split::2}
+    set {_effects} to {_split::3}
+    return "%{_tier}%|%{_rarity}%|%{_effects}%|%{_newDuration}%"
+
+# ============================================================
+# STORAGE FUNCTIONS
+# ============================================================
+
+function booster_addToStorage(p: player, encoded: text) :: boolean:
+    set {_uuid} to {_p}'s uuid
+    set {_size} to size of {data::boosters::%{_uuid}%::storage::*}
+    if {_size} >= booster_getStorageMax({_p}):
+        return false
+    add {_encoded} to {data::boosters::%{_uuid}%::storage::*}
+    return true
+
+function booster_removeFromStorage(p: player, index: number) :: text:
+    set {_uuid} to {_p}'s uuid
+    set {_encoded} to {data::boosters::%{_uuid}%::storage::%{_index}%}
+    remove {_encoded} from {data::boosters::%{_uuid}%::storage::*}
+    return {_encoded}
+
+function booster_removeFromStorageByEncoded(p: player, encoded: text) :: boolean:
+    set {_uuid} to {_p}'s uuid
+    if {data::boosters::%{_uuid}%::storage::*} contains {_encoded}:
+        remove {_encoded} from {data::boosters::%{_uuid}%::storage::*}
+        return true
+    return false
+
+function booster_getStorage(p: player) :: texts:
+    return {data::boosters::%{_p}'s uuid%::storage::*}
+
+function booster_getStorageSize(p: player) :: number:
+    return size of {data::boosters::%{_p}'s uuid%::storage::*}
+
+# ============================================================
+# SLOT FUNCTIONS
+# ============================================================
+
+function booster_getUnlockedSlots(p: player) :: number:
+    set {_uuid} to {_p}'s uuid
+    return {data::boosters::%{_uuid}%::slots} ? 0
+
+function booster_isSlotUnlocked(p: player, slot: number) :: boolean:
+    set {_unlocked} to booster_getUnlockedSlots({_p})
+    if {_slot} is less than or equal to {_unlocked}:
+        return true
+    return false
+
+function booster_isSlotActive(p: player, slot: number) :: boolean:
+    set {_uuid} to {_p}'s uuid
+    if {data::boosters::%{_uuid}%::equipped::%{_slot}%::data} is not set:
+        return false
+    if {data::boosters::%{_uuid}%::equipped::%{_slot}%::remaining} is not set:
+        return false
+    if {data::boosters::%{_uuid}%::equipped::%{_slot}%::remaining} is less than or equal to 0:
+        return false
+    return true
+
+function booster_getSlotData(p: player, slot: number) :: text:
+    return {data::boosters::%{_p}'s uuid%::equipped::%{_slot}%::data} ? ""
+
+function booster_getSlotRemaining(p: player, slot: number) :: number:
+    return {data::boosters::%{_p}'s uuid%::equipped::%{_slot}%::remaining} ? 0
+
+function booster_getSlotOriginal(p: player, slot: number) :: number:
+    return {data::boosters::%{_p}'s uuid%::equipped::%{_slot}%::original} ? 0
+
+function booster_getFirstEmptySlot(p: player) :: number:
+    set {_unlocked} to booster_getUnlockedSlots({_p})
+    loop integers from 1 to {_unlocked}:
+        if booster_isSlotActive({_p}, loop-value) is false:
+            return loop-value
+    return -1
+
+function booster_hasAnyEquipped(p: player) :: boolean:
+    loop integers from 1 to 5:
+        if booster_isSlotActive({_p}, loop-value) is true:
+            return true
+    return false
+
+# ============================================================
+# EQUIP / UNEQUIP
+# ============================================================
+
+function booster_equip(p: player, storageIndex: number, slot: number) :: boolean:
+    set {_uuid} to {_p}'s uuid
+
+    # Check slot is unlocked
+    if booster_isSlotUnlocked({_p}, {_slot}) is false:
+        send "&c&l! &7That slot is locked! Use &d/research &7to unlock." to {_p}
+        return false
+
+    # Check slot is empty
+    if booster_isSlotActive({_p}, {_slot}) is true:
+        send "&c&l! &7That slot already has an active booster!" to {_p}
+        return false
+
+    # Get booster from storage
+    set {_encoded} to {data::boosters::%{_uuid}%::storage::%{_storageIndex}%}
+    if {_encoded} is not set:
+        return false
+
+    # Remove from storage
+    booster_removeFromStorage({_p}, {_storageIndex})
+
+    # Get effective duration (with tier multiplier)
+    set {_duration} to booster_getEffectiveDuration({_encoded})
+
+    # Set equipped data
+    set {data::boosters::%{_uuid}%::equipped::%{_slot}%::data} to {_encoded}
+    set {data::boosters::%{_uuid}%::equipped::%{_slot}%::remaining} to {_duration}
+    set {data::boosters::%{_uuid}%::equipped::%{_slot}%::original} to {_duration}
+
+    # Recalculate multipliers
+    multiplier_recalculate({_p})
+
+    # Notify player
+    set {_tier} to booster_getTier({_encoded})
+    set {_rarity} to booster_getRarity({_encoded})
+    set {_tierName} to booster_getTierName({_tier})
+    set {_rarityName} to booster_getRarityName({_rarity})
+    set {_types::*} to booster_getTypes({_encoded})
+
+    if size of {_types::*} = 1:
+        set {_type} to {_types::1}
+        set {_amount} to booster_getEffectiveAmount({_encoded}, {_type})
+        set {_color} to booster_getTypeColor({_type})
+        send title "%{_color}%+%{_amount}%%% %booster_formatType({_type})%!" with subtitle "%{_tierName}% %{_rarityName}% &7- %booster_formatTime({_duration})%" to {_p} for 2 seconds with fade in 0.25 seconds and fade out 0.5 seconds
+    else:
+        set {_subtitle} to ""
+        loop {_types::*}:
+            set {_t} to loop-value
+            set {_a} to booster_getEffectiveAmount({_encoded}, {_t})
+            set {_c} to booster_getTypeColor({_t})
+            if {_subtitle} is not "":
+                set {_subtitle} to "%{_subtitle}% &7| "
+            set {_subtitle} to "%{_subtitle}%%{_c}%+%{_a}%%%"
+        send title "%{_tierName}% %{_rarityName}% &fBoost!" with subtitle "%{_subtitle}%" to {_p} for 2 seconds with fade in 0.25 seconds and fade out 0.5 seconds
+
+    play sound "entity.player.levelup" with volume 0.7 and pitch 1.2 to {_p}
+
+    # Tutorial callback
+    tutorial_onBoosterEquip({_p})
+
+    return true
+
+function booster_unequip(p: player, slot: number) :: boolean:
+    set {_uuid} to {_p}'s uuid
+
+    # Check if slot has active booster
+    if booster_isSlotActive({_p}, {_slot}) is false:
+        return false
+
+    # Get remaining time
+    set {_data} to {data::boosters::%{_uuid}%::equipped::%{_slot}%::data}
+    set {_remaining} to {data::boosters::%{_uuid}%::equipped::%{_slot}%::remaining}
+
+    # Re-encode with remaining time (store remaining, not original)
+    set {_tier} to booster_getTier({_data})
+    set {_rarity} to booster_getRarity({_data})
+    set {_split::*} to {_data} split by "|"
+    set {_effects} to {_split::3}
+    set {_newEncoded} to "%{_tier}%|%{_rarity}%|%{_effects}%|%{_remaining}%"
+
+    # Check storage space
+    if booster_getStorageSize({_p}) >= booster_getStorageMax({_p}):
+        send "&c&l! &7Your booster storage is full! Cannot unequip." to {_p}
+        return false
+
+    # Add back to storage
+    booster_addToStorage({_p}, {_newEncoded})
+
+    # Clear slot
+    delete {data::boosters::%{_uuid}%::equipped::%{_slot}%::data}
+    delete {data::boosters::%{_uuid}%::equipped::%{_slot}%::remaining}
+    delete {data::boosters::%{_uuid}%::equipped::%{_slot}%::original}
+
+    # Recalculate multipliers
+    multiplier_recalculate({_p})
+
+    send "&e&l! &7Booster unequipped and returned to storage with &a%booster_formatTime({_remaining})% &7remaining." to {_p}
+    play sound "ui.button.click" with volume 0.5 and pitch 1 to {_p}
+    return true
+
+function booster_expireSlot(p: player, slot: number):
+    set {_uuid} to {_p}'s uuid
+    set {_data} to {data::boosters::%{_uuid}%::equipped::%{_slot}%::data}
+
+    if {_data} is not set:
+        stop
+
+    # Get info for notification
+    set {_tier} to booster_getTier({_data})
+    set {_rarity} to booster_getRarity({_data})
+    set {_tierName} to booster_getTierName({_tier})
+    set {_rarityName} to booster_getRarityName({_rarity})
+    set {_types::*} to booster_getTypes({_data})
+
+    set {_msg} to ""
+    loop {_types::*}:
+        set {_t} to loop-value
+        set {_a} to booster_getEffectiveAmount({_data}, {_t})
+        set {_color} to booster_getTypeColor({_t})
+        if {_msg} is not "":
+            set {_msg} to "%{_msg}%&7, "
+        set {_msg} to "%{_msg}%%{_color}%+%{_a}%%% %booster_formatType({_t})%"
+
+    # Clear slot
+    delete {data::boosters::%{_uuid}%::equipped::%{_slot}%::data}
+    delete {data::boosters::%{_uuid}%::equipped::%{_slot}%::remaining}
+    delete {data::boosters::%{_uuid}%::equipped::%{_slot}%::original}
+
+    # Notify
+    send "" to {_p}
+    send "&c&l! &7Your %{_tierName}% %{_rarityName}% &7booster has expired: %{_msg}%" to {_p}
+    send "" to {_p}
+    play sound "block.note_block.bass" with volume 0.7 and pitch 0.8 to {_p}
+
+# ============================================================
+# CAP & MAX EFFECTS SYSTEM
+# ============================================================
+
+function booster_getCap(p: player) :: number:
+    return 5.0
+
+function booster_getMaxEffects(p: player) :: integer:
+    return 6
+
+function booster_getTotalForType(p: player, type: text) :: number:
+    set {_total} to 0
+    set {_uuid} to {_p}'s uuid
+
+    loop integers from 1 to 5:
+        set {_slot} to loop-value
+        if booster_isSlotActive({_p}, {_slot}) is true:
+            set {_data} to booster_getSlotData({_p}, {_slot})
+            set {_amount} to booster_getEffectiveAmount({_data}, {_type})
+            add {_amount} / 100 to {_total}  # Convert percentage to decimal
+
+    return {_total}
+
+# ============================================================
+# BONUS CALCULATION (for multiplier.sk)
+# ============================================================
+
+function booster_getPersonalBonus(p: player, type: text) :: number:
+    set {_total} to booster_getTotalForType({_p}, {_type})
+    set {_cap} to booster_getCap({_p})
+
+    # Cap the bonus
+    if {_total} > {_cap}:
+        return {_cap}
+    return {_total}
+
+function booster_getGlobalBonus(type: text) :: number:
+    if {data::boosters::global::%{_type}%::remaining} is not set:
+        return 0
+    if {data::boosters::global::%{_type}%::remaining} is less than or equal to 0:
+        return 0
+    return {data::boosters::global::%{_type}%::amount} ? 0
+
+# ============================================================
+# GLOBAL BOOSTERS
+# ============================================================
+
+function booster_activateGlobal(activator: player, type: text, amount: number, duration: number) :: boolean:
+    # Check if already exists
+    if {data::boosters::global::%{_type}%::remaining} is set:
+        if {data::boosters::global::%{_type}%::remaining} is greater than 0:
+            send "&c&l! &7There is already an active global %booster_formatType({_type})% booster!" to {_activator}
+            return false
+
+    # Set global booster
+    set {data::boosters::global::%{_type}%::amount} to {_amount} / 100
+    set {data::boosters::global::%{_type}%::remaining} to {_duration}
+    set {data::boosters::global::%{_type}%::original} to {_duration}
+    set {data::boosters::global::%{_type}%::activator} to {_activator}'s uuid
+
+    # Broadcast
+    set {_formatted} to booster_formatType({_type})
+    set {_color} to booster_getTypeColor({_type})
+    set {_time} to booster_formatTime({_duration})
+
+    broadcast ""
+    broadcast "&6&l[BOOST] &e%{_activator}% &aactivated %{_color}%+%{_amount}%%% %{_formatted}% &afor &f%{_time}%&a!"
+    broadcast ""
+
+    # Title and sound to all
+    loop all players:
+        send title "%{_color}%+%{_amount}%%% %{_formatted}%!" with subtitle "&7Server-wide boost by %{_activator}%" to loop-player for 3 seconds with fade in 0.5 seconds and fade out 1 second
+        play sound "entity.ender_dragon.growl" with volume 0.5 and pitch 1.2 to loop-player
+        multiplier_recalculate(loop-player)
+
+    return true
+
+function booster_clearGlobal(type: text):
+    delete {data::boosters::global::%{_type}%::amount}
+    delete {data::boosters::global::%{_type}%::remaining}
+    delete {data::boosters::global::%{_type}%::original}
+    delete {data::boosters::global::%{_type}%::activator}
+
+function booster_hasGlobal(type: text) :: boolean:
+    if {data::boosters::global::%{_type}%::remaining} is not set:
+        return false
+    if {data::boosters::global::%{_type}%::remaining} is greater than 0:
+        return true
+    return false
+
+function booster_getGlobalRemaining(type: text) :: number:
+    return {data::boosters::global::%{_type}%::remaining} ? 0
+
+function booster_expireGlobal(type: text):
+    set {_formatted} to booster_formatType({_type})
+    set {_color} to booster_getTypeColor({_type})
+
+    broadcast ""
+    broadcast "&6&l[BOOST] &eThe %{_color}%%{_formatted}% &eglobal boost has ended!"
+    broadcast ""
+
+    booster_clearGlobal({_type})
+
+    loop all players:
+        multiplier_recalculate(loop-player)
+
+function booster_getActiveGlobals() :: texts:
+    loop "mining_speed", "drops", "xp", "token", "money", "enchant_proc", "damage" and "durability":
+        if booster_hasGlobal(loop-value) is true:
+            add loop-value to {_result::*}
+    return {_result::*}
+
+# ============================================================
+# LOOP MANAGEMENT
+# ============================================================
+
+function booster_startLoop(p: player):
+    set {_uuid} to {_p}'s uuid
+
+    # Guard check
+    {-guard::booster-loop::%{_uuid}%} is not set
+    set {-guard::booster-loop::%{_uuid}%} to true
+    set {-booster::loop::%{_uuid}%} to true
+
+    while {-booster::loop::%{_uuid}%} is true:
+        wait 30 seconds
+        if {_p} is online:
+            booster_tick({_p}, 30)
+        else:
+            delete {-booster::loop::%{_uuid}%}
+            delete {-guard::booster-loop::%{_uuid}%}
+            stop
+
+    delete {-guard::booster-loop::%{_uuid}%}
+
+function booster_tick(p: player, seconds: number):
+    set {_uuid} to {_p}'s uuid
+    set {_anyExpired} to false
+
+    loop integers from 1 to 5:
+        set {_slot} to loop-value
+        if {data::boosters::%{_uuid}%::equipped::%{_slot}%::data} is set:
+            if {data::boosters::%{_uuid}%::equipped::%{_slot}%::remaining} is set:
+                subtract {_seconds} from {data::boosters::%{_uuid}%::equipped::%{_slot}%::remaining}
+
+                if {data::boosters::%{_uuid}%::equipped::%{_slot}%::remaining} is less than or equal to 0:
+                    booster_expireSlot({_p}, {_slot})
+                    set {_anyExpired} to true
+
+    if {_anyExpired} is true:
+        multiplier_recalculate({_p})
+
+function booster_deductQuitPenalty(p: player, seconds: number):
+    set {_uuid} to {_p}'s uuid
+
+    loop integers from 1 to 5:
+        set {_slot} to loop-value
+        if {data::boosters::%{_uuid}%::equipped::%{_slot}%::remaining} is set:
+            subtract {_seconds} from {data::boosters::%{_uuid}%::equipped::%{_slot}%::remaining}
+
+            if {data::boosters::%{_uuid}%::equipped::%{_slot}%::remaining} is less than 0:
+                set {data::boosters::%{_uuid}%::equipped::%{_slot}%::remaining} to 0
+
+function booster_stopLoop(p: player):
+    set {_uuid} to {_p}'s uuid
+    delete {-booster::loop::%{_uuid}%}
+    delete {-guard::booster-loop::%{_uuid}%}
+
+# Global loop
+function booster_startGlobalLoop():
+    {-guard::booster-global-loop} is not set
+    set {-guard::booster-global-loop} to true
+    set {-booster::global::loop} to true
+
+    while {-booster::global::loop} is true:
+        wait 30 seconds
+        booster_tickGlobal(30)
+
+    delete {-guard::booster-global-loop}
+
+function booster_tickGlobal(seconds: number):
+    loop "mining_speed", "drops", "xp", "token", "money", "enchant_proc", "damage" and "durability":
+        set {_type} to loop-value
+        if {data::boosters::global::%{_type}%::remaining} is set:
+            if {data::boosters::global::%{_type}%::remaining} is greater than 0:
+                subtract {_seconds} from {data::boosters::global::%{_type}%::remaining}
+
+                if {data::boosters::global::%{_type}%::remaining} is less than or equal to 0:
+                    booster_expireGlobal({_type})
+
+# ============================================================
+# UTILITY FUNCTIONS
+# ============================================================
+
+function booster_formatType(type: text) :: text:
+    if {_type} is "mining_speed":
+        return "Mining Speed"
+    if {_type} is "drops":
+        return "Drops"
+    if {_type} is "xp":
+        return "XP"
+    if {_type} is "token":
+        return "Tokens"
+    if {_type} is "money":
+        return "Money"
+    if {_type} is "enchant_proc":
+        return "Enchant Proc"
+    if {_type} is "damage":
+        return "Damage"
+    if {_type} is "durability":
+        return "Durability"
+    return {_type}
+
+function booster_formatTime(seconds: number) :: text:
+    if {_seconds} <= 0:
+        return "Expired"
+
+    set {_days} to floor({_seconds} / 86400)
+    set {_hours} to floor(mod({_seconds}, 86400) / 3600)
+    set {_minutes} to floor(mod({_seconds}, 3600) / 60)
+    set {_secs} to floor(mod({_seconds}, 60))
+
+    if {_days} > 0:
+        return "%{_days}%d %{_hours}%h"
+    if {_hours} > 0:
+        return "%{_hours}%h %{_minutes}%m"
+    if {_minutes} > 0:
+        return "%{_minutes}%m %{_secs}%s"
+    return "%{_secs}%s"
+
+function booster_getTypeColor(type: text) :: text:
+    if {_type} is "mining_speed":
+        return "&b"
+    if {_type} is "drops":
+        return "&6"
+    if {_type} is "xp":
+        return "&a"
+    if {_type} is "token":
+        return "&e"
+    if {_type} is "money":
+        return "&2"
+    if {_type} is "enchant_proc":
+        return "&d"
+    if {_type} is "damage":
+        return "&c"
+    if {_type} is "durability":
+        return "&9"
+    return "&f"
+
+function booster_getTypeIcon(type: text) :: item:
+    if {_type} is "mining_speed":
+        return sugar
+    if {_type} is "drops":
+        return chest
+    if {_type} is "xp":
+        return experience bottle
+    if {_type} is "token":
+        return gold nugget
+    if {_type} is "money":
+        return emerald
+    if {_type} is "enchant_proc":
+        return enchanting table
+    if {_type} is "damage":
+        return iron sword
+    if {_type} is "durability":
+        return shield
+    return paper
+
+function booster_parseDuration(input: text) :: number:
+    set {_len} to length of {_input}
+    set {_unit} to last character of {_input}
+    set {_numStr} to first ({_len} - 1) characters of {_input}
+    set {_num} to {_numStr} parsed as number
+
+    if {_num} is not set:
+        return 0
+
+    if {_unit} is "s":
+        return {_num}
+    if {_unit} is "m":
+        return {_num} * 60
+    if {_unit} is "h":
+        return {_num} * 3600
+    if {_unit} is "d":
+        return {_num} * 86400
+
+    return 0
+
+# ============================================================
+# ADMIN COMMANDS
+# ============================================================
+
+command /booster [<text>] [<text>] [<text>] [<text>] [<text>] [<text>]:
+    permission: booster.admin
+    trigger:
+        set {_action} to arg-1
+
+        # /booster give <player> <tier> <rarity> <types> <duration>
+        if {_action} is "give":
+            set {_target} to arg-2 parsed as offline player
+            if {_target} is not set:
+                send "&c&l! &7Player not found."
+                stop
+
+            set {_tier} to arg-3
+            set {_rarity} to arg-4
+            set {_typesStr} to arg-5
+            set {_durationStr} to arg-6
+
+            if {_tier} is not set:
+                send "&c&l! &7Usage: /booster give <player> <tier> <rarity> <type:amount,...> <duration>"
+                send "&7Example: /booster give Steve basic common xp:50 30m"
+                send "&7Example: /booster give Steve ultra epic xp:50,token:25 1h"
+                send "&7Tiers: basic, advanced, ultra, divine, mythic"
+                send "&7Rarities: common, uncommon, rare, epic, legendary"
+                stop
+
+            # Validate tier
+            set {_validTiers::*} to "basic", "advanced", "ultra", "divine" and "mythic"
+            if {_validTiers::*} does not contain {_tier}:
+                send "&c&l! &7Invalid tier: %{_tier}%"
+                send "&7Valid tiers: basic, advanced, ultra, divine, mythic"
+                stop
+
+            # Validate rarity
+            set {_validRarities::*} to "common", "uncommon", "rare", "epic" and "legendary"
+            if {_validRarities::*} does not contain {_rarity}:
+                send "&c&l! &7Invalid rarity: %{_rarity}%"
+                send "&7Valid rarities: common, uncommon, rare, epic, legendary"
+                stop
+
+            if {_typesStr} is not set:
+                send "&c&l! &7Please specify effect types (e.g., xp:50 or xp:50,token:25)"
+                stop
+
+            if {_durationStr} is not set:
+                send "&c&l! &7Please specify duration (e.g., 30s, 5m, 1h, 2d)"
+                stop
+
+            set {_duration} to booster_parseDuration({_durationStr})
+            if {_duration} <= 0:
+                send "&c&l! &7Invalid duration format. Use: 30s, 5m, 1h, 2d"
+                stop
+
+            # Encode the booster
+            set {_encoded} to "%{_tier}%|%{_rarity}%|%{_typesStr}%|%{_duration}%"
+
+            # Validate types
+            set {_types::*} to booster_getTypes({_encoded})
+            set {_validTypes::*} to "mining_speed", "drops", "xp", "token", "money", "enchant_proc", "damage" and "durability"
+            loop {_types::*}:
+                if {_validTypes::*} does not contain loop-value:
+                    send "&c&l! &7Invalid type: %loop-value%"
+                    send "&7Valid types: mining_speed, drops, xp, token, money, enchant_proc, damage, durability"
+                    stop
+
+            # Add to storage
+            if booster_addToStorage({_target}, {_encoded}) is true:
+                set {_tierName} to booster_getTierName({_tier})
+                set {_rarityName} to booster_getRarityName({_rarity})
+                send "&a&l! &7Gave %{_tierName}% %{_rarityName}% &7booster to &e%{_target}%&7!"
+
+                set {_preview} to ""
+                loop {_types::*}:
+                    set {_t} to loop-value
+                    set {_a} to booster_getAmount({_encoded}, {_t})
+                    set {_color} to booster_getTypeColor({_t})
+                    if {_preview} is not "":
+                        set {_preview} to "%{_preview}%&7, "
+                    set {_preview} to "%{_preview}%%{_color}%+%{_a}%%% %booster_formatType({_t})%"
+                send "&7Effects: %{_preview}% &7for &f%booster_formatTime({_duration})%"
+
+                if {_target} is online:
+                    send "" to {_target}
+                    send "&a&l! &7You received a %{_tierName}% %{_rarityName}% &7booster!" to {_target}
+                    send "&7Effects: %{_preview}%" to {_target}
+                    send "&7Use &e/boosters &7to view and equip it!" to {_target}
+                    send "" to {_target}
+                    play sound "entity.item.pickup" with volume 0.7 and pitch 1.2 to {_target}
+            else:
+                send "&c&l! &7%{_target}%'s booster storage is full!"
+
+        # /booster global <type> <amount> <duration>
+        else if {_action} is "global":
+            set {_type} to arg-2
+            set {_amountStr} to arg-3
+            set {_durationStr} to arg-4
+
+            if {_type} is not set:
+                send "&c&l! &7Usage: /booster global <type> <amount%%> <duration>"
+                send "&7Example: /booster global token 100 1h"
+                stop
+
+            set {_validTypes::*} to "mining_speed", "drops", "xp", "token", "money", "enchant_proc", "damage" and "durability"
+            if {_validTypes::*} does not contain {_type}:
+                send "&c&l! &7Invalid type: %{_type}%"
+                stop
+
+            set {_amount} to {_amountStr} parsed as number
+            if {_amount} is not set:
+                send "&c&l! &7Invalid amount."
+                stop
+
+            set {_duration} to booster_parseDuration({_durationStr})
+            if {_duration} <= 0:
+                send "&c&l! &7Invalid duration format."
+                stop
+
+            booster_activateGlobal(player, {_type}, {_amount}, {_duration})
+
+        # /booster setcauldron
+        else if {_action} is "setcauldron":
+            set {_block} to target block of player
+            if {_block} is not cauldron:
+                send "&c&l! &7You must be looking at a cauldron!"
+                stop
+
+            set {_loc} to location of {_block}
+            set {data::boosters::workstation::world} to world of {_loc}
+            set {data::boosters::workstation::x} to x-coordinate of {_loc}
+            set {data::boosters::workstation::y} to y-coordinate of {_loc}
+            set {data::boosters::workstation::z} to z-coordinate of {_loc}
+
+            send "&a&l! &7Booster workstation set at &e%x-coordinate of {_loc}%&7, &e%y-coordinate of {_loc}%&7, &e%z-coordinate of {_loc}%&7!"
+            play sound "block.anvil.use" with volume 1 and pitch 1.2 to player
+
+        # /booster clear storage|equipped|global ...
+        else if {_action} is "clear":
+            set {_clearType} to arg-2
+
+            if {_clearType} is "storage":
+                set {_target} to arg-3 parsed as offline player
+                if {_target} is not set:
+                    send "&c&l! &7Player not found."
+                    stop
+                delete {data::boosters::%{_target}'s uuid%::storage::*}
+                send "&a&l! &7Cleared %{_target}%'s booster storage."
+
+            else if {_clearType} is "equipped":
+                set {_target} to arg-3 parsed as offline player
+                if {_target} is not set:
+                    send "&c&l! &7Player not found."
+                    stop
+                set {_slot} to arg-4 parsed as number
+                if {_slot} is set:
+                    delete {data::boosters::%{_target}'s uuid%::equipped::%{_slot}%::data}
+                    delete {data::boosters::%{_target}'s uuid%::equipped::%{_slot}%::remaining}
+                    delete {data::boosters::%{_target}'s uuid%::equipped::%{_slot}%::original}
+                    send "&a&l! &7Cleared %{_target}%'s booster slot %{_slot}%."
+                else:
+                    loop integers from 1 to 5:
+                        delete {data::boosters::%{_target}'s uuid%::equipped::%loop-value%::data}
+                        delete {data::boosters::%{_target}'s uuid%::equipped::%loop-value%::remaining}
+                        delete {data::boosters::%{_target}'s uuid%::equipped::%loop-value%::original}
+                    send "&a&l! &7Cleared all of %{_target}%'s equipped boosters."
+
+                if {_target} is online:
+                    multiplier_recalculate({_target})
+
+            else if {_clearType} is "global":
+                set {_type} to arg-3
+                if {_type} is set:
+                    booster_clearGlobal({_type})
+                    send "&a&l! &7Cleared global %booster_formatType({_type})% booster."
+                else:
+                    loop "mining_speed", "drops", "xp", "token", "money", "enchant_proc", "damage" and "durability":
+                        booster_clearGlobal(loop-value)
+                    send "&a&l! &7Cleared all global boosters."
+                loop all players:
+                    multiplier_recalculate(loop-player)
+
+            else:
+                send "&c&l! &7Usage:"
+                send "&7/booster clear storage <player>"
+                send "&7/booster clear equipped <player> [slot]"
+                send "&7/booster clear global [type]"
+
+        # /booster list global
+        else if {_action} is "list":
+            if arg-2 is "global":
+                set {_globals::*} to booster_getActiveGlobals()
+                if size of {_globals::*} = 0:
+                    send "&7No active global boosters."
+                else:
+                    send ""
+                    send "&6&lACTIVE GLOBAL BOOSTERS"
+                    send ""
+                    loop {_globals::*}:
+                        set {_type} to loop-value
+                        set {_amount} to {data::boosters::global::%{_type}%::amount} * 100
+                        set {_remaining} to booster_getGlobalRemaining({_type})
+                        set {_color} to booster_getTypeColor({_type})
+                        set {_activatorUuid} to {data::boosters::global::%{_type}%::activator}
+                        set {_activator} to {_activatorUuid} parsed as offline player
+                        send " %{_color}%+%{_amount}%%% %booster_formatType({_type})% &7- %booster_formatTime({_remaining})% &8(by %{_activator}%)"
+                    send ""
+            else:
+                send "&c&l! &7Usage: /booster list global"
+
+        # /booster check <player>
+        else if {_action} is "check":
+            set {_target} to arg-2 parsed as offline player
+            if {_target} is not set:
+                send "&c&l! &7Player not found."
+                stop
+
+            set {_uuid} to {_target}'s uuid
+            send ""
+            send "&6&l%{_target}%'s BOOSTERS"
+            send ""
+
+            # Equipped
+            send "&eEquipped:"
+            set {_hasEquipped} to false
+            loop integers from 1 to 5:
+                set {_slot} to loop-value
+                if booster_isSlotActive({_target}, {_slot}) is true:
+                    set {_hasEquipped} to true
+                    set {_data} to booster_getSlotData({_target}, {_slot})
+                    set {_remaining} to booster_getSlotRemaining({_target}, {_slot})
+                    set {_tier} to booster_getTier({_data})
+                    set {_rarity} to booster_getRarity({_data})
+                    set {_tierName} to booster_getTierName({_tier})
+                    set {_rarityName} to booster_getRarityName({_rarity})
+                    set {_types::*} to booster_getTypes({_data})
+                    set {_preview} to ""
+                    loop {_types::*}:
+                        set {_t} to loop-value-2
+                        set {_a} to booster_getEffectiveAmount({_data}, {_t})
+                        set {_color} to booster_getTypeColor({_t})
+                        if {_preview} is not "":
+                            set {_preview} to "%{_preview}%&7, "
+                        set {_preview} to "%{_preview}%%{_color}%+%{_a}%%%"
+                    send " &7Slot %{_slot}%: %{_tierName}% %{_rarityName}% &7- %{_preview}% &8(%booster_formatTime({_remaining})%)"
+            if {_hasEquipped} is false:
+                send " &8None"
+
+            # Storage
+            send "&eStorage: &7%booster_getStorageSize({_target})%/%booster_getStorageMax({_target})%"
+            send ""
+
+        # Help
+        else:
+            send ""
+            send "&6&lBOOSTER COMMANDS"
+            send ""
+            send "&e/booster give <player> <tier> <rarity> <type:amount,...> <duration>"
+            send "&7 Give a booster to a player's storage"
+            send ""
+            send "&e/booster global <type> <amount%%> <duration>"
+            send "&7 Activate a server-wide booster"
+            send ""
+            send "&e/booster setcauldron"
+            send "&7 Set the workstation location (look at cauldron)"
+            send ""
+            send "&e/booster clear storage|equipped|global ..."
+            send "&7 Clear boosters"
+            send ""
+            send "&e/booster list global"
+            send "&7 List active global boosters"
+            send ""
+            send "&e/booster check <player>"
+            send "&7 Check a player's boosters"
+            send ""
+            send "&7Tiers: basic, advanced, ultra, divine, mythic"
+            send "&7Rarities: common, uncommon, rare, epic, legendary"
+            send "&7Types: mining_speed, drops, xp, token, money, enchant_proc, damage, durability"
+            send "&7Duration: 30s, 5m, 1h, 2d"
+            send ""

@@ -1,0 +1,480 @@
+# ============================================================
+# RESEARCH SYSTEM - CONFIGURATION
+# ============================================================
+#
+# 5 Main Categories, each with research tracks inside:
+#   - enchants:    Enchant Slots (7 tiers)
+#   - pets:        Pet Slots (5), Pet Storage (5)
+#   - accessories: Accessory Slots (14), Accessory Storage (5)
+#   - boosters:    Booster Slots (5), Booster Storage (5)
+#   - archetypes:  Archetypes (3): Precision, Arcane, Demolition
+#
+# Time scaling: time = baseTime * (multiplier ^ (tier - 1))
+#
+# ============================================================
+
+on script load:
+    research_loadConfig()
+
+function research_loadConfig():
+    # Clear old config
+    delete {-research::categories::*}
+    delete {-research::tracks::*}
+    delete {-research::config::*}
+
+    # ════════════════════════════════════════
+    # MAIN CATEGORIES
+    # ════════════════════════════════════════
+    set {-research::categories::*} to "enchants", "pets", "accessories", "boosters", "gems" and "archetypes"
+
+    # ════════════════════════════════════════
+    # ENCHANTS CATEGORY
+    # ════════════════════════════════════════
+    set {-research::config::enchants::name} to "&5Enchants"
+    set {-research::config::enchants::icon} to enchanting table
+    set {-research::config::enchants::color} to "&5"
+    set {-research::config::enchants::description} to "Unlock enchant slots|for your pickaxe."
+
+    # Tracks in enchants
+    set {-research::tracks::enchants::*} to "slots"
+
+    # Enchant Slots Track
+    set {-research::config::enchants::slots::name} to "&5Enchant Slots"
+    set {-research::config::enchants::slots::icon} to enchanting table
+    set {-research::config::enchants::slots::maxTier} to 7
+    set {-research::config::enchants::slots::baseTime} to 30
+    set {-research::config::enchants::slots::timeMultiplier} to 2.5
+    set {-research::config::enchants::slots::reward} to "enchant_slot"
+    set {-research::config::enchants::slots::description} to "Unlock more enchant slots."
+    # Prestige requirements: T1-3: P0, T4: P5, T5: P8, T6: P12, T7: P18
+    set {-research::config::enchants::slots::prestigeReq::4} to 5
+    set {-research::config::enchants::slots::prestigeReq::5} to 8
+    set {-research::config::enchants::slots::prestigeReq::6} to 12
+    set {-research::config::enchants::slots::prestigeReq::7} to 18
+    # Money costs
+    set {-research::config::enchants::slots::moneyCost::2} to 10000
+    set {-research::config::enchants::slots::moneyCost::3} to 50000
+    set {-research::config::enchants::slots::moneyCost::4} to 200000
+    set {-research::config::enchants::slots::moneyCost::5} to 750000
+    set {-research::config::enchants::slots::moneyCost::6} to 2500000
+    set {-research::config::enchants::slots::moneyCost::7} to 8000000
+
+    # ════════════════════════════════════════
+    # PETS CATEGORY
+    # ════════════════════════════════════════
+    set {-research::config::pets::name} to "&dPets"
+    set {-research::config::pets::icon} to turtle spawn egg
+    set {-research::config::pets::color} to "&d"
+    set {-research::config::pets::description} to "Unlock pet slots and|increase storage capacity."
+
+    # Tracks in pets
+    set {-research::tracks::pets::*} to "slots", "storage" and "pet_fusion"
+
+    # Pet Slots Track
+    set {-research::config::pets::slots::name} to "&dPet Slots"
+    set {-research::config::pets::slots::icon} to turtle spawn egg
+    set {-research::config::pets::slots::maxTier} to 5
+    set {-research::config::pets::slots::baseTime} to 45
+    set {-research::config::pets::slots::timeMultiplier} to 3
+    set {-research::config::pets::slots::reward} to "pet_slot"
+    set {-research::config::pets::slots::description} to "Equip more pets at once."
+    # Prestige requirements: T1-2: P0, T3: P3, T4: P6, T5: P8
+    set {-research::config::pets::slots::prestigeReq::3} to 3
+    set {-research::config::pets::slots::prestigeReq::4} to 6
+    set {-research::config::pets::slots::prestigeReq::5} to 8
+    # Money costs
+    set {-research::config::pets::slots::moneyCost::2} to 15000
+    set {-research::config::pets::slots::moneyCost::3} to 75000
+    set {-research::config::pets::slots::moneyCost::4} to 400000
+    set {-research::config::pets::slots::moneyCost::5} to 2000000
+
+    # Pet Storage Track
+    set {-research::config::pets::storage::name} to "&dPet Storage"
+    set {-research::config::pets::storage::icon} to chest
+    set {-research::config::pets::storage::maxTier} to 5
+    set {-research::config::pets::storage::baseTime} to 120
+    set {-research::config::pets::storage::timeMultiplier} to 2.5
+    set {-research::config::pets::storage::reward} to "pet_storage"
+    set {-research::config::pets::storage::rewardAmount} to 20
+    set {-research::config::pets::storage::baseValue} to 50
+    set {-research::config::pets::storage::description} to "+20 pet storage per tier."
+    # Prestige requirements: T1: P0, T2: P3, T3: P8, T4: P15, T5: P22
+    set {-research::config::pets::storage::prestigeReq::2} to 3
+    set {-research::config::pets::storage::prestigeReq::3} to 8
+    set {-research::config::pets::storage::prestigeReq::4} to 15
+    set {-research::config::pets::storage::prestigeReq::5} to 22
+    # Money costs
+    set {-research::config::pets::storage::moneyCost::1} to 30000
+    set {-research::config::pets::storage::moneyCost::2} to 150000
+    set {-research::config::pets::storage::moneyCost::3} to 600000
+    set {-research::config::pets::storage::moneyCost::4} to 2500000
+    set {-research::config::pets::storage::moneyCost::5} to 10000000
+
+    # Pet Fusion Track
+    set {-research::config::pets::pet_fusion::name} to "&6Pet Fusion"
+    set {-research::config::pets::pet_fusion::icon} to nether star
+    set {-research::config::pets::pet_fusion::maxTier} to 6
+    set {-research::config::pets::pet_fusion::baseTime} to 30
+    set {-research::config::pets::pet_fusion::timeMultiplier} to 2
+    set {-research::config::pets::pet_fusion::reward} to "pet_fusion"
+    set {-research::config::pets::pet_fusion::description} to "Unlock pet fusion tiers."
+    # Tier descriptions
+    set {-research::config::pets::pet_fusion::tierDesc::1} to "Gold Fusion - Normal Pets"
+    set {-research::config::pets::pet_fusion::tierDesc::2} to "Diamond Fusion - Normal Pets"
+    set {-research::config::pets::pet_fusion::tierDesc::3} to "Gold Fusion - Ultra Pets"
+    set {-research::config::pets::pet_fusion::tierDesc::4} to "Diamond Fusion - Ultra Pets"
+    set {-research::config::pets::pet_fusion::tierDesc::5} to "Gold Fusion - Divine Pets"
+    set {-research::config::pets::pet_fusion::tierDesc::6} to "Diamond Fusion - Divine Pets"
+    # Prestige requirements: T1: P3, T2: P8, T3: P10, T4: P15, T5: P20, T6: P30
+    set {-research::config::pets::pet_fusion::prestigeReq::1} to 3
+    set {-research::config::pets::pet_fusion::prestigeReq::2} to 8
+    set {-research::config::pets::pet_fusion::prestigeReq::3} to 10
+    set {-research::config::pets::pet_fusion::prestigeReq::4} to 15
+    set {-research::config::pets::pet_fusion::prestigeReq::5} to 20
+    set {-research::config::pets::pet_fusion::prestigeReq::6} to 30
+    # Money costs
+    set {-research::config::pets::pet_fusion::moneyCost::1} to 500000
+    set {-research::config::pets::pet_fusion::moneyCost::2} to 2500000
+    set {-research::config::pets::pet_fusion::moneyCost::3} to 5000000
+    set {-research::config::pets::pet_fusion::moneyCost::4} to 10000000
+    set {-research::config::pets::pet_fusion::moneyCost::5} to 20000000
+    set {-research::config::pets::pet_fusion::moneyCost::6} to 50000000
+
+    # ════════════════════════════════════════
+    # ACCESSORIES CATEGORY
+    # ════════════════════════════════════════
+    set {-research::config::accessories::name} to "&eAccessories"
+    set {-research::config::accessories::icon} to gold ingot
+    set {-research::config::accessories::color} to "&e"
+    set {-research::config::accessories::description} to "Unlock accessory slots and|increase storage capacity."
+
+    # Tracks in accessories
+    set {-research::tracks::accessories::*} to "slots" and "storage"
+
+    # Accessory Slots Track
+    set {-research::config::accessories::slots::name} to "&eAccessory Slots"
+    set {-research::config::accessories::slots::icon} to gold ingot
+    set {-research::config::accessories::slots::maxTier} to 14
+    set {-research::config::accessories::slots::baseTime} to 20
+    set {-research::config::accessories::slots::timeMultiplier} to 2
+    set {-research::config::accessories::slots::reward} to "acc_slot"
+    set {-research::config::accessories::slots::description} to "Equip more accessories."
+    # Prestige requirements: T1-2: P0, T3: P2, T4: P4, T5: P6, T6: P8, T7: P10, T8: P12, T9: P14, T10: P16, T11: P18, T12: P20, T13: P23, T14: P26
+    set {-research::config::accessories::slots::prestigeReq::3} to 2
+    set {-research::config::accessories::slots::prestigeReq::4} to 4
+    set {-research::config::accessories::slots::prestigeReq::5} to 6
+    set {-research::config::accessories::slots::prestigeReq::6} to 8
+    set {-research::config::accessories::slots::prestigeReq::7} to 10
+    set {-research::config::accessories::slots::prestigeReq::8} to 12
+    set {-research::config::accessories::slots::prestigeReq::9} to 14
+    set {-research::config::accessories::slots::prestigeReq::10} to 16
+    set {-research::config::accessories::slots::prestigeReq::11} to 18
+    set {-research::config::accessories::slots::prestigeReq::12} to 20
+    set {-research::config::accessories::slots::prestigeReq::13} to 23
+    set {-research::config::accessories::slots::prestigeReq::14} to 26
+    # Money costs
+    set {-research::config::accessories::slots::moneyCost::2} to 5000
+    set {-research::config::accessories::slots::moneyCost::3} to 15000
+    set {-research::config::accessories::slots::moneyCost::4} to 40000
+    set {-research::config::accessories::slots::moneyCost::5} to 100000
+    set {-research::config::accessories::slots::moneyCost::6} to 200000
+    set {-research::config::accessories::slots::moneyCost::7} to 400000
+    set {-research::config::accessories::slots::moneyCost::8} to 750000
+    set {-research::config::accessories::slots::moneyCost::9} to 1200000
+    set {-research::config::accessories::slots::moneyCost::10} to 2000000
+    set {-research::config::accessories::slots::moneyCost::11} to 3500000
+    set {-research::config::accessories::slots::moneyCost::12} to 5000000
+    set {-research::config::accessories::slots::moneyCost::13} to 8000000
+    set {-research::config::accessories::slots::moneyCost::14} to 12000000
+
+    # Accessory Storage Track
+    set {-research::config::accessories::storage::name} to "&eAcc Storage"
+    set {-research::config::accessories::storage::icon} to ender chest
+    set {-research::config::accessories::storage::maxTier} to 5
+    set {-research::config::accessories::storage::baseTime} to 120
+    set {-research::config::accessories::storage::timeMultiplier} to 2.5
+    set {-research::config::accessories::storage::reward} to "acc_storage"
+    set {-research::config::accessories::storage::rewardAmount} to 20
+    set {-research::config::accessories::storage::baseValue} to 150
+    set {-research::config::accessories::storage::description} to "+20 accessory storage per tier."
+    # Prestige requirements: T1: P0, T2: P3, T3: P8, T4: P15, T5: P22
+    set {-research::config::accessories::storage::prestigeReq::2} to 3
+    set {-research::config::accessories::storage::prestigeReq::3} to 8
+    set {-research::config::accessories::storage::prestigeReq::4} to 15
+    set {-research::config::accessories::storage::prestigeReq::5} to 22
+    # Money costs
+    set {-research::config::accessories::storage::moneyCost::1} to 50000
+    set {-research::config::accessories::storage::moneyCost::2} to 200000
+    set {-research::config::accessories::storage::moneyCost::3} to 800000
+    set {-research::config::accessories::storage::moneyCost::4} to 3000000
+    set {-research::config::accessories::storage::moneyCost::5} to 12000000
+
+    # ════════════════════════════════════════
+    # BOOSTERS CATEGORY
+    # ════════════════════════════════════════
+    set {-research::config::boosters::name} to "&bBoosters"
+    set {-research::config::boosters::icon} to firework rocket
+    set {-research::config::boosters::color} to "&b"
+    set {-research::config::boosters::description} to "Unlock booster slots and|increase storage capacity."
+
+    # Tracks in boosters
+    set {-research::tracks::boosters::*} to "slots" and "storage"
+
+    # Booster Slots Track
+    set {-research::config::boosters::slots::name} to "&bBooster Slots"
+    set {-research::config::boosters::slots::icon} to firework rocket
+    set {-research::config::boosters::slots::maxTier} to 5
+    set {-research::config::boosters::slots::baseTime} to 60
+    set {-research::config::boosters::slots::timeMultiplier} to 3
+    set {-research::config::boosters::slots::reward} to "booster_slot"
+    set {-research::config::boosters::slots::description} to "Run more boosters at once."
+    # Prestige requirements: T1: P0, T2: P4, T3: P8, T4: P14, T5: P20
+    set {-research::config::boosters::slots::prestigeReq::2} to 4
+    set {-research::config::boosters::slots::prestigeReq::3} to 8
+    set {-research::config::boosters::slots::prestigeReq::4} to 14
+    set {-research::config::boosters::slots::prestigeReq::5} to 20
+    # Money costs
+    set {-research::config::boosters::slots::moneyCost::2} to 100000
+    set {-research::config::boosters::slots::moneyCost::3} to 400000
+    set {-research::config::boosters::slots::moneyCost::4} to 1500000
+    set {-research::config::boosters::slots::moneyCost::5} to 5000000
+
+    # Booster Storage Track
+    set {-research::config::boosters::storage::name} to "&bBooster Storage"
+    set {-research::config::boosters::storage::icon} to barrel
+    set {-research::config::boosters::storage::maxTier} to 5
+    set {-research::config::boosters::storage::baseTime} to 90
+    set {-research::config::boosters::storage::timeMultiplier} to 2.5
+    set {-research::config::boosters::storage::reward} to "booster_storage"
+    set {-research::config::boosters::storage::rewardAmount} to 15
+    set {-research::config::boosters::storage::baseValue} to 75
+    set {-research::config::boosters::storage::description} to "+15 booster storage per tier."
+    # Prestige requirements: T1: P4, T2: P8, T3: P14, T4: P20, T5: P25
+    set {-research::config::boosters::storage::prestigeReq::1} to 4
+    set {-research::config::boosters::storage::prestigeReq::2} to 8
+    set {-research::config::boosters::storage::prestigeReq::3} to 14
+    set {-research::config::boosters::storage::prestigeReq::4} to 20
+    set {-research::config::boosters::storage::prestigeReq::5} to 25
+    # Money costs
+    set {-research::config::boosters::storage::moneyCost::1} to 150000
+    set {-research::config::boosters::storage::moneyCost::2} to 500000
+    set {-research::config::boosters::storage::moneyCost::3} to 1500000
+    set {-research::config::boosters::storage::moneyCost::4} to 4000000
+    set {-research::config::boosters::storage::moneyCost::5} to 10000000
+
+    # ════════════════════════════════════════
+    # GEMS CATEGORY
+    # ════════════════════════════════════════
+    set {-research::config::gems::name} to "&aGems"
+    set {-research::config::gems::icon} to emerald
+    set {-research::config::gems::color} to "&a"
+    set {-research::config::gems::description} to "Unlock new gem types|from Prospecting enchant."
+
+    # Tracks in gems
+    set {-research::tracks::gems::*} to "gem_types"
+
+    # Gem Types Track (8 tiers)
+    set {-research::config::gems::gem_types::name} to "&aGem Types"
+    set {-research::config::gems::gem_types::icon} to emerald
+    set {-research::config::gems::gem_types::maxTier} to 8
+    set {-research::config::gems::gem_types::baseTime} to 15
+    set {-research::config::gems::gem_types::timeMultiplier} to 1.8
+    set {-research::config::gems::gem_types::reward} to "gem_type"
+    set {-research::config::gems::gem_types::description} to "Unlock higher tier gems."
+    # Prestige requirements: T1: P12, T2: P14, T3: P16, T4: P18, T5: P21, T6: P24, T7: P27, T8: P30
+    set {-research::config::gems::gem_types::prestigeReq::1} to 12
+    set {-research::config::gems::gem_types::prestigeReq::2} to 14
+    set {-research::config::gems::gem_types::prestigeReq::3} to 16
+    set {-research::config::gems::gem_types::prestigeReq::4} to 18
+    set {-research::config::gems::gem_types::prestigeReq::5} to 21
+    set {-research::config::gems::gem_types::prestigeReq::6} to 24
+    set {-research::config::gems::gem_types::prestigeReq::7} to 27
+    set {-research::config::gems::gem_types::prestigeReq::8} to 30
+    # Money costs
+    set {-research::config::gems::gem_types::moneyCost::1} to 15000
+    set {-research::config::gems::gem_types::moneyCost::2} to 40000
+    set {-research::config::gems::gem_types::moneyCost::3} to 100000
+    set {-research::config::gems::gem_types::moneyCost::4} to 250000
+    set {-research::config::gems::gem_types::moneyCost::5} to 600000
+    set {-research::config::gems::gem_types::moneyCost::6} to 1500000
+    set {-research::config::gems::gem_types::moneyCost::7} to 4000000
+    set {-research::config::gems::gem_types::moneyCost::8} to 10000000
+    # Tier descriptions (gem names)
+    set {-research::config::gems::gem_types::tierDesc::1} to "Jade Gems"
+    set {-research::config::gems::gem_types::tierDesc::2} to "Citrine Gems"
+    set {-research::config::gems::gem_types::tierDesc::3} to "Aquamarine Gems"
+    set {-research::config::gems::gem_types::tierDesc::4} to "Garnet Gems"
+    set {-research::config::gems::gem_types::tierDesc::5} to "Moonstone Gems"
+    set {-research::config::gems::gem_types::tierDesc::6} to "Obsidian Gems"
+    set {-research::config::gems::gem_types::tierDesc::7} to "Tanzanite Gems"
+    set {-research::config::gems::gem_types::tierDesc::8} to "Amethyst Gems"
+
+    # ════════════════════════════════════════
+    # ARCHETYPES CATEGORY
+    # ════════════════════════════════════════
+    set {-research::config::archetypes::name} to "&6Archetypes"
+    set {-research::config::archetypes::icon} to nether star
+    set {-research::config::archetypes::color} to "&6"
+    set {-research::config::archetypes::description} to "Unlock archetypes to|specialize your build."
+
+    # Tracks in archetypes
+    set {-research::tracks::archetypes::*} to "archetypes"
+
+    # Archetypes Track (3 tiers: Precision, Arcane, Demolition)
+    set {-research::config::archetypes::archetypes::name} to "&6Archetypes"
+    set {-research::config::archetypes::archetypes::icon} to nether star
+    set {-research::config::archetypes::archetypes::maxTier} to 3
+    set {-research::config::archetypes::archetypes::baseTime} to 10
+    set {-research::config::archetypes::archetypes::timeMultiplier} to 1
+    set {-research::config::archetypes::archetypes::reward} to "archetype"
+    set {-research::config::archetypes::archetypes::description} to "Unlock new archetypes."
+    # Prestige requirements: Precision: P0, Arcane: P12, Demolition: P25
+    set {-research::config::archetypes::archetypes::prestigeReq::2} to 12
+    set {-research::config::archetypes::archetypes::prestigeReq::3} to 25
+    # Money costs
+    set {-research::config::archetypes::archetypes::moneyCost::2} to 1500000
+    set {-research::config::archetypes::archetypes::moneyCost::3} to 8000000
+
+    # Archetype tier names (for display)
+    set {-research::config::archetypes::archetypes::tierName::1} to "&bPrecision"
+    set {-research::config::archetypes::archetypes::tierName::2} to "&dArcane"
+    set {-research::config::archetypes::archetypes::tierName::3} to "&cDemolition"
+    set {-research::config::archetypes::archetypes::tierIcon::1} to diamond pickaxe
+    set {-research::config::archetypes::archetypes::tierIcon::2} to ender eye
+    set {-research::config::archetypes::archetypes::tierIcon::3} to tnt
+
+
+# ============================================================
+# TIME CALCULATION
+# ============================================================
+
+function research_getTimeRequired(category: text, track: text, tier: number) :: number:
+    set {_baseTime} to {-research::config::%{_category}%::%{_track}%::baseTime} ? 60
+    set {_multiplier} to {-research::config::%{_category}%::%{_track}%::timeMultiplier} ? 2
+
+    # time = baseTime * (multiplier ^ (tier - 1))
+    set {_exponent} to {_tier} - 1
+    set {_time} to {_baseTime} * ({_multiplier} ^ {_exponent})
+
+    return floor({_time})
+
+
+# Get time required for a specific player (checks tutorial status)
+function research_getTimeRequiredForPlayer(p: player, category: text, track: text, tier: number) :: number:
+    # During tutorial, first tier of slots tracks = 5 seconds
+    if tutorial_isComplete({_p}) is false:
+        if {_tier} = 1:
+            if {_track} = "slots":
+                return 5
+            # First archetype research is also 5 seconds
+            if {_track} = "archetypes":
+                return 5
+
+    # Normal time calculation
+    return research_getTimeRequired({_category}, {_track}, {_tier})
+
+
+# ============================================================
+# CATEGORY GETTERS
+# ============================================================
+
+function research_getCategories() :: texts:
+    return {-research::categories::*}
+
+function research_getCategoryName(category: text) :: text:
+    return {-research::config::%{_category}%::name} ? "&7Unknown"
+
+function research_getCategoryIcon(category: text) :: item:
+    return {-research::config::%{_category}%::icon} ? paper
+
+function research_getCategoryColor(category: text) :: text:
+    return {-research::config::%{_category}%::color} ? "&7"
+
+function research_getCategoryDescription(category: text) :: texts:
+    set {_desc} to {-research::config::%{_category}%::description} ? "No description"
+    set {_lines::*} to split {_desc} by "|"
+    return {_lines::*}
+
+
+# ============================================================
+# TRACK GETTERS
+# ============================================================
+
+function research_getTracks(category: text) :: texts:
+    return {-research::tracks::%{_category}%::*}
+
+function research_getTrackName(category: text, track: text) :: text:
+    return {-research::config::%{_category}%::%{_track}%::name} ? "&7Unknown"
+
+function research_getTrackIcon(category: text, track: text) :: item:
+    return {-research::config::%{_category}%::%{_track}%::icon} ? paper
+
+function research_getTrackMaxTier(category: text, track: text) :: number:
+    return {-research::config::%{_category}%::%{_track}%::maxTier} ? 1
+
+function research_getTrackDescription(category: text, track: text) :: text:
+    return {-research::config::%{_category}%::%{_track}%::description} ? "No description"
+
+function research_getTrackReward(category: text, track: text) :: text:
+    return {-research::config::%{_category}%::%{_track}%::reward} ? "unknown"
+
+function research_getTrackRewardAmount(category: text, track: text) :: number:
+    return {-research::config::%{_category}%::%{_track}%::rewardAmount} ? 1
+
+function research_getTrackBaseValue(category: text, track: text) :: number:
+    return {-research::config::%{_category}%::%{_track}%::baseValue} ? 0
+
+# Get custom tier name (for archetypes)
+function research_getTierName(category: text, track: text, tier: number) :: text:
+    set {_name} to {-research::config::%{_category}%::%{_track}%::tierName::%{_tier}%}
+    if {_name} is set:
+        return {_name}
+    return "&7Tier %{_tier}%"
+
+# Get custom tier icon (for archetypes)
+function research_getTierIcon(category: text, track: text, tier: number) :: item:
+    set {_icon} to {-research::config::%{_category}%::%{_track}%::tierIcon::%{_tier}%}
+    if {_icon} is set:
+        return {_icon}
+    return research_getTrackIcon({_category}, {_track})
+
+# Check if track has custom tier names
+function research_hasCustomTierNames(category: text, track: text) :: boolean:
+    if {-research::config::%{_category}%::%{_track}%::tierName::1} is set:
+        return true
+    return false
+
+# Get prestige requirement for a specific tier (0 = no requirement)
+function research_getPrestigeRequirement(category: text, track: text, tier: number) :: number:
+    set {_req} to {-research::config::%{_category}%::%{_track}%::prestigeReq::%{_tier}%}
+    if {_req} is set:
+        return {_req}
+    return 0
+
+# Check if player meets prestige requirement for a tier
+# Uses total prestiges across all archetypes
+function research_meetsPrestigeRequirement(p: player, category: text, track: text, tier: number) :: boolean:
+    set {_req} to research_getPrestigeRequirement({_category}, {_track}, {_tier})
+    if {_req} <= 0:
+        return true
+    set {_totalPrestiges} to economy_getTotalPrestiges({_p})
+    if {_totalPrestiges} >= {_req}:
+        return true
+    return false
+
+# Get money cost for a specific tier (0 = free)
+function research_getMoneyCost(category: text, track: text, tier: number) :: number:
+    set {_cost} to {-research::config::%{_category}%::%{_track}%::moneyCost::%{_tier}%}
+    if {_cost} is set:
+        return {_cost}
+    return 0
+
+# Check if player can afford research
+function research_canAfford(p: player, category: text, track: text, tier: number) :: boolean:
+    set {_cost} to research_getMoneyCost({_category}, {_track}, {_tier})
+    if {_cost} <= 0:
+        return true
+    set {_balance} to economy_getMoney({_p})
+    if {_balance} >= {_cost}:
+        return true
+    return false

@@ -1,0 +1,371 @@
+# ============================================================
+# ARMOR MENU
+# ============================================================
+
+command /armor:
+    permission: armor.use
+    trigger:
+        armor_openMenu(player, 1)
+
+
+function armor_openMenu(p: player, selectedTier: integer):
+    # Progression check - require Prestige II
+    if progression_canAccessArmor({_p}) = false:
+        send "" to {_p}
+        send "&c&l🔒 ARMOR LOCKED" to {_p}
+        send "" to {_p}
+        send "&7Armor unlocks at &6Prestige II&7!" to {_p}
+        send "" to {_p}
+        set {_prestige} to progression_getPrestige({_p})
+        send "&7Current Prestige: &6%{_prestige}%&7/&a2" to {_p}
+        send "" to {_p}
+        send "&7Keep prestiging to unlock armor!" to {_p}
+        send "" to {_p}
+        play sound "entity.villager.no" with volume 0.5 and pitch 1 to {_p}
+        stop
+
+    set {_menu} to chest inventory with 6 rows named "&8Mining Armor"
+    
+    set {_gemName} to gemstone_getName({_selectedTier})
+    set {_gemColor} to gemstone_getColor({_selectedTier})
+    set {_gemCount} to gem_getCount({_p}, {_selectedTier})
+    set {_glass} to armor_getGlassColor({_selectedTier})
+    
+    # Fill all with black glass
+    loop 54 times:
+        set slot loop-number - 1 of {_menu} to black stained glass pane named " "
+    
+    # ════════════════════════════════════════
+    # ROW 0: TIER TABS (dyes)
+    # ════════════════════════════════════════
+    
+    # Jade - slot 2
+    if {_selectedTier} = 1:
+        set {_dye} to lime dye named "&a&lJADE"
+    else:
+        set {_dye} to gray dye named "&aJade"
+    set lore of {_dye} to "&8ᴍᴇɴᴜ ɪᴛᴇᴍ", "", "&7Gems: &a%gem_getCount({_p}, 1)%"
+    set int tag "tier" of custom nbt of {_dye} to 1
+    set slot 2 of {_menu} to {_dye}
+    
+    # Topaz - slot 3
+    if {_selectedTier} = 2:
+        set {_dye} to orange dye named "&6&lTOPAZ"
+    else:
+        set {_dye} to gray dye named "&6Topaz"
+    set lore of {_dye} to "&8ᴍᴇɴᴜ ɪᴛᴇᴍ", "", "&7Gems: &6%gem_getCount({_p}, 2)%"
+    set int tag "tier" of custom nbt of {_dye} to 2
+    set slot 3 of {_menu} to {_dye}
+    
+    # Sapphire - slot 4
+    if {_selectedTier} = 3:
+        set {_dye} to light blue dye named "&b&lSAPPHIRE"
+    else:
+        set {_dye} to gray dye named "&bSapphire"
+    set lore of {_dye} to "&8ᴍᴇɴᴜ ɪᴛᴇᴍ", "", "&7Gems: &b%gem_getCount({_p}, 3)%"
+    set int tag "tier" of custom nbt of {_dye} to 3
+    set slot 4 of {_menu} to {_dye}
+    
+    # Ruby - slot 5
+    if {_selectedTier} = 4:
+        set {_dye} to red dye named "&c&lRUBY"
+    else:
+        set {_dye} to gray dye named "&cRuby"
+    set lore of {_dye} to "&8ᴍᴇɴᴜ ɪᴛᴇᴍ", "", "&7Gems: &c%gem_getCount({_p}, 4)%"
+    set int tag "tier" of custom nbt of {_dye} to 4
+    set slot 5 of {_menu} to {_dye}
+    
+    # Amethyst - slot 6
+    if {_selectedTier} = 5:
+        set {_dye} to purple dye named "&d&lAMETHYST"
+    else:
+        set {_dye} to gray dye named "&dAmethyst"
+    set lore of {_dye} to "&8ᴍᴇɴᴜ ɪᴛᴇᴍ", "", "&7Gems: &d%gem_getCount({_p}, 5)%"
+    set int tag "tier" of custom nbt of {_dye} to 5
+    set slot 6 of {_menu} to {_dye}
+    
+    # ════════════════════════════════════════
+    # ROW 1: COLORED GLASS SEPARATOR
+    # ════════════════════════════════════════
+    
+    loop 9 times:
+        set slot loop-number + 8 of {_menu} to {_glass} named " "
+    
+    # ════════════════════════════════════════
+    # ROW 2-3: ARMOR PIECES (left) + EQUIPPED PREVIEW (right)
+    # ════════════════════════════════════════
+    
+    # Left side colored glass
+    set slot 18, 27 of {_menu} to {_glass} named " "
+    
+    # Helmet - slot 19
+    armor_setSlot({_menu}, 19, {_p}, "helmet", {_selectedTier}, {_gemCount})
+    
+    # Chestplate - slot 20
+    armor_setSlot({_menu}, 20, {_p}, "chestplate", {_selectedTier}, {_gemCount})
+    
+    # Leggings - slot 28
+    armor_setSlot({_menu}, 28, {_p}, "leggings", {_selectedTier}, {_gemCount})
+    
+    # Boots - slot 29
+    armor_setSlot({_menu}, 29, {_p}, "boots", {_selectedTier}, {_gemCount})
+    
+    # Middle separator
+    set slot 21, 22, 23, 30, 31, 32 of {_menu} to {_glass} named " "
+    
+    # ════════════════════════════════════════
+    # EQUIPPED PREVIEW (right side)
+    # ════════════════════════════════════════
+    
+    # Equipped Helmet - slot 24
+    set {_eqTier} to armor_getEquipped({_p}, "helmet")
+    if {_eqTier} > 0:
+        set {_eq} to armor_getLeatherItem("helmet", {_eqTier})
+        set name of {_eq} to "%gemstone_getColor({_eqTier})%%gemstone_getName({_eqTier})% Helmet"
+        set lore of {_eq} to "&8ᴇǫᴜɪᴘᴘᴇᴅ", "", "&eClick to unequip"
+        set string tag "action" of custom nbt of {_eq} to "unequip"
+        set string tag "piece" of custom nbt of {_eq} to "helmet"
+    else:
+        set {_eq} to light gray stained glass pane named "&7Helmet"
+        set lore of {_eq} to "&8ᴇᴍᴘᴛʏ"
+    set slot 24 of {_menu} to {_eq}
+    
+    # Equipped Chestplate - slot 25
+    set {_eqTier} to armor_getEquipped({_p}, "chestplate")
+    if {_eqTier} > 0:
+        set {_eq} to armor_getLeatherItem("chestplate", {_eqTier})
+        set name of {_eq} to "%gemstone_getColor({_eqTier})%%gemstone_getName({_eqTier})% Chestplate"
+        set lore of {_eq} to "&8ᴇǫᴜɪᴘᴘᴇᴅ", "", "&eClick to unequip"
+        set string tag "action" of custom nbt of {_eq} to "unequip"
+        set string tag "piece" of custom nbt of {_eq} to "chestplate"
+    else:
+        set {_eq} to light gray stained glass pane named "&7Chestplate"
+        set lore of {_eq} to "&8ᴇᴍᴘᴛʏ"
+    set slot 25 of {_menu} to {_eq}
+    
+    # Equipped Leggings - slot 33
+    set {_eqTier} to armor_getEquipped({_p}, "leggings")
+    if {_eqTier} > 0:
+        set {_eq} to armor_getLeatherItem("leggings", {_eqTier})
+        set name of {_eq} to "%gemstone_getColor({_eqTier})%%gemstone_getName({_eqTier})% Leggings"
+        set lore of {_eq} to "&8ᴇǫᴜɪᴘᴘᴇᴅ", "", "&eClick to unequip"
+        set string tag "action" of custom nbt of {_eq} to "unequip"
+        set string tag "piece" of custom nbt of {_eq} to "leggings"
+    else:
+        set {_eq} to light gray stained glass pane named "&7Leggings"
+        set lore of {_eq} to "&8ᴇᴍᴘᴛʏ"
+    set slot 33 of {_menu} to {_eq}
+    
+    # Equipped Boots - slot 34
+    set {_eqTier} to armor_getEquipped({_p}, "boots")
+    if {_eqTier} > 0:
+        set {_eq} to armor_getLeatherItem("boots", {_eqTier})
+        set name of {_eq} to "%gemstone_getColor({_eqTier})%%gemstone_getName({_eqTier})% Boots"
+        set lore of {_eq} to "&8ᴇǫᴜɪᴘᴘᴇᴅ", "", "&eClick to unequip"
+        set string tag "action" of custom nbt of {_eq} to "unequip"
+        set string tag "piece" of custom nbt of {_eq} to "boots"
+    else:
+        set {_eq} to light gray stained glass pane named "&7Boots"
+        set lore of {_eq} to "&8ᴇᴍᴘᴛʏ"
+    set slot 34 of {_menu} to {_eq}
+    
+    # Right edge
+    set slot 26, 35 of {_menu} to {_glass} named " "
+    
+    # ════════════════════════════════════════
+    # ROW 4: COLORED GLASS SEPARATOR
+    # ════════════════════════════════════════
+    
+    loop 9 times:
+        set slot loop-number + 35 of {_menu} to {_glass} named " "
+    
+    # ════════════════════════════════════════
+    # ROW 5: INFO + CLOSE
+    # ════════════════════════════════════════
+    
+    # XP Bonus
+    set {_totalBonus} to armor_getTotalBonus({_p}, "xp") * 100
+    set {_setTier} to armor_getFullSetTier({_p})
+    set {_stats} to nether star named "&6&l[!] &eTotal XP Bonus: &a+%{_totalBonus}%%%"
+    if {_setTier} > 0:
+        set lore of {_stats} to "&8ᴍᴇɴᴜ ɪᴛᴇᴍ", "", "%gemstone_getColor({_setTier})%%gemstone_getName({_setTier})% Set Bonus Active!"
+    else:
+        set lore of {_stats} to "&8ᴍᴇɴᴜ ɪᴛᴇᴍ", "", "&eWear a full set to receive an additional bonus!"
+    set slot 47 of {_menu} to {_stats}
+    
+    # Gem count
+    set {_gemItem} to emerald named "%{_gemColor}%%{_gemName}%: &f%{_gemCount}%"
+    set lore of {_gemItem} to "&8ᴍᴇɴᴜ ɪᴛᴇᴍ"
+    set slot 49 of {_menu} to {_gemItem}
+    
+    # Close
+
+    set {_close} to barrier named "&c&lCLOSE"
+    add menu_utils_getMenuItemFirstLoreLine() to {_closeLore::*}
+    add "" to {_closeLore::*}
+    add "&7Close this menu" to {_closeLore::*}
+    add "" to {_closeLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴄʟᴏsᴇ" to {_closeLore::*}
+    set lore of {_close} to {_closeLore::*}
+    set string tag "action" of custom nbt of {_close} to "close"
+    set slot 51 of {_menu} to {_close}
+
+
+    open {_menu} to {_p}
+    set {-armor::menu::%{_p}'s uuid%::tier} to {_selectedTier}
+
+
+# ============================================================
+# SET ARMOR SLOT
+# ============================================================
+
+function armor_setSlot(menu: inventory, slot: integer, p: player, piece: string, tier: integer, gemCount: integer):
+    set {_name} to armor_getPieceName({_piece})
+    set {_gemName} to gemstone_getName({_tier})
+    set {_gemColor} to gemstone_getColor({_tier})
+    set {_cost} to armor_getPieceCost({_piece})
+    set {_bonus} to armor_getXPBonus({_tier}) * 100
+    set {_owns} to armor_ownsArmor({_p}, {_piece}, {_tier})
+    set {_equipped} to armor_getEquipped({_p}, {_piece})
+    
+    if {_owns} = true:
+        if {_equipped} = {_tier}:
+            # Equipped - show green dye
+            set {_item} to lime dye named "&a%{_gemName}% %{_name}%"
+            set lore of {_item} to "&8ᴍɪɴɪɴɢ ᴀʀᴍᴏʀ", "", "&7+%{_bonus}%%% XP", "", "&a&lEQUIPPED"
+        else:
+            # Owned but not equipped - show armor
+            set {_item} to armor_getLeatherItem({_piece}, {_tier})
+            set name of {_item} to "%{_gemColor}%%{_gemName}% %{_name}%"
+            set lore of {_item} to "&8ᴍɪɴɪɴɢ ᴀʀᴍᴏʀ", "", "&7+%{_bonus}%%% XP", "", "&eClick to equip"
+    else:
+        if {_gemCount} >= {_cost}:
+            set {_item} to armor_getLeatherItem({_piece}, {_tier})
+            set name of {_item} to "&e%{_name}%"
+            set lore of {_item} to "&8ᴍᴇɴᴜ ɪᴛᴇᴍ", "", "&7+%{_bonus}%%% XP", "", "&7Cost: %{_gemColor}%%{_cost}% gems", "", "&aClick to purchase"
+        else:
+            set {_item} to gray dye named "&7%{_name}%"
+            set lore of {_item} to "&8ᴍᴇɴᴜ ɪᴛᴇᴍ", "", "&7+%{_bonus}%%% XP", "", "&7Cost: %{_gemColor}%%{_cost}% gems", "&cNot enough gems"
+    
+    set slot {_slot} of {_menu} to {_item}
+
+
+# ============================================================
+# GLASS COLOR
+# ============================================================
+
+function armor_getGlassColor(tier: integer) :: item:
+    if {_tier} = 1:
+        return lime stained glass pane
+    if {_tier} = 2:
+        return orange stained glass pane
+    if {_tier} = 3:
+        return light blue stained glass pane
+    if {_tier} = 4:
+        return red stained glass pane
+    if {_tier} = 5:
+        return magenta stained glass pane
+    return gray stained glass pane
+
+
+# ============================================================
+# CLICK HANDLER
+# ============================================================
+
+on inventory click:
+    if name of player's current inventory = "&8Mining Armor":
+        cancel event
+        
+        set {_tier} to {-armor::menu::%player's uuid%::tier} ? 1
+        set {_slot} to index of clicked slot
+        
+        # Tier tabs (slots 2-6)
+        if {_slot} = 2:
+            armor_openMenu(player, 1)
+            play sound "ui.button.click" with volume 0.5 to player
+            stop
+        if {_slot} = 3:
+            armor_openMenu(player, 2)
+            play sound "ui.button.click" with volume 0.5 to player
+            stop
+        if {_slot} = 4:
+            armor_openMenu(player, 3)
+            play sound "ui.button.click" with volume 0.5 to player
+            stop
+        if {_slot} = 5:
+            armor_openMenu(player, 4)
+            play sound "ui.button.click" with volume 0.5 to player
+            stop
+        if {_slot} = 6:
+            armor_openMenu(player, 5)
+            play sound "ui.button.click" with volume 0.5 to player
+            stop
+        
+        # Armor pieces (slots 19, 20, 28, 29)
+        if {_slot} = 19:
+            armor_handleClick(player, "helmet", {_tier})
+            stop
+        if {_slot} = 20:
+            armor_handleClick(player, "chestplate", {_tier})
+            stop
+        if {_slot} = 28:
+            armor_handleClick(player, "leggings", {_tier})
+            stop
+        if {_slot} = 29:
+            armor_handleClick(player, "boots", {_tier})
+            stop
+        
+        # Equipped slots (slots 24, 25, 33, 34) - unequip
+        if {_slot} = 24:
+            if armor_getEquipped(player, "helmet") > 0:
+                armor_unequip(player, "helmet")
+                play sound "item.armor.equip_leather" with volume 0.5 and pitch 0.8 to player
+                armor_openMenu(player, {_tier})
+            stop
+        if {_slot} = 25:
+            if armor_getEquipped(player, "chestplate") > 0:
+                armor_unequip(player, "chestplate")
+                play sound "item.armor.equip_leather" with volume 0.5 and pitch 0.8 to player
+                armor_openMenu(player, {_tier})
+            stop
+        if {_slot} = 33:
+            if armor_getEquipped(player, "leggings") > 0:
+                armor_unequip(player, "leggings")
+                play sound "item.armor.equip_leather" with volume 0.5 and pitch 0.8 to player
+                armor_openMenu(player, {_tier})
+            stop
+        if {_slot} = 34:
+            if armor_getEquipped(player, "boots") > 0:
+                armor_unequip(player, "boots")
+                play sound "item.armor.equip_leather" with volume 0.5 and pitch 0.8 to player
+                armor_openMenu(player, {_tier})
+            stop
+        
+        # Close (slot 51)
+        if {_slot} = 51:
+            close inventory of player
+
+
+function armor_handleClick(p: player, piece: string, tier: integer):
+    set {_owns} to armor_ownsArmor({_p}, {_piece}, {_tier})
+    set {_equipped} to armor_getEquipped({_p}, {_piece})
+    
+    if {_owns} = true:
+        # Already owns - equip it
+        if {_equipped} != {_tier}:
+            armor_equip({_p}, {_piece}, {_tier})
+            play sound "item.armor.equip_leather" with volume 0.8 and pitch 1 to {_p}
+    else:
+        # Doesn't own - try to craft/purchase
+        if armor_craft({_p}, {_piece}, {_tier}) = true:
+            play sound "block.anvil.use" with volume 0.8 and pitch 1.2 to {_p}
+            send "&aPurchased %gemstone_getName({_tier})% %armor_getPieceName({_piece})%!" to {_p}
+        else:
+            play sound "entity.villager.no" with volume 0.5 to {_p}
+            send "&cNot enough gems!" to {_p}
+    
+    armor_openMenu({_p}, {_tier})
+
+
+on inventory close:
+    delete {-armor::menu::%player's uuid%::tier}

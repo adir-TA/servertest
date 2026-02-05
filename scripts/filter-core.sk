@@ -1,0 +1,221 @@
+# ============================================================
+# AUTO-SALVAGE FILTER SYSTEM - CORE
+# ============================================================
+# Allows players to auto-salvage specific pets/accessories
+# Supports both type-wide filtering and per-rarity filtering
+# ============================================================
+
+# ============================================================
+# TYPE-WIDE FILTER FUNCTIONS
+# ============================================================
+
+# Check if a specific pet type is filtered (all rarities)
+function filter_isPetFiltered(p: player, petType: text) :: boolean:
+    set {_uuid} to {_p}'s uuid
+    return {data::filter::pet::%{_uuid}%::%{_petType}%} ? false
+
+
+# Check if a specific accessory type is filtered (all rarities)
+function filter_isAccFiltered(p: player, accType: text) :: boolean:
+    set {_uuid} to {_p}'s uuid
+    return {data::filter::acc::%{_uuid}%::%{_accType}%} ? false
+
+
+# Set filter status for a pet type (all rarities)
+function filter_setPetFilter(p: player, petType: text, enabled: boolean):
+    set {_uuid} to {_p}'s uuid
+    if {_enabled} is true:
+        set {data::filter::pet::%{_uuid}%::%{_petType}%} to true
+    else:
+        delete {data::filter::pet::%{_uuid}%::%{_petType}%}
+
+
+# Set filter status for an accessory type (all rarities)
+function filter_setAccFilter(p: player, accType: text, enabled: boolean):
+    set {_uuid} to {_p}'s uuid
+    if {_enabled} is true:
+        set {data::filter::acc::%{_uuid}%::%{_accType}%} to true
+    else:
+        delete {data::filter::acc::%{_uuid}%::%{_accType}%}
+
+
+# ============================================================
+# PER-RARITY FILTER FUNCTIONS
+# ============================================================
+
+# Check if a specific pet type + rarity is filtered
+function filter_isPetRarityFiltered(p: player, petType: text, rarity: text) :: boolean:
+    set {_uuid} to {_p}'s uuid
+    return {data::filter::pet::%{_uuid}%::%{_petType}%::%{_rarity}%} ? false
+
+
+# Check if a specific accessory type + rarity is filtered
+function filter_isAccRarityFiltered(p: player, accType: text, rarity: text) :: boolean:
+    set {_uuid} to {_p}'s uuid
+    return {data::filter::acc::%{_uuid}%::%{_accType}%::%{_rarity}%} ? false
+
+
+# Set filter status for a pet type + rarity
+function filter_setPetRarityFilter(p: player, petType: text, rarity: text, enabled: boolean):
+    set {_uuid} to {_p}'s uuid
+    if {_enabled} is true:
+        set {data::filter::pet::%{_uuid}%::%{_petType}%::%{_rarity}%} to true
+    else:
+        delete {data::filter::pet::%{_uuid}%::%{_petType}%::%{_rarity}%}
+
+
+# Set filter status for an accessory type + rarity
+function filter_setAccRarityFilter(p: player, accType: text, rarity: text, enabled: boolean):
+    set {_uuid} to {_p}'s uuid
+    if {_enabled} is true:
+        set {data::filter::acc::%{_uuid}%::%{_accType}%::%{_rarity}%} to true
+    else:
+        delete {data::filter::acc::%{_uuid}%::%{_accType}%::%{_rarity}%}
+
+
+# Count how many rarities are filtered for a pet type
+function filter_countPetRarityFiltered(p: player, petType: text) :: number:
+    set {_uuid} to {_p}'s uuid
+    set {_count} to 0
+    loop "common", "uncommon", "rare", "epic" and "legendary":
+        if {data::filter::pet::%{_uuid}%::%{_petType}%::%loop-value%} is true:
+            add 1 to {_count}
+    return {_count}
+
+
+# Count how many rarities are filtered for an accessory type
+function filter_countAccRarityFiltered(p: player, accType: text) :: number:
+    set {_uuid} to {_p}'s uuid
+    set {_count} to 0
+    loop "common", "uncommon", "rare", "epic" and "legendary":
+        if {data::filter::acc::%{_uuid}%::%{_accType}%::%loop-value%} is true:
+            add 1 to {_count}
+    return {_count}
+
+
+# Clear all rarity filters for a pet type
+function filter_clearPetRarityFilters(p: player, petType: text):
+    set {_uuid} to {_p}'s uuid
+    loop "common", "uncommon", "rare", "epic" and "legendary":
+        delete {data::filter::pet::%{_uuid}%::%{_petType}%::%loop-value%}
+
+
+# Clear all rarity filters for an accessory type
+function filter_clearAccRarityFilters(p: player, accType: text):
+    set {_uuid} to {_p}'s uuid
+    loop "common", "uncommon", "rare", "epic" and "legendary":
+        delete {data::filter::acc::%{_uuid}%::%{_accType}%::%loop-value%}
+
+
+# ============================================================
+# AUTO-SALVAGE CHECK FUNCTIONS
+# ============================================================
+
+# Check if a pet should be auto-salvaged
+# Returns true if should salvage, false if should keep
+# Checks type-wide filter first, then per-rarity filter
+function filter_shouldSalvagePet(p: player, petType: text, rarity: text) :: boolean:
+    # Check if entire pet type is filtered (all rarities)
+    set {_typeFiltered} to filter_isPetFiltered({_p}, {_petType})
+    if {_typeFiltered} is true:
+        return true
+    # Check if this specific rarity for this pet is filtered
+    return filter_isPetRarityFiltered({_p}, {_petType}, {_rarity})
+
+
+# Check if an accessory should be auto-salvaged
+# Returns true if should salvage, false if should keep
+# Checks type-wide filter first, then per-rarity filter
+function filter_shouldSalvageAcc(p: player, accType: text, rarity: text) :: boolean:
+    # Check if entire accessory type is filtered (all rarities)
+    set {_typeFiltered} to filter_isAccFiltered({_p}, {_accType})
+    if {_typeFiltered} is true:
+        return true
+    # Check if this specific rarity for this accessory is filtered
+    return filter_isAccRarityFiltered({_p}, {_accType}, {_rarity})
+
+
+# ============================================================
+# BULK FILTER OPERATIONS
+# ============================================================
+
+# Enable filter for all pets of a specific tier
+function filter_enableAllPetsByTier(p: player, tier: text):
+    loop {-pet::tier::%{_tier}%::types::*}:
+        filter_setPetFilter({_p}, loop-value, true)
+
+
+# Disable filter for all pets of a specific tier
+function filter_disableAllPetsByTier(p: player, tier: text):
+    loop {-pet::tier::%{_tier}%::types::*}:
+        filter_setPetFilter({_p}, loop-value, false)
+
+
+# Enable filter for all accessories of a specific tier
+function filter_enableAllAccByTier(p: player, tier: text):
+    loop {-acc::pool::%{_tier}%::*}:
+        filter_setAccFilter({_p}, loop-value, true)
+
+
+# Disable filter for all accessories of a specific tier
+function filter_disableAllAccByTier(p: player, tier: text):
+    loop {-acc::pool::%{_tier}%::*}:
+        filter_setAccFilter({_p}, loop-value, false)
+
+
+# Enable filter for all pets
+function filter_enableAllPets(p: player):
+    loop {-pet::types::*}:
+        filter_setPetFilter({_p}, loop-value, true)
+
+
+# Disable filter for all pets
+function filter_disableAllPets(p: player):
+    set {_uuid} to {_p}'s uuid
+    delete {data::filter::pet::%{_uuid}%::*}
+
+
+# Enable filter for all accessories
+function filter_enableAllAcc(p: player):
+    loop {-acc::allTypes::*}:
+        filter_setAccFilter({_p}, loop-value, true)
+
+
+# Disable filter for all accessories
+function filter_disableAllAcc(p: player):
+    set {_uuid} to {_p}'s uuid
+    delete {data::filter::acc::%{_uuid}%::*}
+
+
+# ============================================================
+# COUNT FUNCTIONS
+# ============================================================
+
+# Count how many pets are filtered
+function filter_countFilteredPets(p: player) :: number:
+    set {_uuid} to {_p}'s uuid
+    set {_count} to 0
+    loop {-pet::types::*}:
+        if {data::filter::pet::%{_uuid}%::%loop-value%} is true:
+            add 1 to {_count}
+    return {_count}
+
+
+# Count how many accessories are filtered
+function filter_countFilteredAcc(p: player) :: number:
+    set {_uuid} to {_p}'s uuid
+    set {_count} to 0
+    loop {-acc::allTypes::*}:
+        if {data::filter::acc::%{_uuid}%::%loop-value%} is true:
+            add 1 to {_count}
+    return {_count}
+
+
+# Count total pets
+function filter_countTotalPets() :: number:
+    return size of {-pet::types::*}
+
+
+# Count total accessories
+function filter_countTotalAcc() :: number:
+    return size of {-acc::allTypes::*}

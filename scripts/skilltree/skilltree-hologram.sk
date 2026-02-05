@@ -1,0 +1,305 @@
+# ============================================================
+# SKILL TREE HOLOGRAM
+# ============================================================
+# Displays skill tree with EXACT layout from /skills GUI
+# Zigzag paths using wool block display lines
+#
+# Commands:
+#   /skilltreelocation set - Set hologram location (admin)
+#   /skilltreelocation remove - Remove hologram (admin)
+# ============================================================
+
+options:
+    # Scale factor for converting grid columns to X coordinates
+    col_scale: 0.35
+    # Spacing between node rows (Y axis)
+    row_spacing: 0.7
+    # Number of wool blocks per path line
+    wool_per_line: 10
+    # Scale of wool block displays
+    wool_scale: 0.08
+
+# ============================================================
+# ADMIN COMMANDS
+# ============================================================
+
+command /skilltreelocation [<text>]:
+    permission: server.admin
+    trigger:
+        if arg-1 is "set":
+            set {_loc} to player's location
+            set {_x} to floor(x-coord of {_loc}) + 0.5
+            set {_y} to y-coord of {_loc}
+            set {_z} to floor(z-coord of {_loc}) + 0.5
+            set {_loc} to location({_x}, {_y}, {_z}, world of {_loc})
+            set {-skilltreeHolo::location} to {_loc}
+            send "&aSkill Tree hologram location set!"
+            stop
+        if arg-1 is "remove":
+            delete {-skilltreeHolo::location}
+            send "&cSkill Tree hologram removed."
+            stop
+        send "&eUsage: /skilltreelocation <set|remove>"
+
+
+# ============================================================
+# SPAWN ON JOIN
+# ============================================================
+
+on join:
+    wait 5 ticks
+    if {-skilltreeHolo::location} is set:
+        stHolo_spawnForPlayer(player)
+
+
+# ============================================================
+# MAIN SPAWN FUNCTION
+# ============================================================
+
+function stHolo_spawnForPlayer(p: player):
+    if {-skilltreeHolo::location} is not set:
+        stop
+
+    set {_base} to {-skilltreeHolo::location}
+    set {_uuid} to {_p}'s uuid
+
+    stHolo_clearForPlayer({_p})
+
+    # ═══════════════════════════════════════════════════════
+    # Layout from skilltree-config.sk (columns 0-18)
+    # Center the display around column 9 (middle of 19 cols)
+    # ═══════════════════════════════════════════════════════
+
+    # Power branch columns (zigzag pattern)
+    set {_pCol::1} to 1
+    set {_pCol::2} to 0
+    set {_pCol::3} to 3
+    set {_pCol::4} to 1
+    set {_pCol::5} to 3
+    set {_pCol::6} to 2
+
+    # Fortune branch columns
+    set {_fCol::1} to 4
+    set {_fCol::2} to 6
+    set {_fCol::3} to 8
+    set {_fCol::4} to 9
+    set {_fCol::5} to 11
+    set {_fCol::6} to 9
+
+    # Efficiency branch columns
+    set {_eCol::1} to 7
+    set {_eCol::2} to 11
+    set {_eCol::3} to 14
+    set {_eCol::4} to 16
+    set {_eCol::5} to 18
+    set {_eCol::6} to 17
+
+    # ═══════════════════════════════════════════════════════
+    # TITLE
+    # ═══════════════════════════════════════════════════════
+    set {_titleLoc} to {_base} ~ vector(0, 5.0, 0)
+    stHolo_spawnText({_p}, "title", {_titleLoc}, "&d&lSKILL TREE", 1.2)
+
+    # ═══════════════════════════════════════════════════════
+    # BRANCH HEADERS
+    # ═══════════════════════════════════════════════════════
+    set {_headerY} to 4.2
+    set {_centerCol} to 9
+
+    # Power header at col 1
+    set {_pHeaderX} to ({_pCol::1} - {_centerCol}) * {@col_scale}
+    stHolo_spawnText({_p}, "h_power", {_base} ~ vector({_pHeaderX}, {_headerY}, 0), "&c&lPOWER", 0.7)
+
+    # Fortune header at col 4
+    set {_fHeaderX} to ({_fCol::1} - {_centerCol}) * {@col_scale}
+    stHolo_spawnText({_p}, "h_fortune", {_base} ~ vector({_fHeaderX}, {_headerY}, 0), "&6&lFORTUNE", 0.7)
+
+    # Efficiency header at col 7
+    set {_eHeaderX} to ({_eCol::1} - {_centerCol}) * {@col_scale}
+    stHolo_spawnText({_p}, "h_eff", {_base} ~ vector({_eHeaderX}, {_headerY}, 0), "&b&lEFFICIENCY", 0.7)
+
+    # ═══════════════════════════════════════════════════════
+    # NODES AND PATHS
+    # ═══════════════════════════════════════════════════════
+
+    loop integers from 1 to 6:
+        set {_n} to loop-value
+        set {_y} to 3.5 - (({_n} - 1) * {@row_spacing})
+
+        # ─── POWER NODE ───
+        set {_pX} to ({_pCol::%{_n}%} - {_centerCol}) * {@col_scale}
+        set {_pLoc} to {_base} ~ vector({_pX}, {_y}, 0)
+        set {_pName} to skilltree_getNodeName("power_%{_n}%")
+        set {_pRank} to skilltree_getNodeRank({_p}, "power_%{_n}%")
+        set {_pMax} to skilltree_getNodeMaxRank("power_%{_n}%")
+
+        if {_pRank} >= {_pMax}:
+            stHolo_spawnText({_p}, "p_%{_n}%", {_pLoc}, "&a✦ %{_pName}%", 0.45)
+        else if {_pRank} > 0:
+            stHolo_spawnText({_p}, "p_%{_n}%", {_pLoc}, "&e● %{_pName}%", 0.45)
+        else:
+            stHolo_spawnText({_p}, "p_%{_n}%", {_pLoc}, "&c○ %{_pName}%", 0.45)
+
+        # Power path to next node
+        if {_n} < 6:
+            set {_nextN} to {_n} + 1
+            set {_nextY} to {_y} - {@row_spacing}
+            set {_nextPX} to ({_pCol::%{_nextN}%} - {_centerCol}) * {@col_scale}
+            set {_fromLoc} to {_base} ~ vector({_pX}, {_y} - 0.12, 0)
+            set {_toLoc} to {_base} ~ vector({_nextPX}, {_nextY} + 0.12, 0)
+            stHolo_spawnWoolLine({_p}, "pp_%{_n}%", {_fromLoc}, {_toLoc}, "red")
+
+        # ─── FORTUNE NODE ───
+        set {_fX} to ({_fCol::%{_n}%} - {_centerCol}) * {@col_scale}
+        set {_fLoc} to {_base} ~ vector({_fX}, {_y}, 0)
+        set {_fName} to skilltree_getNodeName("fortune_%{_n}%")
+        set {_fRank} to skilltree_getNodeRank({_p}, "fortune_%{_n}%")
+        set {_fMax} to skilltree_getNodeMaxRank("fortune_%{_n}%")
+
+        if {_fRank} >= {_fMax}:
+            stHolo_spawnText({_p}, "f_%{_n}%", {_fLoc}, "&a✦ %{_fName}%", 0.45)
+        else if {_fRank} > 0:
+            stHolo_spawnText({_p}, "f_%{_n}%", {_fLoc}, "&e● %{_fName}%", 0.45)
+        else:
+            stHolo_spawnText({_p}, "f_%{_n}%", {_fLoc}, "&6○ %{_fName}%", 0.45)
+
+        # Fortune path to next node
+        if {_n} < 6:
+            set {_nextN} to {_n} + 1
+            set {_nextY} to {_y} - {@row_spacing}
+            set {_nextFX} to ({_fCol::%{_nextN}%} - {_centerCol}) * {@col_scale}
+            set {_fromLoc} to {_base} ~ vector({_fX}, {_y} - 0.12, 0)
+            set {_toLoc} to {_base} ~ vector({_nextFX}, {_nextY} + 0.12, 0)
+            stHolo_spawnWoolLine({_p}, "fp_%{_n}%", {_fromLoc}, {_toLoc}, "orange")
+
+        # ─── EFFICIENCY NODE ───
+        set {_eX} to ({_eCol::%{_n}%} - {_centerCol}) * {@col_scale}
+        set {_eLoc} to {_base} ~ vector({_eX}, {_y}, 0)
+        set {_eName} to skilltree_getNodeName("efficiency_%{_n}%")
+        set {_eRank} to skilltree_getNodeRank({_p}, "efficiency_%{_n}%")
+        set {_eMax} to skilltree_getNodeMaxRank("efficiency_%{_n}%")
+
+        if {_eRank} >= {_eMax}:
+            stHolo_spawnText({_p}, "e_%{_n}%", {_eLoc}, "&a✦ %{_eName}%", 0.45)
+        else if {_eRank} > 0:
+            stHolo_spawnText({_p}, "e_%{_n}%", {_eLoc}, "&e● %{_eName}%", 0.45)
+        else:
+            stHolo_spawnText({_p}, "e_%{_n}%", {_eLoc}, "&b○ %{_eName}%", 0.45)
+
+        # Efficiency path to next node
+        if {_n} < 6:
+            set {_nextN} to {_n} + 1
+            set {_nextY} to {_y} - {@row_spacing}
+            set {_nextEX} to ({_eCol::%{_nextN}%} - {_centerCol}) * {@col_scale}
+            set {_fromLoc} to {_base} ~ vector({_eX}, {_y} - 0.12, 0)
+            set {_toLoc} to {_base} ~ vector({_nextEX}, {_nextY} + 0.12, 0)
+            stHolo_spawnWoolLine({_p}, "ep_%{_n}%", {_fromLoc}, {_toLoc}, "light_blue")
+
+    # ═══════════════════════════════════════════════════════
+    # HINT
+    # ═══════════════════════════════════════════════════════
+    set {_hintLoc} to {_base} ~ vector(0, -1.0, 0)
+    stHolo_spawnText({_p}, "hint", {_hintLoc}, "&7Type &e/skills &7to open", 0.4)
+
+
+# ============================================================
+# SPAWN TEXT DISPLAY
+# ============================================================
+
+function stHolo_spawnText(p: player, key: text, loc: location, text: text, scale: number):
+    set {_uuid} to {_p}'s uuid
+    set {_id} to random integer between 100000 and 9999999
+
+    spawn fake text display at {_loc} for {_p} with id {_id}
+
+    set {_m} to new metadata packet with id {_id}:
+        display text: {_text}
+        display scale: vector({_scale}, {_scale}, {_scale})
+        display billboard: center
+        display brightness block: 15
+        display background alpha: 0
+    send packet {_m} to {_p}
+
+    set {-skilltreeHolo::entities::%{_uuid}%::%{_key}%} to {_id}
+
+
+# ============================================================
+# SPAWN WOOL LINE (Multiple blocks forming diagonal line)
+# ============================================================
+
+function stHolo_spawnWoolLine(p: player, key: text, from: location, to: location, color: text):
+    set {_uuid} to {_p}'s uuid
+
+    set {_dx} to (x-coord of {_to}) - (x-coord of {_from})
+    set {_dy} to (y-coord of {_to}) - (y-coord of {_from})
+    set {_dz} to (z-coord of {_to}) - (z-coord of {_from})
+
+    set {_count} to {@wool_per_line}
+    loop {_count} times:
+        set {_i} to loop-number
+        set {_t} to ({_i} - 0.5) / {_count}
+
+        set {_x} to (x-coord of {_from}) + ({_dx} * {_t})
+        set {_y} to (y-coord of {_from}) + ({_dy} * {_t})
+        set {_z} to (z-coord of {_from}) + ({_dz} * {_t})
+        set {_loc} to location({_x}, {_y}, {_z}, world of {_from})
+
+        set {_id} to random integer between 100000 and 9999999
+
+        spawn fake block display at {_loc} for {_p} with id {_id}
+
+        if {_color} is "red":
+            set {_m} to new metadata packet with id {_id}:
+                display block: red wool
+                display scale: vector({@wool_scale}, {@wool_scale}, {@wool_scale})
+                display brightness block: 15
+            send packet {_m} to {_p}
+        else if {_color} is "orange":
+            set {_m} to new metadata packet with id {_id}:
+                display block: orange wool
+                display scale: vector({@wool_scale}, {@wool_scale}, {@wool_scale})
+                display brightness block: 15
+            send packet {_m} to {_p}
+        else if {_color} is "light_blue":
+            set {_m} to new metadata packet with id {_id}:
+                display block: light blue wool
+                display scale: vector({@wool_scale}, {@wool_scale}, {@wool_scale})
+                display brightness block: 15
+            send packet {_m} to {_p}
+        else:
+            set {_m} to new metadata packet with id {_id}:
+                display block: white wool
+                display scale: vector({@wool_scale}, {@wool_scale}, {@wool_scale})
+                display brightness block: 15
+            send packet {_m} to {_p}
+
+        set {-skilltreeHolo::entities::%{_uuid}%::%{_key}%_%{_i}%} to {_id}
+
+
+# ============================================================
+# CLEAR HOLOGRAM
+# ============================================================
+
+function stHolo_clearForPlayer(p: player):
+    set {_uuid} to {_p}'s uuid
+    loop {-skilltreeHolo::entities::%{_uuid}%::*}:
+        set {_id} to loop-value
+        remove fake entity with id {_id} for {_p}
+    delete {-skilltreeHolo::entities::%{_uuid}%::*}
+
+
+# ============================================================
+# CLEANUP
+# ============================================================
+
+on quit:
+    delete {-skilltreeHolo::entities::%player's uuid%::*}
+
+
+# ============================================================
+# REFRESH (call when skills change)
+# ============================================================
+
+function stHolo_refresh(p: player):
+    if {-skilltreeHolo::location} is set:
+        stHolo_spawnForPlayer({_p})

@@ -1,0 +1,20 @@
+on quit:
+    menu_deleteSession(player)
+
+    # Stop pet follow loop and cleanup
+    delete {-pet::follow::%player's uuid%::loop}
+    delete {-pet::follow::%player's uuid%::tick}
+    delete {-pet::follow::%player's uuid%::ids::*}
+    delete {-pet::follow::%player's uuid%::text::*}
+    delete {-guard::pet-follow::%player's uuid%}
+
+    delete {-miningData::%player's uuid%::*}
+
+    # ════════════════════════════════════════
+    # BOOSTER SYSTEM
+    # ════════════════════════════════════════
+    # Stop booster loop
+    booster_stopLoop(player)
+
+    # Deduct 30s penalty from all equipped boosters (anti-exploit)
+    booster_deductQuitPenalty(player, 30)

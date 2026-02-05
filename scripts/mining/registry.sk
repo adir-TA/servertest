@@ -1,0 +1,394 @@
+# ============================================================
+# BLOCK REGISTRY SYSTEM
+# ============================================================
+
+function mining_registerBlock(block: item, hardness: number, drops: items, price: number, prestige: integer = 0):
+    set {mining.registry::%{_block}%::hardness} to {_hardness}
+    set {mining.registry::%{_block}%::drops::*} to {_drops::*}
+    set {mining.registry::%{_block}%::price} to {_price}
+    set {mining.registry::%{_block}%::prestige} to {_prestige}
+    add {_block} to {mining.registry::blocks::*}
+
+
+function mining_getBlockPrestigeReq(block: item) :: integer:
+    return {mining.registry::%{_block}%::prestige} ? 0
+
+
+function mining_canMineBlock(p: player, block: item) :: boolean:
+    set {_req} to mining_getBlockPrestigeReq({_block})
+    if {_req} <= 0:
+        return true
+    set {_totalPrestige} to economy_getTotalPrestiges({_p})
+    if {_totalPrestige} >= {_req}:
+        return true
+    return false
+
+
+function mining_registerBlocks():
+    delete {mining.registry::*}
+
+    # ============================================================
+    # BLOCK REGISTRY WITH PRESTIGE REQUIREMENTS
+    # ============================================================
+    # Each block = unique prestige. Scales +1 at start, bigger jumps later
+    # ============================================================
+
+    # ═══ EARLY GAME (+1 per block) ═══
+    mining_registerBlock(cobblestone, 0.6, (1 of cobblestone), 5, 0)
+    mining_registerBlock(stone, 0.9, (1 of stone), 5.15, 1)
+    mining_registerBlock(sandstone, 1.2, (1 of sandstone), 5.3, 2)
+    mining_registerBlock(red sandstone, 1.5, (1 of red sandstone), 5.45, 3)
+    mining_registerBlock(granite, 1.8, (1 of granite), 5.6, 4)
+    mining_registerBlock(diorite, 2.1, (1 of diorite), 5.75, 5)
+    mining_registerBlock(andesite, 2.4, (1 of andesite), 5.9, 6)
+    mining_registerBlock(smooth stone, 2.7, (1 of smooth stone), 6.05, 7)
+    mining_registerBlock(bricks, 3.0, (1 of bricks), 6.2, 8)
+    mining_registerBlock(stone bricks, 3.3, (1 of stone bricks), 6.35, 9)
+
+    # ═══ EARLY-MID (+2 per block) ═══
+    mining_registerBlock(mossy stone bricks, 3.6, (1 of mossy stone bricks), 6.5, 11)
+    mining_registerBlock(basalt, 3.9, (1 of basalt), 6.65, 13)
+    mining_registerBlock(prismarine, 4.2, (1 of prismarine), 6.8, 15)
+    mining_registerBlock(quartz block, 4.5, (1 of quartz block), 6.95, 17)
+    mining_registerBlock(purpur block, 4.8, (1 of purpur block), 7.1, 19)
+    mining_registerBlock(end stone, 5.1, (1 of end stone), 7.25, 21)
+    mining_registerBlock(calcite, 5.4, (1 of calcite), 7.4, 23)
+
+    # ═══ MID GAME (+3 per block) ═══
+    mining_registerBlock(tuff, 5.7, (1 of tuff), 7.55, 26)
+    mining_registerBlock(dripstone block, 6.0, (1 of dripstone block), 7.7, 29)
+    mining_registerBlock(packed mud, 6.3, (1 of packed mud), 7.85, 32)
+    mining_registerBlock(mud bricks, 6.6, (1 of mud bricks), 8.0, 35)
+    mining_registerBlock(hay block, 6.9, (1 of hay block), 8.15, 38)
+
+    # ═══ MID-LATE (+4 per block) ═══
+    mining_registerBlock(packed ice, 7.2, (1 of packed ice), 8.3, 42)
+    mining_registerBlock(blue ice, 7.5, (1 of blue ice), 8.45, 46)
+    mining_registerBlock(magma block, 7.8, (1 of magma block), 8.6, 50)
+    mining_registerBlock(glowstone, 8.1, (1 of glowstone), 8.75, 54)
+
+    # ═══ LATE GAME (+5 per block) ═══
+    mining_registerBlock(sea lantern, 8.4, (1 of sea lantern), 8.9, 59)
+    mining_registerBlock(obsidian, 8.7, (1 of obsidian), 9.05, 64)
+    mining_registerBlock(crying obsidian, 9.0, (1 of crying obsidian), 9.2, 69)
+
+    # ═══ ELITE (+6 per block) ═══
+    mining_registerBlock(amethyst block, 9.3, (1 of amethyst block), 9.35, 75)
+    mining_registerBlock(copper block, 9.6, (1 of copper block), 9.5, 81)
+
+    # ═══ ENDGAME (+7 per block) ═══
+    mining_registerBlock(cut copper, 9.8, (1 of cut copper), 9.65, 88)
+    mining_registerBlock(ancient debris, 10.0, (1 of ancient debris), 9.85, 95)
+    mining_registerBlock(netherite block, 10.2, (1 of netherite block), 10, 102)
+    
+    # Build sellable items list for quick lookup
+    delete {mining.sellable::*}
+    loop {mining.registry::blocks::*}:
+        set {_drops::*} to {mining.registry::%loop-value%::drops::*}
+        set {_price} to {mining.registry::%loop-value%::price}
+        loop {_drops::*}:
+            set {_type} to type of loop-value-2
+            set {mining.sellable::%{_type}%} to {_price}
+    
+    # broadcast "&a[Mining] Registered %size of {mining.registry::blocks::*}% blocks."
+
+# ============================================================
+# REGISTRY GEM FUNCTIONS - UPDATE
+# ============================================================
+#
+# REPLACE your existing gem functions in registry.sk with these.
+# These are used by the animation system (packetPouchGems, prospecting_showText)
+#
+# New gem names based on research tiers:
+#   Tier 1: Jade (Research T1)
+#   Tier 2: Citrine (Research T2)
+#   Tier 3: Aquamarine (Research T3)
+#   Tier 4: Garnet (Research T4)
+#   Tier 5: Moonstone (Research T5)
+#   Tier 6: Obsidian (Research T6)
+#   Tier 7: Tanzanite (Research T7)
+#   Tier 8: Amethyst (Research T8)
+#
+# ============================================================
+
+function mining_registerGems():
+    # No longer needs hardness-based registration
+    # Tiers are now prestige-based (handled in gems-core.sk)
+    stop
+
+
+# ============================================================
+# ANIMATION FUNCTIONS (used by mining-animations.sk)
+# ============================================================
+
+function gem_getName(tier: integer) :: string:
+    if {_tier} = 1:
+        return "Jade"
+    if {_tier} = 2:
+        return "Citrine"
+    if {_tier} = 3:
+        return "Aquamarine"
+    if {_tier} = 4:
+        return "Garnet"
+    if {_tier} = 5:
+        return "Moonstone"
+    if {_tier} = 6:
+        return "Obsidian"
+    if {_tier} = 7:
+        return "Tanzanite"
+    if {_tier} = 8:
+        return "Amethyst"
+    return "Gem"
+
+
+function gem_getTierColor(tier: integer) :: string:
+    if {_tier} = 1:
+        return "&a"
+    if {_tier} = 2:
+        return "&e"
+    if {_tier} = 3:
+        return "&b"
+    if {_tier} = 4:
+        return "&c"
+    if {_tier} = 5:
+        return "&f"
+    if {_tier} = 6:
+        return "&8"
+    if {_tier} = 7:
+        return "&5"
+    if {_tier} = 8:
+        return "&d"
+    return "&7"
+
+
+function gem_getItem(tier: integer) :: item type:
+    # Return dyes matching gem colors for animations
+    if {_tier} = 1:
+        return lime dye
+    if {_tier} = 2:
+        return yellow dye
+    if {_tier} = 3:
+        return light blue dye
+    if {_tier} = 4:
+        return red dye
+    if {_tier} = 5:
+        return white dye
+    if {_tier} = 6:
+        return gray dye
+    if {_tier} = 7:
+        return purple dye
+    if {_tier} = 8:
+        return pink dye
+    return lime dye
+
+
+function gem_getGlowColor(tier: integer) :: color:
+    if {_tier} = 1:
+        return rgb(85, 255, 85)      # Jade - green
+    if {_tier} = 2:
+        return rgb(255, 255, 85)     # Citrine - yellow
+    if {_tier} = 3:
+        return rgb(85, 255, 255)     # Aquamarine - aqua
+    if {_tier} = 4:
+        return rgb(200, 50, 50)      # Garnet - dark red
+    if {_tier} = 5:
+        return rgb(240, 240, 240)    # Moonstone - white
+    if {_tier} = 6:
+        return rgb(80, 80, 80)       # Obsidian - dark gray
+    if {_tier} = 7:
+        return rgb(120, 50, 200)     # Tanzanite - purple
+    if {_tier} = 8:
+        return rgb(255, 85, 255)     # Amethyst - light purple
+    return rgb(255, 255, 255)
+
+
+# ============================================================
+# LEGACY FUNCTION - NO LONGER USED
+# ============================================================
+# Kept for any old code that might reference it
+# New system uses gem_getPlayerTier() from gems-core.sk
+
+function gem_getTierFromHardness(hardness: number) :: integer:
+    # This is deprecated - tier is now based on player prestige
+    # Returns tier 1 as fallback
+    return 1
+# ============================================================
+# SELL FUNCTIONS
+# ============================================================
+
+function mining_getPrice(item: item) :: number:
+    set {_type} to type of {_item}
+    return {mining.sellable::%{_type}%} ? 0
+
+
+function mining_canSell(item: item) :: boolean:
+    set {_type} to type of {_item}
+    if {mining.sellable::%{_type}%} is set:
+        return true
+    return false
+
+
+function mining_sellItem(p: player, item: item) :: number:
+    if mining_canSell({_item}) = false:
+        return 0
+    
+    set {_price} to mining_getPrice({_item})
+    set {_amount} to item amount of {_item}
+    set {_total} to {_price} * {_amount}
+    # Apply money multiplier
+    set {_total} to {_total} * multiplier_getMoney({_p})
+
+    add {_total} to {data::balance::%{_p}'s uuid%}
+    
+    return {_total}
+
+
+function mining_sellAll(p: player) :: number:
+    set {_totalEarned} to 0
+    set {_itemsSold} to 0
+    
+    loop all items in {_p}'s inventory:
+        if mining_canSell(loop-item) = true:
+            set {_earned} to mining_sellItem({_p}, loop-item)
+            add {_earned} to {_totalEarned}
+            add item amount of loop-item to {_itemsSold}
+            remove loop-item from {_p}'s inventory
+    
+    return {_totalEarned}
+
+
+function mining_sellHand(p: player) :: number:
+    set {_item} to {_p}'s tool
+    
+    if mining_canSell({_item}) = false:
+        return 0
+    
+    set {_earned} to mining_sellItem({_p}, {_item})
+    remove {_item} from {_p}'s inventory
+    
+    return {_earned}
+
+
+# ============================================================
+# SELL COMMANDS
+# ============================================================
+
+command /sell [<text>]:
+    trigger:
+        if arg-1 is not set:
+            set {_earned} to mining_sellAll(player)
+            if {_earned} = 0:
+                send "&cYou don't have anything to sell!"
+            else:
+                play sound "entity.experience_orb.pickup" with volume 0.8 and pitch 1.2 to player
+                send "&aSold all items for &2$%formatNum({_earned})%&a!"
+                tutorial_onSell(player)
+        
+        else if arg-1 is "all":
+            set {_earned} to mining_sellAll(player)
+            if {_earned} = 0:
+                send "&cYou don't have anything to sell!"
+            else:
+                play sound "entity.experience_orb.pickup" with volume 0.8 and pitch 1.2 to player
+                send "&aSold all items for &2$%formatNum({_earned})%&a!"
+                tutorial_onSell(player)
+        
+        else if arg-1 is "hand":
+            set {_earned} to mining_sellHand(player)
+            if {_earned} = 0:
+                send "&cYou can't sell this item!"
+            else:
+                play sound "entity.experience_orb.pickup" with volume 0.8 and pitch 1.2 to player
+                send "&aSold for &2$%formatNum({_earned})%&a!"
+                tutorial_onSell(player)
+        
+        else:
+            send "&eUsage: &f/sell &7or &f/sell all &7or &f/sell hand"
+
+
+command /price:
+    trigger:
+        set {_item} to player's tool
+        if mining_canSell({_item}) = false:
+            send "&cThis item can't be sold."
+        else:
+            set {_price} to mining_getPrice({_item})
+            send "&ePrice: &2$%formatNum({_price})% &7each"
+
+
+function mining_isMineable(block: item) :: boolean:
+    if {mining.registry::%{_block}%::hardness} is set:
+        return true
+    return false
+
+
+function mining_isLocked(p: player, loc: location) :: boolean:
+    set {_bx} to floor(x-coord of {_loc})
+    set {_by} to floor(y-coord of {_loc})
+    set {_bz} to floor(z-coord of {_loc})
+    set {_lockKey} to "%{_bx}%_%{_by}%_%{_bz}%"
+    if {-miningLocked::%{_p}'s uuid%::%{_lockKey}%} is set:
+        return true
+    return false
+
+
+function mining_getHardness(block: item) :: number:
+    return {mining.registry::%{_block}%::hardness} ? 1
+
+
+function mining_getRandomDrop(block: item) :: item:
+    set {_drops::*} to {mining.registry::%{_block}%::drops::*}
+    if size of {_drops::*} = 0:
+        return air
+    return random element of {_drops::*}
+
+
+function mining_getAllDrops(block: item) :: items:
+    return {mining.registry::%{_block}%::drops::*}
+
+
+function mining_giveDrops(p: player, block: item, fortuneLevel: integer = 0, multiplier: integer = 1):
+    set {_drop} to mining_getRandomDrop({_block})
+
+    if {_drop} is air:
+        stop
+
+    set {_amount} to item amount of {_drop}
+    if {_fortuneLevel} > 0:
+        set {_bonus} to random integer between 0 and {_fortuneLevel}
+        add {_bonus} to {_amount}
+
+    set {_amount} to {_amount} * {_multiplier}
+
+    # Apply drops multiplier (from pets, accessories, archetype)
+    set {_dropsMultiplier} to multiplier_getDrops({_p})
+    set {_amount} to round({_amount} * {_dropsMultiplier})
+    if {_amount} < 1:
+        set {_amount} to 1
+
+    # Check for Autosell enchant
+    if enchant_hasAutosell({_p}) = true:
+        set {_earned} to enchant_autosellDrop({_p}, {_drop}, {_amount})
+        if {_earned} > 0:
+            # Add to pending autosell earnings for batched display
+            add {_earned} to {-autosell::%{_p}'s uuid%::pending}
+            if {-autosell::%{_p}'s uuid%::scheduled} is not set:
+                set {-autosell::%{_p}'s uuid%::scheduled} to true
+                autosell_flushEarnings({_p})
+            stop
+
+    # Check if inventory is full
+    if {_p} cannot hold 1 of type of {_drop}:
+        # Show inventory full message (throttled)
+        if {-invFull::%{_p}'s uuid%::cooldown} is not set:
+            send "&cInventory full! Use /sell or enable Autosell enchant." to {_p}
+            play sound "entity.villager.no" with volume 0.5 and pitch 1.2 to {_p}
+            set {-invFull::%{_p}'s uuid%::cooldown} to true
+            wait 3 seconds
+            delete {-invFull::%{_p}'s uuid%::cooldown}
+        stop
+
+    set {_finalDrop} to {_amount} of type of {_drop}
+    give {_finalDrop} to {_p}
+
+    play sound "entity.item.pickup" with volume 0.5 and pitch 1.2 at {_p} for {_p}

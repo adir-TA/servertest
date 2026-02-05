@@ -1,0 +1,1353 @@
+# ============================================================
+# AUTO-SALVAGE FILTER SYSTEM - GUI
+# ============================================================
+# /index command for viewing all pets/accessories
+# Filter menus accessible from /pets and /accessories
+# ============================================================
+
+# ============================================================
+# INDEX COMMAND
+# ============================================================
+
+command /index [<text>]:
+    trigger:
+        if arg-1 is not set:
+            filter_openIndexMain(player)
+            stop
+        if arg-1 is "pets":
+            filter_openPetIndex(player, 1)
+            stop
+        if arg-1 is "accessories":
+            filter_openAccIndex(player, 1)
+            stop
+        if arg-1 is "acc":
+            filter_openAccIndex(player, 1)
+            stop
+        filter_openIndexMain(player)
+
+
+# ============================================================
+# MAIN INDEX MENU
+# ============================================================
+
+function filter_openIndexMain(p: player):
+    set {_uuid} to {_p}'s uuid
+    set {_menu} to chest inventory with 3 rows named "&e&lIndex"
+
+    # Fill with glass
+    set {_filler} to black stained glass pane named "&1"
+    loop 27 times:
+        set slot loop-number - 1 of {_menu} to {_filler}
+
+    # Pet Index - Slot 11
+    set {_petDiscovered} to discovery_getPlayerPetCount({_p})
+    set {_petTotal} to discovery_getTotalPetTypes()
+    set {_petItem} to turtle egg named "&d&lPet Index"
+    delete {_petLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_petLore::*}
+    add "" to {_petLore::*}
+    add "&7View all available pets" to {_petLore::*}
+    add "&7and their stats." to {_petLore::*}
+    add "" to {_petLore::*}
+    add "&7Discovered: &a%{_petDiscovered}%&7/&e%{_petTotal}%" to {_petLore::*}
+    add "" to {_petLore::*}
+    add "" to {_petLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴠɪᴇᴡ" to {_petLore::*}
+    set lore of {_petItem} to {_petLore::*}
+    set string tag "index;action" of custom nbt of {_petItem} to "pet_index"
+    set slot 11 of {_menu} to {_petItem}
+
+    # Gem Index - Slot 13
+    set {_gemDiscovered} to discovery_getPlayerGemCount({_p})
+    set {_gemTotal} to discovery_getTotalGemTypes()
+    set {_gemItem} to amethyst shard named "&5&lGem Index"
+    delete {_gemLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_gemLore::*}
+    add "" to {_gemLore::*}
+    add "&7View all available gems" to {_gemLore::*}
+    add "&7and their tiers." to {_gemLore::*}
+    add "" to {_gemLore::*}
+    add "&7Discovered: &a%{_gemDiscovered}%&7/&e%{_gemTotal}%" to {_gemLore::*}
+    add "" to {_gemLore::*}
+    add "" to {_gemLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴠɪᴇᴡ" to {_gemLore::*}
+    set lore of {_gemItem} to {_gemLore::*}
+    set string tag "index;action" of custom nbt of {_gemItem} to "gem_index"
+    set slot 13 of {_menu} to {_gemItem}
+
+    # Accessory Index - Slot 15
+    set {_accDiscovered} to discovery_getPlayerAccCount({_p})
+    set {_accTotal} to discovery_getTotalAccTypes()
+    set {_accItem} to diamond named "&6&lAccessory Index"
+    delete {_accLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_accLore::*}
+    add "" to {_accLore::*}
+    add "&7View all available accessories" to {_accLore::*}
+    add "&7and their stats." to {_accLore::*}
+    add "" to {_accLore::*}
+    add "&7Discovered: &a%{_accDiscovered}%&7/&e%{_accTotal}%" to {_accLore::*}
+    add "" to {_accLore::*}
+    add "" to {_accLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴠɪᴇᴡ" to {_accLore::*}
+    set lore of {_accItem} to {_accLore::*}
+    set string tag "index;action" of custom nbt of {_accItem} to "acc_index"
+    set slot 15 of {_menu} to {_accItem}
+
+    open {_menu} to {_p}
+    set {-filter::menu::%{_uuid}%} to "INDEX_MAIN"
+
+
+# ============================================================
+# PET INDEX MENU
+# ============================================================
+
+function filter_openPetIndex(p: player, page: number):
+    set {_uuid} to {_p}'s uuid
+    set {_menu} to chest inventory with 6 rows named "&d&lPet Index"
+
+    set {_filler} to black stained glass pane named "&1"
+    loop 54 times:
+        set slot loop-number - 1 of {_menu} to {_filler}
+
+    # Get all pet types
+    set {_allPets::*} to {-pet::types::*}
+    set {_total} to size of {_allPets::*}
+
+    # Pagination
+    set {_perPage} to 28
+    set {_totalPages} to max(1, ceiling({_total} / {_perPage}))
+
+    if {_page} > {_totalPages}:
+        set {_page} to {_totalPages}
+    if {_page} < 1:
+        set {_page} to 1
+
+    set {_startIndex} to (({_page} - 1) * {_perPage}) + 1
+    set {_endIndex} to min({_startIndex} + {_perPage} - 1, {_total})
+
+    set {_displaySlots::*} to 10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 31, 32, 33, 34, 37, 38, 39, 40, 41, 42 and 43
+
+    set {_displayIndex} to 1
+    loop integers from {_startIndex} to {_endIndex}:
+        set {_petIndex} to loop-number
+        set {_type} to {_allPets::%{_petIndex}%}
+
+        if {_type} is set:
+            set {_discovered} to discovery_hasPetDiscovered({_p}, {_type})
+            set {_globalCount} to discovery_getGlobalPetCount({_type})
+
+            if {_discovered} is true:
+                set {_name} to pet_getTypeName({_type})
+                set {_tier} to pet_getTypeTier({_type})
+                set {_icon} to pet_getTypeIcon({_type})
+                set {_base} to pet_getTypeBase({_type}) * 100
+
+                # Tier color
+                if {_tier} is "divine":
+                    set {_tierColor} to "&d"
+                else if {_tier} is "ultra":
+                    set {_tierColor} to "&b"
+                else:
+                    set {_tierColor} to "&a"
+
+                set {_item} to {_icon} named "%{_tierColor}%%{_name}%"
+                delete {_lore::*}
+                add "&8ᴘᴇᴛ" to {_lore::*}
+                add "" to {_lore::*}
+                add "&7Tier: %{_tierColor}%%{_tier} in proper case%" to {_lore::*}
+                add "" to {_lore::*}
+                add "&6Stats:" to {_lore::*}
+
+                # Show all stats this pet boosts
+                loop pet_getTypeStats({_type}):
+                    set {_stat} to loop-value-2
+                    set {_statFormatted} to pet_formatStatName({_stat})
+                    add " &8- &f%{_statFormatted}%" to {_lore::*}
+
+                add "" to {_lore::*}
+                add "&7Base: &a%{_base}%%%" to {_lore::*}
+
+                # Rarity range
+                set {_minBonus} to {_base}
+                set {_maxBonus} to {_base} * 5
+                add "&7Range: &a%{_minBonus}%%% &8- &6%{_maxBonus}%%%" to {_lore::*}
+                add "" to {_lore::*}
+                add "&8Found by &7%{_globalCount}% &8players" to {_lore::*}
+
+                set lore of {_item} to {_lore::*}
+            else:
+                # Undiscovered - show Unknown
+                set {_item} to gray dye named "&8Unknown"
+                delete {_lore::*}
+                add "&8ᴘᴇᴛ" to {_lore::*}
+                add "" to {_lore::*}
+                add "&7You haven't discovered" to {_lore::*}
+                add "&7this pet yet." to {_lore::*}
+                add "" to {_lore::*}
+                add "&7Obtain this pet to reveal" to {_lore::*}
+                add "&7its stats and details." to {_lore::*}
+                add "" to {_lore::*}
+                add "&8Found by &7%{_globalCount}% &8players" to {_lore::*}
+                set lore of {_item} to {_lore::*}
+
+            set {_guiSlot} to {_displaySlots::%{_displayIndex}%}
+            set slot {_guiSlot} of {_menu} to {_item}
+
+        add 1 to {_displayIndex}
+
+    # Info - Slot 45
+    set {_info} to book named "&ePet Index"
+    delete {_infoLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_infoLore::*}
+    add "" to {_infoLore::*}
+    add "&7This shows all pets" to {_infoLore::*}
+    add "&7available in the game." to {_infoLore::*}
+    add "" to {_infoLore::*}
+    add "&6Tiers:" to {_infoLore::*}
+    add " &aNormal &8- &7Basic pets" to {_infoLore::*}
+    add " &bUltra &8- &7Better pets" to {_infoLore::*}
+    add " &dDivine &8- &7Best pets" to {_infoLore::*}
+    set lore of {_info} to {_infoLore::*}
+    set slot 45 of {_menu} to {_info}
+
+    # Previous page - Slot 48
+    if {_page} > 1:
+        set {_prev} to arrow named "&c&lBACK"
+        delete {_prevLore::*}
+        add menu_utils_getMenuItemFirstLoreLine() to {_prevLore::*}
+        add "" to {_prevLore::*}
+        add "&7Page: &8[&a%{_page} - 1%&8/&c%{_totalPages}%&8]" to {_prevLore::*}
+        add "" to {_prevLore::*}
+        add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ɢᴏ ʙᴀᴄᴋ" to {_prevLore::*}
+        set lore of {_prev} to {_prevLore::*}
+        set string tag "index;action" of custom nbt of {_prev} to "page"
+        set int tag "index;page" of custom nbt of {_prev} to {_page} - 1
+        set string tag "index;type" of custom nbt of {_prev} to "pet"
+        set slot 48 of {_menu} to {_prev}
+
+    # Page indicator - Slot 49
+    set {_pageItem} to paper named "&7Page: &8[&a%{_page}%&8/&c%{_totalPages}%&8]"
+    set slot 49 of {_menu} to {_pageItem}
+
+    # Next page - Slot 50
+    if {_page} < {_totalPages}:
+        set {_next} to arrow named "&a&lNEXT"
+        delete {_nextLore::*}
+        add menu_utils_getMenuItemFirstLoreLine() to {_nextLore::*}
+        add "" to {_nextLore::*}
+        add "&7Page: &8[&a%{_page} + 1%&8/&c%{_totalPages}%&8]" to {_nextLore::*}
+        add "" to {_nextLore::*}
+        add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ɢᴏ ɴᴇxᴛ" to {_nextLore::*}
+        set lore of {_next} to {_nextLore::*}
+        set string tag "index;action" of custom nbt of {_next} to "page"
+        set int tag "index;page" of custom nbt of {_next} to {_page} + 1
+        set string tag "index;type" of custom nbt of {_next} to "pet"
+        set slot 50 of {_menu} to {_next}
+
+    # Back to main - Slot 53
+    set {_back} to barrier named "&c&lBACK"
+    delete {_backLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_backLore::*}
+    add "" to {_backLore::*}
+    add "&7Return to index menu" to {_backLore::*}
+    add "" to {_backLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ɢᴏ ʙᴀᴄᴋ" to {_backLore::*}
+    set lore of {_back} to {_backLore::*}
+    set string tag "index;action" of custom nbt of {_back} to "back_main"
+    set slot 53 of {_menu} to {_back}
+
+    open {_menu} to {_p}
+    set {-filter::menu::%{_uuid}%} to "PET_INDEX"
+    set {-filter::menu::%{_uuid}%::page} to {_page}
+
+
+# ============================================================
+# ACCESSORY INDEX MENU
+# ============================================================
+
+function filter_openAccIndex(p: player, page: number):
+    set {_uuid} to {_p}'s uuid
+    set {_menu} to chest inventory with 6 rows named "&6&lAccessory Index"
+
+    set {_filler} to black stained glass pane named "&1"
+    loop 54 times:
+        set slot loop-number - 1 of {_menu} to {_filler}
+
+    # Get all accessory types
+    set {_allAcc::*} to {-acc::allTypes::*}
+    set {_total} to size of {_allAcc::*}
+
+    # Pagination
+    set {_perPage} to 28
+    set {_totalPages} to max(1, ceiling({_total} / {_perPage}))
+
+    if {_page} > {_totalPages}:
+        set {_page} to {_totalPages}
+    if {_page} < 1:
+        set {_page} to 1
+
+    set {_startIndex} to (({_page} - 1) * {_perPage}) + 1
+    set {_endIndex} to min({_startIndex} + {_perPage} - 1, {_total})
+
+    set {_displaySlots::*} to 10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 31, 32, 33, 34, 37, 38, 39, 40, 41, 42 and 43
+
+    set {_displayIndex} to 1
+    loop integers from {_startIndex} to {_endIndex}:
+        set {_accIndex} to loop-number
+        set {_type} to {_allAcc::%{_accIndex}%}
+
+        if {_type} is set:
+            set {_discovered} to discovery_hasAccDiscovered({_p}, {_type})
+            set {_globalCount} to discovery_getGlobalAccCount({_type})
+
+            if {_discovered} is true:
+                set {_name} to acc_getTypeName({_type})
+                set {_tier} to acc_getTypeTier({_type})
+                set {_icon} to acc_getTypeIcon({_type})
+                set {_stat} to acc_getTypeStat({_type})
+                set {_base} to acc_getTypeBase({_type})
+                set {_tierColor} to acc_getTierColor({_tier})
+                set {_tierName} to acc_getTierName({_tier})
+
+                set {_item} to {_icon} named "%{_tierColor}%%{_name}%"
+                delete {_lore::*}
+                add "&8ᴀᴄᴄᴇssᴏʀʏ" to {_lore::*}
+                add "" to {_lore::*}
+                add "&7Tier: %{_tierColor}%%{_tierName}%" to {_lore::*}
+                add "" to {_lore::*}
+
+                set {_statFormatted} to acc_formatStatName({_stat})
+                add "&6Stat: &f%{_statFormatted}%" to {_lore::*}
+                add "" to {_lore::*}
+                add "&7Base: &a%{_base}%%%" to {_lore::*}
+
+                # Rarity range
+                set {_minBonus} to {_base}
+                set {_maxBonus} to {_base} * 5.5
+                add "&7Range: &a%{_minBonus}%%% &8- &6%{_maxBonus}%%%" to {_lore::*}
+                add "" to {_lore::*}
+                add "&8Found by &7%{_globalCount}% &8players" to {_lore::*}
+
+                set lore of {_item} to {_lore::*}
+            else:
+                # Undiscovered - show Unknown
+                set {_item} to gray dye named "&8Unknown"
+                delete {_lore::*}
+                add "&8ᴀᴄᴄᴇssᴏʀʏ" to {_lore::*}
+                add "" to {_lore::*}
+                add "&7You haven't discovered" to {_lore::*}
+                add "&7this accessory yet." to {_lore::*}
+                add "" to {_lore::*}
+                add "&7Obtain this accessory to" to {_lore::*}
+                add "&7reveal its stats and details." to {_lore::*}
+                add "" to {_lore::*}
+                add "&8Found by &7%{_globalCount}% &8players" to {_lore::*}
+                set lore of {_item} to {_lore::*}
+
+            set {_guiSlot} to {_displaySlots::%{_displayIndex}%}
+            set slot {_guiSlot} of {_menu} to {_item}
+
+        add 1 to {_displayIndex}
+
+    # Info - Slot 45
+    set {_info} to book named "&eAccessory Index"
+    delete {_infoLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_infoLore::*}
+    add "" to {_infoLore::*}
+    add "&7This shows all accessories" to {_infoLore::*}
+    add "&7available in the game." to {_infoLore::*}
+    add "" to {_infoLore::*}
+    add "&6Tiers:" to {_infoLore::*}
+    add " &7Basic &8- &7Starter items" to {_infoLore::*}
+    add " &aAdvanced &8- &7Better items" to {_infoLore::*}
+    add " &bUltra &8- &7Great items" to {_infoLore::*}
+    add " &6Divine &8- &7Premium items" to {_infoLore::*}
+    add " &dMythic &8- &7Best items" to {_infoLore::*}
+    set lore of {_info} to {_infoLore::*}
+    set slot 45 of {_menu} to {_info}
+
+    # Previous page - Slot 48
+    if {_page} > 1:
+        set {_prev} to arrow named "&c&lBACK"
+        delete {_prevLore::*}
+        add menu_utils_getMenuItemFirstLoreLine() to {_prevLore::*}
+        add "" to {_prevLore::*}
+        add "&7Page: &8[&a%{_page} - 1%&8/&c%{_totalPages}%&8]" to {_prevLore::*}
+        add "" to {_prevLore::*}
+        add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ɢᴏ ʙᴀᴄᴋ" to {_prevLore::*}
+        set lore of {_prev} to {_prevLore::*}
+        set string tag "index;action" of custom nbt of {_prev} to "page"
+        set int tag "index;page" of custom nbt of {_prev} to {_page} - 1
+        set string tag "index;type" of custom nbt of {_prev} to "acc"
+        set slot 48 of {_menu} to {_prev}
+
+    # Page indicator - Slot 49
+    set {_pageItem} to paper named "&7Page: &8[&a%{_page}%&8/&c%{_totalPages}%&8]"
+    set slot 49 of {_menu} to {_pageItem}
+
+    # Next page - Slot 50
+    if {_page} < {_totalPages}:
+        set {_next} to arrow named "&a&lNEXT"
+        delete {_nextLore::*}
+        add menu_utils_getMenuItemFirstLoreLine() to {_nextLore::*}
+        add "" to {_nextLore::*}
+        add "&7Page: &8[&a%{_page} + 1%&8/&c%{_totalPages}%&8]" to {_nextLore::*}
+        add "" to {_nextLore::*}
+        add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ɢᴏ ɴᴇxᴛ" to {_nextLore::*}
+        set lore of {_next} to {_nextLore::*}
+        set string tag "index;action" of custom nbt of {_next} to "page"
+        set int tag "index;page" of custom nbt of {_next} to {_page} + 1
+        set string tag "index;type" of custom nbt of {_next} to "acc"
+        set slot 50 of {_menu} to {_next}
+
+    # Back to main - Slot 53
+    set {_back} to barrier named "&c&lBACK"
+    delete {_backLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_backLore::*}
+    add "" to {_backLore::*}
+    add "&7Return to index menu" to {_backLore::*}
+    add "" to {_backLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ɢᴏ ʙᴀᴄᴋ" to {_backLore::*}
+    set lore of {_back} to {_backLore::*}
+    set string tag "index;action" of custom nbt of {_back} to "back_main"
+    set slot 53 of {_menu} to {_back}
+
+    open {_menu} to {_p}
+    set {-filter::menu::%{_uuid}%} to "ACC_INDEX"
+    set {-filter::menu::%{_uuid}%::page} to {_page}
+
+
+# ============================================================
+# GEM INDEX MENU
+# ============================================================
+
+function filter_openGemIndex(p: player, page: number):
+    set {_uuid} to {_p}'s uuid
+    set {_menu} to chest inventory with 6 rows named "&5&lGem Index"
+
+    set {_filler} to black stained glass pane named "&1"
+    loop 54 times:
+        set slot loop-number - 1 of {_menu} to {_filler}
+
+    # Display slots for 8 gems
+    set {_displaySlots::*} to 10, 11, 12, 13, 14, 15 and 16
+
+    # Loop through all 8 gem tiers
+    loop integers from 1 to 8:
+        set {_tier} to loop-number
+        set {_discovered} to discovery_hasGemDiscovered({_p}, {_tier})
+        set {_globalCount} to discovery_getGlobalGemCount({_tier})
+
+        if {_discovered} is true:
+            set {_name} to gemstone_getName({_tier})
+            set {_color} to gemstone_getColor({_tier})
+            set {_minPrestige} to gemstone_getMinPrestige({_tier})
+            set {_maxPrestige} to gemstone_getMaxPrestige({_tier})
+
+            set {_item} to amethyst shard named "%{_color}%%{_name}%"
+            delete {_lore::*}
+            add "&8ɢᴇᴍ" to {_lore::*}
+            add "" to {_lore::*}
+            add "&7Tier: &a%{_tier}%" to {_lore::*}
+            add "" to {_lore::*}
+            add "&6Prestige Range:" to {_lore::*}
+            add " &7P%{_minPrestige}% &8- &7P%{_maxPrestige}%" to {_lore::*}
+            add "" to {_lore::*}
+            add "&7Gems can be found while" to {_lore::*}
+            add "&7mining at the appropriate" to {_lore::*}
+            add "&7prestige level." to {_lore::*}
+            add "" to {_lore::*}
+            add "&8Found by &7%{_globalCount}% &8players" to {_lore::*}
+
+            set lore of {_item} to {_lore::*}
+        else:
+            # Undiscovered - show Unknown
+            set {_item} to gray dye named "&8Unknown"
+            delete {_lore::*}
+            add "&8ɢᴇᴍ" to {_lore::*}
+            add "" to {_lore::*}
+            add "&7You haven't discovered" to {_lore::*}
+            add "&7this gem yet." to {_lore::*}
+            add "" to {_lore::*}
+            add "&7Mine blocks to find gems" to {_lore::*}
+            add "&7and unlock them in your" to {_lore::*}
+            add "&7research tree." to {_lore::*}
+            add "" to {_lore::*}
+            add "&8Found by &7%{_globalCount}% &8players" to {_lore::*}
+            set lore of {_item} to {_lore::*}
+
+        set {_guiSlot} to {_displaySlots::%{_tier}%}
+        set slot {_guiSlot} of {_menu} to {_item}
+
+    # Info - Slot 45
+    set {_info} to book named "&eGem Index"
+    delete {_infoLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_infoLore::*}
+    add "" to {_infoLore::*}
+    add "&7This shows all gems" to {_infoLore::*}
+    add "&7available in the game." to {_infoLore::*}
+    add "" to {_infoLore::*}
+    add "&6Unlock gems through:" to {_infoLore::*}
+    add " &7Research system (/research)" to {_infoLore::*}
+    add " &7Arcane archetype (P12+)" to {_infoLore::*}
+    add "" to {_infoLore::*}
+    add "&7Higher tier gems drop at" to {_infoLore::*}
+    add "&7higher prestige levels." to {_infoLore::*}
+    set lore of {_info} to {_infoLore::*}
+    set slot 45 of {_menu} to {_info}
+
+    # Back to main - Slot 53
+    set {_back} to barrier named "&c&lBACK"
+    delete {_backLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_backLore::*}
+    add "" to {_backLore::*}
+    add "&7Return to index menu" to {_backLore::*}
+    add "" to {_backLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ɢᴏ ʙᴀᴄᴋ" to {_backLore::*}
+    set lore of {_back} to {_backLore::*}
+    set string tag "index;action" of custom nbt of {_back} to "back_main"
+    set slot 53 of {_menu} to {_back}
+
+    open {_menu} to {_p}
+    set {-filter::menu::%{_uuid}%} to "GEM_INDEX"
+    set {-filter::menu::%{_uuid}%::page} to {_page}
+
+
+# ============================================================
+# PET FILTER MENU
+# ============================================================
+
+function filter_openPetFilter(p: player, page: number):
+    set {_uuid} to {_p}'s uuid
+    set {_menu} to chest inventory with 6 rows named "&c&lPet Auto-Salvage"
+
+    set {_filler} to black stained glass pane named "&1"
+    loop 54 times:
+        set slot loop-number - 1 of {_menu} to {_filler}
+
+    # Get all pet types
+    set {_allPets::*} to {-pet::types::*}
+    set {_total} to size of {_allPets::*}
+
+    # Pagination
+    set {_perPage} to 28
+    set {_totalPages} to max(1, ceiling({_total} / {_perPage}))
+
+    if {_page} > {_totalPages}:
+        set {_page} to {_totalPages}
+    if {_page} < 1:
+        set {_page} to 1
+
+    set {_startIndex} to (({_page} - 1) * {_perPage}) + 1
+    set {_endIndex} to min({_startIndex} + {_perPage} - 1, {_total})
+
+    set {_displaySlots::*} to 10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 31, 32, 33, 34, 37, 38, 39, 40, 41, 42 and 43
+
+    set {_displayIndex} to 1
+    loop integers from {_startIndex} to {_endIndex}:
+        set {_petIndex} to loop-number
+        set {_type} to {_allPets::%{_petIndex}%}
+
+        if {_type} is set:
+            set {_name} to pet_getTypeName({_type})
+            set {_tier} to pet_getTypeTier({_type})
+            set {_icon} to pet_getTypeIcon({_type})
+            set {_isFiltered} to filter_isPetFiltered({_p}, {_type})
+
+            # Tier color
+            if {_tier} is "divine":
+                set {_tierColor} to "&d"
+            else if {_tier} is "ultra":
+                set {_tierColor} to "&b"
+            else:
+                set {_tierColor} to "&a"
+
+            set {_rarityFiltered} to filter_countPetRarityFiltered({_p}, {_type})
+
+            set {_item} to {_icon} named "%{_tierColor}%%{_name}%"
+            delete {_lore::*}
+            add menu_utils_getMenuItemFirstLoreLine() to {_lore::*}
+            add "" to {_lore::*}
+            add "&7Tier: %{_tierColor}%%{_tier} in proper case%" to {_lore::*}
+            add "" to {_lore::*}
+
+            if {_isFiltered} is true:
+                add "&cStatus: &4ALL AUTO-SALVAGE" to {_lore::*}
+                add "" to {_lore::*}
+                add "&7All rarities of this pet" to {_lore::*}
+                add "&7will be auto-salvaged." to {_lore::*}
+            else if {_rarityFiltered} > 0:
+                add "&eStatus: &6PARTIAL (%{_rarityFiltered}%/5)" to {_lore::*}
+                add "" to {_lore::*}
+                add "&7Some rarities filtered." to {_lore::*}
+            else:
+                add "&aStatus: &2KEEP ALL" to {_lore::*}
+                add "" to {_lore::*}
+                add "&7This pet will be added to" to {_lore::*}
+                add "&7your collection when obtained." to {_lore::*}
+
+            add "" to {_lore::*}
+            add "<#C0CF91>ʟᴇғᴛ-ᴄʟɪᴄᴋ: ᴛᴏɢɢʟᴇ ᴀʟʟ" to {_lore::*}
+            add "<#C0CF91>ʀɪɢʜᴛ-ᴄʟɪᴄᴋ: ғɪʟᴛᴇʀ ʙʏ ʀᴀʀɪᴛʏ" to {_lore::*}
+
+            set lore of {_item} to {_lore::*}
+            set string tag "filter;type" of custom nbt of {_item} to {_type}
+            set string tag "filter;system" of custom nbt of {_item} to "pet"
+
+            set {_guiSlot} to {_displaySlots::%{_displayIndex}%}
+            set slot {_guiSlot} of {_menu} to {_item}
+
+        add 1 to {_displayIndex}
+
+    # Info - Slot 45
+    set {_filteredCount} to filter_countFilteredPets({_p})
+    set {_info} to book named "&ePet Filter Info"
+    delete {_infoLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_infoLore::*}
+    add "" to {_infoLore::*}
+    add "&7Configure which pets to" to {_infoLore::*}
+    add "&7auto-salvage on obtain." to {_infoLore::*}
+    add "" to {_infoLore::*}
+    add "&6Filtered: &c%{_filteredCount}%&7/%{_total}%" to {_infoLore::*}
+    set lore of {_info} to {_infoLore::*}
+    set slot 45 of {_menu} to {_info}
+
+    # Filter All - Slot 46
+    set {_filterAll} to red dye named "&c&lFilter All"
+    delete {_filterAllLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_filterAllLore::*}
+    add "" to {_filterAllLore::*}
+    add "&7Enable auto-salvage for" to {_filterAllLore::*}
+    add "&7all pet types." to {_filterAllLore::*}
+    add "" to {_filterAllLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ғɪʟᴛᴇʀ ᴀʟʟ" to {_filterAllLore::*}
+    set lore of {_filterAll} to {_filterAllLore::*}
+    set string tag "filter;action" of custom nbt of {_filterAll} to "filter_all_pets"
+    set slot 46 of {_menu} to {_filterAll}
+
+    # Keep All - Slot 47
+    set {_keepAll} to lime dye named "&a&lKeep All"
+    delete {_keepAllLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_keepAllLore::*}
+    add "" to {_keepAllLore::*}
+    add "&7Disable auto-salvage for" to {_keepAllLore::*}
+    add "&7all pet types." to {_keepAllLore::*}
+    add "" to {_keepAllLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴋᴇᴇᴘ ᴀʟʟ" to {_keepAllLore::*}
+    set lore of {_keepAll} to {_keepAllLore::*}
+    set string tag "filter;action" of custom nbt of {_keepAll} to "keep_all_pets"
+    set slot 47 of {_menu} to {_keepAll}
+
+    # Previous page - Slot 48
+    if {_page} > 1:
+        set {_prev} to arrow named "&c&lBACK"
+        delete {_prevLore::*}
+        add menu_utils_getMenuItemFirstLoreLine() to {_prevLore::*}
+        add "" to {_prevLore::*}
+        add "&7Page: &8[&a%{_page} - 1%&8/&c%{_totalPages}%&8]" to {_prevLore::*}
+        add "" to {_prevLore::*}
+        add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ɢᴏ ʙᴀᴄᴋ" to {_prevLore::*}
+        set lore of {_prev} to {_prevLore::*}
+        set string tag "filter;action" of custom nbt of {_prev} to "page"
+        set int tag "filter;page" of custom nbt of {_prev} to {_page} - 1
+        set string tag "filter;system" of custom nbt of {_prev} to "pet"
+        set slot 48 of {_menu} to {_prev}
+
+    # Page indicator - Slot 49
+    set {_pageItem} to paper named "&7Page: &8[&a%{_page}%&8/&c%{_totalPages}%&8]"
+    set slot 49 of {_menu} to {_pageItem}
+
+    # Next page - Slot 50
+    if {_page} < {_totalPages}:
+        set {_next} to arrow named "&a&lNEXT"
+        delete {_nextLore::*}
+        add menu_utils_getMenuItemFirstLoreLine() to {_nextLore::*}
+        add "" to {_nextLore::*}
+        add "&7Page: &8[&a%{_page} + 1%&8/&c%{_totalPages}%&8]" to {_nextLore::*}
+        add "" to {_nextLore::*}
+        add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ɢᴏ ɴᴇxᴛ" to {_nextLore::*}
+        set lore of {_next} to {_nextLore::*}
+        set string tag "filter;action" of custom nbt of {_next} to "page"
+        set int tag "filter;page" of custom nbt of {_next} to {_page} + 1
+        set string tag "filter;system" of custom nbt of {_next} to "pet"
+        set slot 50 of {_menu} to {_next}
+
+    # Back - Slot 53
+    set {_back} to barrier named "&c&lBACK"
+    delete {_backLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_backLore::*}
+    add "" to {_backLore::*}
+    add "&7Return to pets menu" to {_backLore::*}
+    add "" to {_backLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ɢᴏ ʙᴀᴄᴋ" to {_backLore::*}
+    set lore of {_back} to {_backLore::*}
+    set string tag "filter;action" of custom nbt of {_back} to "back_pets"
+    set slot 53 of {_menu} to {_back}
+
+    open {_menu} to {_p}
+    set {-filter::menu::%{_uuid}%} to "PET_FILTER"
+    set {-filter::menu::%{_uuid}%::page} to {_page}
+
+
+# ============================================================
+# ACCESSORY FILTER MENU
+# ============================================================
+
+function filter_openAccFilter(p: player, page: number):
+    set {_uuid} to {_p}'s uuid
+    set {_menu} to chest inventory with 6 rows named "&c&lAccessory Auto-Salvage"
+
+    set {_filler} to black stained glass pane named "&1"
+    loop 54 times:
+        set slot loop-number - 1 of {_menu} to {_filler}
+
+    # Get all accessory types
+    set {_allAcc::*} to {-acc::allTypes::*}
+    set {_total} to size of {_allAcc::*}
+
+    # Pagination
+    set {_perPage} to 28
+    set {_totalPages} to max(1, ceiling({_total} / {_perPage}))
+
+    if {_page} > {_totalPages}:
+        set {_page} to {_totalPages}
+    if {_page} < 1:
+        set {_page} to 1
+
+    set {_startIndex} to (({_page} - 1) * {_perPage}) + 1
+    set {_endIndex} to min({_startIndex} + {_perPage} - 1, {_total})
+
+    set {_displaySlots::*} to 10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 31, 32, 33, 34, 37, 38, 39, 40, 41, 42 and 43
+
+    set {_displayIndex} to 1
+    loop integers from {_startIndex} to {_endIndex}:
+        set {_accIndex} to loop-number
+        set {_type} to {_allAcc::%{_accIndex}%}
+
+        if {_type} is set:
+            set {_name} to acc_getTypeName({_type})
+            set {_tier} to acc_getTypeTier({_type})
+            set {_icon} to acc_getTypeIcon({_type})
+            set {_tierColor} to acc_getTierColor({_tier})
+            set {_isFiltered} to filter_isAccFiltered({_p}, {_type})
+
+            set {_rarityFiltered} to filter_countAccRarityFiltered({_p}, {_type})
+
+            set {_item} to {_icon} named "%{_tierColor}%%{_name}%"
+            delete {_lore::*}
+            add menu_utils_getMenuItemFirstLoreLine() to {_lore::*}
+            add "" to {_lore::*}
+            add "&7Tier: %{_tierColor}%%acc_getTierName({_tier})%" to {_lore::*}
+            add "" to {_lore::*}
+
+            if {_isFiltered} is true:
+                add "&cStatus: &4ALL AUTO-SALVAGE" to {_lore::*}
+                add "" to {_lore::*}
+                add "&7All rarities of this accessory" to {_lore::*}
+                add "&7will be auto-salvaged." to {_lore::*}
+            else if {_rarityFiltered} > 0:
+                add "&eStatus: &6PARTIAL (%{_rarityFiltered}%/5)" to {_lore::*}
+                add "" to {_lore::*}
+                add "&7Some rarities filtered." to {_lore::*}
+            else:
+                add "&aStatus: &2KEEP ALL" to {_lore::*}
+                add "" to {_lore::*}
+                add "&7This accessory will be added" to {_lore::*}
+                add "&7to your storage when obtained." to {_lore::*}
+
+            add "" to {_lore::*}
+            add "<#C0CF91>ʟᴇғᴛ-ᴄʟɪᴄᴋ: ᴛᴏɢɢʟᴇ ᴀʟʟ" to {_lore::*}
+            add "<#C0CF91>ʀɪɢʜᴛ-ᴄʟɪᴄᴋ: ғɪʟᴛᴇʀ ʙʏ ʀᴀʀɪᴛʏ" to {_lore::*}
+
+            set lore of {_item} to {_lore::*}
+            set string tag "filter;type" of custom nbt of {_item} to {_type}
+            set string tag "filter;system" of custom nbt of {_item} to "acc"
+
+            set {_guiSlot} to {_displaySlots::%{_displayIndex}%}
+            set slot {_guiSlot} of {_menu} to {_item}
+
+        add 1 to {_displayIndex}
+
+    # Info - Slot 45
+    set {_filteredCount} to filter_countFilteredAcc({_p})
+    set {_info} to book named "&eAccessory Filter Info"
+    delete {_infoLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_infoLore::*}
+    add "" to {_infoLore::*}
+    add "&7Configure which accessories" to {_infoLore::*}
+    add "&7to auto-salvage on obtain." to {_infoLore::*}
+    add "" to {_infoLore::*}
+    add "&6Filtered: &c%{_filteredCount}%&7/%{_total}%" to {_infoLore::*}
+    set lore of {_info} to {_infoLore::*}
+    set slot 45 of {_menu} to {_info}
+
+    # Filter All - Slot 46
+    set {_filterAll} to red dye named "&c&lFilter All"
+    delete {_filterAllLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_filterAllLore::*}
+    add "" to {_filterAllLore::*}
+    add "&7Enable auto-salvage for" to {_filterAllLore::*}
+    add "&7all accessory types." to {_filterAllLore::*}
+    add "" to {_filterAllLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ғɪʟᴛᴇʀ ᴀʟʟ" to {_filterAllLore::*}
+    set lore of {_filterAll} to {_filterAllLore::*}
+    set string tag "filter;action" of custom nbt of {_filterAll} to "filter_all_acc"
+    set slot 46 of {_menu} to {_filterAll}
+
+    # Keep All - Slot 47
+    set {_keepAll} to lime dye named "&a&lKeep All"
+    delete {_keepAllLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_keepAllLore::*}
+    add "" to {_keepAllLore::*}
+    add "&7Disable auto-salvage for" to {_keepAllLore::*}
+    add "&7all accessory types." to {_keepAllLore::*}
+    add "" to {_keepAllLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴋᴇᴇᴘ ᴀʟʟ" to {_keepAllLore::*}
+    set lore of {_keepAll} to {_keepAllLore::*}
+    set string tag "filter;action" of custom nbt of {_keepAll} to "keep_all_acc"
+    set slot 47 of {_menu} to {_keepAll}
+
+    # Previous page - Slot 48
+    if {_page} > 1:
+        set {_prev} to arrow named "&c&lBACK"
+        delete {_prevLore::*}
+        add menu_utils_getMenuItemFirstLoreLine() to {_prevLore::*}
+        add "" to {_prevLore::*}
+        add "&7Page: &8[&a%{_page} - 1%&8/&c%{_totalPages}%&8]" to {_prevLore::*}
+        add "" to {_prevLore::*}
+        add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ɢᴏ ʙᴀᴄᴋ" to {_prevLore::*}
+        set lore of {_prev} to {_prevLore::*}
+        set string tag "filter;action" of custom nbt of {_prev} to "page"
+        set int tag "filter;page" of custom nbt of {_prev} to {_page} - 1
+        set string tag "filter;system" of custom nbt of {_prev} to "acc"
+        set slot 48 of {_menu} to {_prev}
+
+    # Page indicator - Slot 49
+    set {_pageItem} to paper named "&7Page: &8[&a%{_page}%&8/&c%{_totalPages}%&8]"
+    set slot 49 of {_menu} to {_pageItem}
+
+    # Next page - Slot 50
+    if {_page} < {_totalPages}:
+        set {_next} to arrow named "&a&lNEXT"
+        delete {_nextLore::*}
+        add menu_utils_getMenuItemFirstLoreLine() to {_nextLore::*}
+        add "" to {_nextLore::*}
+        add "&7Page: &8[&a%{_page} + 1%&8/&c%{_totalPages}%&8]" to {_nextLore::*}
+        add "" to {_nextLore::*}
+        add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ɢᴏ ɴᴇxᴛ" to {_nextLore::*}
+        set lore of {_next} to {_nextLore::*}
+        set string tag "filter;action" of custom nbt of {_next} to "page"
+        set int tag "filter;page" of custom nbt of {_next} to {_page} + 1
+        set string tag "filter;system" of custom nbt of {_next} to "acc"
+        set slot 50 of {_menu} to {_next}
+
+    # Back - Slot 53
+    set {_back} to barrier named "&c&lBACK"
+    delete {_backLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_backLore::*}
+    add "" to {_backLore::*}
+    add "&7Return to accessories menu" to {_backLore::*}
+    add "" to {_backLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ɢᴏ ʙᴀᴄᴋ" to {_backLore::*}
+    set lore of {_back} to {_backLore::*}
+    set string tag "filter;action" of custom nbt of {_back} to "back_acc"
+    set slot 53 of {_menu} to {_back}
+
+    open {_menu} to {_p}
+    set {-filter::menu::%{_uuid}%} to "ACC_FILTER"
+    set {-filter::menu::%{_uuid}%::page} to {_page}
+
+
+# ============================================================
+# PET RARITY FILTER MENU
+# ============================================================
+
+function filter_openPetRarityFilter(p: player, petType: text):
+    set {_uuid} to {_p}'s uuid
+    set {_name} to pet_getTypeName({_petType})
+    set {_tier} to pet_getTypeTier({_petType})
+    set {_icon} to pet_getTypeIcon({_petType})
+
+    if {_tier} is "divine":
+        set {_tierColor} to "&d"
+    else if {_tier} is "ultra":
+        set {_tierColor} to "&b"
+    else:
+        set {_tierColor} to "&a"
+
+    set {_menu} to chest inventory with 3 rows named "&c&l%{_name}% Filter"
+
+    set {_filler} to black stained glass pane named "&1"
+    loop 27 times:
+        set slot loop-number - 1 of {_menu} to {_filler}
+
+    # Pet preview - Slot 4
+    set {_preview} to {_icon} named "%{_tierColor}%%{_name}%"
+    delete {_previewLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_previewLore::*}
+    add "" to {_previewLore::*}
+    add "&7Tier: %{_tierColor}%%{_tier} in proper case%" to {_previewLore::*}
+    add "" to {_previewLore::*}
+    add "&7Configure which rarities" to {_previewLore::*}
+    add "&7to auto-salvage." to {_previewLore::*}
+    set lore of {_preview} to {_previewLore::*}
+    set slot 4 of {_menu} to {_preview}
+
+    # Rarity slots: 10, 11, 12, 13, 14 (continuous)
+    set {_rarities::*} to "common", "uncommon", "rare", "epic" and "legendary"
+    set {_rarityColors::*} to "&f", "&a", "&9", "&5" and "&6"
+    set {_raritySlots::*} to 10, 11, 12, 13 and 14
+
+    set {_idx} to 1
+    loop {_rarities::*}:
+        set {_rarity} to loop-value
+        set {_color} to {_rarityColors::%{_idx}%}
+        set {_slot} to {_raritySlots::%{_idx}%}
+        set {_isFiltered} to filter_isPetRarityFiltered({_p}, {_petType}, {_rarity})
+
+        if {_isFiltered} is true:
+            set {_rarityItem} to red dye named "%{_color}%%{_rarity} in proper case%"
+            delete {_rarityLore::*}
+            add menu_utils_getMenuItemFirstLoreLine() to {_rarityLore::*}
+            add "" to {_rarityLore::*}
+            add "&cStatus: &4AUTO-SALVAGE" to {_rarityLore::*}
+            add "" to {_rarityLore::*}
+            add "&7%{_color}%%{_rarity} in proper case% &7%{_name}%s" to {_rarityLore::*}
+            add "&7will be auto-salvaged." to {_rarityLore::*}
+            add "" to {_rarityLore::*}
+            add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴋᴇᴇᴘ" to {_rarityLore::*}
+        else:
+            set {_rarityItem} to lime dye named "%{_color}%%{_rarity} in proper case%"
+            delete {_rarityLore::*}
+            add menu_utils_getMenuItemFirstLoreLine() to {_rarityLore::*}
+            add "" to {_rarityLore::*}
+            add "&aStatus: &2KEEP" to {_rarityLore::*}
+            add "" to {_rarityLore::*}
+            add "&7%{_color}%%{_rarity} in proper case% &7%{_name}%s" to {_rarityLore::*}
+            add "&7will be kept." to {_rarityLore::*}
+            add "" to {_rarityLore::*}
+            add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ғɪʟᴛᴇʀ" to {_rarityLore::*}
+
+        set lore of {_rarityItem} to {_rarityLore::*}
+        set string tag "filter;rarity" of custom nbt of {_rarityItem} to {_rarity}
+        set slot {_slot} of {_menu} to {_rarityItem}
+
+        add 1 to {_idx}
+
+    # Filter all rarities - Slot 20
+    set {_filterAll} to red concrete named "&c&lFILTER ALL"
+    delete {_filterAllLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_filterAllLore::*}
+    add "" to {_filterAllLore::*}
+    add "&7Mark all rarities for" to {_filterAllLore::*}
+    add "&7auto-salvage." to {_filterAllLore::*}
+    add "" to {_filterAllLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ғɪʟᴛᴇʀ ᴀʟʟ" to {_filterAllLore::*}
+    set lore of {_filterAll} to {_filterAllLore::*}
+    set string tag "filter;action" of custom nbt of {_filterAll} to "filter_all_rarities"
+    set slot 20 of {_menu} to {_filterAll}
+
+    # Keep all rarities - Slot 24
+    set {_keepAll} to lime concrete named "&a&lKEEP ALL"
+    delete {_keepAllLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_keepAllLore::*}
+    add "" to {_keepAllLore::*}
+    add "&7Mark all rarities to" to {_keepAllLore::*}
+    add "&7be kept." to {_keepAllLore::*}
+    add "" to {_keepAllLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴋᴇᴇᴘ ᴀʟʟ" to {_keepAllLore::*}
+    set lore of {_keepAll} to {_keepAllLore::*}
+    set string tag "filter;action" of custom nbt of {_keepAll} to "keep_all_rarities"
+    set slot 24 of {_menu} to {_keepAll}
+
+    # Back - Slot 22
+    set {_back} to arrow named "&c&lBACK"
+    delete {_backLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_backLore::*}
+    add "" to {_backLore::*}
+    add "&7Return to pet filter" to {_backLore::*}
+    add "" to {_backLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ɢᴏ ʙᴀᴄᴋ" to {_backLore::*}
+    set lore of {_back} to {_backLore::*}
+    set string tag "filter;action" of custom nbt of {_back} to "back_filter"
+    set slot 22 of {_menu} to {_back}
+
+    open {_menu} to {_p}
+    set {-filter::menu::%{_uuid}%} to "PET_RARITY_FILTER"
+    set {-filter::menu::%{_uuid}%::type} to {_petType}
+
+
+# ============================================================
+# ACCESSORY RARITY FILTER MENU
+# ============================================================
+
+function filter_openAccRarityFilter(p: player, accType: text):
+    set {_uuid} to {_p}'s uuid
+    set {_name} to acc_getTypeName({_accType})
+    set {_tier} to acc_getTypeTier({_accType})
+    set {_icon} to acc_getTypeIcon({_accType})
+    set {_tierColor} to acc_getTierColor({_tier})
+
+    set {_menu} to chest inventory with 3 rows named "&c&l%{_name}% Filter"
+
+    set {_filler} to black stained glass pane named "&1"
+    loop 27 times:
+        set slot loop-number - 1 of {_menu} to {_filler}
+
+    # Accessory preview - Slot 4
+    set {_preview} to {_icon} named "%{_tierColor}%%{_name}%"
+    delete {_previewLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_previewLore::*}
+    add "" to {_previewLore::*}
+    add "&7Tier: %{_tierColor}%%acc_getTierName({_tier})%" to {_previewLore::*}
+    add "" to {_previewLore::*}
+    add "&7Configure which rarities" to {_previewLore::*}
+    add "&7to auto-salvage." to {_previewLore::*}
+    set lore of {_preview} to {_previewLore::*}
+    set slot 4 of {_menu} to {_preview}
+
+    # Rarity slots: 10, 11, 12, 13, 14 (continuous)
+    set {_rarities::*} to "common", "uncommon", "rare", "epic" and "legendary"
+    set {_rarityColors::*} to "&f", "&a", "&9", "&5" and "&6"
+    set {_raritySlots::*} to 10, 11, 12, 13 and 14
+
+    set {_idx} to 1
+    loop {_rarities::*}:
+        set {_rarity} to loop-value
+        set {_color} to {_rarityColors::%{_idx}%}
+        set {_slot} to {_raritySlots::%{_idx}%}
+        set {_isFiltered} to filter_isAccRarityFiltered({_p}, {_accType}, {_rarity})
+
+        if {_isFiltered} is true:
+            set {_rarityItem} to red dye named "%{_color}%%{_rarity} in proper case%"
+            delete {_rarityLore::*}
+            add menu_utils_getMenuItemFirstLoreLine() to {_rarityLore::*}
+            add "" to {_rarityLore::*}
+            add "&cStatus: &4AUTO-SALVAGE" to {_rarityLore::*}
+            add "" to {_rarityLore::*}
+            add "&7%{_color}%%{_rarity} in proper case% &7%{_name}%s" to {_rarityLore::*}
+            add "&7will be auto-salvaged." to {_rarityLore::*}
+            add "" to {_rarityLore::*}
+            add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴋᴇᴇᴘ" to {_rarityLore::*}
+        else:
+            set {_rarityItem} to lime dye named "%{_color}%%{_rarity} in proper case%"
+            delete {_rarityLore::*}
+            add menu_utils_getMenuItemFirstLoreLine() to {_rarityLore::*}
+            add "" to {_rarityLore::*}
+            add "&aStatus: &2KEEP" to {_rarityLore::*}
+            add "" to {_rarityLore::*}
+            add "&7%{_color}%%{_rarity} in proper case% &7%{_name}%s" to {_rarityLore::*}
+            add "&7will be kept." to {_rarityLore::*}
+            add "" to {_rarityLore::*}
+            add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ғɪʟᴛᴇʀ" to {_rarityLore::*}
+
+        set lore of {_rarityItem} to {_rarityLore::*}
+        set string tag "filter;rarity" of custom nbt of {_rarityItem} to {_rarity}
+        set slot {_slot} of {_menu} to {_rarityItem}
+
+        add 1 to {_idx}
+
+    # Filter all rarities - Slot 20
+    set {_filterAll} to red concrete named "&c&lFILTER ALL"
+    delete {_filterAllLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_filterAllLore::*}
+    add "" to {_filterAllLore::*}
+    add "&7Mark all rarities for" to {_filterAllLore::*}
+    add "&7auto-salvage." to {_filterAllLore::*}
+    add "" to {_filterAllLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ғɪʟᴛᴇʀ ᴀʟʟ" to {_filterAllLore::*}
+    set lore of {_filterAll} to {_filterAllLore::*}
+    set string tag "filter;action" of custom nbt of {_filterAll} to "filter_all_rarities"
+    set slot 20 of {_menu} to {_filterAll}
+
+    # Keep all rarities - Slot 24
+    set {_keepAll} to lime concrete named "&a&lKEEP ALL"
+    delete {_keepAllLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_keepAllLore::*}
+    add "" to {_keepAllLore::*}
+    add "&7Mark all rarities to" to {_keepAllLore::*}
+    add "&7be kept." to {_keepAllLore::*}
+    add "" to {_keepAllLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴋᴇᴇᴘ ᴀʟʟ" to {_keepAllLore::*}
+    set lore of {_keepAll} to {_keepAllLore::*}
+    set string tag "filter;action" of custom nbt of {_keepAll} to "keep_all_rarities"
+    set slot 24 of {_menu} to {_keepAll}
+
+    # Back - Slot 22
+    set {_back} to arrow named "&c&lBACK"
+    delete {_backLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_backLore::*}
+    add "" to {_backLore::*}
+    add "&7Return to accessory filter" to {_backLore::*}
+    add "" to {_backLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ɢᴏ ʙᴀᴄᴋ" to {_backLore::*}
+    set lore of {_back} to {_backLore::*}
+    set string tag "filter;action" of custom nbt of {_back} to "back_filter"
+    set slot 22 of {_menu} to {_back}
+
+    open {_menu} to {_p}
+    set {-filter::menu::%{_uuid}%} to "ACC_RARITY_FILTER"
+    set {-filter::menu::%{_uuid}%::type} to {_accType}
+
+
+# ============================================================
+# CLICK HANDLERS
+# ============================================================
+
+on inventory click:
+    set {_uuid} to player's uuid
+    set {_menuType} to {-filter::menu::%{_uuid}%}
+
+    if {_menuType} is "INDEX_MAIN":
+        cancel event
+        set {_nbt} to custom nbt of clicked slot
+        set {_action} to string tag "index;action" of {_nbt}
+
+        if {_action} is "pet_index":
+            play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+            filter_openPetIndex(player, 1)
+
+        else if {_action} is "acc_index":
+            play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+            filter_openAccIndex(player, 1)
+
+        else if {_action} is "gem_index":
+            play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+            filter_openGemIndex(player, 1)
+
+    else if {_menuType} is "PET_INDEX":
+        cancel event
+        set {_nbt} to custom nbt of clicked slot
+        set {_action} to string tag "index;action" of {_nbt}
+
+        if {_action} is "page":
+            play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+            set {_newPage} to int tag "index;page" of {_nbt}
+            filter_openPetIndex(player, {_newPage})
+
+        else if {_action} is "back_main":
+            play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+            filter_openIndexMain(player)
+
+    else if {_menuType} is "ACC_INDEX":
+        cancel event
+        set {_nbt} to custom nbt of clicked slot
+        set {_action} to string tag "index;action" of {_nbt}
+
+        if {_action} is "page":
+            play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+            set {_newPage} to int tag "index;page" of {_nbt}
+            filter_openAccIndex(player, {_newPage})
+
+        else if {_action} is "back_main":
+            play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+            filter_openIndexMain(player)
+
+    else if {_menuType} is "GEM_INDEX":
+        cancel event
+        set {_nbt} to custom nbt of clicked slot
+        set {_action} to string tag "index;action" of {_nbt}
+
+        if {_action} is "back_main":
+            play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+            filter_openIndexMain(player)
+
+    else if {_menuType} is "PET_FILTER":
+        cancel event
+        set {_nbt} to custom nbt of clicked slot
+        set {_action} to string tag "filter;action" of {_nbt}
+        set {_type} to string tag "filter;type" of {_nbt}
+
+        if {_type} is set:
+            # Right-click = open rarity filter
+            if click type is right mouse button:
+                play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+                filter_openPetRarityFilter(player, {_type})
+                stop
+
+            # Left-click = Toggle all rarities filter
+            set {_isFiltered} to filter_isPetFiltered(player, {_type})
+            if {_isFiltered} is true:
+                filter_setPetFilter(player, {_type}, false)
+                play sound "block.note_block.pling" with volume 0.5 and pitch 1.5 to player
+            else:
+                filter_setPetFilter(player, {_type}, true)
+                # Also clear individual rarity filters when enabling all-filter
+                filter_clearPetRarityFilters(player, {_type})
+                play sound "block.note_block.bass" with volume 0.5 and pitch 0.8 to player
+            set {_page} to {-filter::menu::%{_uuid}%::page} ? 1
+            filter_openPetFilter(player, {_page})
+
+        else if {_action} is "filter_all_pets":
+            play sound "entity.item.break" with volume 0.5 and pitch 1 to player
+            filter_enableAllPets(player)
+            set {_page} to {-filter::menu::%{_uuid}%::page} ? 1
+            filter_openPetFilter(player, {_page})
+
+        else if {_action} is "keep_all_pets":
+            play sound "entity.experience_orb.pickup" with volume 0.5 and pitch 1 to player
+            filter_disableAllPets(player)
+            set {_page} to {-filter::menu::%{_uuid}%::page} ? 1
+            filter_openPetFilter(player, {_page})
+
+        else if {_action} is "page":
+            play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+            set {_newPage} to int tag "filter;page" of {_nbt}
+            filter_openPetFilter(player, {_newPage})
+
+        else if {_action} is "back_pets":
+            play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+            delete {-filter::menu::%{_uuid}%}
+            delete {-filter::menu::%{_uuid}%::page}
+            pet_openMainMenu(player, 1, "tier")
+
+    else if {_menuType} is "ACC_FILTER":
+        cancel event
+        set {_nbt} to custom nbt of clicked slot
+        set {_action} to string tag "filter;action" of {_nbt}
+        set {_type} to string tag "filter;type" of {_nbt}
+
+        if {_type} is set:
+            # Right-click = open rarity filter
+            if click type is right mouse button:
+                play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+                filter_openAccRarityFilter(player, {_type})
+                stop
+
+            # Left-click = Toggle all rarities filter
+            set {_isFiltered} to filter_isAccFiltered(player, {_type})
+            if {_isFiltered} is true:
+                filter_setAccFilter(player, {_type}, false)
+                play sound "block.note_block.pling" with volume 0.5 and pitch 1.5 to player
+            else:
+                filter_setAccFilter(player, {_type}, true)
+                # Also clear individual rarity filters when enabling all-filter
+                filter_clearAccRarityFilters(player, {_type})
+                play sound "block.note_block.bass" with volume 0.5 and pitch 0.8 to player
+            set {_page} to {-filter::menu::%{_uuid}%::page} ? 1
+            filter_openAccFilter(player, {_page})
+
+        else if {_action} is "filter_all_acc":
+            play sound "entity.item.break" with volume 0.5 and pitch 1 to player
+            filter_enableAllAcc(player)
+            set {_page} to {-filter::menu::%{_uuid}%::page} ? 1
+            filter_openAccFilter(player, {_page})
+
+        else if {_action} is "keep_all_acc":
+            play sound "entity.experience_orb.pickup" with volume 0.5 and pitch 1 to player
+            filter_disableAllAcc(player)
+            set {_page} to {-filter::menu::%{_uuid}%::page} ? 1
+            filter_openAccFilter(player, {_page})
+
+        else if {_action} is "page":
+            play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+            set {_newPage} to int tag "filter;page" of {_nbt}
+            filter_openAccFilter(player, {_newPage})
+
+        else if {_action} is "back_acc":
+            play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+            delete {-filter::menu::%{_uuid}%}
+            delete {-filter::menu::%{_uuid}%::page}
+            acc_openInventoryGui(player, 1)
+
+    else if {_menuType} is "PET_RARITY_FILTER":
+        cancel event
+        set {_nbt} to custom nbt of clicked slot
+        set {_action} to string tag "filter;action" of {_nbt}
+        set {_rarity} to string tag "filter;rarity" of {_nbt}
+        set {_type} to {-filter::menu::%{_uuid}%::type}
+
+        if {_rarity} is set:
+            # Toggle rarity filter
+            set {_isFiltered} to filter_isPetRarityFiltered(player, {_type}, {_rarity})
+            if {_isFiltered} is true:
+                filter_setPetRarityFilter(player, {_type}, {_rarity}, false)
+                play sound "block.note_block.pling" with volume 0.5 and pitch 1.5 to player
+            else:
+                filter_setPetRarityFilter(player, {_type}, {_rarity}, true)
+                # If enabling a rarity filter, make sure all-filter is off
+                filter_setPetFilter(player, {_type}, false)
+                play sound "block.note_block.bass" with volume 0.5 and pitch 0.8 to player
+            filter_openPetRarityFilter(player, {_type})
+
+        else if {_action} is "filter_all_rarities":
+            play sound "entity.item.break" with volume 0.5 and pitch 1 to player
+            # Enable all individual rarity filters
+            filter_setPetFilter(player, {_type}, false)
+            filter_setPetRarityFilter(player, {_type}, "common", true)
+            filter_setPetRarityFilter(player, {_type}, "uncommon", true)
+            filter_setPetRarityFilter(player, {_type}, "rare", true)
+            filter_setPetRarityFilter(player, {_type}, "epic", true)
+            filter_setPetRarityFilter(player, {_type}, "legendary", true)
+            filter_openPetRarityFilter(player, {_type})
+
+        else if {_action} is "keep_all_rarities":
+            play sound "entity.experience_orb.pickup" with volume 0.5 and pitch 1 to player
+            # Disable all individual rarity filters
+            filter_setPetFilter(player, {_type}, false)
+            filter_clearPetRarityFilters(player, {_type})
+            filter_openPetRarityFilter(player, {_type})
+
+        else if {_action} is "back_filter":
+            play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+            set {_page} to {-filter::menu::%{_uuid}%::page} ? 1
+            filter_openPetFilter(player, {_page})
+
+    else if {_menuType} is "ACC_RARITY_FILTER":
+        cancel event
+        set {_nbt} to custom nbt of clicked slot
+        set {_action} to string tag "filter;action" of {_nbt}
+        set {_rarity} to string tag "filter;rarity" of {_nbt}
+        set {_type} to {-filter::menu::%{_uuid}%::type}
+
+        if {_rarity} is set:
+            # Toggle rarity filter
+            set {_isFiltered} to filter_isAccRarityFiltered(player, {_type}, {_rarity})
+            if {_isFiltered} is true:
+                filter_setAccRarityFilter(player, {_type}, {_rarity}, false)
+                play sound "block.note_block.pling" with volume 0.5 and pitch 1.5 to player
+            else:
+                filter_setAccRarityFilter(player, {_type}, {_rarity}, true)
+                # If enabling a rarity filter, make sure all-filter is off
+                filter_setAccFilter(player, {_type}, false)
+                play sound "block.note_block.bass" with volume 0.5 and pitch 0.8 to player
+            filter_openAccRarityFilter(player, {_type})
+
+        else if {_action} is "filter_all_rarities":
+            play sound "entity.item.break" with volume 0.5 and pitch 1 to player
+            # Enable all individual rarity filters
+            filter_setAccFilter(player, {_type}, false)
+            filter_setAccRarityFilter(player, {_type}, "common", true)
+            filter_setAccRarityFilter(player, {_type}, "uncommon", true)
+            filter_setAccRarityFilter(player, {_type}, "rare", true)
+            filter_setAccRarityFilter(player, {_type}, "epic", true)
+            filter_setAccRarityFilter(player, {_type}, "legendary", true)
+            filter_openAccRarityFilter(player, {_type})
+
+        else if {_action} is "keep_all_rarities":
+            play sound "entity.experience_orb.pickup" with volume 0.5 and pitch 1 to player
+            # Disable all individual rarity filters
+            filter_setAccFilter(player, {_type}, false)
+            filter_clearAccRarityFilters(player, {_type})
+            filter_openAccRarityFilter(player, {_type})
+
+        else if {_action} is "back_filter":
+            play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+            set {_page} to {-filter::menu::%{_uuid}%::page} ? 1
+            filter_openAccFilter(player, {_page})
+
+
+on inventory close:
+    set {_uuid} to player's uuid
+    set {_menu} to {-filter::menu::%{_uuid}%}
+    if {_menu} is set:
+        if {_menu} contains "INDEX":
+            delete {-filter::menu::%{_uuid}%}
+            delete {-filter::menu::%{_uuid}%::page}
+        else if {_menu} contains "RARITY_FILTER":
+            delete {-filter::menu::%{_uuid}%}
+            delete {-filter::menu::%{_uuid}%::page}
+            delete {-filter::menu::%{_uuid}%::type}
+        else if {_menu} contains "FILTER":
+            delete {-filter::menu::%{_uuid}%}
+            delete {-filter::menu::%{_uuid}%::page}

@@ -1,0 +1,528 @@
+# ============================================================
+# PET FUSION SYSTEM - GUI
+# ============================================================
+#
+# Handles:
+#   - Main fusion menu (shows available fusion groups)
+#   - Pet selection menu (choose 5 specific pets)
+#   - Confirmation menu (final fusion confirmation)
+#
+# ============================================================
+
+# ============================================================
+# MAIN FUSION MENU
+# ============================================================
+
+function petFusion_openMainMenu(p: player):
+    set {_uuid} to {_p}'s uuid
+    set {_menu} to chest inventory with 6 rows named "&6&lPet Fusion"
+
+    # Fill with glass
+    set {_filler} to black stained glass pane named "&1"
+    loop 54 times:
+        set slot loop-number - 1 of {_menu} to {_filler}
+
+    # ════════════════════════════════════════
+    # TITLE ROW - Info
+    # ════════════════════════════════════════
+    set {_info} to book named "&ePet Fusion Guide"
+    add menu_utils_getMenuItemFirstLoreLine() to {_infoLore::*}
+    add "" to {_infoLore::*}
+    add "&6What is Pet Fusion?" to {_infoLore::*}
+    add "&7Combine 5 identical pets to" to {_infoLore::*}
+    add "&7create a more powerful version!" to {_infoLore::*}
+    add "" to {_infoLore::*}
+    add "&6Requirements:" to {_infoLore::*}
+    add " &7• 5 pets of same type" to {_infoLore::*}
+    add " &7• Same rarity" to {_infoLore::*}
+    add " &7• Same tier (Normal/Ultra/Divine)" to {_infoLore::*}
+    add " &7• Same fusion tier" to {_infoLore::*}
+    add "" to {_infoLore::*}
+    add "&6Fusion Tiers:" to {_infoLore::*}
+    add " &7Normal → &6Gold &7(+30%%)" to {_infoLore::*}
+    add " &6Gold &7→ &bDiamond &7(+60%%)" to {_infoLore::*}
+    set lore of {_info} to {_infoLore::*}
+    set slot 4 of {_menu} to {_info}
+
+    # ════════════════════════════════════════
+    # ROWS 2-5: AVAILABLE FUSION GROUPS
+    # ════════════════════════════════════════
+    set {_groups::*} to petFusion_detectGroups({_p})
+
+    if size of {_groups::*} = 0:
+        # No fusions available
+        set {_noFusion} to barrier named "&cNo Fusions Available"
+        add menu_utils_getMenuItemFirstLoreLine() to {_noFusionLore::*}
+        add "" to {_noFusionLore::*}
+        add "&7You don't have any pets" to {_noFusionLore::*}
+        add "&7that can be fused." to {_noFusionLore::*}
+        add "" to {_noFusionLore::*}
+        add "&6Requirements:" to {_noFusionLore::*}
+        add " &7• 5+ unequipped pets" to {_noFusionLore::*}
+        add " &7• Same type & rarity" to {_noFusionLore::*}
+        add " &7• Research unlocked" to {_noFusionLore::*}
+        set lore of {_noFusion} to {_noFusionLore::*}
+        set slot 22 of {_menu} to {_noFusion}
+    else:
+        # Display available fusions
+        set {_displaySlots::*} to 10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 31, 32, 33, 34, 37, 38, 39, 40, 41, 42 and 43
+        set {_slotIndex} to 1
+
+        loop {_groups::*}:
+            set {_groupKey} to loop-value
+
+            # Parse group key
+            set {_parts::*} to {_groupKey} split at "|"
+            set {_type} to {_parts::1}
+            set {_rarity} to {_parts::2}
+            set {_petTier} to {_parts::3}
+            set {_fusionTier} to {_parts::4} parsed as number
+            set {_targetFusion} to {_fusionTier} + 1
+
+            # Get pet properties
+            set {_typeName} to pet_getTypeName({_type})
+            set {_rarityColor} to pet_getRarityColor({_rarity})
+            set {_icon} to pet_getTypeIcon({_type})
+            set {_fusionName} to petFusion_getTierName({_targetFusion})
+
+            # Create fusion button
+            set {_fusionItem} to {_icon}
+
+            # Calculate power increase
+            set {_currentMult} to petFusion_getMultiplier({_fusionTier})
+            set {_targetMult} to petFusion_getMultiplier({_targetFusion})
+            set {_increase} to (({_targetMult} - {_currentMult}) / {_currentMult}) * 100
+            set {_increaseRounded} to round({_increase})
+
+            # Set name
+            set name of {_fusionItem} to "&a⚡ Fuse → %{_fusionName}%%{_rarityColor}%%{_typeName}%"
+
+            # Build lore
+            clear {_fusionLore::*}
+            add menu_utils_getMenuItemFirstLoreLine() to {_fusionLore::*}
+            add "" to {_fusionLore::*}
+            add "&6Fusion:" to {_fusionLore::*}
+            add " &75 %{_rarityColor}%%{_typeName}%" to {_fusionLore::*}
+            add " &7↓" to {_fusionLore::*}
+            add " %{_fusionName}%%{_rarityColor}%%{_typeName}%" to {_fusionLore::*}
+            add "" to {_fusionLore::*}
+            add "&6Power Increase: &a+%{_increaseRounded}%%%" to {_fusionLore::*}
+            add "" to {_fusionLore::*}
+
+            # Count available pets in this group
+            set {_availablePets::*} to petFusion_getPetsInGroup({_p}, {_groupKey})
+            set {_availableCount} to size of {_availablePets::*}
+            add "&7Available: &e%{_availableCount}% pets" to {_fusionLore::*}
+            add "" to {_fusionLore::*}
+            add "&eClick to select pets" to {_fusionLore::*}
+
+            set lore of {_fusionItem} to {_fusionLore::*}
+
+            # Store group key in NBT
+            set string tag "fusion;action" of custom nbt of {_fusionItem} to "select_pets"
+            set string tag "fusion;groupKey" of custom nbt of {_fusionItem} to {_groupKey}
+
+            # Place in GUI
+            set {_guiSlot} to {_displaySlots::%{_slotIndex}%}
+            set slot {_guiSlot} of {_menu} to {_fusionItem}
+
+            add 1 to {_slotIndex}
+            if {_slotIndex} > size of {_displaySlots::*}:
+                exit loop
+
+    # ════════════════════════════════════════
+    # ROW 6: CONTROLS
+    # ════════════════════════════════════════
+
+    # Close button - Slot 49
+    set {_close} to barrier named "&c&lCLOSE"
+    add menu_utils_getMenuItemFirstLoreLine() to {_closeLore::*}
+    add "" to {_closeLore::*}
+    add "&7Close this menu" to {_closeLore::*}
+    add "" to {_closeLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴄʟᴏsᴇ" to {_closeLore::*}
+    set lore of {_close} to {_closeLore::*}
+    set string tag "fusion;action" of custom nbt of {_close} to "close"
+    set slot 49 of {_menu} to {_close}
+
+    open {_menu} to {_p}
+    set {-fusion::menu::%{_uuid}%} to "FUSION_MAIN"
+
+# ============================================================
+# PET SELECTION MENU
+# ============================================================
+
+function petFusion_openSelectionMenu(p: player, groupKey: text):
+    set {_uuid} to {_p}'s uuid
+    set {_menu} to chest inventory with 6 rows named "&6&lSelect 5 Pets"
+
+    # Fill with glass
+    set {_filler} to black stained glass pane named "&1"
+    loop 54 times:
+        set slot loop-number - 1 of {_menu} to {_filler}
+
+    # Parse group key
+    set {_parts::*} to {_groupKey} split at "|"
+    set {_type} to {_parts::1}
+    set {_rarity} to {_parts::2}
+    set {_fusionTier} to {_parts::4} parsed as number
+
+    # Get current selection
+    if {-fusion::selection::%{_uuid}%::*} is not set:
+        clear {-fusion::selection::%{_uuid}%::*}
+
+    set {_selectedCount} to size of {-fusion::selection::%{_uuid}%::*}
+
+    # ════════════════════════════════════════
+    # ROWS 2-5: AVAILABLE PETS
+    # ════════════════════════════════════════
+    set {_availablePets::*} to petFusion_getPetsInGroup({_p}, {_groupKey})
+    set {_displaySlots::*} to 10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 31, 32, 33, 34, 37, 38, 39, 40, 41, 42 and 43
+    set {_slotIndex} to 1
+
+    loop {_availablePets::*}:
+        set {_petId} to loop-value
+        set {_petItem} to pet_createItem({_p}, {_petId})
+
+        # Check if selected
+        set {_isSelected} to false
+        loop {-fusion::selection::%{_uuid}%::*}:
+            if loop-value-2 = {_petId}:
+                set {_isSelected} to true
+                stop loop
+
+        # Modify lore to show selection status
+        set {_currentLore::*} to lore of {_petItem}
+        clear {_newLore::*}
+
+        if {_isSelected} is true:
+            # Add enchant glow and selection indicator
+            set {_petItem} to {_petItem} with nbt from "{""minecraft:enchantments"":{levels:{""minecraft:unbreaking"":1},show_in_tooltip:0}}"
+            set name of {_petItem} to "&a✓ SELECTED &r%name of {_petItem}%"
+
+            loop {_currentLore::*}:
+                add loop-value-2 to {_newLore::*}
+            add "" to {_newLore::*}
+            add "&a✓ Selected" to {_newLore::*}
+            add "" to {_newLore::*}
+            add "&cClick to deselect" to {_newLore::*}
+        else:
+            loop {_currentLore::*}:
+                add loop-value-2 to {_newLore::*}
+            add "" to {_newLore::*}
+            if {_selectedCount} >= 5:
+                add "&c✗ Selection full (5/5)" to {_newLore::*}
+            else:
+                add "&eClick to select" to {_newLore::*}
+
+        set lore of {_petItem} to {_newLore::*}
+
+        # Store pet ID in NBT
+        set string tag "fusion;action" of custom nbt of {_petItem} to "toggle_select"
+        set string tag "fusion;petId" of custom nbt of {_petItem} to {_petId}
+        set string tag "fusion;groupKey" of custom nbt of {_petItem} to {_groupKey}
+
+        # Place in GUI
+        set {_guiSlot} to {_displaySlots::%{_slotIndex}%}
+        set slot {_guiSlot} of {_menu} to {_petItem}
+
+        add 1 to {_slotIndex}
+        if {_slotIndex} > size of {_displaySlots::*}:
+            exit loop
+
+    # ════════════════════════════════════════
+    # ROW 6: CONTROLS
+    # ════════════════════════════════════════
+
+    # Selection counter - Slot 4
+    set {_counter} to paper named "&7Selected: &e%{_selectedCount}%&7/&a5"
+    add menu_utils_getMenuItemFirstLoreLine() to {_counterLore::*}
+    add "" to {_counterLore::*}
+    add "&7Select exactly 5 pets" to {_counterLore::*}
+    add "&7to fuse them together." to {_counterLore::*}
+    set lore of {_counter} to {_counterLore::*}
+    set slot 4 of {_menu} to {_counter}
+
+    # Back button - Slot 48
+    set {_back} to arrow named "&c&lBACK"
+    add menu_utils_getMenuItemFirstLoreLine() to {_backLore::*}
+    add "" to {_backLore::*}
+    add "&7Go back to fusion menu" to {_backLore::*}
+    add "" to {_backLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ɢᴏ ʙᴀᴄᴋ" to {_backLore::*}
+    set lore of {_back} to {_backLore::*}
+    set string tag "fusion;action" of custom nbt of {_back} to "back_main"
+    set slot 48 of {_menu} to {_back}
+
+    # Confirm button - Slot 50
+    if {_selectedCount} = 5:
+        set {_confirm} to lime dye named "&a&lFUSE PETS"
+        add menu_utils_getMenuItemFirstLoreLine() to {_confirmLore::*}
+        add "" to {_confirmLore::*}
+        add "&7Fuse 5 selected pets into" to {_confirmLore::*}
+        add "&7a more powerful version!" to {_confirmLore::*}
+        add "" to {_confirmLore::*}
+        add "&a✓ Ready to fuse" to {_confirmLore::*}
+        add "" to {_confirmLore::*}
+        add "&eClick to continue" to {_confirmLore::*}
+        set lore of {_confirm} to {_confirmLore::*}
+        set string tag "fusion;action" of custom nbt of {_confirm} to "confirm_fusion"
+        set string tag "fusion;groupKey" of custom nbt of {_confirm} to {_groupKey}
+        set slot 50 of {_menu} to {_confirm}
+    else:
+        set {_locked} to red dye named "&c&lSELECT 5 PETS"
+        add menu_utils_getMenuItemFirstLoreLine() to {_lockedLore::*}
+        add "" to {_lockedLore::*}
+        add "&7Selected: &e%{_selectedCount}%&7/&a5" to {_lockedLore::*}
+        add "" to {_lockedLore::*}
+        add "&cNeed %5 - {_selectedCount}% more" to {_lockedLore::*}
+        set lore of {_locked} to {_lockedLore::*}
+        set slot 50 of {_menu} to {_locked}
+
+    open {_menu} to {_p}
+    set {-fusion::menu::%{_uuid}%} to "FUSION_SELECT"
+    set {-fusion::menu::%{_uuid}%::groupKey} to {_groupKey}
+
+# ============================================================
+# FUSION CONFIRMATION MENU
+# ============================================================
+
+function petFusion_openConfirmMenu(p: player, groupKey: text):
+    set {_uuid} to {_p}'s uuid
+
+    # Validate selection
+    if size of {-fusion::selection::%{_uuid}%::*} != 5:
+        send "&c&l! &7You must select exactly 5 pets!" to {_p}
+        petFusion_openSelectionMenu({_p}, {_groupKey})
+        stop
+
+    set {_menu} to chest inventory with 3 rows named "&e&lConfirm Fusion"
+
+    # Fill with glass
+    set {_filler} to black stained glass pane named "&1"
+    loop 27 times:
+        set slot loop-number - 1 of {_menu} to {_filler}
+
+    # Yellow glass warning
+    set {_warning} to yellow stained glass pane named "&1"
+    set slot 3,4,5,12,14,21,22,23 of {_menu} to {_warning}
+
+    # Parse group key
+    set {_parts::*} to {_groupKey} split at "|"
+    set {_type} to {_parts::1}
+    set {_rarity} to {_parts::2}
+    set {_fusionTier} to {_parts::4} parsed as number
+    set {_targetFusion} to {_fusionTier} + 1
+
+    # Info - Slot 13
+    set {_typeName} to pet_getTypeName({_type})
+    set {_rarityColor} to pet_getRarityColor({_rarity})
+    set {_fusionName} to petFusion_getTierName({_targetFusion})
+    set {_icon} to pet_getTypeIcon({_type})
+
+    set {_info} to {_icon}
+    set name of {_info} to "&e⚡ %{_fusionName}%%{_rarityColor}%%{_typeName}%"
+    add menu_utils_getMenuItemFirstLoreLine() to {_infoLore::*}
+    add "" to {_infoLore::*}
+    add "&6Fusion Result:" to {_infoLore::*}
+    add " %{_fusionName}%%{_rarityColor}%%{_typeName}%" to {_infoLore::*}
+    add "" to {_infoLore::*}
+    add "&6Power:" to {_infoLore::*}
+    set {_targetMult} to petFusion_getMultiplier({_targetFusion})
+    set {_currentMult} to petFusion_getMultiplier({_fusionTier})
+    set {_increase} to (({_targetMult} - {_currentMult}) / {_currentMult}) * 100
+    add " &a+%round({_increase})%%% stronger" to {_infoLore::*}
+    add "" to {_infoLore::*}
+    add "&c⚠ This will consume 5 pets!" to {_infoLore::*}
+    set lore of {_info} to {_infoLore::*}
+    set slot 13 of {_menu} to {_info}
+
+    # Confirm - Slot 11
+    set {_confirm} to lime dye named "&a&lCONFIRM"
+    add menu_utils_getMenuItemFirstLoreLine() to {_confirmLore::*}
+    add "" to {_confirmLore::*}
+    add "&7Fuse 5 pets into:" to {_confirmLore::*}
+    add " %{_fusionName}%%{_rarityColor}%%{_typeName}%" to {_confirmLore::*}
+    add "" to {_confirmLore::*}
+    add "&aClick to start fusion!" to {_confirmLore::*}
+    set lore of {_confirm} to {_confirmLore::*}
+    set string tag "fusion;action" of custom nbt of {_confirm} to "execute_fusion"
+    set string tag "fusion;groupKey" of custom nbt of {_confirm} to {_groupKey}
+    set slot 11 of {_menu} to {_confirm}
+
+    # Cancel - Slot 15
+    set {_cancel} to red dye named "&c&lCANCEL"
+    add menu_utils_getMenuItemFirstLoreLine() to {_cancelLore::*}
+    add "" to {_cancelLore::*}
+    add "&7Go back to pet selection" to {_cancelLore::*}
+    add "" to {_cancelLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ɢᴏ ʙᴀᴄᴋ" to {_cancelLore::*}
+    set lore of {_cancel} to {_cancelLore::*}
+    set string tag "fusion;action" of custom nbt of {_cancel} to "back_select"
+    set string tag "fusion;groupKey" of custom nbt of {_cancel} to {_groupKey}
+    set slot 15 of {_menu} to {_cancel}
+
+    open {_menu} to {_p}
+    set {-fusion::menu::%{_uuid}%} to "FUSION_CONFIRM"
+
+# ============================================================
+# MENU CLICK HANDLING
+# ============================================================
+
+on inventory click:
+    if event-inventory is not set:
+        stop
+
+    set {_uuid} to player's uuid
+    set {_menuType} to {-fusion::menu::%{_uuid}%}
+
+    if {_menuType} is not set:
+        stop
+
+    if {_menuType} is not "FUSION_MAIN":
+        if {_menuType} is not "FUSION_SELECT":
+            if {_menuType} is not "FUSION_CONFIRM":
+                stop
+
+    cancel event
+
+    set {_item} to event-item
+    if {_item} is air:
+        stop
+
+    set {_action} to string tag "fusion;action" of custom nbt of {_item}
+    if {_action} is not set:
+        stop
+
+    # ════════════════════════════════════════
+    # MAIN MENU ACTIONS
+    # ════════════════════════════════════════
+    if {_action} = "select_pets":
+        set {_groupKey} to string tag "fusion;groupKey" of custom nbt of {_item}
+        clear {-fusion::selection::%{_uuid}%::*}
+        petFusion_openSelectionMenu(player, {_groupKey})
+        play sound "ui.button.click" with volume 1 and pitch 1 to player
+        stop
+
+    if {_action} = "close":
+        close player's inventory
+        delete {-fusion::menu::%{_uuid}%}
+        play sound "ui.button.click" with volume 1 and pitch 1 to player
+        stop
+
+    # ════════════════════════════════════════
+    # SELECTION MENU ACTIONS
+    # ════════════════════════════════════════
+    if {_action} = "toggle_select":
+        set {_petId} to string tag "fusion;petId" of custom nbt of {_item}
+        set {_groupKey} to string tag "fusion;groupKey" of custom nbt of {_item}
+
+        # Check if already selected
+        set {_isSelected} to false
+        set {_selectedIndex} to 0
+        loop {-fusion::selection::%{_uuid}%::*}:
+            if loop-value = {_petId}:
+                set {_isSelected} to true
+                set {_selectedIndex} to loop-index
+                stop loop
+
+        if {_isSelected} is true:
+            # Deselect
+            delete {-fusion::selection::%{_uuid}%::%{_selectedIndex}%}
+            play sound "entity.item.pickup" with volume 0.5 and pitch 0.8 to player
+        else:
+            # Select (if not full)
+            if size of {-fusion::selection::%{_uuid}%::*} < 5:
+                add {_petId} to {-fusion::selection::%{_uuid}%::*}
+                play sound "entity.item.pickup" with volume 0.5 and pitch 1.2 to player
+            else:
+                play sound "entity.villager.no" with volume 0.5 and pitch 1 to player
+
+        # Refresh menu
+        petFusion_openSelectionMenu(player, {_groupKey})
+        stop
+
+    if {_action} = "back_main":
+        clear {-fusion::selection::%{_uuid}%::*}
+        petFusion_openMainMenu(player)
+        play sound "ui.button.click" with volume 1 and pitch 0.8 to player
+        stop
+
+    if {_action} = "confirm_fusion":
+        set {_groupKey} to string tag "fusion;groupKey" of custom nbt of {_item}
+        petFusion_openConfirmMenu(player, {_groupKey})
+        play sound "ui.button.click" with volume 1 and pitch 1.2 to player
+        stop
+
+    # ════════════════════════════════════════
+    # CONFIRMATION MENU ACTIONS
+    # ════════════════════════════════════════
+    if {_action} = "execute_fusion":
+        set {_groupKey} to string tag "fusion;groupKey" of custom nbt of {_item}
+
+        # Validate selection
+        set {_selectedPets::*} to {-fusion::selection::%{_uuid}%::*}
+        if size of {_selectedPets::*} != 5:
+            send "&c&l! &7Invalid selection!" to player
+            petFusion_openMainMenu(player)
+            stop
+
+        # Close GUI
+        close player's inventory
+        delete {-fusion::menu::%{_uuid}%}
+
+        # Get fusion station location (nearest)
+        set {_playerLoc} to player's location
+        set {_closest} to none
+        set {_closestDist} to 999
+
+        loop {-fusion::station::locations::*}:
+            set {_dist} to distance between {_playerLoc} and loop-value
+            if {_dist} < {_closestDist}:
+                set {_closestDist} to {_dist}
+                set {_closest} to loop-value
+
+        if {_closest} is not set:
+            send "&c&l! &7No fusion station found!" to player
+            clear {-fusion::selection::%{_uuid}%::*}
+            stop
+
+        # Get pet properties for animation
+        set {_firstPetId} to {_selectedPets::1}
+        set {_type} to pet_getInstanceType(player, {_firstPetId})
+        set {_rarity} to pet_getInstanceRarity(player, {_firstPetId})
+        set {_fusionTier} to petFusion_getInstanceTier(player, {_firstPetId})
+        set {_targetFusion} to {_fusionTier} + 1
+
+        # Execute fusion (removes pets, creates new one)
+        set {_newPetId} to petFusion_execute(player, {_selectedPets::*})
+
+        if {_newPetId} = "":
+            send "&c&l! &7Fusion failed!" to player
+            clear {-fusion::selection::%{_uuid}%::*}
+            stop
+
+        # Clear selection
+        clear {-fusion::selection::%{_uuid}%::*}
+
+        # Play animation
+        petFusion_playAnimation(player, {_closest}, {_type}, {_rarity}, {_fusionTier}, {_targetFusion}, {_newPetId})
+
+        stop
+
+    if {_action} = "back_select":
+        set {_groupKey} to string tag "fusion;groupKey" of custom nbt of {_item}
+        petFusion_openSelectionMenu(player, {_groupKey})
+        play sound "ui.button.click" with volume 1 and pitch 0.8 to player
+        stop
+
+# Clean up menu tracking on close
+on inventory close:
+    set {_uuid} to player's uuid
+    set {_menuType} to {-fusion::menu::%{_uuid}%}
+
+    if {_menuType} is set:
+        if {_menuType} starts with "FUSION":
+            delete {-fusion::menu::%{_uuid}%}
+            delete {-fusion::menu::%{_uuid}%::groupKey}
+            # Don't clear selection here - only clear on successful fusion or back to main

@@ -1,0 +1,722 @@
+# ============================================================
+# MINING CORE SYSTEM
+# ============================================================
+
+on load:
+    mining_registerBlocks()
+    mining_registerGems()
+
+# ============================================================
+# MINING SESSION FUNCTIONS
+# ============================================================
+
+# Convert location to string key for consistent variable access
+function mining_getLocKey(l: location) :: text:
+    set {_x} to floor(x-coord of {_l})
+    set {_y} to floor(y-coord of {_l})
+    set {_z} to floor(z-coord of {_l})
+    return "%{_x}%_%{_y}%_%{_z}%"
+
+function mining_hasSession(p: player, l: location) :: boolean:
+    set {_key} to mining_getLocKey({_l})
+    if {-miningData::%{_p}'s uuid%::progress::%{_key}%} is set:
+        return true
+    return false
+
+
+function mining_createSession(p: player, l: location):
+    set {_key} to mining_getLocKey({_l})
+    set {-miningData::%{_p}'s uuid%::progress::%{_key}%} to 0
+    set {-miningData::%{_p}'s uuid%::lastStage::%{_key}%} to -1
+    set {-miningData::%{_p}'s uuid%::damageID::%{_key}%} to random integer between 1 and 1000000
+
+
+function mining_clearSession(p: player, l: location):
+    set {_key} to mining_getLocKey({_l})
+    if {-miningData::%{_p}'s uuid%::damageID::%{_key}%} is set:
+        set {_id} to {-miningData::%{_p}'s uuid%::damageID::%{_key}%}
+        make {_p} see damage of block at {_l} as 0 from {_id}
+
+    delete {-miningData::%{_p}'s uuid%::progress::%{_key}%}
+    delete {-miningData::%{_p}'s uuid%::lastStage::%{_key}%}
+    delete {-miningData::%{_p}'s uuid%::damageID::%{_key}%}
+
+
+function mining_getProgress(p: player, l: location) :: number:
+    set {_key} to mining_getLocKey({_l})
+    return ({-miningData::%{_p}'s uuid%::progress::%{_key}%} ? 0)
+
+
+function mining_setProgress(p: player, l: location, v: number):
+    set {_key} to mining_getLocKey({_l})
+    set {-miningData::%{_p}'s uuid%::progress::%{_key}%} to {_v}
+
+
+function mining_addProgress(p: player, l: location, v: number):
+    set {_key} to mining_getLocKey({_l})
+    add {_v} to {-miningData::%{_p}'s uuid%::progress::%{_key}%}
+
+
+# ============================================================
+# VISUAL FUNCTIONS
+# ============================================================
+
+function mining_getVisualStageFromProgress(progress: number) :: integer:
+    set {_stage} to floor({_progress} * 10)
+    if {_stage} > 9:
+        set {_stage} to 9
+    if {_stage} < 0:
+        set {_stage} to 0
+    return {_stage}
+
+
+function mining_applyVisualUpdate(p: player, l: location):
+    if mining_hasSession({_p}, {_l}) = false:
+        mining_createSession({_p}, {_l})
+
+    set {_key} to mining_getLocKey({_l})
+    set {_progress} to mining_getProgress({_p}, {_l})
+    set {_newStage} to mining_getVisualStageFromProgress({_progress})
+    set {_lastStage} to ({-miningData::%{_p}'s uuid%::lastStage::%{_key}%} ? -1)
+
+    if {_newStage} > {_lastStage}:
+        set {_id} to {-miningData::%{_p}'s uuid%::damageID::%{_key}%}
+        make {_p} see damage of block at {_l} as {_newStage} / 10 from {_id}
+        set {-miningData::%{_p}'s uuid%::lastStage::%{_key}%} to {_newStage}
+
+        if {_newStage} = 5:
+            play sound "block.stone.hit" with volume 0.6 and pitch 0.8 at {_l} for {_p}
+        if {_newStage} = 8:
+            play sound "block.stone.hit" with volume 0.8 and pitch 0.6 at {_l} for {_p}
+
+
+function mining_applyInstantStage(p: player, l: location, stage: integer):
+    if {_stage} < 0:
+        set {_stage} to 0
+    if {_stage} > 9:
+        set {_stage} to 9
+
+    if mining_hasSession({_p}, {_l}) = false:
+        mining_createSession({_p}, {_l})
+
+    set {_key} to mining_getLocKey({_l})
+    set {_progress} to {_stage} / 10
+    mining_setProgress({_p}, {_l}, {_progress})
+
+    set {-miningData::%{_p}'s uuid%::lastStage::%{_key}%} to {_stage}
+    set {_id} to {-miningData::%{_p}'s uuid%::damageID::%{_key}%}
+
+    make {_p} see damage of block at {_l} as {_stage} / 10 from {_id}
+
+
+# ============================================================
+# DURABILITY SYSTEM
+# ============================================================
+
+function mining_getTotalDurability(p: player) :: integer:
+    return 5000
+
+function mining_getDurability(p: player) :: number:
+    return ({data::durability::%{_p}'s uuid%} ? mining_getTotalDurability({_p}))
+
+function mining_setDurability(p: player, amount: number):
+    set {_max} to mining_getTotalDurability({_p})
+    if {_amount} > {_max}:
+        set {_amount} to {_max}
+    if {_amount} < 0:
+        set {_amount} to 0
+    set {data::durability::%{_p}'s uuid%} to {_amount}
+
+function mining_repairDurability(p: player):
+    set {_max} to mining_getTotalDurability({_p})
+    set {data::durability::%{_p}'s uuid%} to {_max}
+    play sound "block.anvil.use" with volume 0.8 and pitch 1.2 to {_p}
+    send "&aPickaxe fully repaired! &7(%{_max}%/%{_max}%)" to {_p}
+
+function mining_removeDurability(p: player) :: boolean:
+    set {_unbreakingID} to enchant_getIdByString("Unbreaking")
+    if enchant_checkIfEquipped({_p}, {_unbreakingID}) = true:
+        set {_unbreaking} to enchant_getPlayerLevelByString({_p}, "Unbreaking")
+    else:
+        set {_unbreaking} to 0
+
+    set {_reduction} to {_unbreaking} * 0.02
+    if {_reduction} > 1:
+        set {_reduction} to 1
+
+    set {_durabilityLoss} to 1 - {_reduction}
+
+    # Apply durability multiplier (higher = less durability lost)
+    # e.g., 1.3 multiplier = 30% more durability = divide loss by 1.3
+    set {_durabilityMult} to multiplier_getDurability({_p})
+    if {_durabilityMult} > 0:
+        set {_durabilityLoss} to {_durabilityLoss} / {_durabilityMult}
+
+    set {_current} to mining_getDurability({_p})
+
+    if {_current} <= 0:
+        return false
+
+    set {_new} to {_current} - {_durabilityLoss}
+    mining_setDurability({_p}, {_new})
+
+    return true
+
+function mining_getDurabilityPercent(p: player) :: number:
+    set {_current} to mining_getDurability({_p})
+    set {_max} to mining_getTotalDurability({_p})
+    return {_current} / {_max} * 100
+
+function mining_getDurabilityBar(p: player) :: string:
+    set {_percent} to mining_getDurabilityPercent({_p})
+    set {_bars} to 10
+    set {_filled} to round({_percent} / 10)
+    
+    if {_filled} > 10:
+        set {_filled} to 10
+    if {_filled} < 0:
+        set {_filled} to 0
+    
+    if {_percent} > 50:
+        set {_color} to "&a"
+    else if {_percent} > 25:
+        set {_color} to "&e"
+    else:
+        set {_color} to "&c"
+    
+    set {_bar} to "%{_color}%"
+    
+    set {_i} to 1
+    loop {_bars} times:
+        if {_i} <= {_filled}:
+            set {_bar} to "%{_bar}%|"
+        else:
+            set {_bar} to "%{_bar}%&8|"
+        add 1 to {_i}
+    
+    return {_bar}
+
+
+command /repair:
+    trigger:
+        mining_repairDurability(player)
+
+
+# ============================================================
+# FINISH BLOCK
+# ============================================================
+
+# ============================================================
+# MINING FINISH BLOCK - UPDATED FOR NEW GEM SYSTEM
+# ============================================================
+#
+# Replace your mining_finishBlock function with this one.
+# Changes:
+#   - Uses new prospecting_process() for prestige-based gems
+#   - Skips excavator TEXT animation when prospecting procs
+#   - Still gives tokens even when prospecting procs
+#
+# ============================================================
+
+function mining_finishBlock(p: player, l: location):
+    # Track blocks per second for anti-cheat
+    add 1 to {-blocksPerSecond::%{_p}'s uuid%}
+
+    # ═══ IMMEDIATELY LOCK AND SET BEDROCK ═══
+    set {_lockX} to floor(x-coord of {_l})
+    set {_lockY} to floor(y-coord of {_l})
+    set {_lockZ} to floor(z-coord of {_l})
+    set {_lockKey} to "%{_lockX}%_%{_lockY}%_%{_lockZ}%"
+    set {-miningLocked::%{_p}'s uuid%::%{_lockKey}%} to true
+
+    # Get damage ID for clearing visuals (store for later use after respawn)
+    if {-miningData::%{_p}'s uuid%::damageID::%{_lockKey}%} is set:
+        set {_damageId} to {-miningData::%{_p}'s uuid%::damageID::%{_lockKey}%}
+    else:
+        set {_damageId} to random integer between 1 and 1000000
+
+    # Clear crack display immediately
+    make {_p} see damage of block at {_l} as 0 from {_damageId}
+
+    # Get block info BEFORE setting to bedrock
+    set {_type} to type of block at {_l}
+    set {_hardness} to mining_getHardness({_type})
+
+    make {_p} see block at {_l} as bedrock
+
+    # Clear session data using proper key format
+    delete {-miningData::%{_p}'s uuid%::progress::%{_lockKey}%}
+    delete {-miningData::%{_p}'s uuid%::lastStage::%{_lockKey}%}
+    delete {-miningData::%{_p}'s uuid%::damageID::%{_lockKey}%}
+    
+    # ═══ NOW PROCESS REWARDS (block is already bedrock) ═══
+    set {_isAmplified} to amplify_isAmplified({_p}, {_l})
+    if {_isAmplified} = true:
+        amplify_clearBlock({_p}, {_l})
+        set {_multiplier} to 2
+        play sound "block.respawn_anchor.deplete" with volume 0.6 and pitch 1.2 to {_p}
+    else:
+        set {_multiplier} to 1
+
+    play sound "block.stone.break" with volume 1 and pitch 0.8 at {_l} for {_p}
+
+    # ═══ NEW PROSPECTING SYSTEM ═══
+    # Uses prestige-based gems, can drop multiple tiers
+    # Returns true if prospecting procced
+    set {_prospectingProc} to prospecting_process({_p}, {_l}, {_multiplier})
+    
+    # Only show block loot animation if prospecting didn't proc
+    if {_prospectingProc} = false:
+        packetBlockLoot({_p}, {_l}, {_type})
+
+    # ═══ EXCAVATOR TOKENS ═══
+    # Always give tokens, but only show text if prospecting didn't proc
+    set {_tokenResult} to enchant_procExcavator({_p}, {_hardness})
+    if {_tokenResult} != 0:
+        # Negative = magnet procced, positive = no magnet
+        if {_tokenResult} < 0:
+            set {_magnetProc} to true
+            set {_tokens} to {_tokenResult} * -1
+        else:
+            set {_magnetProc} to false
+            set {_tokens} to {_tokenResult}
+        
+        set {_tokens} to {_tokens} * {_multiplier}
+        
+        # Always give tokens
+        mining_giveTokens({_p}, {_tokens})
+        
+        # Only show text animation if prospecting didn't proc (prevents overlay)
+        if {_prospectingProc} = false:
+            excavator_addTokens({_p}, {_l}, {_tokens}, {_magnetProc})
+    
+    if {_isAmplified} = true:
+        amplify_showText({_p}, {_l})
+    
+    # Get Fortune level for bonus drops
+    set {_fortuneID} to enchant_getIdByString("Fortune")
+    if enchant_checkIfEquipped({_p}, {_fortuneID}) = true:
+        set {_fortuneLevel} to enchant_getPlayerLevelByString({_p}, "Fortune")
+    else:
+        set {_fortuneLevel} to 0
+    
+    mining_giveDrops({_p}, {_type}, {_fortuneLevel}, {_multiplier})
+    
+    # ═══ TREASURE HUNTER (KEY DROPS) ═══
+    enchant_procTreasureHunter({_p}, {_l})
+    
+    # ===== AOE ENCHANT PROCS (only ONE can proc per block break) =====
+    # Amplify can always proc (it affects OTHER blocks, not this one)
+    enchant_procAmplify({_p}, {_l})
+    
+    # Track if an AOE enchant already procced
+    set {_aoeProc} to false
+    
+    # Try Tornado first
+    if {_aoeProc} = false:
+        if enchant_procTornado({_p}, {_l}) = true:
+            set {_aoeProc} to true
+    
+    # Try Laser
+    if {_aoeProc} = false:
+        if enchant_procLaser({_p}, {_l}, {_multiplier}) = true:
+            set {_aoeProc} to true
+    
+    # Try Lightning
+    if {_aoeProc} = false:
+        if enchant_procLightning({_p}, {_l}) = true:
+            set {_aoeProc} to true
+    
+    # Try Explosive
+    if {_aoeProc} = false:
+        if enchant_procExplosive({_p}, {_l}) = true:
+            set {_aoeProc} to true
+    
+    # Try Shockwave
+    if {_aoeProc} = false:
+        if enchant_procShockwave({_p}, {_l}) = true:
+            set {_aoeProc} to true
+    
+    # Try Earthquake
+    if {_aoeProc} = false:
+        if enchant_procEarthquake({_p}, {_l}) = true:
+            set {_aoeProc} to true
+    
+    # Track block break for Overcharge
+    overcharge_onBlockBreak({_p})
+
+    # ═══ RESPAWN TIMER ═══
+    wait 5 seconds
+    make {_p} see block at {_l} as original
+    # Clear any lingering damage visual after block respawns
+    make {_p} see damage of block at {_l} as 0 from {_damageId}
+    delete {-miningLocked::%{_p}'s uuid%::%{_lockKey}%}
+
+
+# ============================================================
+# EVENTS
+# ============================================================
+
+on arm swing:
+    player's gamemode = survival
+    player's tool = wooden pickaxe
+    if "%region at target block%" doesn't contain "mine":
+        send action bar "&cThis block is not breakable!" to player
+        stop
+    if (distance between player and target block) >= 5:
+        stop
+
+
+    set {_b} to target block
+    set {_l} to location of {_b}
+    set {_type} to type of {_b}
+
+    # Check if block is locked (respawning)
+    if mining_isLocked(player, {_l}) = true:
+        stop
+
+    # Also check for bedrock directly
+    if {_type} is bedrock:
+        stop
+
+    if mining_isMineable({_type}) = false:
+        stop
+
+    # Check prestige requirement
+    if mining_canMineBlock(player, {_type}) = false:
+        set {_req} to mining_getBlockPrestigeReq({_type})
+        set {_current} to economy_getTotalPrestiges(player)
+        send action bar "&c🔒 Requires P%{_req}%+ to mine! &7(You have P%{_current}%)" to player
+        play sound "entity.villager.no" with volume 0.3 and pitch 1 to player
+        stop
+
+    cancel event
+
+    if mining_hasSession(player, {_l}) = false:
+        mining_createSession(player, {_l})
+
+    miningHandler_main(player, {_l})
+
+
+on left click:
+    player's gamemode = survival
+    player's tool = wooden pickaxe
+    cancel event
+
+
+on quit:
+    delete {-miningData::%player's uuid%::*}
+    delete {-miningLocked::%player's uuid%::*}
+    delete {-focus::%player's uuid%::*}
+    delete {-criticalHit::%player's uuid%::*}
+    delete {-explosive::%player's uuid%::*}
+    delete {-shockwave::%player's uuid%::*}
+    delete {-lightning::%player's uuid%::*}
+    delete {-earthquake::%player's uuid%::*}
+    delete {-autosell::%player's uuid%::*}
+    delete {-maxLevelBlocks::%player's uuid%}
+    delete {-globalMaxBlocks::%player's uuid%}
+    amplify_clearAll(player)
+    overcharge_clearAll(player)
+
+
+# ============================================================
+# MAIN MINING HANDLER
+# ============================================================
+
+function miningHandler_main(p: player, l: location):
+    set {_type} to type of block at {_l}
+
+    set {_durability} to mining_getDurability({_p})
+    if {_durability} <= 0:
+        send action bar "&c⛏ Pickaxe broken! Use /repair" to {_p}
+        play sound "entity.item.break" with volume 0.5 and pitch 0.8 to {_p}
+        stop
+
+    set {_efficiencyID} to enchant_getIdByString("Efficiency")
+    if enchant_checkIfEquipped({_p}, {_efficiencyID}) = true:
+        set {_level} to enchant_getPlayerLevelByString({_p}, "Efficiency")
+    else:
+        set {_level} to 0
+
+    set {_progress} to mining_getProgress({_p}, {_l})
+
+    set {_baseDamage} to 0.05 + ({_level} / 100)
+    set {_hardness} to mining_getHardness({_type})
+
+    set {_damage} to {_baseDamage} / {_hardness}
+
+    # Apply mining speed multiplier (from pets, accessories, archetype)
+    set {_miningSpeedMult} to multiplier_getMiningSpeed({_p})
+    set {_damage} to {_damage} * {_miningSpeedMult}
+
+    # Apply damage multiplier (from pets, accessories, archetype)
+    set {_damageMult} to multiplier_getDamage({_p})
+    set {_damage} to {_damage} * {_damageMult}
+    
+    # Focus enchant - chance to double damage on swing
+    # Critical Hit - chance to instantly add 25% progress (mutually exclusive with Focus)
+    set {_focusProc} to enchant_procFocus({_p}, {_l})
+    if {_focusProc} = true:
+        set {_damage} to {_damage} * 2
+    else:
+        enchant_procCriticalHit({_p}, {_l})
+    
+    # Re-fetch progress in case Critical Hit modified it
+    set {_progress} to mining_getProgress({_p}, {_l})
+    
+    # Overcharge - bonus damage when charged
+    if overcharge_isReady({_p}) = true:
+        set {_overchargeBonus} to overcharge_getBonusDamage({_p})
+        set {_damage} to {_damage} * (1 + {_overchargeBonus})
+        overcharge_consume({_p}, {_l})
+    
+    add {_damage} to {_progress}
+
+    mining_setProgress({_p}, {_l}, {_progress})
+
+    set {_pitch} to random number between 0.8 and 1.2
+    play sound "block.stone.hit" with volume 0.4 and pitch {_pitch} at {_l} for {_p}
+
+    # ═══ ACTION BAR ═══
+    set {_progressPercent} to floor({_progress} * 100)
+    set {_durabilityBar} to mining_getDurabilityBar({_p})
+    set {_archetypeBar} to mining_getArchetypeBar({_p})
+    send action bar "&e⛏ &f%{_progressPercent}%%% %{_durabilityBar}% %{_archetypeBar}%" to {_p}
+
+    mining_applyVisualUpdate({_p}, {_l})
+
+    if {_progress} >= 1:
+        mining_removeDurability({_p})
+        mining_finishBlock({_p}, {_l})
+        tutorial_onBlockMined({_p})
+        team_addBlockProgress({_p})
+        milestone_addBlocks({_p}, 1)
+        
+        # ═══ XP SYSTEM ═══
+        set {_archetypeId} to player_getArchetype({_p})
+        set {_xpAmount} to mining_calculateXP({_hardness}) * multiplier_getXP({_p})
+
+        # Global (ID 0 or 1) - levels 1-25, then must choose archetype
+        if {_archetypeId} <= 1:
+            mining_addGlobalXP({_p}, {_xpAmount})
+        else:
+            # Archetype-specific XP
+            set {_archetype} to mining_idToArchetype({_archetypeId})
+            mining_addArchetypeXP({_p}, {_archetype}, {_xpAmount})
+
+        stop
+
+
+# ============================================================
+# ARCHETYPE ACTION BAR FUNCTION
+# ============================================================
+
+function mining_getArchetypeBar(p: player) :: text:
+    set {_archetypeId} to player_getArchetype({_p})
+    set {_uuid} to {_p}'s uuid
+
+    # Global (pre-archetype) - show global level progress
+    if {_archetypeId} <= 1:
+        set {_level} to {mining::global::%{_uuid}%::level} ? 1
+        set {_xp} to {mining::global::%{_uuid}%::xp} ? 0
+        set {_maxLevel} to 25
+        if {_level} >= {_maxLevel}:
+            return "&f&lGlobal &7[&eLv%{_level}%&7] &6&lCHOOSE ARCHETYPE!"
+        set {_xpNeeded} to mining_getXPRequired({_level})
+        return "&f&lGlobal &7[&eLv%{_level}%&7] &a%{_xp}%&7/&a%{_xpNeeded}%"
+
+    # Convert ID to archetype name
+    if {_archetypeId} = 2:
+        set {_archetype} to "precision"
+        set {_color} to "&b"
+        set {_fullName} to "Precision"
+    else if {_archetypeId} = 3:
+        set {_archetype} to "demolition"
+        set {_color} to "&c"
+        set {_fullName} to "Demolition"
+    else if {_archetypeId} = 4:
+        set {_archetype} to "arcane"
+        set {_color} to "&d"
+        set {_fullName} to "Arcane"
+    else:
+        return "&7[&fGlobal&7]"
+    
+    set {_uuid} to {_p}'s uuid
+    set {_level} to {mining::%{_archetype}%::%{_uuid}%::level} ? 1
+    set {_xp} to {mining::%{_archetype}%::%{_uuid}%::xp} ? 0
+    set {_prestige} to {mining::%{_archetype}%::%{_uuid}%::prestige} ? 0
+    set {_xpNeeded} to mining_getXPRequired({_level})
+    set {_maxLevel} to mining_getMaxLevel({_p}, {_archetype})
+    
+    if {_level} >= {_maxLevel}:
+        return "%{_color}%%{_fullName}% &7[&6P%{_prestige}%&7] &eLv%{_level}% &c&lMAX"
+    
+    return "%{_color}%%{_fullName}% &7[&6P%{_prestige}%&7] &eLv%{_level}% &8| &a%{_xp}%&7/&a%{_xpNeeded}%"
+
+
+# ============================================================
+# XP/LEVELING HELPER FUNCTIONS
+# ============================================================
+
+function mining_idToArchetype(id: integer) :: text:
+    if {_id} = 2:
+        return "precision"
+    if {_id} = 3:
+        return "demolition"
+    if {_id} = 4:
+        return "arcane"
+    return "global"
+
+function mining_getMaxLevel(p: player, archetype: text) :: number:
+    set {_prestige} to {mining::%{_archetype}%::%{_p}'s uuid%::prestige} ? 0
+    return 50 + ({_prestige} * 25)
+
+function mining_getXPRequired(level: number) :: number:
+    # Easy leveling - fast early, moderate scaling
+    return round(50 * {_level} ^ 1.05)
+
+function mining_calculateXP(hardness: number) :: number:
+    set {_base} to random integer between 5 and 15
+    return {_base} * {_hardness}
+
+function mining_addArchetypeXP(p: player, archetype: text, amount: number):
+    set {_uuid} to {_p}'s uuid
+    set {_currentXP} to {mining::%{_archetype}%::%{_uuid}%::xp} ? 0
+    set {_currentLevel} to {mining::%{_archetype}%::%{_uuid}%::level} ? 1
+    set {_maxLevel} to mining_getMaxLevel({_p}, {_archetype})
+
+    # At max level - show prestige reminder periodically
+    if {_currentLevel} >= {_maxLevel}:
+        # Clear any excess XP
+        set {mining::%{_archetype}%::%{_uuid}%::xp} to 0
+        # Track blocks mined at max level for periodic reminder
+        if {-maxLevelBlocks::%{_uuid}%} is not set:
+            set {-maxLevelBlocks::%{_uuid}%} to 0
+        add 1 to {-maxLevelBlocks::%{_uuid}%}
+        # Show reminder every 50 blocks
+        if mod({-maxLevelBlocks::%{_uuid}%}, 50) = 0:
+            send action bar "&c&lMAX LEVEL! &7Use &6/prestige &7to keep progressing!" to {_p}
+            play sound "block.note_block.bass" with volume 0.3 and pitch 0.5 to {_p}
+        stop
+
+    add {_amount} to {_currentXP}
+    set {mining::%{_archetype}%::%{_uuid}%::xp} to {_currentXP}
+
+    set {_xpNeeded} to mining_getXPRequired({_currentLevel})
+
+    while {_currentXP} >= {_xpNeeded}:
+        subtract {_xpNeeded} from {_currentXP}
+        add 1 to {_currentLevel}
+
+        set {mining::%{_archetype}%::%{_uuid}%::level} to {_currentLevel}
+        set {mining::%{_archetype}%::%{_uuid}%::xp} to {_currentXP}
+
+        set {_displayName} to mining_getArchetypeDisplayName({_archetype})
+        send title "&6&lLEVEL UP!" with subtitle "%{_displayName}% &eis now level &6%{_currentLevel}%&e!" to {_p} for 2 seconds
+        play sound "entity.player.levelup" with volume 1 and pitch 1.5 to {_p}
+        tutorial_onLevelUp({_p}, {_archetype}, {_currentLevel})
+        progression_checkChapterTransition({_p}, {_currentLevel} - 1, {_currentLevel}, {_archetype})
+
+        if {_currentLevel} >= {_maxLevel}:
+            # Clear excess XP at max
+            set {mining::%{_archetype}%::%{_uuid}%::xp} to 0
+            # Reset max level block counter
+            set {-maxLevelBlocks::%{_uuid}%} to 0
+            send "" to {_p}
+            send "&5&m                                  " to {_p}
+            send "&6&lMAX LEVEL REACHED!" to {_p}
+            send "%{_displayName}% &eis now level &6%{_currentLevel}%&e!" to {_p}
+            send "" to {_p}
+            send "&d&lPRESTIGE AVAILABLE!" to {_p}
+            send "&7Use &6/prestige &7to reset and unlock:" to {_p}
+            send "&7  • &a+25 max levels" to {_p}
+            send "&7  • &dPrestige Points" to {_p}
+            send "&7  • &eNew content!" to {_p}
+            send "&5&m                                  " to {_p}
+            play sound "ui.toast.challenge_complete" with volume 1 and pitch 1 to {_p}
+            stop
+
+        set {_xpNeeded} to mining_getXPRequired({_currentLevel})
+
+function mining_getArchetypeDisplayName(archetype: text) :: text:
+    if {_archetype} = "demolition":
+        return "&c&lDemolition"
+    if {_archetype} = "precision":
+        return "&b&lPrecision"
+    if {_archetype} = "arcane":
+        return "&d&lArcane"
+    return "&f&lGlobal"
+
+
+# ============================================================
+# GLOBAL XP SYSTEM (Pre-Archetype, Levels 1-25)
+# ============================================================
+
+function mining_getGlobalLevel(p: player) :: integer:
+    set {_level} to {mining::global::%{_p}'s uuid%::level}
+    if {_level} is not set:
+        return 1
+    return {_level}
+
+function mining_addGlobalXP(p: player, amount: number):
+    set {_uuid} to {_p}'s uuid
+    set {_currentXP} to {mining::global::%{_uuid}%::xp} ? 0
+    set {_currentLevel} to {mining::global::%{_uuid}%::level} ? 1
+    set {_maxLevel} to 25
+
+    # At max global level - must choose archetype
+    if {_currentLevel} >= {_maxLevel}:
+        # Clear excess XP
+        set {mining::global::%{_uuid}%::xp} to 0
+        # Track blocks for periodic reminder
+        if {-globalMaxBlocks::%{_uuid}%} is not set:
+            set {-globalMaxBlocks::%{_uuid}%} to 0
+        add 1 to {-globalMaxBlocks::%{_uuid}%}
+        # Reminder every 25 blocks
+        if mod({-globalMaxBlocks::%{_uuid}%}, 25) = 0:
+            send action bar "&6&lLEVEL 25! &7Use &e/arc &7to choose your archetype!" to {_p}
+            play sound "block.note_block.bell" with volume 0.5 and pitch 1.5 to {_p}
+        stop
+
+    add {_amount} to {_currentXP}
+    set {mining::global::%{_uuid}%::xp} to {_currentXP}
+
+    set {_xpNeeded} to mining_getXPRequired({_currentLevel})
+
+    while {_currentXP} >= {_xpNeeded}:
+        subtract {_xpNeeded} from {_currentXP}
+        add 1 to {_currentLevel}
+
+        set {mining::global::%{_uuid}%::level} to {_currentLevel}
+        set {mining::global::%{_uuid}%::xp} to {_currentXP}
+
+        send title "&6&lLEVEL UP!" with subtitle "&f&lGlobal &eis now level &6%{_currentLevel}%&e!" to {_p} for 2 seconds
+        play sound "entity.player.levelup" with volume 1 and pitch 1.5 to {_p}
+        tutorial_onLevelUp({_p}, "global", {_currentLevel})
+        tutorial_onGlobalLevelUp({_p}, {_currentLevel})
+
+        # At level 25 - prompt archetype selection
+        if {_currentLevel} >= {_maxLevel}:
+            set {mining::global::%{_uuid}%::xp} to 0
+            set {-globalMaxBlocks::%{_uuid}%} to 0
+            send "" to {_p}
+            send "&6&m                                        " to {_p}
+            send "" to {_p}
+            send "   &6&lGLOBAL LEVEL 25 REACHED!" to {_p}
+            send "" to {_p}
+            send "   &7You've mastered the basics." to {_p}
+            send "   &7It's time to &especialize&7." to {_p}
+            send "" to {_p}
+            send "   &fChoose your &bArchetype&f:" to {_p}
+            send "   &b• Precision &8- &7Speed & critical hits" to {_p}
+            send "   &c• Demolition &8- &7Explosions & AOE" to {_p}
+            send "   &d• Arcane &8- &7Magic & rare drops" to {_p}
+            send "" to {_p}
+            send "   &eUse &6/arc &eto choose!" to {_p}
+            send "" to {_p}
+            send "&6&m                                        " to {_p}
+            play sound "ui.toast.challenge_complete" with volume 1 and pitch 1 to {_p}
+            stop
+
+        set {_xpNeeded} to mining_getXPRequired({_currentLevel})

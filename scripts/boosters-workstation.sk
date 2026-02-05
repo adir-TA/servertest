@@ -1,0 +1,683 @@
+# ============================================================
+# BOOSTER WORKSTATION (Cauldron Merging System)
+# ============================================================
+#
+# Allows players to merge boosters at a special cauldron
+#
+# Merging Rules:
+#   - Both boosters must be same tier AND same rarity
+#   - Output rarity = current rarity + 1 (upgrade)
+#   - Legendary boosters cannot be merged (max rarity)
+#   - Duration = average of both boosters
+#   - Same type effects = amounts are added together
+#   - Blocked if result would exceed player's max effects limit
+#
+# Layout:
+#   Row 0: Header
+#   Row 1: [Input 1] [Arrow] [Preview] [Arrow] [Input 2]
+#   Row 2: [Merge Button] or [Error Info]
+#   Row 3: Info and Close
+#
+# ============================================================
+
+# ============================================================
+# WORKSTATION INTERACTION
+# ============================================================
+
+on right click on cauldron:
+    # Check if this is the booster workstation
+    set {_loc} to location of clicked block
+    set {_wsWorld} to {data::boosters::workstation::world}
+    set {_wsX} to {data::boosters::workstation::x}
+    set {_wsY} to {data::boosters::workstation::y}
+    set {_wsZ} to {data::boosters::workstation::z}
+
+    if {_wsWorld} is not set:
+        stop
+
+    if world of {_loc} is not {_wsWorld}:
+        stop
+    if x-coordinate of {_loc} is not {_wsX}:
+        stop
+    if y-coordinate of {_loc} is not {_wsY}:
+        stop
+    if z-coordinate of {_loc} is not {_wsZ}:
+        stop
+
+    # This is the workstation
+    cancel event
+    workstation_openMenu(player)
+
+# ============================================================
+# WORKSTATION MENU
+# ============================================================
+
+function workstation_openMenu(p: player):
+    set {_uuid} to {_p}'s uuid
+    set {_menu} to chest inventory with 4 rows named "&5&lBooster Workstation"
+
+    # Fill with glass
+    set {_filler} to purple stained glass pane named "&8"
+    loop 36 times:
+        set slot loop-number - 1 of {_menu} to {_filler}
+
+    # Header row - decorative
+    set {_header} to magenta stained glass pane named "&d&lMerge Boosters"
+    set slot 0,1,2,3,4,5,6,7,8 of {_menu} to {_header}
+
+    # ════════════════════════════════════════
+    # ROW 1: INPUT SLOTS AND PREVIEW
+    # ════════════════════════════════════════
+
+    # Input slot 1 - Slot 11
+    set {_input1Encoded} to {-workstation::%{_uuid}%::input1}
+    if {_input1Encoded} is set:
+        set {_input1} to booster_createStorageItem({_input1Encoded}, 1)
+        set lore of {_input1} to lore of {_input1}
+        # Replace lore to show remove option
+        set {_tier1} to booster_getTier({_input1Encoded})
+        set {_rarity1} to booster_getRarity({_input1Encoded})
+        set {_tierName1} to booster_getTierName({_tier1})
+        set {_rarityName1} to booster_getRarityName({_rarity1})
+        set {_icon1} to booster_getTierIcon({_tier1})
+        set {_input1} to {_icon1} named "%{_tierName1}% %{_rarityName1}% &fBooster"
+        add "" to {_input1Lore::*}
+        add "&8%{_tier1}% | %{_rarity1}%" to {_input1Lore::*}
+        add "" to {_input1Lore::*}
+        set {_types1::*} to booster_getTypes({_input1Encoded})
+        add "&6Effects:" to {_input1Lore::*}
+        loop {_types1::*}:
+            set {_t} to loop-value
+            set {_a} to booster_getEffectiveAmount({_input1Encoded}, {_t})
+            set {_c} to booster_getTypeColor({_t})
+            add " %{_c}%+%{_a}%%% %booster_formatType({_t})%" to {_input1Lore::*}
+        add "" to {_input1Lore::*}
+        add "&7Duration: &f%booster_formatTime(booster_getEffectiveDuration({_input1Encoded}))%" to {_input1Lore::*}
+        add "" to {_input1Lore::*}
+        add "&cClick to remove" to {_input1Lore::*}
+        set lore of {_input1} to {_input1Lore::*}
+        set string tag "workstation;action" of custom nbt of {_input1} to "remove_input1"
+    else:
+        set {_input1} to lime stained glass pane named "&a&lInput Slot 1"
+        add "" to {_input1EmptyLore::*}
+        add "&7Click with a booster" to {_input1EmptyLore::*}
+        add "&7from your storage to" to {_input1EmptyLore::*}
+        add "&7place it here." to {_input1EmptyLore::*}
+        add "" to {_input1EmptyLore::*}
+        add "&eClick to select" to {_input1EmptyLore::*}
+        set lore of {_input1} to {_input1EmptyLore::*}
+        set string tag "workstation;action" of custom nbt of {_input1} to "select_input1"
+    set slot 11 of {_menu} to {_input1}
+
+    # Arrow 1 - Slot 12
+    set {_arrow1} to arrow named "&7+"
+    set slot 12 of {_menu} to {_arrow1}
+
+    # Preview - Slot 13 (calculated if both inputs set)
+    set {_input2Encoded} to {-workstation::%{_uuid}%::input2}
+
+    if {_input1Encoded} is set:
+        if {_input2Encoded} is set:
+            # Both inputs set - calculate preview
+            set {_canMerge} to workstation_validateMerge({_p}, {_input1Encoded}, {_input2Encoded})
+            if {_canMerge} is false:
+                # Error - show error item
+                set {_errorMsg} to workstation_getMergeError({_p})
+                set {_previewItem} to barrier named "&c&lCannot Merge"
+                add "" to {_previewLore::*}
+                add "&c%{_errorMsg}%" to {_previewLore::*}
+                add "" to {_previewLore::*}
+                set lore of {_previewItem} to {_previewLore::*}
+            else:
+                # Valid merge - show preview
+                set {_resultEncoded} to workstation_getMergeResult({_p}, {_input1Encoded}, {_input2Encoded})
+                set {_resultTier} to booster_getTier({_resultEncoded})
+                set {_resultRarity} to booster_getRarity({_resultEncoded})
+                set {_resultTierName} to booster_getTierName({_resultTier})
+                set {_resultRarityName} to booster_getRarityName({_resultRarity})
+                set {_resultIcon} to booster_getTierIcon({_resultTier})
+                set {_previewItem} to {_resultIcon} named "&a&lResult: %{_resultTierName}% %{_resultRarityName}% &fBooster"
+                add "" to {_previewLore::*}
+                add "&8%{_resultTier}% | %{_resultRarity}%" to {_previewLore::*}
+                add "" to {_previewLore::*}
+                set {_resultTypes::*} to booster_getTypes({_resultEncoded})
+                add "&6Effects:" to {_previewLore::*}
+                loop {_resultTypes::*}:
+                    set {_t} to loop-value
+                    set {_a} to booster_getEffectiveAmount({_resultEncoded}, {_t})
+                    set {_c} to booster_getTypeColor({_t})
+                    add " %{_c}%+%{_a}%%% %booster_formatType({_t})%" to {_previewLore::*}
+                add "" to {_previewLore::*}
+                add "&7Duration: &f%booster_formatTime(booster_getEffectiveDuration({_resultEncoded}))%" to {_previewLore::*}
+                add "" to {_previewLore::*}
+                add "&a&lRarity upgraded!" to {_previewLore::*}
+                set lore of {_previewItem} to {_previewLore::*}
+            set slot 13 of {_menu} to {_previewItem}
+        else:
+            set {_previewItem} to gray stained glass pane named "&7Result Preview"
+            add "" to {_emptyPreviewLore::*}
+            add "&7Add both boosters to" to {_emptyPreviewLore::*}
+            add "&7see the result." to {_emptyPreviewLore::*}
+            set lore of {_previewItem} to {_emptyPreviewLore::*}
+            set slot 13 of {_menu} to {_previewItem}
+    else:
+        set {_previewItem} to gray stained glass pane named "&7Result Preview"
+        add "" to {_emptyPreviewLore2::*}
+        add "&7Add both boosters to" to {_emptyPreviewLore2::*}
+        add "&7see the result." to {_emptyPreviewLore2::*}
+        set lore of {_previewItem} to {_emptyPreviewLore2::*}
+        set slot 13 of {_menu} to {_previewItem}
+
+    # Arrow 2 - Slot 14
+    set {_arrow2} to arrow named "&7+"
+    set slot 14 of {_menu} to {_arrow2}
+
+    # Input slot 2 - Slot 15
+    if {_input2Encoded} is set:
+        set {_tier2} to booster_getTier({_input2Encoded})
+        set {_rarity2} to booster_getRarity({_input2Encoded})
+        set {_tierName2} to booster_getTierName({_tier2})
+        set {_rarityName2} to booster_getRarityName({_rarity2})
+        set {_icon2} to booster_getTierIcon({_tier2})
+        set {_input2} to {_icon2} named "%{_tierName2}% %{_rarityName2}% &fBooster"
+        add "" to {_input2Lore::*}
+        add "&8%{_tier2}% | %{_rarity2}%" to {_input2Lore::*}
+        add "" to {_input2Lore::*}
+        set {_types2::*} to booster_getTypes({_input2Encoded})
+        add "&6Effects:" to {_input2Lore::*}
+        loop {_types2::*}:
+            set {_t} to loop-value
+            set {_a} to booster_getEffectiveAmount({_input2Encoded}, {_t})
+            set {_c} to booster_getTypeColor({_t})
+            add " %{_c}%+%{_a}%%% %booster_formatType({_t})%" to {_input2Lore::*}
+        add "" to {_input2Lore::*}
+        add "&7Duration: &f%booster_formatTime(booster_getEffectiveDuration({_input2Encoded}))%" to {_input2Lore::*}
+        add "" to {_input2Lore::*}
+        add "&cClick to remove" to {_input2Lore::*}
+        set lore of {_input2} to {_input2Lore::*}
+        set string tag "workstation;action" of custom nbt of {_input2} to "remove_input2"
+    else:
+        set {_input2} to lime stained glass pane named "&a&lInput Slot 2"
+        add "" to {_input2EmptyLore::*}
+        add "&7Click with a booster" to {_input2EmptyLore::*}
+        add "&7from your storage to" to {_input2EmptyLore::*}
+        add "&7place it here." to {_input2EmptyLore::*}
+        add "" to {_input2EmptyLore::*}
+        add "&eClick to select" to {_input2EmptyLore::*}
+        set lore of {_input2} to {_input2EmptyLore::*}
+        set string tag "workstation;action" of custom nbt of {_input2} to "select_input2"
+    set slot 15 of {_menu} to {_input2}
+
+    # ════════════════════════════════════════
+    # ROW 2: MERGE BUTTON
+    # ════════════════════════════════════════
+
+    if {_input1Encoded} is set:
+        if {_input2Encoded} is set:
+            if {_canMerge} is true:
+                # Can merge - show merge button
+                set {_mergeBtn} to emerald block named "&a&lMERGE BOOSTERS"
+                add "" to {_mergeLore::*}
+                add "&7Combine both boosters" to {_mergeLore::*}
+                add "&7into one upgraded booster!" to {_mergeLore::*}
+                add "" to {_mergeLore::*}
+                add "&a▶ Click to merge" to {_mergeLore::*}
+                set lore of {_mergeBtn} to {_mergeLore::*}
+                set string tag "workstation;action" of custom nbt of {_mergeBtn} to "merge"
+                set slot 22 of {_menu} to {_mergeBtn}
+            else:
+                # Cannot merge - show error
+                set {_errorBtn} to red stained glass pane named "&c&lCannot Merge"
+                add "" to {_errorLore::*}
+                add "&c%{_errorMsg}%" to {_errorLore::*}
+                set lore of {_errorBtn} to {_errorLore::*}
+                set slot 22 of {_menu} to {_errorBtn}
+
+    # ════════════════════════════════════════
+    # ROW 3: INFO AND CLOSE
+    # ════════════════════════════════════════
+
+    # Info - Slot 29
+    set {_info} to book named "&eWorkstation Guide"
+    add "" to {_infoLore::*}
+    add "&6How to Merge:" to {_infoLore::*}
+    add "&71. Select two boosters" to {_infoLore::*}
+    add "&72. Both must be same tier & rarity" to {_infoLore::*}
+    add "&73. Result upgrades rarity by +1" to {_infoLore::*}
+    add "" to {_infoLore::*}
+    add "&dMerge Rules:" to {_infoLore::*}
+    add "&7- Same effects: amounts add up" to {_infoLore::*}
+    add "&7- Duration: average of both" to {_infoLore::*}
+    add "&7- Legendary can't be merged" to {_infoLore::*}
+    add "" to {_infoLore::*}
+    set {_maxEffects} to booster_getMaxEffects({_p})
+    add "&bYour max effects: &f%{_maxEffects}%" to {_infoLore::*}
+    set lore of {_info} to {_infoLore::*}
+    set slot 29 of {_menu} to {_info}
+
+    # Clear both - Slot 31
+    set {_clear} to tnt named "&c&lClear Both Slots"
+    add "" to {_clearLore::*}
+    add "&7Return both boosters" to {_clearLore::*}
+    add "&7to your storage." to {_clearLore::*}
+    add "" to {_clearLore::*}
+    add "&eClick to clear" to {_clearLore::*}
+    set lore of {_clear} to {_clearLore::*}
+    set string tag "workstation;action" of custom nbt of {_clear} to "clear_all"
+    set slot 31 of {_menu} to {_clear}
+
+    # Close - Slot 35
+    set {_close} to barrier named "&c&lCLOSE"
+    add "" to {_closeLore::*}
+    add "&7Close this menu" to {_closeLore::*}
+    add "&7(returns boosters to storage)" to {_closeLore::*}
+    add "" to {_closeLore::*}
+    add "&eClick to close" to {_closeLore::*}
+    set lore of {_close} to {_closeLore::*}
+    set string tag "workstation;action" of custom nbt of {_close} to "close"
+    set slot 35 of {_menu} to {_close}
+
+    open {_menu} to {_p}
+    set {-booster::menu::%{_uuid}%} to "WORKSTATION"
+
+# ============================================================
+# BOOSTER SELECTION MENU
+# ============================================================
+
+function workstation_openSelectMenu(p: player, targetSlot: number, page: number):
+    set {_uuid} to {_p}'s uuid
+    set {_menu} to chest inventory with 6 rows named "&5&lSelect Booster"
+
+    # Fill with glass
+    set {_filler} to purple stained glass pane named "&8"
+    loop 54 times:
+        set slot loop-number - 1 of {_menu} to {_filler}
+
+    # Header
+    set {_header} to magenta stained glass pane named "&d&lSelect a booster for slot %{_targetSlot}%"
+    set slot 0,1,2,3,4,5,6,7,8 of {_menu} to {_header}
+
+    # Get storage (exclude already selected boosters)
+    set {_storage::*} to booster_getStorage({_p})
+    set {_input1} to {-workstation::%{_uuid}%::input1}
+    set {_input2} to {-workstation::%{_uuid}%::input2}
+
+    # Filter out already selected
+    loop {_storage::*}:
+        set {_encoded} to loop-value
+        if {_encoded} is not {_input1}:
+            if {_encoded} is not {_input2}:
+                add {_encoded} to {_available::*}
+
+    # Pagination
+    set {_perPage} to 36
+    set {_total} to size of {_available::*}
+    set {_totalPages} to max(1, ceiling({_total} / {_perPage}))
+
+    if {_page} > {_totalPages}:
+        set {_page} to {_totalPages}
+    if {_page} < 1:
+        set {_page} to 1
+
+    set {_startIndex} to (({_page} - 1) * {_perPage}) + 1
+    set {_endIndex} to min({_startIndex} + {_perPage} - 1, {_total})
+
+    # Display slots (rows 1-4)
+    set {_displaySlots::*} to 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43 and 44
+
+    set {_displayIndex} to 1
+    loop integers from {_startIndex} to {_endIndex}:
+        set {_storageIndex} to loop-number
+        set {_encoded} to {_available::%{_storageIndex}%}
+
+        if {_encoded} is set:
+            set {_boosterItem} to workstation_createSelectItem({_encoded})
+            set {_guiSlot} to {_displaySlots::%{_displayIndex}%}
+            set slot {_guiSlot} of {_menu} to {_boosterItem}
+
+        add 1 to {_displayIndex}
+
+    # Controls row 5
+
+    # Previous page - Slot 48
+    if {_page} > 1:
+        set {_prev} to arrow named "&c&lPREVIOUS"
+        add "" to {_prevLore::*}
+        add "&7Page: &8[&a%{_page} - 1%&8/&c%{_totalPages}%&8]" to {_prevLore::*}
+        add "" to {_prevLore::*}
+        add "&eClick to go back" to {_prevLore::*}
+        set lore of {_prev} to {_prevLore::*}
+        set string tag "workstation;action" of custom nbt of {_prev} to "select_page"
+        set int tag "workstation;page" of custom nbt of {_prev} to {_page} - 1
+        set int tag "workstation;targetSlot" of custom nbt of {_prev} to {_targetSlot}
+        set slot 48 of {_menu} to {_prev}
+
+    # Page indicator - Slot 49
+    set {_pageItem} to paper named "&7Page: &8[&a%{_page}%&8/&c%{_totalPages}%&8]"
+    set slot 49 of {_menu} to {_pageItem}
+
+    # Next page - Slot 50
+    if {_page} < {_totalPages}:
+        set {_next} to arrow named "&a&lNEXT"
+        add "" to {_nextLore::*}
+        add "&7Page: &8[&a%{_page} + 1%&8/&c%{_totalPages}%&8]" to {_nextLore::*}
+        add "" to {_nextLore::*}
+        add "&eClick to continue" to {_nextLore::*}
+        set lore of {_next} to {_nextLore::*}
+        set string tag "workstation;action" of custom nbt of {_next} to "select_page"
+        set int tag "workstation;page" of custom nbt of {_next} to {_page} + 1
+        set int tag "workstation;targetSlot" of custom nbt of {_next} to {_targetSlot}
+        set slot 50 of {_menu} to {_next}
+
+    # Back button - Slot 53
+    set {_back} to barrier named "&c&lBACK"
+    add "" to {_backLore::*}
+    add "&7Go back to workstation" to {_backLore::*}
+    add "" to {_backLore::*}
+    add "&eClick to go back" to {_backLore::*}
+    set lore of {_back} to {_backLore::*}
+    set string tag "workstation;action" of custom nbt of {_back} to "back_to_workstation"
+    set slot 53 of {_menu} to {_back}
+
+    open {_menu} to {_p}
+    set {-booster::menu::%{_uuid}%} to "WORKSTATION_SELECT"
+    set {-workstation::%{_uuid}%::selectPage} to {_page}
+    set {-workstation::%{_uuid}%::selectTarget} to {_targetSlot}
+
+function workstation_createSelectItem(encoded: text) :: item:
+    set {_tier} to booster_getTier({_encoded})
+    set {_rarity} to booster_getRarity({_encoded})
+    set {_tierName} to booster_getTierName({_tier})
+    set {_rarityName} to booster_getRarityName({_rarity})
+    set {_icon} to booster_getTierIcon({_tier})
+
+    set {_item} to {_icon} named "%{_tierName}% %{_rarityName}% &fBooster"
+
+    add "" to {_lore::*}
+    add "&8%{_tier}% | %{_rarity}%" to {_lore::*}
+    add "" to {_lore::*}
+
+    set {_types::*} to booster_getTypes({_encoded})
+    add "&6Effects:" to {_lore::*}
+    loop {_types::*}:
+        set {_t} to loop-value
+        set {_a} to booster_getEffectiveAmount({_encoded}, {_t})
+        set {_c} to booster_getTypeColor({_t})
+        add " %{_c}%+%{_a}%%% %booster_formatType({_t})%" to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Duration: &f%booster_formatTime(booster_getEffectiveDuration({_encoded}))%" to {_lore::*}
+    add "" to {_lore::*}
+    add "&eClick to select" to {_lore::*}
+
+    set lore of {_item} to {_lore::*}
+    set string tag "workstation;action" of custom nbt of {_item} to "select_booster"
+    set string tag "workstation;encoded" of custom nbt of {_item} to {_encoded}
+
+    return {_item}
+
+# ============================================================
+# MERGE CALCULATION
+# ============================================================
+
+# Validates if two boosters can be merged, sets error in global var
+function workstation_validateMerge(p: player, input1: text, input2: text) :: boolean:
+    delete {-workstation::error::%{_p}'s uuid%}
+
+    # Check tiers match
+    set {_tier1} to booster_getTier({_input1})
+    set {_tier2} to booster_getTier({_input2})
+
+    if {_tier1} is not {_tier2}:
+        set {-workstation::error::%{_p}'s uuid%} to "Boosters must be same tier!"
+        return false
+
+    # Check rarities match
+    set {_rarity1} to booster_getRarity({_input1})
+    set {_rarity2} to booster_getRarity({_input2})
+
+    if {_rarity1} is not {_rarity2}:
+        set {-workstation::error::%{_p}'s uuid%} to "Boosters must be same rarity!"
+        return false
+
+    # Check not legendary (max rarity)
+    if booster_isMaxRarity({_rarity1}) is true:
+        set {-workstation::error::%{_p}'s uuid%} to "Legendary boosters cannot be merged!"
+        return false
+
+    # Get all unique effect types from both
+    set {_types1::*} to booster_getTypes({_input1})
+    set {_types2::*} to booster_getTypes({_input2})
+
+    # Combine unique types
+    loop {_types1::*}:
+        add loop-value to {_allTypes::*}
+    loop {_types2::*}:
+        if {_allTypes::*} does not contain loop-value:
+            add loop-value to {_allTypes::*}
+
+    # Check effect count limit
+    set {_maxEffects} to booster_getMaxEffects({_p})
+    if size of {_allTypes::*} is greater than {_maxEffects}:
+        set {-workstation::error::%{_p}'s uuid%} to "Result exceeds your max effects (%{_maxEffects}%)!"
+        return false
+
+    return true
+
+# Gets the merge error message (if any)
+function workstation_getMergeError(p: player) :: text:
+    return {-workstation::error::%{_p}'s uuid%} ? ""
+
+# Calculates and returns the merged booster (call only after validateMerge returns true)
+function workstation_getMergeResult(p: player, input1: text, input2: text) :: text:
+    set {_tier1} to booster_getTier({_input1})
+    set {_rarity1} to booster_getRarity({_input1})
+
+    # Get all unique effect types from both
+    set {_types1::*} to booster_getTypes({_input1})
+    set {_types2::*} to booster_getTypes({_input2})
+
+    # Combine unique types
+    loop {_types1::*}:
+        add loop-value to {_allTypes::*}
+    loop {_types2::*}:
+        if {_allTypes::*} does not contain loop-value:
+            add loop-value to {_allTypes::*}
+
+    # Calculate merged values
+    set {_newRarity} to booster_getNextRarity({_rarity1})
+    set {_newTier} to {_tier1}  # Tier stays same
+
+    # Calculate average base duration
+    set {_dur1} to booster_getDuration({_input1})
+    set {_dur2} to booster_getDuration({_input2})
+    set {_newDuration} to floor(({_dur1} + {_dur2}) / 2)
+
+    # Calculate merged effects (add amounts for same types)
+    set {_effectStr} to ""
+    loop {_allTypes::*}:
+        set {_type} to loop-value
+        set {_amt1} to booster_getAmount({_input1}, {_type})
+        set {_amt2} to booster_getAmount({_input2}, {_type})
+        set {_newAmt} to {_amt1} + {_amt2}
+
+        if {_effectStr} is not "":
+            set {_effectStr} to "%{_effectStr}%,"
+        set {_effectStr} to "%{_effectStr}%%{_type}%:%{_newAmt}%"
+
+    # Create encoded result
+    return "%{_newTier}%|%{_newRarity}%|%{_effectStr}%|%{_newDuration}%"
+
+# ============================================================
+# CLICK HANDLER
+# ============================================================
+
+on inventory click:
+    set {_uuid} to player's uuid
+    set {_menuType} to {-booster::menu::%{_uuid}%}
+
+    if {_menuType} is "WORKSTATION":
+        cancel event
+
+        set {_nbt} to custom nbt of clicked slot
+        set {_action} to string tag "workstation;action" of {_nbt}
+
+        # Select input slot
+        if {_action} is "select_input1":
+            play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+            workstation_openSelectMenu(player, 1, 1)
+
+        else if {_action} is "select_input2":
+            play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+            workstation_openSelectMenu(player, 2, 1)
+
+        # Remove from input slot
+        else if {_action} is "remove_input1":
+            set {_encoded} to {-workstation::%{_uuid}%::input1}
+            if {_encoded} is set:
+                booster_addToStorage(player, {_encoded})
+                delete {-workstation::%{_uuid}%::input1}
+                play sound "entity.item.pickup" with volume 0.5 and pitch 1 to player
+                workstation_openMenu(player)
+
+        else if {_action} is "remove_input2":
+            set {_encoded} to {-workstation::%{_uuid}%::input2}
+            if {_encoded} is set:
+                booster_addToStorage(player, {_encoded})
+                delete {-workstation::%{_uuid}%::input2}
+                play sound "entity.item.pickup" with volume 0.5 and pitch 1 to player
+                workstation_openMenu(player)
+
+        # Clear all
+        else if {_action} is "clear_all":
+            set {_input1} to {-workstation::%{_uuid}%::input1}
+            set {_input2} to {-workstation::%{_uuid}%::input2}
+            if {_input1} is set:
+                booster_addToStorage(player, {_input1})
+                delete {-workstation::%{_uuid}%::input1}
+            if {_input2} is set:
+                booster_addToStorage(player, {_input2})
+                delete {-workstation::%{_uuid}%::input2}
+            play sound "entity.item.pickup" with volume 0.5 and pitch 1.2 to player
+            send "&e&l! &7Boosters returned to storage." to player
+            workstation_openMenu(player)
+
+        # Merge
+        else if {_action} is "merge":
+            set {_input1Encoded} to {-workstation::%{_uuid}%::input1}
+            set {_input2Encoded} to {-workstation::%{_uuid}%::input2}
+
+            if {_input1Encoded} is not set:
+                stop
+            if {_input2Encoded} is not set:
+                stop
+
+            # Validate merge
+            set {_canMerge} to workstation_validateMerge(player, {_input1Encoded}, {_input2Encoded})
+
+            if {_canMerge} is false:
+                set {_errorMsg} to workstation_getMergeError(player)
+                send "&c&l! &7%{_errorMsg}%" to player
+                play sound "entity.villager.no" with volume 0.5 and pitch 1 to player
+                stop
+
+            # Success - remove inputs and add result
+            delete {-workstation::%{_uuid}%::input1}
+            delete {-workstation::%{_uuid}%::input2}
+
+            set {_resultEncoded} to workstation_getMergeResult(player, {_input1Encoded}, {_input2Encoded})
+            booster_addToStorage(player, {_resultEncoded})
+
+            # Notify player
+            set {_tier} to booster_getTier({_resultEncoded})
+            set {_rarity} to booster_getRarity({_resultEncoded})
+            set {_tierName} to booster_getTierName({_tier})
+            set {_rarityName} to booster_getRarityName({_rarity})
+
+            send "" to player
+            send "&a&l! &7Successfully merged boosters!" to player
+            send "&7Result: %{_tierName}% %{_rarityName}% &7Booster" to player
+            send "" to player
+
+            play sound "block.anvil.use" with volume 0.7 and pitch 1.2 to player
+            send title "&a&lMerge Success!" with subtitle "%{_tierName}% %{_rarityName}% &fBooster" to player for 2 seconds with fade in 0.25 seconds and fade out 0.5 seconds
+
+            workstation_openMenu(player)
+
+        # Close
+        else if {_action} is "close":
+            # Return any boosters in slots to storage
+            set {_input1} to {-workstation::%{_uuid}%::input1}
+            set {_input2} to {-workstation::%{_uuid}%::input2}
+            if {_input1} is set:
+                booster_addToStorage(player, {_input1})
+            if {_input2} is set:
+                booster_addToStorage(player, {_input2})
+            workstation_cleanup(player)
+            close player's inventory
+
+    else if {_menuType} is "WORKSTATION_SELECT":
+        cancel event
+
+        set {_nbt} to custom nbt of clicked slot
+        set {_action} to string tag "workstation;action" of {_nbt}
+
+        # Select a booster
+        if {_action} is "select_booster":
+            set {_encoded} to string tag "workstation;encoded" of {_nbt}
+            set {_targetSlot} to {-workstation::%{_uuid}%::selectTarget}
+
+            # Remove from storage
+            booster_removeFromStorageByEncoded(player, {_encoded})
+
+            # Add to input slot
+            if {_targetSlot} = 1:
+                set {-workstation::%{_uuid}%::input1} to {_encoded}
+            else:
+                set {-workstation::%{_uuid}%::input2} to {_encoded}
+
+            play sound "entity.item.pickup" with volume 0.5 and pitch 1.2 to player
+            workstation_openMenu(player)
+
+        # Pagination
+        else if {_action} is "select_page":
+            play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+            set {_newPage} to int tag "workstation;page" of {_nbt}
+            set {_targetSlot} to int tag "workstation;targetSlot" of {_nbt}
+            workstation_openSelectMenu(player, {_targetSlot}, {_newPage})
+
+        # Back to workstation
+        else if {_action} is "back_to_workstation":
+            play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+            workstation_openMenu(player)
+
+# ============================================================
+# CLEANUP
+# ============================================================
+
+function workstation_cleanup(p: player):
+    set {_uuid} to {_p}'s uuid
+    delete {-workstation::%{_uuid}%::input1}
+    delete {-workstation::%{_uuid}%::input2}
+    delete {-workstation::%{_uuid}%::selectPage}
+    delete {-workstation::%{_uuid}%::selectTarget}
+
+on inventory close:
+    set {_uuid} to player's uuid
+    set {_menu} to {-booster::menu::%{_uuid}%}
+
+    if {_menu} is "WORKSTATION":
+        # Return boosters to storage if menu closes
+        set {_input1} to {-workstation::%{_uuid}%::input1}
+        set {_input2} to {-workstation::%{_uuid}%::input2}
+        if {_input1} is set:
+            booster_addToStorage(player, {_input1})
+        if {_input2} is set:
+            booster_addToStorage(player, {_input2})
+        workstation_cleanup(player)
+        delete {-booster::menu::%{_uuid}%}
+
+    else if {_menu} is "WORKSTATION_SELECT":
+        # Just going back, don't cleanup inputs
+        delete {-booster::menu::%{_uuid}%}
+        delete {-workstation::%{_uuid}%::selectPage}
+        delete {-workstation::%{_uuid}%::selectTarget}

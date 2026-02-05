@@ -1,0 +1,421 @@
+# ============================================================
+# RESEARCH SYSTEM - TICKER & EVENTS
+# ============================================================
+#
+# Handles:
+#   - Background progress tick (while loop per player, 3 sec intervals)
+#   - Offline progress sync on player join
+#   - Live GUI updates while menu is open
+#   - Research completion notifications
+#
+# ============================================================
+
+# ============================================================
+# PLAYER JOIN - START LOOP & SYNC OFFLINE PROGRESS
+# ============================================================
+
+on join:
+    # Delay slightly to ensure player is fully loaded
+    wait 1 tick
+    research_syncOfflineProgress(player)
+
+    # Start research loop for this player
+    research_startLoop(player)
+
+
+on quit:
+    # Stop loop
+    delete {-research::loop::%player's uuid%}
+    delete {-guard::research-loop::%player's uuid%}
+
+    # Clear menu state
+    delete {-research::menu::%player's uuid%}
+    delete {-research::menu::%player's uuid%::category}
+
+
+# ============================================================
+# GUARDED WHILE LOOP - PER PLAYER
+# ============================================================
+
+function research_startLoop(p: player):
+    # Guard check - only one loop instance per player
+    {-guard::research-loop::%{_p}'s uuid%} is not set
+    set {-guard::research-loop::%{_p}'s uuid%} to a random uuid
+
+    set {-research::loop::%{_p}'s uuid%} to true
+    while {-research::loop::%{_p}'s uuid%} is true:
+        wait 3 seconds
+        if {_p} is online:
+            research_tickPlayer({_p})
+        else:
+            delete {-research::loop::%{_p}'s uuid%}
+            delete {-guard::research-loop::%{_p}'s uuid%}
+            stop
+
+    delete {-guard::research-loop::%{_p}'s uuid%}
+
+
+# Process research progress for a single player (adds 3 seconds)
+function research_tickPlayer(p: player):
+    if research_hasActive({_p}) is false:
+        stop
+
+    set {_uuid} to {_p}'s uuid
+    set {_now} to now
+    set {_nowUnix} to unix timestamp of {_now}
+
+    # Add 3 seconds of progress
+    add 3 to {data::research::%{_uuid}%::active::progress}
+    set {data::research::%{_uuid}%::active::lastUpdate} to {_nowUnix}
+
+    # Check if complete
+    set {_progress} to research_getActiveProgress({_p})
+    set {_category} to research_getActiveCategory({_p})
+    set {_track} to research_getActiveTrack({_p})
+    set {_tier} to research_getActiveTier({_p})
+    set {_required} to research_getTimeRequiredForPlayer({_p}, {_category}, {_track}, {_tier})
+
+    if {_progress} >= {_required}:
+        research_complete({_p})
+        # Refresh GUI if open
+        research_refreshOpenGui({_p})
+    else:
+        # Live update GUI if player has it open
+        research_refreshOpenGui({_p})
+
+
+# ============================================================
+# LIVE GUI REFRESH
+# ============================================================
+
+function research_refreshOpenGui(p: player):
+    set {_uuid} to {_p}'s uuid
+    set {_menuType} to {-research::menu::%{_uuid}%}
+
+    if {_menuType} is not set:
+        stop
+
+    if {_menuType} = "MAIN":
+        research_openMainMenu({_p})
+    else if {_menuType} = "CATEGORY":
+        set {_category} to {-research::menu::%{_uuid}%::category}
+        if {_category} is set:
+            research_openCategoryMenu({_p}, {_category})
+
+
+# ============================================================
+# ADMIN COMMANDS
+# ============================================================
+
+command /research-admin [<text>] [<text>] [<text>] [<text>] [<text>]:
+    permission: research.admin
+    trigger:
+        set {_action} to arg-1 ? "help"
+
+        # ════════════════════════════════════════
+        # HELP
+        # ════════════════════════════════════════
+        if {_action} = "help":
+            send ""
+            send "&d&lResearch Admin Commands"
+            send ""
+            send "&e/research-admin view <player>"
+            send " &7View a player's research progress"
+            send ""
+            send "&e/research-admin set <player> <category> <track> <tier>"
+            send " &7Set a player's completed tier for a track"
+            send ""
+            send "&e/research-admin complete <player>"
+            send " &7Force complete active research"
+            send ""
+            send "&e/research-admin cancel <player>"
+            send " &7Cancel a player's active research"
+            send ""
+            send "&e/research-admin reset <player>"
+            send " &7Reset all research progress"
+            send ""
+            send "&e/research-admin times <category> [track]"
+            send " &7Show research times for a category/track"
+            send ""
+            stop
+
+        # ════════════════════════════════════════
+        # VIEW
+        # ════════════════════════════════════════
+        if {_action} = "view":
+            set {_targetName} to arg-2
+            if {_targetName} is not set:
+                send "&c&l! &7Usage: /research-admin view <player>"
+                stop
+
+            set {_target} to {_targetName} parsed as offline player
+            if {_target} is not set:
+                send "&c&l! &7Player not found."
+                stop
+
+            set {_uuid} to {_target}'s uuid
+
+            send ""
+            send "&d&lResearch Progress: &f%{_targetName}%"
+            send ""
+
+            # Show each category and its tracks
+            loop research_getCategories():
+                set {_cat} to loop-value
+                set {_catName} to research_getCategoryName({_cat})
+                send "%{_catName}%&7:"
+
+                # Show tracks within category
+                loop research_getTracks({_cat}):
+                    set {_track} to loop-value-2
+                    set {_trackName} to research_getTrackName({_cat}, {_track})
+                    set {_max} to research_getTrackMaxTier({_cat}, {_track})
+                    set {_completed} to {data::research::%{_uuid}%::%{_cat}%::%{_track}%} ? 0
+                    send "  &7%{_trackName}%&7: &e%{_completed}%&7/%{_max}%"
+
+            # Show active research
+            send ""
+            if {data::research::%{_uuid}%::active::category} is set:
+                set {_activeCat} to {data::research::%{_uuid}%::active::category}
+                set {_activeTrack} to {data::research::%{_uuid}%::active::track}
+                set {_activeTier} to {data::research::%{_uuid}%::active::tier}
+                set {_progress} to {data::research::%{_uuid}%::active::progress} ? 0
+                set {_trackName} to research_getTrackName({_activeCat}, {_activeTrack})
+                set {_required} to research_getTimeRequired({_activeCat}, {_activeTrack}, {_activeTier})
+                set {_percent} to floor(({_progress} / {_required}) * 100)
+                send "&eActive: %{_trackName}% &7Tier &e%{_activeTier}% &7(%{_percent}%%%)"
+            else:
+                send "&7No active research"
+            send ""
+            stop
+
+        # ════════════════════════════════════════
+        # SET
+        # ════════════════════════════════════════
+        if {_action} = "set":
+            set {_targetName} to arg-2
+            set {_category} to arg-3
+            set {_track} to arg-4
+            set {_tierText} to arg-5
+
+            if {_targetName} is not set:
+                send "&c&l! &7Usage: /research-admin set <player> <category> <track> <tier>"
+                stop
+            if {_category} is not set:
+                send "&c&l! &7Usage: /research-admin set <player> <category> <track> <tier>"
+                stop
+            if {_track} is not set:
+                send "&c&l! &7Usage: /research-admin set <player> <category> <track> <tier>"
+                stop
+            if {_tierText} is not set:
+                send "&c&l! &7Usage: /research-admin set <player> <category> <track> <tier>"
+                stop
+
+            set {_target} to {_targetName} parsed as offline player
+            if {_target} is not set:
+                send "&c&l! &7Player not found."
+                stop
+
+            set {_tier} to {_tierText} parsed as number
+            if {_tier} is not set:
+                send "&c&l! &7Invalid tier number."
+                stop
+
+            # Validate category
+            set {_validCat} to false
+            loop research_getCategories():
+                if loop-value = {_category}:
+                    set {_validCat} to true
+
+            if {_validCat} is false:
+                send "&c&l! &7Invalid category. Valid: %research_getCategories()%"
+                stop
+
+            # Validate track
+            set {_validTrack} to false
+            loop research_getTracks({_category}):
+                if loop-value = {_track}:
+                    set {_validTrack} to true
+
+            if {_validTrack} is false:
+                send "&c&l! &7Invalid track. Valid for %{_category}%: %research_getTracks({_category})%"
+                stop
+
+            set {_uuid} to {_target}'s uuid
+            set {data::research::%{_uuid}%::%{_category}%::%{_track}%} to {_tier}
+
+            set {_trackName} to research_getTrackName({_category}, {_track})
+            send "&a&l! &7Set %{_targetName}%'s %{_trackName}% &7to tier &e%{_tier}%"
+
+            # Apply reward if online
+            if {_target} is online:
+                research_applyReward({_target}, {_category}, {_track}, {_tier})
+
+            stop
+
+        # ════════════════════════════════════════
+        # COMPLETE
+        # ════════════════════════════════════════
+        if {_action} = "complete":
+            set {_targetName} to arg-2
+            if {_targetName} is not set:
+                send "&c&l! &7Usage: /research-admin complete <player>"
+                stop
+
+            set {_target} to {_targetName} parsed as player
+            if {_target} is not set:
+                send "&c&l! &7Player must be online."
+                stop
+
+            if research_hasActive({_target}) is false:
+                send "&c&l! &7%{_targetName}% has no active research."
+                stop
+
+            research_complete({_target})
+            send "&a&l! &7Force completed %{_targetName}%'s research."
+            stop
+
+        # ════════════════════════════════════════
+        # CANCEL
+        # ════════════════════════════════════════
+        if {_action} = "cancel":
+            set {_targetName} to arg-2
+            if {_targetName} is not set:
+                send "&c&l! &7Usage: /research-admin cancel <player>"
+                stop
+
+            set {_target} to {_targetName} parsed as player
+            if {_target} is not set:
+                send "&c&l! &7Player must be online."
+                stop
+
+            if research_hasActive({_target}) is false:
+                send "&c&l! &7%{_targetName}% has no active research."
+                stop
+
+            research_cancel({_target})
+            send "&a&l! &7Cancelled %{_targetName}%'s research."
+            stop
+
+        # ════════════════════════════════════════
+        # RESET
+        # ════════════════════════════════════════
+        if {_action} = "reset":
+            set {_targetName} to arg-2
+            if {_targetName} is not set:
+                send "&c&l! &7Usage: /research-admin reset <player>"
+                stop
+
+            set {_target} to {_targetName} parsed as offline player
+            if {_target} is not set:
+                send "&c&l! &7Player not found."
+                stop
+
+            set {_uuid} to {_target}'s uuid
+
+            # Clear all research data (category -> track structure)
+            loop research_getCategories():
+                set {_cat} to loop-value
+                loop research_getTracks({_cat}):
+                    delete {data::research::%{_uuid}%::%{_cat}%::%loop-value-2%}
+
+            # Clear active research
+            delete {data::research::%{_uuid}%::active::category}
+            delete {data::research::%{_uuid}%::active::track}
+            delete {data::research::%{_uuid}%::active::tier}
+            delete {data::research::%{_uuid}%::active::started}
+            delete {data::research::%{_uuid}%::active::progress}
+            delete {data::research::%{_uuid}%::active::lastUpdate}
+
+            # Clear unlocked slots/storage
+            delete {data::slots::enchants::%{_uuid}%}
+            delete {pet::slots::%{_uuid}%}
+            delete {data::accessories::%{_uuid}%::slots}
+            delete {data::boosters::%{_uuid}%::slots}
+            delete {data::storage::pets::%{_uuid}%}
+            delete {data::storage::accessories::%{_uuid}%}
+            delete {data::storage::boosters::%{_uuid}%}
+
+            send "&a&l! &7Reset all research progress for %{_targetName}%"
+            stop
+
+        # ════════════════════════════════════════
+        # TIMES
+        # ════════════════════════════════════════
+        if {_action} = "times":
+            set {_category} to arg-2
+            set {_track} to arg-3
+
+            if {_category} is not set:
+                send "&c&l! &7Usage: /research-admin times <category> [track]"
+                send "&7Categories: %research_getCategories()%"
+                stop
+
+            # Validate category
+            set {_validCat} to false
+            loop research_getCategories():
+                if loop-value = {_category}:
+                    set {_validCat} to true
+
+            if {_validCat} is false:
+                send "&c&l! &7Invalid category."
+                send "&7Categories: %research_getCategories()%"
+                stop
+
+            set {_catName} to research_getCategoryName({_category})
+
+            # If no track specified, show all tracks in category
+            if {_track} is not set:
+                send ""
+                send "&d&lResearch Times: %{_catName}%"
+                send ""
+
+                loop research_getTracks({_category}):
+                    set {_t} to loop-value
+                    set {_trackName} to research_getTrackName({_category}, {_t})
+                    set {_maxTier} to research_getTrackMaxTier({_category}, {_t})
+                    set {_trackTotal} to 0
+
+                    loop integers from 1 to {_maxTier}:
+                        add research_getTimeRequired({_category}, {_t}, loop-number) to {_trackTotal}
+
+                    send "%{_trackName}%&7: &e%research_formatTime({_trackTotal})% &7(%{_maxTier}% tiers)"
+
+                send ""
+                send "&7Use /research-admin times %{_category}% <track> for details"
+                send ""
+                stop
+
+            # Validate track
+            set {_validTrack} to false
+            loop research_getTracks({_category}):
+                if loop-value = {_track}:
+                    set {_validTrack} to true
+
+            if {_validTrack} is false:
+                send "&c&l! &7Invalid track."
+                send "&7Tracks for %{_category}%: %research_getTracks({_category})%"
+                stop
+
+            set {_trackName} to research_getTrackName({_category}, {_track})
+            set {_maxTier} to research_getTrackMaxTier({_category}, {_track})
+
+            send ""
+            send "&d&lResearch Times: %{_trackName}%"
+            send ""
+
+            set {_totalTime} to 0
+            loop integers from 1 to {_maxTier}:
+                set {_tier} to loop-number
+                set {_time} to research_getTimeRequired({_category}, {_track}, {_tier})
+                set {_formatted} to research_formatTime({_time})
+                add {_time} to {_totalTime}
+                send "&7Tier %{_tier}%: &e%{_formatted}%"
+
+            send ""
+            send "&7Total: &e%research_formatTime({_totalTime})%"
+            send ""
+            stop
+
+        # Unknown action
+        send "&c&l! &7Unknown action. Use /research-admin help"

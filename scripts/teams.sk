@@ -1,0 +1,1453 @@
+
+
+function rng(min: integer, max: integer) :: integer:
+    set {_int} to a random integer between {_min} and {_max}
+    return {_int}
+
+function team_getAllTeamsIDs() :: integers:
+    return {data.teams::ids::*}
+
+function team_getAllTeamsNames() :: strings:
+    return {data.teams::names::*}
+
+function team_getMessage(type: string, value: string="", value2: string="") :: strings:
+
+
+    # ============ HELP MESSAGE ============
+
+    if {_type} = "help":
+        add "" to {_message::*}
+        add "&6&lTEAM COMMANDS" to {_message::*}
+        add "" to {_message::*}
+        add "&e/team create <name> &8- &7Create a new team" to {_message::*}
+        add "&e/team disband &8- &7Delete your team (owner)" to {_message::*}
+        add "&e/team leave &8- &7Leave your current team" to {_message::*}
+        add "&e/team info [player] &8- &7View team info" to {_message::*}
+        add "&e/team invite <player> &8- &7Invite a player (mod+)" to {_message::*}
+        add "&e/team join <team> &8- &7Join a team you're invited to" to {_message::*}
+        add "&e/team kick <player> &8- &7Kick a member (mod+)" to {_message::*}
+        add "&e/team promote <player> &8- &7Promote to mod (owner)" to {_message::*}
+        add "&e/team demote <player> &8- &7Demote to member (owner)" to {_message::*}
+        add "" to {_message::*}
+        return {_message::*}
+
+    # ============ SUCCESS MESSAGES ============
+
+    if {_type} = "team_create":
+        add "&2&lTEAM CREATED!" to {_message::*}
+        add "&aYou created team &f%{_value}%&a!" to {_message::*}
+        return {_message::*}
+
+    if {_type} = "team_disband_confirm":
+        add "&6&lCONFIRM DISBAND" to {_message::*}
+        add "&eType '&fI confirm deletion of team %{_value}%&e'" to {_message::*}
+        add "&eOr type anything else to cancel." to {_message::*}
+        return {_message::*}
+
+    if {_type} = "team_disband_message_to_members":
+        add "&4&lTEAM DELETED" to {_message::*}
+        add "&cTeam &f%{_value}%&c was deleted by the owner." to {_message::*}
+        return {_message::*}
+
+    if {_type} = "team_disband_message_to_owner":
+        add "&6&lTEAM DISBANDED" to {_message::*}
+        add "&eYou deleted team &f%{_value}%&e." to {_message::*}
+        return {_message::*}
+
+    if {_type} = "team_disband_cancelled":
+        add "&6&lCANCELLED" to {_message::*}
+        add "&eTeam disband cancelled." to {_message::*}
+        return {_message::*}
+
+    if {_type} = "kick_success_team":
+        add "&6&lMEMBER KICKED" to {_message::*}
+        add "&e%{_value}%&e was kicked by &f%{_value2}%&e." to {_message::*}
+        return {_message::*}
+
+    if {_type} = "kick_success_target":
+        add "&4&lKICKED" to {_message::*}
+        add "&cYou were kicked from &f%{_value}%&c." to {_message::*}
+        return {_message::*}
+
+    if {_type} = "invite_sent":
+        add "&2&lINVITE SENT" to {_message::*}
+        add "&aInvited &f%{_value}%&a to &f%{_value2}%&a. (60s)" to {_message::*}
+        return {_message::*}
+
+    if {_type} = "invite_received":
+        add "&6&lTEAM INVITE" to {_message::*}
+        add "&e%{_value2}%&e invited you to &f%{_value}%&e." to {_message::*}
+        add "&eType &f/team join %{_value}%&e to accept. (60s)" to {_message::*}
+        return {_message::*}
+
+    if {_type} = "invite_expired":
+        add "&4&lEXPIRED" to {_message::*}
+        add "&cInvite to &f%{_value}%&c expired." to {_message::*}
+        return {_message::*}
+
+    if {_type} = "join_success":
+        add "&2&lTEAM JOINED" to {_message::*}
+        add "&aYou joined &f%{_value}%&a!" to {_message::*}
+        return {_message::*}
+
+    if {_type} = "join_notify_team":
+        add "&2&lNEW MEMBER" to {_message::*}
+        add "&a%{_value}%&a joined the team!" to {_message::*}
+        return {_message::*}
+
+    if {_type} = "leave_success":
+        add "&6&lTEAM LEFT" to {_message::*}
+        add "&eYou left &f%{_value}%&e." to {_message::*}
+        return {_message::*}
+
+    if {_type} = "leave_notify_team":
+        add "&6&lMEMBER LEFT" to {_message::*}
+        add "&e%{_value}%&e left the team." to {_message::*}
+        return {_message::*}
+
+    if {_type} = "promote_success":
+        add "&2&lPROMOTED" to {_message::*}
+        add "&a%{_value}%&a was promoted to Moderator by &f%{_value2}%&a." to {_message::*}
+        return {_message::*}
+
+    if {_type} = "demote_success":
+        add "&6&lDEMOTED" to {_message::*}
+        add "&e%{_value}%&e was demoted to Member by &f%{_value2}%&e." to {_message::*}
+        return {_message::*}
+
+    # ============ ERROR MESSAGES ============
+
+    if {_type} = "error_not_in_team":
+        add "&4&lERROR" to {_message::*}
+        add "&cYou are not in a team." to {_message::*}
+        return {_message::*}
+
+    if {_type} = "error_already_in_team":
+        add "&4&lERROR" to {_message::*}
+        add "&cYou are already in a team." to {_message::*}
+        return {_message::*}
+
+    if {_type} = "error_name_taken":
+        add "&4&lERROR" to {_message::*}
+        add "&cTeam name already taken." to {_message::*}
+        return {_message::*}
+
+    if {_type} = "error_name_too_short":
+        add "&4&lERROR" to {_message::*}
+        add "&cName must be at least 4 characters." to {_message::*}
+        return {_message::*}
+
+    if {_type} = "error_name_too_long":
+        add "&4&lERROR" to {_message::*}
+        add "&cName must be under 8 characters." to {_message::*}
+        return {_message::*}
+
+    if {_type} = "error_not_owner":
+        add "&4&lERROR" to {_message::*}
+        add "&cOnly the owner can do this." to {_message::*}
+        return {_message::*}
+
+    if {_type} = "error_target_not_in_team":
+        add "&4&lERROR" to {_message::*}
+        add "&c%{_value}% is not in your team." to {_message::*}
+        return {_message::*}
+
+    if {_type} = "error_need_moderator":
+        add "&4&lERROR" to {_message::*}
+        add "&cYou need Moderator rank to %{_value}%." to {_message::*}
+        return {_message::*}
+
+    if {_type} = "error_cant_kick_higher":
+        add "&4&lERROR" to {_message::*}
+        add "&cCan't kick someone with equal or higher rank." to {_message::*}
+        return {_message::*}
+
+    if {_type} = "error_target_not_online":
+        add "&4&lERROR" to {_message::*}
+        add "&c%{_value}% is not online." to {_message::*}
+        return {_message::*}
+
+    if {_type} = "error_target_already_in_team":
+        add "&4&lERROR" to {_message::*}
+        add "&c%{_value}% is already in a team." to {_message::*}
+        return {_message::*}
+
+    if {_type} = "error_team_full":
+        add "&4&lERROR" to {_message::*}
+        add "&cTeam &f%{_value}%&c is full." to {_message::*}
+        return {_message::*}
+
+    if {_type} = "error_already_invited":
+        add "&4&lERROR" to {_message::*}
+        add "&c%{_value}% already has a pending invite." to {_message::*}
+        return {_message::*}
+
+    if {_type} = "error_no_invite":
+        add "&4&lERROR" to {_message::*}
+        add "&cNo pending invite from this team." to {_message::*}
+        return {_message::*}
+
+    if {_type} = "error_already_in_this_team":
+        add "&4&lERROR" to {_message::*}
+        add "&cYou are already in this team." to {_message::*}
+        return {_message::*}
+
+    if {_type} = "error_leave_in_other_team":
+        add "&4&lERROR" to {_message::*}
+        add "&cLeave your current team first." to {_message::*}
+        return {_message::*}
+
+    if {_type} = "error_owner_cant_leave":
+        add "&4&lERROR" to {_message::*}
+        add "&cOwners must /team disband or transfer ownership." to {_message::*}
+        return {_message::*}
+
+    if {_type} = "error_target_no_team":
+        add "&4&lERROR" to {_message::*}
+        add "&c%{_value}% is not in any team." to {_message::*}
+        return {_message::*}
+
+    if {_type} = "error_only_owner":
+        add "&4&lERROR" to {_message::*}
+        add "&cOnly the owner can %{_value}% members." to {_message::*}
+        return {_message::*}
+
+    if {_type} = "error_cant_promote_owner":
+        add "&4&lERROR" to {_message::*}
+        add "&cCan't promote the owner." to {_message::*}
+        return {_message::*}
+
+    if {_type} = "error_already_moderator":
+        add "&4&lERROR" to {_message::*}
+        add "&c%{_value}% is already a Moderator." to {_message::*}
+        return {_message::*}
+
+    if {_type} = "error_cant_demote_owner":
+        add "&4&lERROR" to {_message::*}
+        add "&cCan't demote yourself as owner." to {_message::*}
+        return {_message::*}
+
+    if {_type} = "error_already_member":
+        add "&4&lERROR" to {_message::*}
+        add "&c%{_value}% is already a Member." to {_message::*}
+        return {_message::*}
+
+    # Fallback
+    add "&4&lERROR" to {_message::*}
+    add "&cUnknown error." to {_message::*}
+    return {_message::*}
+
+
+function team_getPlayerTeamID(p: player) :: integer:
+    return ({data::team::%{_p}'s uuid%} ? 0)
+
+function team_getTeamName(id: integer) :: string:
+    return {dataTeams::%{_id}%::name}
+
+function team_getTeamOwner(id: integer) :: uuid:
+    return {dataTeams::%{_id}%::owner}
+
+function team_checkIfNameIsOK(name: string) :: string:
+    if team_getAllTeamsNames() contains {_name}:
+        return "error_name_taken"
+    if length of {_name} < 4:
+        return "error_name_too_short"
+    if length of {_name} > 8:
+        return "error_name_too_long"
+    return "OK"
+
+function team_create(p: player, name: string):
+    # Progression check - require Prestige I
+    if progression_canAccessTeams({_p}) = false:
+        send "" to {_p}
+        send "&c&lTEAMS LOCKED" to {_p}
+        send "&7Teams unlock at &6Prestige I&7." to {_p}
+        send "&7Keep mining and prestige to unlock!" to {_p}
+        send "" to {_p}
+        play sound "entity.villager.no" with volume 0.5 and pitch 1 to {_p}
+        stop
+
+    if team_getPlayerTeamID({_p}) != 0:
+        send team_getMessage("error_already_in_team") to {_p}
+        stop
+
+    set {_name} to lowercase {_name}
+
+    set {_nameCheck} to team_checkIfNameIsOK({_name})
+    if {_nameCheck} != "OK":
+        send team_getMessage({_nameCheck}) to {_p}
+        stop
+
+    set {_id} to rng(1000000, 9999999)
+    set {_teams.ids::*} to team_getAllTeamsIDs()
+
+    while {_teams.ids::*} contains {_id}:
+        set {_id} to rng(1000000, 9999999)
+        wait 1 tick
+
+    set {dataTeams::%{_id}%::name} to {_name}
+    add {_name} to {data.teams::names::*}
+    add {_id} to {data.teams::ids::*}
+
+    set {data.teamByName::%{_name}%} to {_id}
+    set {dataTeams::%{_id}%::owner} to {_p}'s uuid
+    set {dataTeams::%{_id}%::members::*} to {_p}'s uuid
+
+    set {data::team::%{_p}'s uuid%} to {_id}
+
+    send team_getMessage("team_create", {_name}) to {_p}
+
+function team_disband(p: player):
+    set {_id} to team_getPlayerTeamID({_p})
+    set {_name} to team_getTeamName({_id})
+
+    if team_getTeamOwner({_id}) != {_p}'s uuid:
+        send team_getMessage("error_not_owner") to {_p}
+        stop
+    
+    set metadata tag "team_disband_confirm" of {_p} to true
+    send team_getMessage("team_disband_confirm", {_name}) to {_p}
+
+function team_delete(p: player, id: integer):
+    set {_name} to team_getTeamName({_id})
+
+    loop team_getAllMembers({_id}):
+        delete {data::team::%loop-value%}
+        set {_member} to loop-value parsed as a offline player
+        if {_member} is online:
+            if loop-value != {_p}'s uuid:
+                send team_getMessage("team_disband_message_to_members", {_name}) to {_member}
+
+    send team_getMessage("team_disband_message_to_owner", {_name}) to {_p}
+
+    remove {_name} from {data.teams::names::*}
+    remove {_id} from {data.teams::ids::*}
+
+    delete {data.teamByName::%{_name}%}
+    delete {dataTeams::%{_id}%::*}
+    delete {dataTeams::%{_id}%}
+
+function team_getPlayerRank(p: offlineplayer) :: string:
+    set {_id} to team_getPlayerTeamID({_p})
+    if {dataTeams::%{_id}%::owner} = {_p}'s uuid:
+        return "Owner"
+    if {dataTeams::%{_id}%::moderators::*} contains {_p}'s uuid:
+        return "Moderator"
+    return "Member"
+
+function team_getRankWeight(rank: string) :: integer:
+    if {_rank} = "Owner":
+        return 5
+    if {_rank} = "Moderator":
+        return 3
+    return 1
+
+function team_canTargetBeInvited(p: player) :: boolean:
+    if team_getPlayerTeamID({_p}) = 0:
+        return true
+    return false
+
+function team_getUpgrade_maxMembers(id: integer) :: integer:
+    return (4 + ({dataTeams::%{_id}%::upgrades::maxMembers} ? 0))
+
+function team_isFull(id: integer) :: boolean:
+    if size of team_getAllMembers({_id}) < team_getUpgrade_maxMembers({_id}):
+        return false
+    return true
+
+function team_getAllMembers(id: integer) :: uuids:
+    return {dataTeams::%{_id}%::members::*}
+
+function team_getAllMembersAsNames(id: integer) :: players:
+    loop team_getAllMembers({_id}):
+        add loop-value parsed as a offlineplayer to {_members::*}
+    return {_members::*}
+
+function team_kick(p: player, target: offlineplayer):
+    set {_id} to team_getPlayerTeamID({_p})
+    if {_id} = 0:
+        send team_getMessage("error_not_in_team") to {_p}
+        stop
+
+    if team_getAllMembers({_id}) doesn't contain uuid of {_target}:
+        send team_getMessage("error_target_not_in_team", "%{_target}%") to {_p}
+        stop
+
+    set {_name} to team_getTeamName({_id})
+
+    set {_rank} to team_getPlayerRank({_p})
+    set {_rankWeight.player} to team_getRankWeight({_rank})
+    if {_rankWeight.player} < 3:
+        send team_getMessage("error_need_moderator", "kick") to {_p}
+        stop
+
+    set {_rankWeight.target} to team_getRankWeight(team_getPlayerRank({_target}))
+    if {_rankWeight.target} >= {_rankWeight.player}:
+        send team_getMessage("error_cant_kick_higher") to {_p}
+        stop
+    
+    delete {data::team::%{_target}'s uuid%}
+    remove {_target}'s uuid from {dataTeams::%{_id}%::members::*}
+    if {_rankWeight.target} = 3:
+        remove {_target}'s uuid from {dataTeams::%{_id}%::moderators::*}
+
+    loop team_getAllMembers({_id}):
+        set {_existingMember} to (loop-value parsed as a offlineplayer)
+        if {_existingMember} is online:
+            send team_getMessage("kick_success_team", "%{_target}%", "%{_p}%") to {_existingMember}
+
+    send team_getMessage("kick_success_target", {_name}) to {_target}
+
+function team_invite(p: player, target: offlineplayer):
+    set {_id} to team_getPlayerTeamID({_p})
+    if {_id} = 0:
+        send team_getMessage("error_not_in_team") to {_p}
+        stop
+
+    set {_name} to team_getTeamName({_id})
+
+    set {_rank} to team_getPlayerRank({_p})
+    if team_getRankWeight({_rank}) < 3:
+        send team_getMessage("error_need_moderator", "invite") to {_p}
+        stop
+
+    if {_target} is not online:
+        send team_getMessage("error_target_not_online", "%{_target}%") to {_p}
+        stop
+
+    if team_canTargetBeInvited({_target}) = false:
+        send team_getMessage("error_target_already_in_team", "%{_target}%") to {_p}
+        stop
+    
+    if team_isFull({_id}) = true:
+        send team_getMessage("error_team_full", {_name}) to {_p}
+        stop
+    
+    if metadata tag "team_invited_%{_id}%" of {_target} is set:
+        send team_getMessage("error_already_invited", "%{_target}%") to {_p}
+        stop
+
+    send team_getMessage("invite_sent", "%{_target}%", {_name}) to {_p}
+    send team_getMessage("invite_received", {_name}, "%{_p}%") to {_target}
+
+    set metadata tag "team_invited_%{_id}%" of {_target} to true
+    wait 60 seconds
+    delete metadata tag "team_invited_%{_id}%" of {_target}
+    if team_getPlayerTeamID({_target}) != {_id}:
+        send team_getMessage("invite_expired", {_name}) to {_target}
+
+function team_join(p: player, id: integer):
+    # Progression check - require Prestige I
+    if progression_canAccessTeams({_p}) = false:
+        send "" to {_p}
+        send "&c&lTEAMS LOCKED" to {_p}
+        send "&7Teams unlock at &6Prestige I&7." to {_p}
+        send "&7Keep mining and prestige to unlock!" to {_p}
+        send "" to {_p}
+        play sound "entity.villager.no" with volume 0.5 and pitch 1 to {_p}
+        stop
+
+    set {_name} to team_getTeamName({_id})
+
+    set {_isInvited} to metadata tag "team_invited_%{_id}%" of {_p}
+    if {_isInvited} is not set:
+        send team_getMessage("error_no_invite") to {_p}
+        stop
+
+    set {_playerTeamID} to team_getPlayerTeamID({_p})
+    if {_playerTeamID} = {_id}:
+        send team_getMessage("error_already_in_this_team") to {_p}
+        stop
+
+    if {_playerTeamID} != 0:
+        send team_getMessage("error_leave_in_other_team") to {_p}
+        stop
+
+    if team_isFull({_id}) = true:
+        send team_getMessage("error_team_full", {_name}) to {_p}
+        stop
+    
+    set {data::team::%{_p}'s uuid%} to {_id}
+    loop team_getAllMembers({_id}):
+        set {_existingMember} to (loop-value parsed as a offlineplayer)
+        if {_existingMember} is online:
+            send team_getMessage("join_notify_team", "%{_p}%") to {_existingMember}
+
+    add {_p}'s uuid to {dataTeams::%{_id}%::members::*}
+    delete metadata tag "team_invited_%{_id}%" of {_p}
+    send team_getMessage("join_success", {_name}) to {_p}
+
+function team_leave(p: player):
+    set {_id} to team_getPlayerTeamID({_p})
+    if {_id} = 0:
+        send team_getMessage("error_not_in_team") to {_p}
+        stop
+
+    set {_name} to team_getTeamName({_id})
+
+    if team_getTeamOwner({_id}) = {_p}'s uuid:
+        send team_getMessage("error_owner_cant_leave") to {_p}
+        stop
+
+    set {_rank} to team_getPlayerRank({_p})
+    if {_rank} = "Moderator":
+        remove {_p}'s uuid from {dataTeams::%{_id}%::moderators::*}
+
+    remove {_p}'s uuid from {dataTeams::%{_id}%::members::*}
+    delete {data::team::%{_p}'s uuid%}
+
+    loop team_getAllMembers({_id}):
+        set {_member} to (loop-value parsed as a offlineplayer)
+        if {_member} is online:
+            send team_getMessage("leave_notify_team", "%{_p}%") to {_member}
+
+    send team_getMessage("leave_success", {_name}) to {_p}
+
+function team_getInfoMembersMessage(id: integer) :: strings:
+    set {_owner} to team_getTeamOwner({_id})
+
+    loop team_getAllMembers({_id}):
+        if {_owner} = loop-value:
+            continue
+
+        set {_player} to loop-value parsed as offline player
+        set {_rank} to team_getPlayerRank({_player})
+        
+        if {_player} is online:
+            add "&8• &f%{_player}% &7(%{_rank}%) &aonline" to {_members::*}
+            continue
+
+        add "&8• &f%{_player}% &7(%{_rank}%) &coffline" to {_members::*}
+
+    return {_members::*}
+
+function team_info(p: player, target: offline player):
+    set {_id} to team_getPlayerTeamID({_target})
+    if {_id} = 0:
+        send team_getMessage("error_target_no_team", "%{_target}%") to {_p}
+        stop
+
+    set {_name} to team_getTeamName({_id})
+    set {_owner} to team_getTeamOwner({_id}) parsed as offline player
+
+    set {_ownerStatus} to "&coffline"
+    if {_owner} is online:
+        set {_ownerStatus} to "&aonline"
+
+    set {_members::*} to team_getInfoMembersMessage({_id})
+    set {_memberCount} to size of team_getAllMembers({_id})
+    set {_maxMembers} to team_getUpgrade_maxMembers({_id})
+
+    send "" to {_p}
+    send "&6&l%{_name}% &7(%{_memberCount}%/%{_maxMembers}%)" to {_p}
+    send "" to {_p}
+    send "&eOwner: &f%{_owner}% %{_ownerStatus}%" to {_p}
+    send "" to {_p}
+    if size of {_members::*} > 0:
+        send "&eMembers:" to {_p}
+        send {_members::*} to {_p}
+    else:
+        send "&7No other members." to {_p}
+    send "" to {_p}
+
+function team_getIDByName(name: string) :: integer:
+    return {data.teamByName::%{_name}%}
+
+function team_promote(p: player, target: offlineplayer):
+    set {_id} to team_getPlayerTeamID({_p})
+    if {_id} = 0:
+        send team_getMessage("error_not_in_team") to {_p}
+        stop
+
+    if team_getAllMembers({_id}) doesn't contain uuid of {_target}:
+        send team_getMessage("error_target_not_in_team", "%{_target}%") to {_p}
+        stop
+
+    if team_getTeamOwner({_id}) != {_p}'s uuid:
+        send team_getMessage("error_only_owner", "promote") to {_p}
+        stop
+
+    set {_targetRank} to team_getPlayerRank({_target})
+    if {_targetRank} = "Owner":
+        send team_getMessage("error_cant_promote_owner") to {_p}
+        stop
+    if {_targetRank} = "Moderator":
+        send team_getMessage("error_already_moderator", "%{_target}%") to {_p}
+        stop
+
+    add {_target}'s uuid to {dataTeams::%{_id}%::moderators::*}
+
+    loop team_getAllMembers({_id}):
+        set {_member} to (loop-value parsed as a offlineplayer)
+        if {_member} is online:
+            send team_getMessage("promote_success", "%{_target}%", "%{_p}%") to {_member}
+
+function team_demote(p: player, target: offlineplayer):
+    set {_id} to team_getPlayerTeamID({_p})
+    if {_id} = 0:
+        send team_getMessage("error_not_in_team") to {_p}
+        stop
+
+    if team_getAllMembers({_id}) doesn't contain uuid of {_target}:
+        send team_getMessage("error_target_not_in_team", "%{_target}%") to {_p}
+        stop
+
+    if team_getTeamOwner({_id}) != {_p}'s uuid:
+        send team_getMessage("error_only_owner", "demote") to {_p}
+        stop
+
+    set {_targetRank} to team_getPlayerRank({_target})
+    if {_targetRank} = "Owner":
+        send team_getMessage("error_cant_demote_owner") to {_p}
+        stop
+    if {_targetRank} = "Member":
+        send team_getMessage("error_already_member", "%{_target}%") to {_p}
+        stop
+
+    remove {_target}'s uuid from {dataTeams::%{_id}%::moderators::*}
+
+    loop team_getAllMembers({_id}):
+        set {_member} to (loop-value parsed as a offlineplayer)
+        if {_member} is online:
+            send team_getMessage("demote_success", "%{_target}%", "%{_p}%") to {_member}
+
+
+# ============================================================
+# TEAM ONLINE BONUS - JOIN/QUIT HANDLERS
+# ============================================================
+# Recalculate multipliers for all online team members when
+# someone joins or leaves, so the online bonus updates.
+# ============================================================
+
+on join:
+    wait 5 ticks  # Wait for player to fully load
+    set {_id} to team_getPlayerTeamID(player)
+    if {_id} > 0:
+        # Recalculate multipliers for all online team members
+        loop team_getAllMembers({_id}):
+            set {_member} to loop-value parsed as offline player
+            if {_member} is online:
+                multiplier_recalculate({_member})
+
+on quit:
+    set {_id} to team_getPlayerTeamID(player)
+    if {_id} > 0:
+        # Schedule recalculation for remaining team members after quit
+        set {_teamId} to {_id}
+        wait 1 tick  # Wait for player to fully quit
+        loop team_getAllMembers({_teamId}):
+            set {_member} to loop-value parsed as offline player
+            if {_member} is online:
+                multiplier_recalculate({_member})
+
+
+on chat:
+    set {_message} to message
+    if metadata tag "team_disband_confirm" of player = true:
+        cancel event
+        set {_id} to team_getPlayerTeamID(player)
+        set {_name} to team_getTeamName({_id})
+        if {_message} = "I confirm deletion of team %{_name}%":
+            delete metadata tag "team_disband_confirm" of player
+            team_delete(player, {_id})
+            stop
+        delete metadata tag "team_disband_confirm" of player
+        send team_getMessage("team_disband_cancelled") to player
+
+
+command /delteams:
+    permission: op
+    trigger:
+        delete {dataTeams::*}
+        delete {data.teams::names::*}
+        delete {data.teams::ids::*}
+        delete {data::team::*}
+
+
+on tab complete of "/team":
+    set {_id} to team_getPlayerTeamID(player)
+    set tab completions for position 1 to "help", "create", "disband", "promote", "demote", "invite", "join", "leave", "kick", "info" and "upgrades"
+    set {_arg.1} to tab arg-1
+    if {_arg.1} = "create":
+        set tab completions for position 2 to "<team name>"
+        stop
+    if {_arg.1} = "invite":
+        set tab completions for position 2 to all players
+        stop
+    if {_arg.1} = "kick":
+        set tab completions for position 2 to team_getAllMembersAsNames({_id})
+        stop
+    if {_arg.1} = "info":
+        set tab completions for position 2 to all players
+        stop
+    if {_arg.1} = "promote":
+        set tab completions for position 2 to team_getAllMembersAsNames({_id})
+        stop
+    if {_arg.1} = "demote":
+        set tab completions for position 2 to team_getAllMembersAsNames({_id})
+        stop
+
+command /team [<string>] [<string>]:
+    trigger:
+        if arg-1 is not set:
+            team_openMainMenu(player)
+            stop
+        if arg-1 = "help":
+            send team_getMessage("help") to player
+            stop
+        if arg-1 = "create":
+            if arg-2 is not set:
+                send "&cUsage: /team create <name>"
+                stop
+            team_create(player, arg-2)
+            stop
+        if arg-1 = "disband":
+            if arg-2 is set:
+                send "&cUsage: /team disband"
+                stop
+            team_disband(player)
+            stop
+        if arg-1 = "invite":
+            if arg-2 is not set:
+                send "&cUsage: /team invite <player>"
+                stop
+            set {_target} to arg-2 parsed as offline player
+            team_invite(player, {_target})
+            stop
+        if arg-1 = "join":
+            if arg-2 is not set:
+                send "&cUsage: /team join <team_name>"
+                stop
+            set {_id} to team_getIDByName(arg-2)
+            team_join(player, {_id})
+            stop
+        if arg-1 = "kick":
+            if arg-2 is not set:
+                send "&cUsage: /team kick <player>"
+                stop
+            set {_target} to arg-2 parsed as offline player
+            team_kick(player, {_target})
+            stop
+        if arg-1 = "info":
+            if arg-2 is not set:
+                team_info(player, player)
+                stop
+            set {_target} to arg-2 parsed as offline player
+            team_info(player, {_target})
+            stop
+        if arg-1 = "promote":
+            if arg-2 is not set:
+                send "&cUsage: /team promote <player>"
+                stop
+            set {_target} to arg-2 parsed as offline player
+            team_promote(player, {_target})
+            stop
+        if arg-1 = "demote":
+            if arg-2 is not set:
+                send "&cUsage: /team demote <player>"
+                stop
+            set {_target} to arg-2 parsed as offline player
+            team_demote(player, {_target})
+            stop
+        if arg-1 = "leave":
+            if arg-2 is set:
+                send "&cUsage: /team leave"
+                stop
+            team_leave(player)
+            stop
+        if arg-1 = "upgrades":
+            team_openUpgradesMenu(player)
+            stop
+
+        # Unknown command - show help
+        send team_getMessage("help") to player
+
+
+# ============================================================
+# TEAM UPGRADES SYSTEM
+# ============================================================
+# Upgrade: Max Members (level 0-3, +1 member per level, base 4, max 7)
+# Upgrade: Boosts (level 0-100, 0.1% per level, max 10%)
+#   - tokens_boost
+#   - drops_boost
+#   - mining_speed_boost
+#   - damage_boost
+# ============================================================
+
+# Get upgrade level
+function team_getUpgradeLevel(id: integer, upgrade: text) :: integer:
+    return ({dataTeams::%{_id}%::upgrades::%{_upgrade}%} ? 0)
+
+# Set upgrade level
+function team_setUpgradeLevel(id: integer, upgrade: text, level: integer):
+    set {dataTeams::%{_id}%::upgrades::%{_upgrade}%} to {_level}
+
+# Get max level for an upgrade
+function team_getUpgradeMaxLevel(upgrade: text) :: integer:
+    if {_upgrade} is "maxMembers":
+        return 3
+    # All boosts max at 100
+    return 100
+
+# Get upgrade cost (trophies)
+function team_getUpgradeCost(upgrade: text, currentLevel: integer) :: integer:
+    if {_upgrade} is "maxMembers":
+        # 50, 150, 300 trophies for levels 1, 2, 3
+        if {_currentLevel} is 0:
+            return 50
+        if {_currentLevel} is 1:
+            return 150
+        if {_currentLevel} is 2:
+            return 300
+        return 999999
+    # Boosts: 5 trophies per level (500 total for max)
+    return 5
+
+# Get boost multiplier for a team (returns 1.0 + bonus)
+function team_getBoostMultiplier(id: integer, boostType: text) :: number:
+    if {_id} is 0:
+        return 1.0
+    set {_level} to team_getUpgradeLevel({_id}, {_boostType})
+    # 0.1% per level = 0.001 per level
+    set {_bonus} to {_level} * 0.001
+    return 1.0 + {_bonus}
+
+# Get boost percentage for display
+function team_getBoostPercent(id: integer, boostType: text) :: number:
+    set {_level} to team_getUpgradeLevel({_id}, {_boostType})
+    return {_level} * 0.1
+
+# Purchase upgrade
+function team_purchaseUpgrade(p: player, upgrade: text) :: boolean:
+    set {_id} to team_getPlayerTeamID({_p})
+    if {_id} is 0:
+        send "&cYou are not in a team!" to {_p}
+        return false
+
+    # Only owner and moderators can purchase
+    set {_rank} to team_getPlayerRank({_p})
+    if team_getRankWeight({_rank}) < 3:
+        send "&cOnly moderators and owners can purchase upgrades!" to {_p}
+        return false
+
+    set {_currentLevel} to team_getUpgradeLevel({_id}, {_upgrade})
+    set {_maxLevel} to team_getUpgradeMaxLevel({_upgrade})
+
+    if {_currentLevel} >= {_maxLevel}:
+        send "&cThis upgrade is already at max level!" to {_p}
+        return false
+
+    set {_cost} to team_getUpgradeCost({_upgrade}, {_currentLevel})
+    set {_trophies} to team_getTrophies({_id})
+
+    if {_trophies} < {_cost}:
+        send "&cNot enough trophies! Need &6%{_cost}%&c, have &6%{_trophies}%&c." to {_p}
+        return false
+
+    # Deduct trophies and upgrade
+    team_removeTrophies({_id}, {_cost})
+    team_setUpgradeLevel({_id}, {_upgrade}, {_currentLevel} + 1)
+
+    set {_newLevel} to {_currentLevel} + 1
+    play sound "entity.player.levelup" with volume 0.8 and pitch 1.2 to {_p}
+
+    # Notify team and recalculate multipliers for boost upgrades
+    set {_name} to team_getTeamName({_id})
+    set {_upgradeName} to team_getUpgradeDisplayName({_upgrade})
+    loop team_getAllMembers({_id}):
+        set {_member} to (loop-value parsed as a offlineplayer)
+        if {_member} is online:
+            send "" to {_member}
+            send "&2&lTEAM UPGRADE!" to {_member}
+            send "&a%{_p}% &7upgraded &e%{_upgradeName}% &7to level &a%{_newLevel}%&7!" to {_member}
+            send "" to {_member}
+            # Recalculate multipliers for boost upgrades
+            if {_upgrade} contains "boost":
+                multiplier_onTeamUpgrade({_member})
+
+    return true
+
+# Get display name for upgrade
+function team_getUpgradeDisplayName(upgrade: text) :: text:
+    if {_upgrade} is "maxMembers":
+        return "Max Members"
+    if {_upgrade} is "tokens_boost":
+        return "Tokens Boost"
+    if {_upgrade} is "drops_boost":
+        return "Drops Boost"
+    if {_upgrade} is "mining_speed_boost":
+        return "Mining Speed Boost"
+    if {_upgrade} is "damage_boost":
+        return "Damage Boost"
+    return {_upgrade}
+
+
+# ============================================================
+# TEAM ONLINE BONUS SYSTEM
+# ============================================================
+# +3% Money and +3% Tokens per online team member
+# Encourages teams to play together / AFK together
+# ============================================================
+
+# Count online team members (including the player themselves)
+function team_getOnlineMemberCount(id: integer) :: integer:
+    if {_id} is 0:
+        return 0
+    set {_count} to 0
+    loop team_getAllMembers({_id}):
+        set {_member} to loop-value parsed as offline player
+        if {_member} is online:
+            add 1 to {_count}
+    return {_count}
+
+# Get online bonus percentage (3% per online member)
+# Returns as decimal (e.g., 0.09 for 3 members = 9%)
+function team_getOnlineBonusPercent(id: integer) :: number:
+    if {_id} is 0:
+        return 0
+    set {_onlineCount} to team_getOnlineMemberCount({_id})
+    # 3% per online member = 0.03 per member
+    return {_onlineCount} * 0.03
+
+# Get online bonus for display (returns percentage like 9.0 for 9%)
+function team_getOnlineBonusDisplay(id: integer) :: number:
+    return team_getOnlineBonusPercent({_id}) * 100
+
+# Get online bonus for a specific player
+function team_getPlayerOnlineBonus(p: player) :: number:
+    set {_id} to team_getPlayerTeamID({_p})
+    return team_getOnlineBonusPercent({_id})
+
+
+# ============================================================
+# TEAM TROPHIES SYSTEM
+# ============================================================
+# Every 500 blocks a player breaks, add 1 trophy to their team
+# ============================================================
+
+# Get team trophies
+function team_getTrophies(id: integer) :: integer:
+    return ({dataTeams::%{_id}%::trophies} ? 0)
+
+# Add trophies to team
+function team_addTrophies(id: integer, amount: integer):
+    add {_amount} to {dataTeams::%{_id}%::trophies}
+
+# Remove trophies from team
+function team_removeTrophies(id: integer, amount: integer):
+    subtract {_amount} from {dataTeams::%{_id}%::trophies}
+    if {dataTeams::%{_id}%::trophies} < 0:
+        set {dataTeams::%{_id}%::trophies} to 0
+
+# Get player's block count towards next trophy
+function team_getPlayerBlockProgress(p: player) :: integer:
+    return ({data::team::blockProgress::%{_p}'s uuid%} ? 0)
+
+# Add block progress and check for trophy
+function team_addBlockProgress(p: player):
+    set {_id} to team_getPlayerTeamID({_p})
+    if {_id} is 0:
+        stop
+
+    add 1 to {data::team::blockProgress::%{_p}'s uuid%}
+    set {_progress} to {data::team::blockProgress::%{_p}'s uuid%}
+
+    if {_progress} >= 500:
+        # Award trophy
+        set {data::team::blockProgress::%{_p}'s uuid%} to 0
+        team_addTrophies({_id}, 1)
+
+        # Add to player's personal contribution
+        add 1 to {dataTeams::%{_id}%::contribution::%{_p}'s uuid%}
+
+        # Notify player
+        send action bar "&6+1 Team Trophy! &7(500 blocks)" to {_p}
+        play sound "entity.experience_orb.pickup" with volume 0.5 and pitch 1.5 to {_p}
+
+# Get player's trophy contribution to team
+function team_getPlayerContribution(id: integer, p: player) :: integer:
+    return ({dataTeams::%{_id}%::contribution::%{_p}'s uuid%} ? 0)
+
+
+# ============================================================
+# TEAM MAIN MENU GUI
+# ============================================================
+
+function team_openMainMenu(p: player):
+    # Progression check - require Prestige I
+    if progression_canAccessTeams({_p}) = false:
+        send "" to {_p}
+        send "&c&l🔒 TEAMS LOCKED" to {_p}
+        send "" to {_p}
+        send "&7Teams unlock at &6Prestige I&7!" to {_p}
+        send "" to {_p}
+        send "&7Current Progress:" to {_p}
+        set {_prestige} to progression_getPrestige({_p})
+        send "&7  Prestige: &e%{_prestige}%&7/&a1" to {_p}
+        send "" to {_p}
+        send "&7Keep mining and prestige to unlock teams!" to {_p}
+        send "" to {_p}
+        play sound "entity.villager.no" with volume 0.5 and pitch 1 to {_p}
+        stop
+
+    set {_id} to team_getPlayerTeamID({_p})
+    if {_id} is 0:
+        send "" to {_p}
+        send "&c&lNO TEAM" to {_p}
+        send "&7You are not in a team." to {_p}
+        send "&7Use &e/team create <name> &7to create one." to {_p}
+        send "&7Or wait for an invite from another team." to {_p}
+        send "" to {_p}
+        stop
+
+    set {_name} to team_getTeamName({_id})
+    set {_menu} to menu_create("&6&l%{_name}%", 6)
+    menu_fill({_menu}, 6, black stained glass pane)
+
+    # Team Info - Center top (slot 4)
+    set {_infoItem} to gold block named "&6&l%{_name}%"
+    delete {_infoLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_infoLore::*}
+    add "" to {_infoLore::*}
+
+    set {_memberCount} to size of team_getAllMembers({_id})
+    set {_onlineCount} to team_getOnlineMemberCount({_id})
+    set {_maxMembers} to team_getUpgrade_maxMembers({_id})
+    set {_trophies} to team_getTrophies({_id})
+    set {_owner} to team_getTeamOwner({_id}) parsed as offline player
+    set {_rank} to team_getPlayerRank({_p})
+
+    add "&7Owner: &f%{_owner}%" to {_infoLore::*}
+    add "&7Members: &e%{_memberCount}%&7/&a%{_maxMembers}% &8(&a%{_onlineCount}% online&8)" to {_infoLore::*}
+    add "&7Trophies: &6%{_trophies}% ⏃" to {_infoLore::*}
+    add "&7Your Rank: &a%{_rank}%" to {_infoLore::*}
+    add "" to {_infoLore::*}
+    set {_contribution} to team_getPlayerContribution({_id}, {_p})
+    add "&7Your Contribution: &6%{_contribution}% ⏃" to {_infoLore::*}
+    set lore of {_infoItem} to {_infoLore::*}
+    set slot 4 of {_menu} to {_infoItem}
+
+    # Trophies Display (slot 13)
+    set {_trophyItem} to sunflower named "&6&lTEAM TROPHIES"
+    delete {_trophyLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_trophyLore::*}
+    add "" to {_trophyLore::*}
+    add "&7Total Trophies: &6%{_trophies}% ⏃" to {_trophyLore::*}
+    add "" to {_trophyLore::*}
+    add "&7Earn trophies by mining!" to {_trophyLore::*}
+    add "&7Every &e500 blocks &7= &61 trophy" to {_trophyLore::*}
+    add "" to {_trophyLore::*}
+    set {_progress} to team_getPlayerBlockProgress({_p})
+    set {_progressBar} to team_getProgressBar({_progress}, 500, 20)
+    add "&7Your Progress: &f%{_progress}%&7/&a500" to {_trophyLore::*}
+    add "&8[%{_progressBar}%&8]" to {_trophyLore::*}
+    set lore of {_trophyItem} to {_trophyLore::*}
+    set slot 13 of {_menu} to {_trophyItem}
+
+    # Online Bonus Display (slot 21)
+    set {_onlineCount} to team_getOnlineMemberCount({_id})
+    set {_onlineBonusDisplay} to team_getOnlineBonusDisplay({_id})
+    set {_onlineItem} to emerald named "&a&lONLINE BONUS"
+    delete {_onlineLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_onlineLore::*}
+    add "" to {_onlineLore::*}
+    add "&7Online Members: &a%{_onlineCount}%" to {_onlineLore::*}
+    add "" to {_onlineLore::*}
+    add "&7Bonus per member: &e+3%%" to {_onlineLore::*}
+    add "&7Current Bonus:" to {_onlineLore::*}
+    add " &8• &6Tokens: &a+%{_onlineBonusDisplay}%%%" to {_onlineLore::*}
+    add " &8• &eMoney: &a+%{_onlineBonusDisplay}%%%" to {_onlineLore::*}
+    add "" to {_onlineLore::*}
+    add "&7Play together for bigger" to {_onlineLore::*}
+    add "&7bonuses!" to {_onlineLore::*}
+    set lore of {_onlineItem} to {_onlineLore::*}
+    set slot 21 of {_menu} to {_onlineItem}
+
+    # Boosts Overview (slot 23)
+    set {_boostItem} to blaze powder named "&e&lTEAM BOOSTS"
+    delete {_boostLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_boostLore::*}
+    add "" to {_boostLore::*}
+    add "&7Purchased Boosts:" to {_boostLore::*}
+    set {_tokensBoost} to team_getBoostPercent({_id}, "tokens_boost")
+    set {_dropsBoost} to team_getBoostPercent({_id}, "drops_boost")
+    set {_speedBoost} to team_getBoostPercent({_id}, "mining_speed_boost")
+    set {_damageBoost} to team_getBoostPercent({_id}, "damage_boost")
+    add " &8• &6Tokens: &a+%{_tokensBoost}%%%" to {_boostLore::*}
+    add " &8• &bDrops: &a+%{_dropsBoost}%%%" to {_boostLore::*}
+    add " &8• &eMining Speed: &a+%{_speedBoost}%%%" to {_boostLore::*}
+    add " &8• &cDamage: &a+%{_damageBoost}%%%" to {_boostLore::*}
+    add "" to {_boostLore::*}
+    add "&7Upgrade boosts in the" to {_boostLore::*}
+    add "&7upgrades menu!" to {_boostLore::*}
+    set lore of {_boostItem} to {_boostLore::*}
+    set slot 23 of {_menu} to {_boostItem}
+
+    # Members List (slots 28-34)
+    set {_members::*} to team_getAllMembers({_id})
+    set {_ownerUUID} to team_getTeamOwner({_id})
+    set {_slot} to 28
+    loop {_members::*}:
+        if {_slot} > 34:
+            stop loop
+        set {_memberUUID} to loop-value
+        set {_member} to {_memberUUID} parsed as offline player
+        set {_memberRank} to team_getPlayerRank({_member})
+        set {_memberContrib} to team_getPlayerContribution({_id}, {_member})
+
+        if {_memberRank} is "Owner":
+            set {_memberItem} to player head named "&6%{_member}%"
+            set {_rankColor} to "&6"
+        else if {_memberRank} is "Moderator":
+            set {_memberItem} to player head named "&b%{_member}%"
+            set {_rankColor} to "&b"
+        else:
+            set {_memberItem} to player head named "&7%{_member}%"
+            set {_rankColor} to "&7"
+
+        # Set skull owner
+        set skull owner of {_memberItem} to {_member}
+
+        delete {_memberLore::*}
+        add menu_utils_getMenuItemFirstLoreLine() to {_memberLore::*}
+        add "" to {_memberLore::*}
+        add "&7Rank: %{_rankColor}%%{_memberRank}%" to {_memberLore::*}
+        add "&7Contribution: &6%{_memberContrib}% ⏃" to {_memberLore::*}
+        add "" to {_memberLore::*}
+        if {_member} is online:
+            add "&aOnline" to {_memberLore::*}
+        else:
+            add "&cOffline" to {_memberLore::*}
+        set lore of {_memberItem} to {_memberLore::*}
+        set slot {_slot} of {_menu} to {_memberItem}
+        add 1 to {_slot}
+
+    # Upgrades Button (slot 40)
+    set {_upgradesItem} to nether star named "&d&lUPGRADES"
+    delete {_upgradesLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_upgradesLore::*}
+    add "" to {_upgradesLore::*}
+    add "&7Spend trophies to upgrade" to {_upgradesLore::*}
+    add "&7your team's abilities!" to {_upgradesLore::*}
+    add "" to {_upgradesLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴠɪᴇᴡ" to {_upgradesLore::*}
+    set lore of {_upgradesItem} to {_upgradesLore::*}
+    set string tag "team;action" of custom nbt of {_upgradesItem} to "open_upgrades"
+    set slot 40 of {_menu} to {_upgradesItem}
+
+    # Close Button (slot 49)
+    set {_close} to barrier named "&c&lCLOSE"
+    delete {_closeLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_closeLore::*}
+    add "" to {_closeLore::*}
+    add "&7Close this menu." to {_closeLore::*}
+    add "" to {_closeLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴄʟᴏsᴇ" to {_closeLore::*}
+    set lore of {_close} to {_closeLore::*}
+    set string tag "team;action" of custom nbt of {_close} to "close"
+    set slot 49 of {_menu} to {_close}
+
+    open {_menu} to {_p}
+    menu_setCurrentMenu({_p}, "TEAM_MAIN")
+
+
+# ============================================================
+# TEAM UPGRADES MENU GUI
+# ============================================================
+
+function team_openUpgradesMenu(p: player):
+    set {_id} to team_getPlayerTeamID({_p})
+    if {_id} is 0:
+        send "&cYou are not in a team!" to {_p}
+        stop
+
+    set {_name} to team_getTeamName({_id})
+    set {_trophies} to team_getTrophies({_id})
+    set {_menu} to menu_create("&d&lTeam Upgrades", 6)
+    menu_fill({_menu}, 6, black stained glass pane)
+
+    # Trophy balance display (slot 4)
+    set {_balanceItem} to sunflower named "&6&lTROPHIES: %{_trophies}%"
+    delete {_balanceLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_balanceLore::*}
+    add "" to {_balanceLore::*}
+    add "&7Use trophies to purchase" to {_balanceLore::*}
+    add "&7team upgrades below." to {_balanceLore::*}
+    set lore of {_balanceItem} to {_balanceLore::*}
+    set slot 4 of {_menu} to {_balanceItem}
+
+    # Max Members Upgrade (slot 20)
+    set {_maxMembersLevel} to team_getUpgradeLevel({_id}, "maxMembers")
+    set {_maxMembersMax} to team_getUpgradeMaxLevel("maxMembers")
+    set {_maxMembersCost} to team_getUpgradeCost("maxMembers", {_maxMembersLevel})
+    set {_currentMax} to 4 + {_maxMembersLevel}
+
+    if {_maxMembersLevel} >= {_maxMembersMax}:
+        set {_maxMembersItem} to lime concrete named "&a&lMAX MEMBERS &7(MAXED)"
+    else:
+        set {_maxMembersItem} to lime concrete named "&a&lMAX MEMBERS"
+
+    delete {_maxMembersLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_maxMembersLore::*}
+    add "" to {_maxMembersLore::*}
+    add "&7Increase the maximum" to {_maxMembersLore::*}
+    add "&7number of team members." to {_maxMembersLore::*}
+    add "" to {_maxMembersLore::*}
+    add "&7Level: &e%{_maxMembersLevel}%&7/&a%{_maxMembersMax}%" to {_maxMembersLore::*}
+    add "&7Current Max: &a%{_currentMax}% members" to {_maxMembersLore::*}
+    add "" to {_maxMembersLore::*}
+    if {_maxMembersLevel} < {_maxMembersMax}:
+        add "&7Next Level: &a%{_currentMax} + 1% members" to {_maxMembersLore::*}
+        add "&7Cost: &6%{_maxMembersCost}% ⏃" to {_maxMembersLore::*}
+        add "" to {_maxMembersLore::*}
+        if {_trophies} >= {_maxMembersCost}:
+            add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴜᴘɢʀᴀᴅᴇ" to {_maxMembersLore::*}
+        else:
+            add "&c&lNOT ENOUGH TROPHIES" to {_maxMembersLore::*}
+    else:
+        add "&a&lMAXED OUT!" to {_maxMembersLore::*}
+    set lore of {_maxMembersItem} to {_maxMembersLore::*}
+    set string tag "team;upgrade" of custom nbt of {_maxMembersItem} to "maxMembers"
+    set slot 20 of {_menu} to {_maxMembersItem}
+
+    # Tokens Boost (slot 21)
+    set {_tokensLevel} to team_getUpgradeLevel({_id}, "tokens_boost")
+    set {_tokensMax} to team_getUpgradeMaxLevel("tokens_boost")
+    set {_tokensCost} to team_getUpgradeCost("tokens_boost", {_tokensLevel})
+    set {_tokensPercent} to {_tokensLevel} * 0.1
+
+    if {_tokensLevel} >= {_tokensMax}:
+        set {_tokensItem} to gold ingot named "&6&lTOKENS BOOST &7(MAXED)"
+    else:
+        set {_tokensItem} to gold ingot named "&6&lTOKENS BOOST"
+
+    delete {_tokensLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_tokensLore::*}
+    add "" to {_tokensLore::*}
+    add "&7Increase tokens earned" to {_tokensLore::*}
+    add "&7from mining." to {_tokensLore::*}
+    add "" to {_tokensLore::*}
+    add "&7Level: &e%{_tokensLevel}%&7/&a%{_tokensMax}%" to {_tokensLore::*}
+    add "&7Current Boost: &a+%{_tokensPercent}%%%" to {_tokensLore::*}
+    add "" to {_tokensLore::*}
+    if {_tokensLevel} < {_tokensMax}:
+        set {_nextPercent} to ({_tokensLevel} + 1) * 0.1
+        add "&7Next Level: &a+%{_nextPercent}%%%" to {_tokensLore::*}
+        add "&7Cost: &6%{_tokensCost}% ⏃" to {_tokensLore::*}
+        add "" to {_tokensLore::*}
+        if {_trophies} >= {_tokensCost}:
+            add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴜᴘɢʀᴀᴅᴇ" to {_tokensLore::*}
+        else:
+            add "&c&lNOT ENOUGH TROPHIES" to {_tokensLore::*}
+    else:
+        add "&a&lMAXED OUT!" to {_tokensLore::*}
+    set lore of {_tokensItem} to {_tokensLore::*}
+    set string tag "team;upgrade" of custom nbt of {_tokensItem} to "tokens_boost"
+    set slot 21 of {_menu} to {_tokensItem}
+
+    # Drops Boost (slot 22)
+    set {_dropsLevel} to team_getUpgradeLevel({_id}, "drops_boost")
+    set {_dropsMax} to team_getUpgradeMaxLevel("drops_boost")
+    set {_dropsCost} to team_getUpgradeCost("drops_boost", {_dropsLevel})
+    set {_dropsPercent} to {_dropsLevel} * 0.1
+
+    if {_dropsLevel} >= {_dropsMax}:
+        set {_dropsItem} to diamond named "&b&lDROPS BOOST &7(MAXED)"
+    else:
+        set {_dropsItem} to diamond named "&b&lDROPS BOOST"
+
+    delete {_dropsLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_dropsLore::*}
+    add "" to {_dropsLore::*}
+    add "&7Increase item drops" to {_dropsLore::*}
+    add "&7from mining." to {_dropsLore::*}
+    add "" to {_dropsLore::*}
+    add "&7Level: &e%{_dropsLevel}%&7/&a%{_dropsMax}%" to {_dropsLore::*}
+    add "&7Current Boost: &a+%{_dropsPercent}%%%" to {_dropsLore::*}
+    add "" to {_dropsLore::*}
+    if {_dropsLevel} < {_dropsMax}:
+        set {_nextPercent} to ({_dropsLevel} + 1) * 0.1
+        add "&7Next Level: &a+%{_nextPercent}%%%" to {_dropsLore::*}
+        add "&7Cost: &6%{_dropsCost}% ⏃" to {_dropsLore::*}
+        add "" to {_dropsLore::*}
+        if {_trophies} >= {_dropsCost}:
+            add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴜᴘɢʀᴀᴅᴇ" to {_dropsLore::*}
+        else:
+            add "&c&lNOT ENOUGH TROPHIES" to {_dropsLore::*}
+    else:
+        add "&a&lMAXED OUT!" to {_dropsLore::*}
+    set lore of {_dropsItem} to {_dropsLore::*}
+    set string tag "team;upgrade" of custom nbt of {_dropsItem} to "drops_boost"
+    set slot 22 of {_menu} to {_dropsItem}
+
+    # Mining Speed Boost (slot 23)
+    set {_speedLevel} to team_getUpgradeLevel({_id}, "mining_speed_boost")
+    set {_speedMax} to team_getUpgradeMaxLevel("mining_speed_boost")
+    set {_speedCost} to team_getUpgradeCost("mining_speed_boost", {_speedLevel})
+    set {_speedPercent} to {_speedLevel} * 0.1
+
+    if {_speedLevel} >= {_speedMax}:
+        set {_speedItem} to golden pickaxe named "&e&lMINING SPEED BOOST &7(MAXED)"
+    else:
+        set {_speedItem} to golden pickaxe named "&e&lMINING SPEED BOOST"
+
+    delete {_speedLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_speedLore::*}
+    add "" to {_speedLore::*}
+    add "&7Increase mining speed" to {_speedLore::*}
+    add "&7for all team members." to {_speedLore::*}
+    add "" to {_speedLore::*}
+    add "&7Level: &e%{_speedLevel}%&7/&a%{_speedMax}%" to {_speedLore::*}
+    add "&7Current Boost: &a+%{_speedPercent}%%%" to {_speedLore::*}
+    add "" to {_speedLore::*}
+    if {_speedLevel} < {_speedMax}:
+        set {_nextPercent} to ({_speedLevel} + 1) * 0.1
+        add "&7Next Level: &a+%{_nextPercent}%%%" to {_speedLore::*}
+        add "&7Cost: &6%{_speedCost}% ⏃" to {_speedLore::*}
+        add "" to {_speedLore::*}
+        if {_trophies} >= {_speedCost}:
+            add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴜᴘɢʀᴀᴅᴇ" to {_speedLore::*}
+        else:
+            add "&c&lNOT ENOUGH TROPHIES" to {_speedLore::*}
+    else:
+        add "&a&lMAXED OUT!" to {_speedLore::*}
+    set lore of {_speedItem} to {_speedLore::*}
+    set string tag "team;upgrade" of custom nbt of {_speedItem} to "mining_speed_boost"
+    set slot 23 of {_menu} to {_speedItem}
+
+    # Damage Boost (slot 24)
+    set {_damageLevel} to team_getUpgradeLevel({_id}, "damage_boost")
+    set {_damageMax} to team_getUpgradeMaxLevel("damage_boost")
+    set {_damageCost} to team_getUpgradeCost("damage_boost", {_damageLevel})
+    set {_damagePercent} to {_damageLevel} * 0.1
+
+    if {_damageLevel} >= {_damageMax}:
+        set {_damageItem} to iron sword named "&c&lDAMAGE BOOST &7(MAXED)"
+    else:
+        set {_damageItem} to iron sword named "&c&lDAMAGE BOOST"
+
+    delete {_damageLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_damageLore::*}
+    add "" to {_damageLore::*}
+    add "&7Increase mining damage" to {_damageLore::*}
+    add "&7for all team members." to {_damageLore::*}
+    add "" to {_damageLore::*}
+    add "&7Level: &e%{_damageLevel}%&7/&a%{_damageMax}%" to {_damageLore::*}
+    add "&7Current Boost: &a+%{_damagePercent}%%%" to {_damageLore::*}
+    add "" to {_damageLore::*}
+    if {_damageLevel} < {_damageMax}:
+        set {_nextPercent} to ({_damageLevel} + 1) * 0.1
+        add "&7Next Level: &a+%{_nextPercent}%%%" to {_damageLore::*}
+        add "&7Cost: &6%{_damageCost}% ⏃" to {_damageLore::*}
+        add "" to {_damageLore::*}
+        if {_trophies} >= {_damageCost}:
+            add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴜᴘɢʀᴀᴅᴇ" to {_damageLore::*}
+        else:
+            add "&c&lNOT ENOUGH TROPHIES" to {_damageLore::*}
+    else:
+        add "&a&lMAXED OUT!" to {_damageLore::*}
+    set lore of {_damageItem} to {_damageLore::*}
+    set string tag "team;upgrade" of custom nbt of {_damageItem} to "damage_boost"
+    set slot 24 of {_menu} to {_damageItem}
+
+    # Back Button (slot 45)
+    set {_back} to arrow named "&7&lBACK"
+    delete {_backLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_backLore::*}
+    add "" to {_backLore::*}
+    add "&7Return to the main" to {_backLore::*}
+    add "&7team menu." to {_backLore::*}
+    add "" to {_backLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ɢᴏ ʙᴀᴄᴋ" to {_backLore::*}
+    set lore of {_back} to {_backLore::*}
+    set string tag "team;action" of custom nbt of {_back} to "back_to_main"
+    set slot 45 of {_menu} to {_back}
+
+    # Close Button (slot 49)
+    set {_close} to barrier named "&c&lCLOSE"
+    delete {_closeLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_closeLore::*}
+    add "" to {_closeLore::*}
+    add "&7Close this menu." to {_closeLore::*}
+    add "" to {_closeLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴄʟᴏsᴇ" to {_closeLore::*}
+    set lore of {_close} to {_closeLore::*}
+    set string tag "team;action" of custom nbt of {_close} to "close"
+    set slot 49 of {_menu} to {_close}
+
+    open {_menu} to {_p}
+    menu_setCurrentMenu({_p}, "TEAM_UPGRADES")
+
+
+# ============================================================
+# HELPER FUNCTIONS
+# ============================================================
+
+function team_getProgressBar(current: integer, max: integer, length: integer) :: text:
+    set {_progress} to {_current} / {_max}
+    set {_filled} to floor({_progress} * {_length})
+    if {_filled} > {_length}:
+        set {_filled} to {_length}
+    set {_empty} to {_length} - {_filled}
+
+    set {_bar} to ""
+    loop {_filled} times:
+        set {_bar} to "%{_bar}%&a|"
+    loop {_empty} times:
+        set {_bar} to "%{_bar}%&7|"
+
+    return {_bar}
+
+
+# ============================================================
+# TEAM MENU CLICK HANDLERS
+# ============================================================
+
+on inventory click:
+    if menu_getCurrentMenu(player) is "TEAM_MAIN":
+        cancel event
+        if clicked slot is not air:
+            set {_nbt} to custom nbt of clicked slot
+            set {_action} to string tag "team;action" of {_nbt}
+
+            if {_action} is "close":
+                close inventory of player
+                play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+                stop
+
+            if {_action} is "open_upgrades":
+                play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+                team_openUpgradesMenu(player)
+                stop
+
+    if menu_getCurrentMenu(player) is "TEAM_UPGRADES":
+        cancel event
+        if clicked slot is not air:
+            set {_nbt} to custom nbt of clicked slot
+            set {_action} to string tag "team;action" of {_nbt}
+            set {_upgrade} to string tag "team;upgrade" of {_nbt}
+
+            if {_action} is "close":
+                close inventory of player
+                play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+                stop
+
+            if {_action} is "back_to_main":
+                play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+                team_openMainMenu(player)
+                stop
+
+            if {_upgrade} is set:
+                set {_success} to team_purchaseUpgrade(player, {_upgrade})
+                if {_success} is true:
+                    # Refresh the menu
+                    team_openUpgradesMenu(player)
+                else:
+                    play sound "entity.villager.no" with volume 0.5 and pitch 1 to player
+
+
+on inventory close:
+    if menu_getCurrentMenu(player) is "TEAM_MAIN":
+        menu_deleteSession(player)
+    if menu_getCurrentMenu(player) is "TEAM_UPGRADES":
+        menu_deleteSession(player)

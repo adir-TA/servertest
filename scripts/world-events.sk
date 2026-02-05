@@ -1,0 +1,2043 @@
+# ============================================================
+# WORLD EVENTS SYSTEM
+# ============================================================
+#
+# Admin-command only world events
+# Any player can benefit from any event
+# Entirely player-sided, packet-based visuals
+# NO server-side entities - everything is client packets
+#
+# Events:
+#   - Whirlwind: Massive tornado with debris and effects
+#   - Meteor Rain: Meteors falling from sky with explosions
+#   - Earthquake: Ground shaking with fissures and bouncing rocks
+#
+# ============================================================
+
+
+# ============================================================
+# EVENT STATE TRACKING
+# ============================================================
+
+function worldevent_isActive(event: text) :: boolean:
+    return {-worldevent::%{_event}%::active} ? false
+
+function worldevent_setActive(event: text, active: boolean):
+    set {-worldevent::%{_event}%::active} to {_active}
+
+function worldevent_getCenter(event: text) :: location:
+    return {-worldevent::%{_event}%::center}
+
+function worldevent_setCenter(event: text, loc: location):
+    set {-worldevent::%{_event}%::center} to {_loc}
+
+function worldevent_getSavedLocation() :: location:
+    return {data::worldevent::savedLocation}
+
+function worldevent_setSavedLocation(loc: location):
+    set {data::worldevent::savedLocation} to {_loc}
+
+function worldevent_hasSavedLocation() :: boolean:
+    if {data::worldevent::savedLocation} is set:
+        return true
+    return false
+
+function worldevent_clearSavedLocation():
+    delete {data::worldevent::savedLocation}
+
+
+# ============================================================
+# WHIRLWIND EVENT - WORLD EVENT VERSION
+# ============================================================
+# Massive tornado with:
+#   - Ultra smooth interpolated display entities
+#   - Flying debris blocks
+#   - Dust clouds and particles
+#   - Lightning flashes
+#   - Dynamic swaying motion
+#   - Block damage (cracks blocks to stage 8)
+# ============================================================
+
+function whirlwind_start(center: location, radius: number, duration: integer):
+    if worldevent_isActive("whirlwind") is true:
+        stop
+
+    worldevent_setActive("whirlwind", true)
+    worldevent_setCenter("whirlwind", {_center})
+
+    # Epic announcement
+    broadcast ""
+    broadcast "&8&m                                                  "
+    broadcast ""
+    broadcast "            &b&l⚡ &f&lWORLD EVENT &b&l⚡"
+    broadcast "              &b&lWHIRLWIND"
+    broadcast ""
+    broadcast "     &7A &bmassive tornado &7has touched down!"
+    broadcast ""
+    broadcast "&8&m                                                  "
+    broadcast ""
+
+    # Dramatic sounds for everyone
+    loop all players:
+        play sound "entity.wither.spawn" with volume 1.0 and pitch 0.4 to loop-player
+        play sound "entity.lightning_bolt.thunder" with volume 0.8 and pitch 0.6 to loop-player
+
+    # Spawn display entities for nearby players
+    loop all players in radius 200 of {_center}:
+        whirlwind_spawnForPlayer(loop-player, {_center})
+
+    # Start animation loop
+    whirlwind_loop({_center}, {_radius}, {_duration})
+
+
+function whirlwind_spawnForPlayer(p: player, center: location):
+    set {_uuid} to {_p}'s uuid
+    set {_world} to world of {_center}
+    set {_x} to x-coord of {_center}
+    set {_y} to y-coord of {_center}
+    set {_z} to z-coord of {_center}
+
+    set {_baseId} to random integer between 100000 and 9999999
+    set {_entityCount} to 0
+
+    # MAIN FUNNEL - 8 rings of blocks
+    set {_ringHeight::1} to 1
+    set {_ringRadius::1} to 2
+    set {_ringCount::1} to 8
+
+    set {_ringHeight::2} to 4
+    set {_ringRadius::2} to 3.5
+    set {_ringCount::2} to 10
+
+    set {_ringHeight::3} to 8
+    set {_ringRadius::3} to 5
+    set {_ringCount::3} to 12
+
+    set {_ringHeight::4} to 13
+    set {_ringRadius::4} to 6.5
+    set {_ringCount::4} to 14
+
+    set {_ringHeight::5} to 19
+    set {_ringRadius::5} to 8
+    set {_ringCount::5} to 16
+
+    set {_ringHeight::6} to 26
+    set {_ringRadius::6} to 10
+    set {_ringCount::6} to 18
+
+    set {_ringHeight::7} to 34
+    set {_ringRadius::7} to 12
+    set {_ringCount::7} to 20
+
+    set {_ringHeight::8} to 43
+    set {_ringRadius::8} to 14
+    set {_ringCount::8} to 22
+
+    set {_numRings} to 8
+    set {_spawnLoc} to location({_x}, {_y}, {_z}, {_world})
+
+    # Spawn main funnel entities
+    loop {_numRings} times:
+        set {_ring} to loop-number
+        set {_count} to {_ringCount::%{_ring}%}
+
+        loop {_count} times:
+            set {_innerIndex} to loop-number-2
+            add 1 to {_entityCount}
+            set {_eid} to {_baseId} + {_entityCount}
+
+            set {-whirlwind::%{_uuid}%::eid::%{_entityCount}%} to {_eid}
+            set {-whirlwind::%{_uuid}%::ring::%{_entityCount}%} to {_ring}
+            set {-whirlwind::%{_uuid}%::angleOffset::%{_entityCount}%} to ({_innerIndex} - 1) * (360 / {_count})
+            set {-whirlwind::%{_uuid}%::type::%{_entityCount}%} to "funnel"
+
+            spawn fake item display at {_spawnLoc} for {_p} with id {_eid}
+
+            # Varied blocks for texture
+            set {_rand} to random integer between 1 and 10
+            if {_ring} <= 2:
+                if {_rand} <= 6:
+                    set {_item} to gray concrete
+                else if {_rand} <= 8:
+                    set {_item} to cobblestone
+                else:
+                    set {_item} to gravel
+            else if {_ring} <= 5:
+                if {_rand} <= 5:
+                    set {_item} to light gray concrete
+                else if {_rand} <= 7:
+                    set {_item} to stone
+                else if {_rand} <= 9:
+                    set {_item} to andesite
+                else:
+                    set {_item} to clay
+            else:
+                if {_rand} <= 4:
+                    set {_item} to white concrete
+                else if {_rand} <= 6:
+                    set {_item} to diorite
+                else if {_rand} <= 8:
+                    set {_item} to quartz block
+                else:
+                    set {_item} to snow block
+
+            set {_scale} to 0.6 + ({_ring} * 0.12) + (random number between 0 and 0.2)
+            set {-whirlwind::%{_uuid}%::scale::%{_entityCount}%} to {_scale}
+
+            # SMOOTH: teleportduration 5 for ultra smooth interpolation
+            set {_m} to new metadata packet with id {_eid}:
+                display item: {_item}
+                display scale: vector(0.01, 0.01, 0.01)
+                display billboard: center
+                display brightness block: 15
+                display teleportduration: 5
+            send packet {_m} to {_p}
+
+    # DEBRIS - Flying blocks around the tornado
+    loop 12 times:
+        add 1 to {_entityCount}
+        set {_eid} to {_baseId} + {_entityCount}
+
+        set {-whirlwind::%{_uuid}%::eid::%{_entityCount}%} to {_eid}
+        set {-whirlwind::%{_uuid}%::type::%{_entityCount}%} to "debris"
+        set {-whirlwind::%{_uuid}%::debrisHeight::%{_entityCount}%} to random number between 2 and 35
+        set {-whirlwind::%{_uuid}%::debrisRadius::%{_entityCount}%} to random number between 16 and 24
+        set {-whirlwind::%{_uuid}%::debrisSpeed::%{_entityCount}%} to random number between 0.6 and 1.0
+        set {-whirlwind::%{_uuid}%::angleOffset::%{_entityCount}%} to random number between 0 and 360
+
+        spawn fake item display at {_spawnLoc} for {_p} with id {_eid}
+
+        # Random debris items
+        set {_rand} to random integer between 1 and 8
+        if {_rand} = 1:
+            set {_item} to oak log
+        else if {_rand} = 2:
+            set {_item} to oak planks
+        else if {_rand} = 3:
+            set {_item} to dirt
+        else if {_rand} = 4:
+            set {_item} to grass block
+        else if {_rand} = 5:
+            set {_item} to cobblestone
+        else if {_rand} = 6:
+            set {_item} to oak leaves
+        else if {_rand} = 7:
+            set {_item} to wheat
+        else:
+            set {_item} to bricks
+
+        set {_scale} to random number between 0.5 and 1.0
+        set {-whirlwind::%{_uuid}%::scale::%{_entityCount}%} to {_scale}
+
+        set {_m} to new metadata packet with id {_eid}:
+            display item: {_item}
+            display scale: vector(0.01, 0.01, 0.01)
+            display billboard: center
+            display brightness block: 15
+            display teleportduration: 5
+        send packet {_m} to {_p}
+
+    set {-whirlwind::%{_uuid}%::count} to {_entityCount}
+
+    # Pop-in animation
+    wait 2 ticks
+
+    loop {_entityCount} times:
+        set {_e} to loop-number
+        set {_eid} to {-whirlwind::%{_uuid}%::eid::%{_e}%}
+        set {_s} to {-whirlwind::%{_uuid}%::scale::%{_e}%}
+
+        set {_m} to new metadata packet with id {_eid}:
+            display scale: vector({_s}, {_s}, {_s})
+            display transformation: 5
+            display interpolation: 0
+        send packet {_m} to {_p}
+
+    play sound "entity.wither.shoot" with volume 0.6 and pitch 0.5 to {_p}
+
+
+function whirlwind_loop(center: location, radius: number, duration: integer):
+    set {_world} to world of {_center}
+    set {_centerX} to x-coord of {_center}
+    set {_centerZ} to z-coord of {_center}
+    set {_baseY} to y-coord of {_center}
+
+    # Ring config (must match spawn)
+    set {_ringHeight::1} to 1
+    set {_ringRadius::1} to 2
+    set {_ringHeight::2} to 4
+    set {_ringRadius::2} to 3.5
+    set {_ringHeight::3} to 8
+    set {_ringRadius::3} to 5
+    set {_ringHeight::4} to 13
+    set {_ringRadius::4} to 6.5
+    set {_ringHeight::5} to 19
+    set {_ringRadius::5} to 8
+    set {_ringHeight::6} to 26
+    set {_ringRadius::6} to 10
+    set {_ringHeight::7} to 34
+    set {_ringRadius::7} to 12
+    set {_ringHeight::8} to 43
+    set {_ringRadius::8} to 14
+
+    set {_pathAngle} to 0
+    set {_pathRadius} to {_radius}
+    set {_spinAngle} to 0
+    set {_swayAngle} to 0
+
+    set {_totalTicks} to {_duration} * 20
+    set {_tickCount} to 0
+
+    # Track last tornado position for block damage
+    set {_lastTornadoX} to {_centerX}
+    set {_lastTornadoZ} to {_centerZ}
+
+    while {_tickCount} < {_totalTicks}:
+        if worldevent_isActive("whirlwind") is false:
+            stop
+
+        # Tornado path position with gentle sway
+        set {_sway} to sin({_swayAngle}) * 2
+        set {_tornadoX} to {_centerX} + ({_pathRadius} * cos({_pathAngle})) + {_sway}
+        set {_tornadoZ} to {_centerZ} + ({_pathRadius} * sin({_pathAngle})) + (cos({_swayAngle} * 0.7) * 1.5)
+
+        # BLOCK DAMAGE - damage blocks under the tornado
+        if mod({_tickCount}, 10) = 0:
+            set {_tornadoLoc} to location({_tornadoX}, {_baseY}, {_tornadoZ}, {_world})
+            whirlwind_damageBlocks({_tornadoLoc})
+
+        # Update entities every 5 ticks (synced with teleportduration: 5)
+        if mod({_tickCount}, 5) = 0:
+            loop all players in radius 200 of {_center}:
+                set {_loopPlayer} to loop-player
+                set {_uuid} to {_loopPlayer}'s uuid
+                set {_count} to {-whirlwind::%{_uuid}%::count} ? 0
+
+                if {_count} <= 0:
+                    whirlwind_spawnForPlayer({_loopPlayer}, {_center})
+                    continue
+
+                loop {_count} times:
+                    set {_e} to loop-number-2
+                    set {_eid} to {-whirlwind::%{_uuid}%::eid::%{_e}%}
+                    set {_type} to {-whirlwind::%{_uuid}%::type::%{_e}%}
+
+                    if {_type} is "funnel":
+                        set {_ring} to {-whirlwind::%{_uuid}%::ring::%{_e}%}
+                        set {_angleOffset} to {-whirlwind::%{_uuid}%::angleOffset::%{_e}%}
+
+                        set {_height} to {_ringHeight::%{_ring}%}
+                        set {_ringRad} to {_ringRadius::%{_ring}%}
+
+                        # Higher rings spin faster and sway more
+                        set {_ringSpinMod} to 1 + ({_ring} * 0.08)
+                        set {_ringSway} to sin({_swayAngle} + ({_ring} * 12)) * ({_ring} * 0.2)
+                        set {_angle} to ({_spinAngle} * {_ringSpinMod}) + {_angleOffset}
+
+                        set {_px} to {_tornadoX} + ({_ringRad} * cos({_angle})) + {_ringSway}
+                        set {_pz} to {_tornadoZ} + ({_ringRad} * sin({_angle}))
+                        set {_py} to {_baseY} + {_height}
+
+                        set {_entityLoc} to location({_px}, {_py}, {_pz}, {_world})
+                        send teleport packet with id {_eid} with location {_entityLoc} to {_loopPlayer}
+
+                    else if {_type} is "debris":
+                        set {_debrisHeight} to {-whirlwind::%{_uuid}%::debrisHeight::%{_e}%}
+                        set {_debrisRadius} to {-whirlwind::%{_uuid}%::debrisRadius::%{_e}%}
+                        set {_debrisSpeed} to {-whirlwind::%{_uuid}%::debrisSpeed::%{_e}%}
+                        set {_angleOffset} to {-whirlwind::%{_uuid}%::angleOffset::%{_e}%}
+
+                        set {_debrisAngle} to ({_spinAngle} * {_debrisSpeed}) + {_angleOffset}
+                        set {_bobble} to sin({_spinAngle} * 1.5 + {_angleOffset}) * 1.5
+
+                        set {_px} to {_tornadoX} + ({_debrisRadius} * cos({_debrisAngle}))
+                        set {_pz} to {_tornadoZ} + ({_debrisRadius} * sin({_debrisAngle}))
+                        set {_py} to {_baseY} + {_debrisHeight} + {_bobble}
+
+                        set {_entityLoc} to location({_px}, {_py}, {_pz}, {_world})
+                        send teleport packet with id {_eid} with location {_entityLoc} to {_loopPlayer}
+
+        # PARTICLE EFFECTS - dense and dramatic
+        loop all players in radius 120 of {_center}:
+            set {_particlePlayer} to loop-player
+
+            # Ground dust swirl - more particles
+            loop 8 times:
+                set {_dustAngle} to {_spinAngle} + (loop-number-2 * 45) + (random number between -20 and 20)
+                set {_dustRadius} to 1.5 + (random number between 0 and 4)
+                set {_dustX} to {_tornadoX} + ({_dustRadius} * cos({_dustAngle}))
+                set {_dustZ} to {_tornadoZ} + ({_dustRadius} * sin({_dustAngle}))
+                set {_dustLoc} to location({_dustX}, {_baseY} + 0.2, {_dustZ}, {_world})
+                draw 1 dust using dustOption(rgb(100, 80, 60), 2.5) at {_dustLoc} for {_particlePlayer}
+
+            # Inner swirl - tighter spiral
+            loop 6 times:
+                set {_innerAngle} to ({_spinAngle} * 1.5) + (loop-number-2 * 60)
+                set {_innerRadius} to 0.8 + (loop-number-2 * 0.3)
+                set {_innerX} to {_tornadoX} + ({_innerRadius} * cos({_innerAngle}))
+                set {_innerZ} to {_tornadoZ} + ({_innerRadius} * sin({_innerAngle}))
+                set {_innerLoc} to location({_innerX}, {_baseY} + 0.5 + (loop-number-2 * 0.5), {_innerZ}, {_world})
+                draw 1 dust using dustOption(rgb(80, 70, 50), 1.8) at {_innerLoc} for {_particlePlayer}
+
+        # Rising funnel particles - every tick for density
+        loop all players in radius 100 of {_center}:
+            set {_particlePlayer} to loop-player
+            loop 10 times:
+                set {_funnelHeight} to (loop-number-2 * 4) + (random number between 0 and 3)
+                set {_funnelRadius} to 1.5 + ({_funnelHeight} * 0.28)
+                set {_funnelAngle} to {_spinAngle} * (1 + (loop-number-2 * 0.05)) + (random number between 0 and 360)
+                set {_fx} to {_tornadoX} + ({_funnelRadius} * cos({_funnelAngle}))
+                set {_fz} to {_tornadoZ} + ({_funnelRadius} * sin({_funnelAngle}))
+                set {_funnelLoc} to location({_fx}, {_baseY} + {_funnelHeight}, {_fz}, {_world})
+
+                set {_grayVal} to 80 + floor({_funnelHeight} * 3)
+                if {_grayVal} > 200:
+                    set {_grayVal} to 200
+                draw 1 dust using dustOption(rgb({_grayVal}, {_grayVal}, {_grayVal}), 1.8) at {_funnelLoc} for {_particlePlayer}
+
+            # Debris particles flying around
+            loop 4 times:
+                set {_debrisAngle} to {_spinAngle} * 0.8 + (loop-number-2 * 90) + (random number between -30 and 30)
+                set {_debrisRadius} to 8 + (random number between 0 and 6)
+                set {_debrisHeight} to (random number between 3 and 30)
+                set {_dx} to {_tornadoX} + ({_debrisRadius} * cos({_debrisAngle}))
+                set {_dz} to {_tornadoZ} + ({_debrisRadius} * sin({_debrisAngle}))
+                set {_debrisLoc} to location({_dx}, {_baseY} + {_debrisHeight}, {_dz}, {_world})
+                draw 1 dust using dustOption(rgb(139, 90, 43), 1.5) at {_debrisLoc} for {_particlePlayer}
+
+        # Cloud puffs at top - more frequent
+        if mod({_tickCount}, 4) = 0:
+            loop all players in radius 100 of {_center}:
+                set {_particlePlayer} to loop-player
+                loop 4 times:
+                    set {_cloudAngle} to random number between 0 and 360
+                    set {_cloudRadius} to 8 + (random number between 0 and 8)
+                    set {_cx} to {_tornadoX} + ({_cloudRadius} * cos({_cloudAngle}))
+                    set {_cz} to {_tornadoZ} + ({_cloudRadius} * sin({_cloudAngle}))
+                    set {_cloudLoc} to location({_cx}, {_baseY} + 35 + (random number between 0 and 12), {_cz}, {_world})
+                    draw 2 cloud at {_cloudLoc} with offset vector(1, 0.5, 1) for {_particlePlayer}
+
+        # Smoke rising from center
+        if mod({_tickCount}, 3) = 0:
+            loop all players in radius 80 of {_center}:
+                set {_smokeLoc} to location({_tornadoX}, {_baseY} + 2, {_tornadoZ}, {_world})
+                draw 3 of campfire cosy smoke at {_smokeLoc} with offset vector(0.5, 1, 0.5) for loop-player
+
+        # SOUNDS - ambient wind
+        if mod({_tickCount}, 15) = 0:
+            loop all players in radius 80 of {_center}:
+                play sound "item.elytra.flying" with volume 0.6 and pitch 0.3 to loop-player
+
+        if mod({_tickCount}, 25) = 0:
+            loop all players in radius 100 of {_center}:
+                play sound "entity.phantom.flap" with volume 0.5 and pitch 0.4 to loop-player
+
+        # Rumbling/creaking sounds
+        if mod({_tickCount}, 40) = 0:
+            loop all players in radius 120 of {_center}:
+                play sound "block.gravel.break" with volume 0.4 and pitch 0.5 to loop-player
+                play sound "block.wood.break" with volume 0.3 and pitch 0.6 to loop-player
+
+        # Whooshing wind gusts
+        if mod({_tickCount}, 60) = 0:
+            loop all players in radius 100 of {_center}:
+                play sound "entity.ender_dragon.flap" with volume 0.4 and pitch 0.5 to loop-player
+
+        # Random lightning/thunder
+        if mod({_tickCount}, 80) = 0:
+            set {_rand} to random integer between 1 and 4
+            if {_rand} = 1:
+                loop all players in radius 200 of {_center}:
+                    play sound "entity.lightning_bolt.thunder" with volume 0.5 and pitch 0.8 to loop-player
+                    play sound "entity.lightning_bolt.impact" with volume 0.3 and pitch 1.0 to loop-player
+
+        # Update angles - SLOWER for smoother motion
+        add 0.8 to {_pathAngle}   # Slow path around center
+        add 5 to {_spinAngle}     # Slow internal spin
+        add 2 to {_swayAngle}     # Gentle sway
+
+        if {_pathAngle} >= 360:
+            subtract 360 from {_pathAngle}
+        if {_spinAngle} >= 360:
+            subtract 360 from {_spinAngle}
+        if {_swayAngle} >= 360:
+            subtract 360 from {_swayAngle}
+
+        add 1 to {_tickCount}
+        wait 1 tick
+
+    whirlwind_stop()
+
+
+# Damage blocks under the tornado (exactly like shockwave_crackAtRadius)
+function whirlwind_damageBlocks(center: location):
+    set {_startX} to floor(x-coord of {_center})
+    set {_startY} to floor(y-coord of {_center}) - 1
+    set {_startZ} to floor(z-coord of {_center})
+    set {_world} to world of {_center}
+
+    # Check blocks in a 5x5 area around tornado base (same Y level)
+    loop integers from -2 to 2:
+        set {_dx} to loop-value
+        loop integers from -2 to 2:
+            set {_dz} to loop-value-2
+
+            set {_checkLoc} to location({_startX} + {_dx}, {_startY}, {_startZ} + {_dz}, {_world})
+            set {_checkType} to type of block at {_checkLoc}
+
+            # Skip bedrock
+            if {_checkType} is bedrock:
+                continue
+
+            # Check if mineable and damage for all nearby players
+            if mining_isMineable({_checkType}) = true:
+                loop all players in radius 80 of {_checkLoc}:
+                    if mining_isLocked(loop-player, {_checkLoc}) = false:
+                        whirlwind_crackBlock(loop-player, {_checkLoc})
+
+
+# Crack a block for a player - instantly to stage 8 (one more hit breaks it)
+function whirlwind_crackBlock(p: player, loc: location):
+    # Create session if needed
+    if mining_hasSession({_p}, {_loc}) = false:
+        mining_createSession({_p}, {_loc})
+
+    # Set directly to 0.8 (stage 8) - one more hit breaks it
+    mining_setProgress({_p}, {_loc}, 0.8)
+
+    # Show visual damage at stage 8
+    set {_key} to mining_getLocKey({_loc})
+    set {_id} to {-miningData::%{_p}'s uuid%::damageID::%{_key}%}
+    make {_p} see damage of block at {_loc} as 0.8 from {_id}
+    set {-miningData::%{_p}'s uuid%::lastStage::%{_key}%} to 8
+
+    # Play crack sound
+    play sound "block.stone.hit" with volume 0.15 and pitch 0.9 at {_loc} for {_p}
+
+
+function whirlwind_stop():
+    if worldevent_isActive("whirlwind") is false:
+        stop
+
+    worldevent_setActive("whirlwind", false)
+
+    # Despawn for all players
+    loop all players:
+        whirlwind_despawnForPlayer(loop-player)
+
+    broadcast ""
+    broadcast "&8&m                                                  "
+    broadcast ""
+    broadcast "         &7The &bwhirlwind &7has dissipated..."
+    broadcast ""
+    broadcast "&8&m                                                  "
+    broadcast ""
+
+    loop all players:
+        play sound "entity.generic.extinguish_fire" with volume 0.8 and pitch 0.6 to loop-player
+        play sound "block.powder_snow.break" with volume 0.6 and pitch 0.8 to loop-player
+
+
+function whirlwind_despawnForPlayer(p: player):
+    set {_uuid} to {_p}'s uuid
+    set {_count} to {-whirlwind::%{_uuid}%::count} ? 0
+
+    if {_count} <= 0:
+        stop
+
+    # Shrink out animation
+    loop {_count} times:
+        set {_e} to loop-number
+        set {_eid} to {-whirlwind::%{_uuid}%::eid::%{_e}%}
+        if {_eid} is set:
+            set {_m} to new metadata packet with id {_eid}:
+                display scale: vector(0.01, 0.01, 0.01)
+                display transformation: 5
+                display interpolation: 0
+            send packet {_m} to {_p}
+
+    wait 5 ticks
+
+    loop {_count} times:
+        set {_e} to loop-number
+        set {_eid} to {-whirlwind::%{_uuid}%::eid::%{_e}%}
+        if {_eid} is set:
+            remove fake entity with id {_eid} for {_p}
+
+    delete {-whirlwind::%{_uuid}%::*}
+
+
+# ============================================================
+# METEOR RAIN EVENT
+# ============================================================
+# Meteors falling from the sky with:
+#   - Display entities (magma/netherrack blocks) falling
+#   - Fire trail particles
+#   - Explosion particles and sounds on impact
+#   - Block damage where meteors land
+#   - Epic cinematic feel
+# ============================================================
+
+function meteor_start(center: location, radius: number, duration: integer):
+    if worldevent_isActive("meteor") is true:
+        stop
+
+    worldevent_setActive("meteor", true)
+    worldevent_setCenter("meteor", {_center})
+
+    # Epic announcement
+    broadcast ""
+    broadcast "&8&m                                                  "
+    broadcast ""
+    broadcast "            &c&l☄ &f&lWORLD EVENT &c&l☄"
+    broadcast "              &c&lMETEOR RAIN"
+    broadcast ""
+    broadcast "     &7The sky is &cfalling&7! Seek cover!"
+    broadcast ""
+    broadcast "&8&m                                                  "
+    broadcast ""
+
+    # Dramatic sounds
+    loop all players:
+        play sound "entity.ender_dragon.growl" with volume 1.0 and pitch 0.5 to loop-player
+        play sound "entity.wither.spawn" with volume 0.6 and pitch 0.3 to loop-player
+
+    # Start meteor spawning loop
+    meteor_loop({_center}, {_radius}, {_duration})
+
+
+function meteor_loop(center: location, radius: number, duration: integer):
+    set {_world} to world of {_center}
+    set {_centerX} to x-coord of {_center}
+    set {_centerZ} to z-coord of {_center}
+    set {_baseY} to y-coord of {_center}
+
+    set {_totalTicks} to {_duration} * 20
+    set {_tickCount} to 0
+    set {_meteorId} to 0
+
+    while {_tickCount} < {_totalTicks}:
+        if worldevent_isActive("meteor") is false:
+            stop
+
+        # Spawn a new meteor every 15-30 ticks
+        if mod({_tickCount}, 20) = 0:
+            add 1 to {_meteorId}
+
+            # Random position within radius
+            set {_angle} to random number between 0 and 360
+            set {_dist} to random number between 0 and {_radius}
+            set {_meteorX} to {_centerX} + ({_dist} * cos({_angle}))
+            set {_meteorZ} to {_centerZ} + ({_dist} * sin({_angle}))
+
+            # Spawn meteor for all nearby players
+            loop all players in radius 200 of {_center}:
+                meteor_spawnMeteor(loop-player, {_meteorX}, {_baseY}, {_meteorZ}, {_world}, {_meteorId})
+
+        # Extra meteors for intensity (staggered)
+        if mod({_tickCount}, 35) = 10:
+            add 1 to {_meteorId}
+            set {_angle} to random number between 0 and 360
+            set {_dist} to random number between 0 and {_radius}
+            set {_meteorX} to {_centerX} + ({_dist} * cos({_angle}))
+            set {_meteorZ} to {_centerZ} + ({_dist} * sin({_angle}))
+
+            loop all players in radius 200 of {_center}:
+                meteor_spawnMeteor(loop-player, {_meteorX}, {_baseY}, {_meteorZ}, {_world}, {_meteorId})
+
+        # Ambient rumbling
+        if mod({_tickCount}, 30) = 0:
+            loop all players in radius 150 of {_center}:
+                play sound "entity.ender_dragon.growl" with volume 0.3 and pitch 0.4 to loop-player
+
+        # Sky particles (embers floating up)
+        if mod({_tickCount}, 5) = 0:
+            loop all players in radius 100 of {_center}:
+                loop 5 times:
+                    set {_emberX} to {_centerX} + (random number between ({_radius} * -1) and {_radius})
+                    set {_emberZ} to {_centerZ} + (random number between ({_radius} * -1) and {_radius})
+                    set {_emberY} to {_baseY} + (random number between 5 and 40)
+                    set {_emberLoc} to location({_emberX}, {_emberY}, {_emberZ}, {_world})
+                    draw 1 of lava at {_emberLoc} for loop-player
+
+        add 1 to {_tickCount}
+        wait 1 tick
+
+    meteor_stop()
+
+
+function meteor_spawnMeteor(p: player, x: number, baseY: number, z: number, w: world, id: integer):
+    set {_uuid} to {_p}'s uuid
+    set {_baseEid} to random integer between 1000000 and 9999999
+
+    # Start position high in sky
+    set {_startY} to {_baseY} + 60
+    set {_endY} to {_baseY}
+    set {_spawnLoc} to location({_x}, {_startY}, {_z}, {_w})
+
+    # Meteor size
+    set {_coreScale} to random number between 1.5 and 2.2
+
+    # SPHERICAL METEOR - spawn multiple entities in sphere pattern
+    # Core center piece
+    set {_eid::1} to {_baseEid}
+    set {_offsetX::1} to 0
+    set {_offsetY::1} to 0
+    set {_offsetZ::1} to 0
+    set {_scale::1} to {_coreScale}
+    set {_item::1} to magma block
+
+    # Surrounding pieces (8 pieces arranged around core)
+    set {_pieceScale} to {_coreScale} * 0.6
+
+    # Top
+    set {_eid::2} to {_baseEid} + 1
+    set {_offsetX::2} to 0
+    set {_offsetY::2} to {_coreScale} * 0.4
+    set {_offsetZ::2} to 0
+    set {_scale::2} to {_pieceScale}
+    set {_item::2} to netherrack
+
+    # Bottom
+    set {_eid::3} to {_baseEid} + 2
+    set {_offsetX::3} to 0
+    set {_offsetY::3} to {_coreScale} * -0.4
+    set {_offsetZ::3} to 0
+    set {_scale::3} to {_pieceScale}
+    set {_item::3} to blackstone
+
+    # Front
+    set {_eid::4} to {_baseEid} + 3
+    set {_offsetX::4} to 0
+    set {_offsetY::4} to 0
+    set {_offsetZ::4} to {_coreScale} * 0.4
+    set {_scale::4} to {_pieceScale}
+    set {_item::4} to magma block
+
+    # Back
+    set {_eid::5} to {_baseEid} + 4
+    set {_offsetX::5} to 0
+    set {_offsetY::5} to 0
+    set {_offsetZ::5} to {_coreScale} * -0.4
+    set {_scale::5} to {_pieceScale}
+    set {_item::5} to crying obsidian
+
+    # Left
+    set {_eid::6} to {_baseEid} + 5
+    set {_offsetX::6} to {_coreScale} * 0.4
+    set {_offsetY::6} to 0
+    set {_offsetZ::6} to 0
+    set {_scale::6} to {_pieceScale}
+    set {_item::6} to netherrack
+
+    # Right
+    set {_eid::7} to {_baseEid} + 6
+    set {_offsetX::7} to {_coreScale} * -0.4
+    set {_offsetY::7} to 0
+    set {_offsetZ::7} to 0
+    set {_scale::7} to {_pieceScale}
+    set {_item::7} to magma block
+
+    # Diagonal pieces for more roundness
+    set {_eid::8} to {_baseEid} + 7
+    set {_offsetX::8} to {_coreScale} * 0.3
+    set {_offsetY::8} to {_coreScale} * 0.3
+    set {_offsetZ::8} to {_coreScale} * 0.3
+    set {_scale::8} to {_pieceScale} * 0.8
+    set {_item::8} to crying obsidian
+
+    set {_eid::9} to {_baseEid} + 8
+    set {_offsetX::9} to {_coreScale} * -0.3
+    set {_offsetY::9} to {_coreScale} * 0.3
+    set {_offsetZ::9} to {_coreScale} * -0.3
+    set {_scale::9} to {_pieceScale} * 0.8
+    set {_item::9} to blackstone
+
+    set {_eid::10} to {_baseEid} + 9
+    set {_offsetX::10} to {_coreScale} * 0.3
+    set {_offsetY::10} to {_coreScale} * -0.3
+    set {_offsetZ::10} to {_coreScale} * -0.3
+    set {_scale::10} to {_pieceScale} * 0.8
+    set {_item::10} to netherrack
+
+    set {_eid::11} to {_baseEid} + 10
+    set {_offsetX::11} to {_coreScale} * -0.3
+    set {_offsetY::11} to {_coreScale} * -0.3
+    set {_offsetZ::11} to {_coreScale} * 0.3
+    set {_scale::11} to {_pieceScale} * 0.8
+    set {_item::11} to magma block
+
+    set {_numPieces} to 11
+
+    # Spawn all pieces
+    loop {_numPieces} times:
+        set {_i} to loop-number
+        set {_entityId} to {_eid::%{_i}%}
+        set {_pieceItem} to {_item::%{_i}%}
+        set {_pieceScaleVal} to {_scale::%{_i}%}
+
+        spawn fake item display at {_spawnLoc} for {_p} with id {_entityId}
+
+        set {_m} to new metadata packet with id {_entityId}:
+            display item: {_pieceItem}
+            display scale: vector({_pieceScaleVal}, {_pieceScaleVal}, {_pieceScaleVal})
+            display billboard: center
+            display brightness block: 15
+            display teleportduration: 2
+            glowing: true
+            display glow: rgb(255, 100, 0)
+        send packet {_m} to {_p}
+
+    # Animate meteor falling (pass all entity data)
+    meteor_animateFall({_p}, {_x}, {_startY}, {_endY}, {_z}, {_w}, {_coreScale}, {_numPieces}, {_baseEid})
+
+
+function meteor_animateFall(p: player, x: number, startY: number, endY: number, z: number, w: world, coreScale: number, numPieces: integer, baseEid: integer):
+    set {_currentY} to {_startY}
+    set {_fallSpeed} to 3
+
+    # Piece offsets (must match spawn function)
+    set {_offsetX::1} to 0
+    set {_offsetY::1} to 0
+    set {_offsetZ::1} to 0
+
+    set {_offsetX::2} to 0
+    set {_offsetY::2} to {_coreScale} * 0.4
+    set {_offsetZ::2} to 0
+
+    set {_offsetX::3} to 0
+    set {_offsetY::3} to {_coreScale} * -0.4
+    set {_offsetZ::3} to 0
+
+    set {_offsetX::4} to 0
+    set {_offsetY::4} to 0
+    set {_offsetZ::4} to {_coreScale} * 0.4
+
+    set {_offsetX::5} to 0
+    set {_offsetY::5} to 0
+    set {_offsetZ::5} to {_coreScale} * -0.4
+
+    set {_offsetX::6} to {_coreScale} * 0.4
+    set {_offsetY::6} to 0
+    set {_offsetZ::6} to 0
+
+    set {_offsetX::7} to {_coreScale} * -0.4
+    set {_offsetY::7} to 0
+    set {_offsetZ::7} to 0
+
+    set {_offsetX::8} to {_coreScale} * 0.3
+    set {_offsetY::8} to {_coreScale} * 0.3
+    set {_offsetZ::8} to {_coreScale} * 0.3
+
+    set {_offsetX::9} to {_coreScale} * -0.3
+    set {_offsetY::9} to {_coreScale} * 0.3
+    set {_offsetZ::9} to {_coreScale} * -0.3
+
+    set {_offsetX::10} to {_coreScale} * 0.3
+    set {_offsetY::10} to {_coreScale} * -0.3
+    set {_offsetZ::10} to {_coreScale} * -0.3
+
+    set {_offsetX::11} to {_coreScale} * -0.3
+    set {_offsetY::11} to {_coreScale} * -0.3
+    set {_offsetZ::11} to {_coreScale} * 0.3
+
+    set {_rotation} to 0
+
+    # Falling animation
+    while {_currentY} > {_endY}:
+        subtract {_fallSpeed} from {_currentY}
+        add 0.15 to {_fallSpeed}
+
+        if {_fallSpeed} > 6:
+            set {_fallSpeed} to 6
+
+        # Rotate the meteor as it falls
+        add 8 to {_rotation}
+        if {_rotation} >= 360:
+            subtract 360 from {_rotation}
+
+        # Move all pieces together with rotation
+        loop {_numPieces} times:
+            set {_i} to loop-number
+            set {_eid} to {_baseEid} + ({_i} - 1)
+
+            # Rotate offset around Y axis for tumbling effect
+            set {_ox} to {_offsetX::%{_i}%}
+            set {_oy} to {_offsetY::%{_i}%}
+            set {_oz} to {_offsetZ::%{_i}%}
+
+            set {_rotatedX} to ({_ox} * cos({_rotation})) - ({_oz} * sin({_rotation}))
+            set {_rotatedZ} to ({_ox} * sin({_rotation})) + ({_oz} * cos({_rotation}))
+
+            set {_pieceX} to {_x} + {_rotatedX}
+            set {_pieceY} to {_currentY} + {_oy}
+            set {_pieceZ} to {_z} + {_rotatedZ}
+
+            set {_loc} to location({_pieceX}, {_pieceY}, {_pieceZ}, {_w})
+            send teleport packet with id {_eid} with location {_loc} to {_p}
+
+        # Fire trail particles - more dramatic
+        loop 5 times:
+            set {_trailY} to {_currentY} + (loop-number * 1.2)
+            set {_trailX} to {_x} + (random number between -0.5 and 0.5)
+            set {_trailZ} to {_z} + (random number between -0.5 and 0.5)
+            set {_trailLoc} to location({_trailX}, {_trailY}, {_trailZ}, {_w})
+            draw 1 of flame at {_trailLoc} for {_p}
+            draw 1 of dust using dustOption(rgb(255, 100, 0), 1.8) at {_trailLoc} for {_p}
+
+        # Ember sparks flying off
+        loop 3 times:
+            set {_sparkAngle} to random number between 0 and 360
+            set {_sparkDist} to random number between 0.3 and 1.0
+            set {_sparkX} to {_x} + ({_sparkDist} * cos({_sparkAngle}))
+            set {_sparkZ} to {_z} + ({_sparkDist} * sin({_sparkAngle}))
+            set {_sparkLoc} to location({_sparkX}, {_currentY} + (random number between -0.5 and 1), {_sparkZ}, {_w})
+            draw 1 of lava at {_sparkLoc} for {_p}
+
+        # Smoke trail
+        set {_smokeLoc} to location({_x}, {_currentY} + 2.5, {_z}, {_w})
+        draw 3 of large smoke at {_smokeLoc} with offset vector(0.4, 0.8, 0.4) for {_p}
+
+        # Whooshing sound while falling
+        if mod(floor({_startY} - {_currentY}), 12) = 0:
+            play sound "entity.firework_rocket.launch" with volume 0.5 and pitch 0.4 at location({_x}, {_currentY}, {_z}, {_w}) for {_p}
+
+        wait 2 ticks
+
+    # IMPACT with scatter animation!
+    set {_impactLoc} to location({_x}, {_endY}, {_z}, {_w})
+    meteor_impact({_p}, {_impactLoc}, {_coreScale}, {_numPieces}, {_baseEid})
+
+
+function meteor_impact(p: player, loc: location, coreScale: number, numPieces: integer, baseEid: integer):
+    set {_world} to world of {_loc}
+    set {_x} to x-coord of {_loc}
+    set {_y} to y-coord of {_loc}
+    set {_z} to z-coord of {_loc}
+
+    # Initial explosion particles
+    draw 40 of explosion at {_loc} with offset vector(2, 1.5, 2) for {_p}
+    draw 60 of flame at {_loc} with offset vector(2.5, 2, 2.5) for {_p}
+    draw 50 of large smoke at {_loc} with offset vector(3, 2.5, 3) for {_p}
+    draw 30 of lava at {_loc} with offset vector(2, 1, 2) for {_p}
+
+    # Orange/red dust burst in circle
+    loop 20 times:
+        set {_burstAngle} to (loop-number - 1) * 18
+        set {_burstDist} to random number between 0.5 and 3
+        set {_burstX} to {_x} + ({_burstDist} * cos({_burstAngle}))
+        set {_burstZ} to {_z} + ({_burstDist} * sin({_burstAngle}))
+        set {_burstLoc} to location({_burstX}, {_y} + 0.5, {_burstZ}, {_world})
+        draw 1 of dust using dustOption(rgb(255, 80, 0), 2.5) at {_burstLoc} for {_p}
+
+    # Impact sounds - big boom!
+    play sound "entity.generic.explode" with volume 1.2 and pitch 0.5 at {_loc} for {_p}
+    play sound "entity.lightning_bolt.impact" with volume 0.9 and pitch 0.4 at {_loc} for {_p}
+    play sound "block.anvil.land" with volume 0.7 and pitch 0.3 at {_loc} for {_p}
+    play sound "entity.dragon_fireball.explode" with volume 0.8 and pitch 0.6 at {_loc} for {_p}
+    play sound "item.totem.use" with volume 0.4 and pitch 0.6 at {_loc} for {_p}
+
+    # Damage blocks in impact area (3x3)
+    meteor_damageBlocks({_p}, {_loc})
+
+    # SCATTER ANIMATION - fragments fly outward with glow!
+    # Set scatter directions for each piece
+    loop {_numPieces} times:
+        set {_i} to loop-number
+        set {_scatterAngle} to ({_i} - 1) * (360 / {_numPieces}) + (random number between -20 and 20)
+        set {_scatterDirX::%{_i}%} to cos({_scatterAngle})
+        set {_scatterDirZ::%{_i}%} to sin({_scatterAngle})
+        set {_scatterDirY::%{_i}%} to random number between 0.3 and 0.8
+        set {_scatterSpeed::%{_i}%} to random number between 0.4 and 0.8
+
+    # Make pieces glow brighter on impact
+    loop {_numPieces} times:
+        set {_i} to loop-number
+        set {_eid} to {_baseEid} + ({_i} - 1)
+        set {_shrinkScale} to {_coreScale} * 0.4
+
+        set {_m} to new metadata packet with id {_eid}:
+            display scale: vector({_shrinkScale}, {_shrinkScale}, {_shrinkScale})
+            display transformation: 3
+            display interpolation: 0
+            display brightness block: 15
+            glowing: true
+            display glow: rgb(255, 200, 50)
+        send packet {_m} to {_p}
+
+    # Animate scatter over 8 frames
+    set {_scatterFrame} to 0
+    while {_scatterFrame} < 8:
+        add 1 to {_scatterFrame}
+        set {_progress} to {_scatterFrame} / 8
+
+        loop {_numPieces} times:
+            set {_i} to loop-number
+            set {_eid} to {_baseEid} + ({_i} - 1)
+
+            set {_speed} to {_scatterSpeed::%{_i}%}
+            set {_dist} to {_scatterFrame} * {_speed}
+
+            # Arc trajectory - up then down
+            set {_arcHeight} to (1 - (({_progress} - 0.5) * ({_progress} - 0.5) * 4)) * 1.5
+
+            set {_fragX} to {_x} + ({_scatterDirX::%{_i}%} * {_dist})
+            set {_fragY} to {_y} + ({_scatterDirY::%{_i}%} * {_dist}) + {_arcHeight}
+            set {_fragZ} to {_z} + ({_scatterDirZ::%{_i}%} * {_dist})
+
+            set {_fragLoc} to location({_fragX}, {_fragY}, {_fragZ}, {_world})
+            send teleport packet with id {_eid} with location {_fragLoc} to {_p}
+
+            # Store final landing position for block damage
+            set {_finalX::%{_i}%} to {_fragX}
+            set {_finalZ::%{_i}%} to {_fragZ}
+
+            # Fire trail on each fragment
+            draw 1 of flame at {_fragLoc} for {_p}
+            draw 1 of dust using dustOption(rgb(255, 150, 0), 1.2) at {_fragLoc} for {_p}
+
+        # Center still burning
+        draw 3 of flame at {_loc} with offset vector(0.5, 0.3, 0.5) for {_p}
+
+        wait 2 ticks
+
+    # Damage blocks where each fragment landed
+    loop {_numPieces} times:
+        set {_i} to loop-number
+        set {_landX} to {_finalX::%{_i}%}
+        set {_landZ} to {_finalZ::%{_i}%}
+        set {_landLoc} to location({_landX}, {_y} - 1, {_landZ}, {_world})
+
+        # Small impact effect at each fragment
+        draw 3 of flame at location({_landX}, {_y}, {_landZ}, {_world}) for {_p}
+        draw 2 of dust using dustOption(rgb(255, 100, 0), 1.0) at location({_landX}, {_y}, {_landZ}, {_world}) for {_p}
+
+        # Damage block at landing spot
+        set {_landBlockType} to type of block at {_landLoc}
+        if {_landBlockType} is not bedrock:
+            if mining_isMineable({_landBlockType}) = true:
+                if mining_isLocked({_p}, {_landLoc}) = false:
+                    meteor_crackBlock({_p}, {_landLoc})
+
+    # Small impact sound for fragments
+    play sound "block.basalt.break" with volume 0.4 and pitch 0.8 at {_loc} for {_p}
+
+    # Shrink fragments to nothing with glow fade
+    loop {_numPieces} times:
+        set {_i} to loop-number
+        set {_eid} to {_baseEid} + ({_i} - 1)
+
+        set {_m} to new metadata packet with id {_eid}:
+            display scale: vector(0.05, 0.05, 0.05)
+            display transformation: 5
+            display interpolation: 0
+            display glow: rgb(255, 50, 0)
+        send packet {_m} to {_p}
+
+    # More fire and smoke during fade
+    draw 25 of flame at {_loc} with offset vector(2, 0.8, 2) for {_p}
+    draw 20 of smoke at {_loc} with offset vector(2.5, 1.5, 2.5) for {_p}
+
+    wait 5 ticks
+
+    # Final cleanup - remove all entities
+    loop {_numPieces} times:
+        set {_i} to loop-number
+        set {_eid} to {_baseEid} + ({_i} - 1)
+        remove fake entity with id {_eid} for {_p}
+
+    # Lingering embers
+    draw 15 of lava at {_loc} with offset vector(1.5, 0.3, 1.5) for {_p}
+    draw 10 of smoke at {_loc} with offset vector(2, 1, 2) for {_p}
+
+
+function meteor_damageBlocks(p: player, center: location):
+    set {_startX} to floor(x-coord of {_center})
+    set {_startY} to floor(y-coord of {_center}) - 1
+    set {_startZ} to floor(z-coord of {_center})
+    set {_world} to world of {_center}
+
+    # 3x3 impact area
+    loop integers from -1 to 1:
+        set {_dx} to loop-value
+        loop integers from -1 to 1:
+            set {_dz} to loop-value-2
+
+            set {_checkLoc} to location({_startX} + {_dx}, {_startY}, {_startZ} + {_dz}, {_world})
+            set {_checkType} to type of block at {_checkLoc}
+
+            if {_checkType} is bedrock:
+                continue
+
+            if mining_isMineable({_checkType}) = true:
+                if mining_isLocked({_p}, {_checkLoc}) = false:
+                    meteor_crackBlock({_p}, {_checkLoc})
+
+
+function meteor_crackBlock(p: player, loc: location):
+    if mining_hasSession({_p}, {_loc}) = false:
+        mining_createSession({_p}, {_loc})
+
+    mining_setProgress({_p}, {_loc}, 0.8)
+
+    set {_key} to mining_getLocKey({_loc})
+    set {_id} to {-miningData::%{_p}'s uuid%::damageID::%{_key}%}
+    make {_p} see damage of block at {_loc} as 0.8 from {_id}
+    set {-miningData::%{_p}'s uuid%::lastStage::%{_key}%} to 8
+
+
+function meteor_stop():
+    if worldevent_isActive("meteor") is false:
+        stop
+
+    worldevent_setActive("meteor", false)
+
+    broadcast ""
+    broadcast "&8&m                                                  "
+    broadcast ""
+    broadcast "         &7The &cmeteor rain &7has ended..."
+    broadcast ""
+    broadcast "&8&m                                                  "
+    broadcast ""
+
+    loop all players:
+        play sound "entity.ender_dragon.death" with volume 0.5 and pitch 0.8 to loop-player
+
+
+# ============================================================
+# EARTHQUAKE EVENT
+# ============================================================
+# Massive ground-shaking event with:
+#   - Shockwave pulses radiating outward
+#   - Ground fissure crack particles
+#   - Bouncing rock debris (display entities)
+#   - Dust clouds rising from ground
+#   - Deep rumbling sounds
+#   - Block damage in expanding waves
+# ============================================================
+
+function earthquake_start(center: location, radius: number, duration: integer):
+    if worldevent_isActive("earthquake") is true:
+        stop
+
+    worldevent_setActive("earthquake", true)
+    worldevent_setCenter("earthquake", {_center})
+
+    # Epic announcement
+    broadcast ""
+    broadcast "&8&m                                                  "
+    broadcast ""
+    broadcast "            &6&l⚠ &f&lWORLD EVENT &6&l⚠"
+    broadcast "              &6&lEARTHQUAKE"
+    broadcast ""
+    broadcast "     &7The ground &6trembles &7beneath your feet!"
+    broadcast ""
+    broadcast "&8&m                                                  "
+    broadcast ""
+
+    # Initial rumble for everyone
+    loop all players:
+        play sound "entity.ender_dragon.growl" with volume 1.0 and pitch 0.3 to loop-player
+        play sound "block.respawn_anchor.deplete" with volume 0.8 and pitch 0.4 to loop-player
+
+    # Start the earthquake loop
+    earthquake_loop({_center}, {_radius}, {_duration})
+
+
+function earthquake_loop(center: location, radius: number, duration: integer):
+    set {_world} to world of {_center}
+    set {_centerX} to x-coord of {_center}
+    set {_centerZ} to z-coord of {_center}
+    set {_baseY} to y-coord of {_center}
+
+    set {_totalTicks} to {_duration} * 20
+    set {_tickCount} to 0
+    set {_pulseRadius} to 0
+    set {_pulseCount} to 0
+
+    while {_tickCount} < {_totalTicks}:
+        if worldevent_isActive("earthquake") is false:
+            stop
+
+        # SHOCKWAVE PULSE - every 30 ticks send out a new wave
+        if mod({_tickCount}, 30) = 0:
+            add 1 to {_pulseCount}
+            # Spawn bouncing rocks at the epicenter
+            loop all players in radius 150 of {_center}:
+                earthquake_spawnRocks(loop-player, {_center}, {_pulseCount})
+
+        # FLOATING GROUND BLOCKS - blocks rise from ground and hover
+        if mod({_tickCount}, 25) = 0:
+            loop all players in radius 120 of {_center}:
+                earthquake_spawnFloatingBlocks(loop-player, {_center}, {_radius})
+
+        # GLOWING BLOCK RING PATTERN - display entities in circle patterns
+        if mod({_tickCount}, 20) = 0:
+            loop all players in radius 130 of {_center}:
+                earthquake_spawnGlowingRing(loop-player, {_center}, {_radius}, {_pulseCount})
+
+        # SMALL CLATTERING DEBRIS - tiny rocks scattered around
+        if mod({_tickCount}, 12) = 0:
+            loop all players in radius 100 of {_center}:
+                earthquake_spawnClatter(loop-player, {_center}, {_radius})
+
+        # GROUND RUPTURE - blocks explode up from fissures
+        if mod({_tickCount}, 40) = 0:
+            loop all players in radius 100 of {_center}:
+                earthquake_spawnRupture(loop-player, {_center}, {_radius})
+
+        # Expand current pulse outward with GROUND LIFT effect - MULTIPLE RINGS
+        if mod({_tickCount}, 3) = 0:
+            set {_waveRadius} to mod({_tickCount}, 30) * 3
+            if {_waveRadius} > 0:
+                loop all players in radius 150 of {_center}:
+                    # Main shockwave ring
+                    earthquake_drawShockwave(loop-player, {_center}, {_waveRadius})
+                    # Secondary inner ring
+                    if {_waveRadius} > 8:
+                        earthquake_drawShockwave(loop-player, {_center}, {_waveRadius} - 6)
+                    # Third ring for extra effect
+                    if {_waveRadius} > 16:
+                        earthquake_drawShockwave(loop-player, {_center}, {_waveRadius} - 12)
+
+        # GROUND FISSURES - crack lines radiating from center
+        if mod({_tickCount}, 10) = 0:
+            set {_numFissures} to 10
+            loop all players in radius 120 of {_center}:
+                loop {_numFissures} times:
+                    set {_fissureAngle} to (loop-number-2 - 1) * (360 / {_numFissures}) + (random number between -15 and 15)
+                    set {_fissureLen} to random number between 5 and 20
+                    earthquake_drawFissure(loop-player, {_center}, {_fissureAngle}, {_fissureLen})
+
+        # DUST CLOUDS rising from ground - reduced
+        if mod({_tickCount}, 6) = 0:
+            loop all players in radius 100 of {_center}:
+                loop 4 times:
+                    set {_dustAngle} to random number between 0 and 360
+                    set {_dustDist} to random number between 2 and ({_radius} * 0.8)
+                    set {_dustX} to {_centerX} + ({_dustDist} * cos({_dustAngle}))
+                    set {_dustZ} to {_centerZ} + ({_dustDist} * sin({_dustAngle}))
+                    set {_dustLoc} to location({_dustX}, {_baseY} + 0.3, {_dustZ}, {_world})
+                    draw 1 of dust using dustOption(rgb(120, 100, 70), 1.8) at {_dustLoc} for loop-player
+
+        # GROUND SHAKE particles - reduced
+        if mod({_tickCount}, 3) = 0:
+            loop all players in radius 80 of {_center}:
+                loop 5 times:
+                    set {_shakeAngle} to random number between 0 and 360
+                    set {_shakeDist} to random number between 1 and {_radius}
+                    set {_shakeX} to {_centerX} + ({_shakeDist} * cos({_shakeAngle}))
+                    set {_shakeZ} to {_centerZ} + ({_shakeDist} * sin({_shakeAngle}))
+                    set {_shakeLoc} to location({_shakeX}, {_baseY} + (random number between 0.1 and 0.4), {_shakeZ}, {_world})
+                    draw 1 of dust using dustOption(rgb(80, 70, 50), 1.0) at {_shakeLoc} for loop-player
+
+        # BLOCK DAMAGE - damage blocks in LARGER expanding waves
+        if mod({_tickCount}, 10) = 0:
+            set {_damageRadius} to mod({_tickCount} / 10, 10) * 5
+            if {_damageRadius} > 0:
+                earthquake_damageRing({_center}, {_damageRadius})
+            # Also damage at inner radius
+            if {_damageRadius} > 10:
+                earthquake_damageRing({_center}, {_damageRadius} - 8)
+
+        # SOUNDS - constant rumbling
+        if mod({_tickCount}, 12) = 0:
+            loop all players in radius 150 of {_center}:
+                play sound "block.gravel.break" with volume 0.5 and pitch 0.4 to loop-player
+
+        if mod({_tickCount}, 25) = 0:
+            loop all players in radius 150 of {_center}:
+                play sound "entity.ravager.roar" with volume 0.4 and pitch 0.4 to loop-player
+
+        if mod({_tickCount}, 40) = 0:
+            loop all players in radius 150 of {_center}:
+                play sound "block.respawn_anchor.charge" with volume 0.5 and pitch 0.3 to loop-player
+
+        # Deep boom every so often
+        if mod({_tickCount}, 55) = 0:
+            loop all players in radius 200 of {_center}:
+                play sound "entity.warden.sonic_boom" with volume 0.4 and pitch 0.5 to loop-player
+                play sound "entity.generic.explode" with volume 0.3 and pitch 0.4 to loop-player
+
+        add 1 to {_tickCount}
+        wait 1 tick
+
+    earthquake_stop()
+
+
+# GLOWING BLOCK RING - blocks in a circle pattern with glow
+function earthquake_spawnGlowingRing(p: player, center: location, radius: number, pulseId: integer):
+    set {_world} to world of {_center}
+    set {_x} to x-coord of {_center}
+    set {_y} to y-coord of {_center}
+    set {_z} to z-coord of {_center}
+
+    # Ring radius varies with pulse
+    set {_ringRadius} to 8 + (mod({_pulseId}, 4) * 5)
+    set {_numBlocks} to 8 + (mod({_pulseId}, 3) * 4)
+
+    loop {_numBlocks} times:
+        set {_blockId} to random integer between 1000000 and 9999999
+        set {_angle} to (loop-number - 1) * (360 / {_numBlocks})
+        set {_blockX} to {_x} + ({_ringRadius} * cos({_angle}))
+        set {_blockZ} to {_z} + ({_ringRadius} * sin({_angle}))
+
+        set {_spawnLoc} to location({_blockX}, {_y}, {_blockZ}, {_world})
+        spawn fake item display at {_spawnLoc} for {_p} with id {_blockId}
+
+        # Alternating glow colors based on position
+        set {_glowType} to mod(loop-number, 3)
+        if {_glowType} = 0:
+            set {_glowColor} to rgb(255, 200, 100)
+            set {_item} to glowstone
+        else if {_glowType} = 1:
+            set {_glowColor} to rgb(255, 150, 50)
+            set {_item} to shroomlight
+        else:
+            set {_glowColor} to rgb(200, 180, 100)
+            set {_item} to ochre froglight
+
+        set {_scale} to random number between 0.3 and 0.6
+
+        set {_m} to new metadata packet with id {_blockId}:
+            display item: {_item}
+            display scale: vector({_scale}, {_scale}, {_scale})
+            display billboard: center
+            display brightness block: 15
+            display teleportduration: 3
+            glowing: true
+            display glow: {_glowColor}
+        send packet {_m} to {_p}
+
+        # Animate - rise, pulse glow, fall
+        earthquake_animateGlowBlock({_p}, {_blockId}, {_blockX}, {_y}, {_blockZ}, {_world}, {_scale}, {_glowType})
+
+
+# Glow block animation - rise, hover with pulsing, fall
+function earthquake_animateGlowBlock(p: player, eid: integer, x: number, baseY: number, z: number, w: world, scale: number, glowType: integer):
+    set {_currentY} to {_baseY}
+    set {_targetHeight} to random number between 1.0 and 2.5
+    set {_riseSpeed} to 0.12
+
+    # Rise up
+    while {_currentY} < ({_baseY} + {_targetHeight}):
+        add {_riseSpeed} to {_currentY}
+        set {_loc} to location({_x}, {_currentY}, {_z}, {_w})
+        send teleport packet with id {_eid} with location {_loc} to {_p}
+        wait 2 ticks
+
+    # Pulse glow effect - scale up and down
+    loop 8 times:
+        set {_pulseScale} to {_scale} * (1 + (sin(loop-number * 45) * 0.3))
+        set {_m} to new metadata packet with id {_eid}:
+            display scale: vector({_pulseScale}, {_pulseScale}, {_pulseScale})
+            display transformation: 2
+            display interpolation: 0
+        send packet {_m} to {_p}
+        wait 3 ticks
+
+    # Fall down
+    set {_fallSpeed} to 0.08
+    while {_currentY} > {_baseY}:
+        subtract {_fallSpeed} from {_currentY}
+        add 0.06 to {_fallSpeed}
+        if {_currentY} < {_baseY}:
+            set {_currentY} to {_baseY}
+        set {_loc} to location({_x}, {_currentY}, {_z}, {_w})
+        send teleport packet with id {_eid} with location {_loc} to {_p}
+        wait 1 tick
+
+    # Shrink and remove
+    set {_m} to new metadata packet with id {_eid}:
+        display scale: vector(0.05, 0.05, 0.05)
+        display transformation: 3
+        display interpolation: 0
+    send packet {_m} to {_p}
+
+    wait 3 ticks
+    remove fake entity with id {_eid} for {_p}
+
+
+# SMALL CLATTERING DEBRIS - tiny rocks that bounce briefly
+function earthquake_spawnClatter(p: player, center: location, radius: number):
+    set {_world} to world of {_center}
+    set {_x} to x-coord of {_center}
+    set {_y} to y-coord of {_center}
+    set {_z} to z-coord of {_center}
+
+    # Spawn 10-15 tiny debris pieces
+    set {_numDebris} to random integer between 10 and 15
+    loop {_numDebris} times:
+        set {_debrisId} to random integer between 1000000 and 9999999
+        set {_angle} to random number between 0 and 360
+        set {_dist} to random number between 3 and ({_radius} * 0.8)
+        set {_debrisX} to {_x} + ({_dist} * cos({_angle}))
+        set {_debrisZ} to {_z} + ({_dist} * sin({_angle}))
+
+        set {_spawnLoc} to location({_debrisX}, {_y}, {_debrisZ}, {_world})
+        spawn fake item display at {_spawnLoc} for {_p} with id {_debrisId}
+
+        # Tiny pebbles
+        set {_rand} to random integer between 1 and 4
+        if {_rand} = 1:
+            set {_item} to cobblestone
+        else if {_rand} = 2:
+            set {_item} to gravel
+        else if {_rand} = 3:
+            set {_item} to andesite
+        else:
+            set {_item} to stone
+
+        set {_scale} to random number between 0.15 and 0.3
+
+        set {_m} to new metadata packet with id {_debrisId}:
+            display item: {_item}
+            display scale: vector({_scale}, {_scale}, {_scale})
+            display billboard: center
+            display brightness block: 15
+            display teleportduration: 1
+        send packet {_m} to {_p}
+
+        # Quick bounce animation
+        earthquake_animateClatter({_p}, {_debrisId}, {_debrisX}, {_y}, {_debrisZ}, {_world})
+
+
+# Clatter animation - quick tiny bounce
+function earthquake_animateClatter(p: player, eid: integer, x: number, baseY: number, z: number, w: world):
+    set {_velocityY} to random number between 0.3 and 0.6
+    set {_currentY} to {_baseY}
+    set {_gravity} to 0.08
+
+    # Quick bounce up and down
+    loop 12 times:
+        add {_velocityY} to {_currentY}
+        subtract {_gravity} from {_velocityY}
+
+        if {_currentY} < {_baseY}:
+            set {_currentY} to {_baseY}
+            set {_velocityY} to {_velocityY} * -0.4
+
+        set {_loc} to location({_x}, {_currentY}, {_z}, {_w})
+        send teleport packet with id {_eid} with location {_loc} to {_p}
+
+        wait 1 tick
+
+    # Remove
+    remove fake entity with id {_eid} for {_p}
+
+
+# FLOATING BLOCKS - blocks rise from ground and hover/shake
+function earthquake_spawnFloatingBlocks(p: player, center: location, radius: number):
+    set {_world} to world of {_center}
+    set {_x} to x-coord of {_center}
+    set {_y} to y-coord of {_center}
+    set {_z} to z-coord of {_center}
+
+    # Spawn 5-8 floating blocks around the area
+    set {_numBlocks} to random integer between 5 and 8
+    loop {_numBlocks} times:
+        set {_blockId} to random integer between 1000000 and 9999999
+        set {_angle} to random number between 0 and 360
+        set {_dist} to random number between 3 and ({_radius} * 0.7)
+        set {_blockX} to {_x} + ({_dist} * cos({_angle}))
+        set {_blockZ} to {_z} + ({_dist} * sin({_angle}))
+
+        set {_spawnLoc} to location({_blockX}, {_y}, {_blockZ}, {_world})
+        spawn fake item display at {_spawnLoc} for {_p} with id {_blockId}
+
+        # Random ground block type
+        set {_rand} to random integer between 1 and 8
+        if {_rand} = 1:
+            set {_item} to dirt
+        else if {_rand} = 2:
+            set {_item} to grass block
+        else if {_rand} = 3:
+            set {_item} to stone
+        else if {_rand} = 4:
+            set {_item} to cobblestone
+        else if {_rand} = 5:
+            set {_item} to gravel
+        else if {_rand} = 6:
+            set {_item} to coarse dirt
+        else if {_rand} = 7:
+            set {_item} to rooted dirt
+        else:
+            set {_item} to clay
+
+        set {_scale} to random number between 0.5 and 1.1
+
+        set {_m} to new metadata packet with id {_blockId}:
+            display item: {_item}
+            display scale: vector({_scale}, {_scale}, {_scale})
+            display billboard: center
+            display brightness block: 15
+            display teleportduration: 3
+        send packet {_m} to {_p}
+
+        # Pop out effect
+        draw 5 of dust using dustOption(rgb(100, 85, 60), 1.5) at {_spawnLoc} for {_p}
+        play sound "block.grass.break" with volume 0.3 and pitch 0.7 at {_spawnLoc} for {_p}
+
+        # Animate floating and shaking
+        earthquake_animateFloat({_p}, {_blockId}, {_blockX}, {_y}, {_blockZ}, {_world}, {_scale})
+
+
+# Float animation - block rises, hovers with shake, then falls
+function earthquake_animateFloat(p: player, eid: integer, x: number, baseY: number, z: number, w: world, scale: number):
+    set {_currentY} to {_baseY}
+    set {_targetHeight} to random number between 1.5 and 3.5
+    set {_riseSpeed} to 0.15
+    set {_shakeIntensity} to random number between 0.05 and 0.15
+    set {_hoverTime} to random integer between 15 and 25
+
+    # Rise up
+    while {_currentY} < ({_baseY} + {_targetHeight}):
+        add {_riseSpeed} to {_currentY}
+
+        # Slight wobble while rising
+        set {_wobbleX} to {_x} + (random number between ({_shakeIntensity} * -1) and {_shakeIntensity})
+        set {_wobbleZ} to {_z} + (random number between ({_shakeIntensity} * -1) and {_shakeIntensity})
+
+        set {_loc} to location({_wobbleX}, {_currentY}, {_wobbleZ}, {_w})
+        send teleport packet with id {_eid} with location {_loc} to {_p}
+
+        # Dust trail below
+        draw 1 of dust using dustOption(rgb(90, 80, 60), 0.8) at location({_x}, {_baseY} + 0.3, {_z}, {_w}) for {_p}
+
+        wait 2 ticks
+
+    # Hover and shake
+    loop {_hoverTime} times:
+        set {_shakeX} to {_x} + (random number between ({_shakeIntensity} * -2) and ({_shakeIntensity} * 2))
+        set {_shakeZ} to {_z} + (random number between ({_shakeIntensity} * -2) and ({_shakeIntensity} * 2))
+        set {_shakeY} to {_currentY} + (random number between -0.1 and 0.1)
+
+        set {_loc} to location({_shakeX}, {_shakeY}, {_shakeZ}, {_w})
+        send teleport packet with id {_eid} with location {_loc} to {_p}
+
+        wait 2 ticks
+
+    # Fall down
+    set {_fallSpeed} to 0.1
+    while {_currentY} > {_baseY}:
+        subtract {_fallSpeed} from {_currentY}
+        add 0.08 to {_fallSpeed}
+
+        if {_currentY} < {_baseY}:
+            set {_currentY} to {_baseY}
+
+        set {_loc} to location({_x}, {_currentY}, {_z}, {_w})
+        send teleport packet with id {_eid} with location {_loc} to {_p}
+
+        wait 1 tick
+
+    # Impact
+    draw 4 of dust using dustOption(rgb(100, 90, 70), 1.5) at location({_x}, {_baseY} + 0.3, {_z}, {_w}) for {_p}
+    play sound "block.stone.place" with volume 0.3 and pitch 0.8 at location({_x}, {_baseY}, {_z}, {_w}) for {_p}
+
+    # Shrink and remove
+    set {_m} to new metadata packet with id {_eid}:
+        display scale: vector(0.05, 0.05, 0.05)
+        display transformation: 4
+        display interpolation: 0
+    send packet {_m} to {_p}
+
+    wait 4 ticks
+    remove fake entity with id {_eid} for {_p}
+
+
+# GROUND RUPTURE - dramatic blocks exploding from cracks
+function earthquake_spawnRupture(p: player, center: location, radius: number):
+    set {_world} to world of {_center}
+    set {_x} to x-coord of {_center}
+    set {_y} to y-coord of {_center}
+    set {_z} to z-coord of {_center}
+
+    # Pick a random fissure direction
+    set {_ruptureAngle} to random number between 0 and 360
+    set {_ruptureDist} to random number between 4 and ({_radius} * 0.6)
+    set {_ruptureX} to {_x} + ({_ruptureDist} * cos({_ruptureAngle}))
+    set {_ruptureZ} to {_z} + ({_ruptureDist} * sin({_ruptureAngle}))
+    set {_ruptureLoc} to location({_ruptureX}, {_y}, {_ruptureZ}, {_world})
+
+    # Explosion effect at rupture point
+    draw 15 of explosion at {_ruptureLoc} with offset vector(1, 0.5, 1) for {_p}
+    draw 20 of dust using dustOption(rgb(80, 70, 50), 2.0) at {_ruptureLoc} for {_p}
+    play sound "entity.generic.explode" with volume 0.5 and pitch 0.7 at {_ruptureLoc} for {_p}
+    play sound "block.deepslate.break" with volume 0.6 and pitch 0.5 at {_ruptureLoc} for {_p}
+
+    # Spawn 4-6 blocks that shoot upward from the rupture
+    set {_numBlocks} to random integer between 4 and 6
+    loop {_numBlocks} times:
+        set {_blockId} to random integer between 1000000 and 9999999
+        set {_offsetAngle} to (loop-number - 1) * (360 / {_numBlocks}) + (random number between -30 and 30)
+        set {_offsetDist} to random number between 0.3 and 1.2
+        set {_blockX} to {_ruptureX} + ({_offsetDist} * cos({_offsetAngle}))
+        set {_blockZ} to {_ruptureZ} + ({_offsetDist} * sin({_offsetAngle}))
+
+        set {_spawnLoc} to location({_blockX}, {_y}, {_blockZ}, {_world})
+        spawn fake item display at {_spawnLoc} for {_p} with id {_blockId}
+
+        # Random debris
+        set {_rand} to random integer between 1 and 5
+        if {_rand} = 1:
+            set {_item} to cobblestone
+        else if {_rand} = 2:
+            set {_item} to stone
+        else if {_rand} = 3:
+            set {_item} to deepslate
+        else if {_rand} = 4:
+            set {_item} to tuff
+        else:
+            set {_item} to gravel
+
+        set {_scale} to random number between 0.4 and 0.8
+
+        set {_m} to new metadata packet with id {_blockId}:
+            display item: {_item}
+            display scale: vector({_scale}, {_scale}, {_scale})
+            display billboard: center
+            display brightness block: 15
+            display teleportduration: 2
+        send packet {_m} to {_p}
+
+        # Shoot upward with arc
+        earthquake_animateRuptureBlock({_p}, {_blockId}, {_blockX}, {_y}, {_blockZ}, {_world}, {_offsetAngle})
+
+
+# Rupture block animation - shoots up high then falls
+function earthquake_animateRuptureBlock(p: player, eid: integer, x: number, baseY: number, z: number, w: world, angle: number):
+    set {_velocityY} to random number between 1.2 and 2.0
+    set {_velocityX} to cos({_angle}) * (random number between 0.15 and 0.35)
+    set {_velocityZ} to sin({_angle}) * (random number between 0.15 and 0.35)
+    set {_currentX} to {_x}
+    set {_currentY} to {_baseY}
+    set {_currentZ} to {_z}
+    set {_gravity} to 0.1
+
+    # Shoot up and arc
+    set {_frame} to 0
+    while {_frame} < 25:
+        add 1 to {_frame}
+
+        add {_velocityX} to {_currentX}
+        add {_velocityY} to {_currentY}
+        add {_velocityZ} to {_currentZ}
+        subtract {_gravity} from {_velocityY}
+
+        set {_loc} to location({_currentX}, {_currentY}, {_currentZ}, {_w})
+        send teleport packet with id {_eid} with location {_loc} to {_p}
+
+        # Trail particles
+        if mod({_frame}, 3) = 0:
+            draw 1 of dust using dustOption(rgb(100, 90, 70), 1.0) at {_loc} for {_p}
+
+        # Stop if hit ground
+        if {_currentY} <= {_baseY}:
+            if {_frame} > 10:
+                stop
+
+        wait 2 ticks
+
+    # Remove
+    set {_m} to new metadata packet with id {_eid}:
+        display scale: vector(0.05, 0.05, 0.05)
+        display transformation: 3
+        display interpolation: 0
+    send packet {_m} to {_p}
+
+    wait 3 ticks
+    remove fake entity with id {_eid} for {_p}
+
+
+function earthquake_spawnRocks(p: player, center: location, pulseId: integer):
+    set {_world} to world of {_center}
+    set {_x} to x-coord of {_center}
+    set {_y} to y-coord of {_center}
+    set {_z} to z-coord of {_center}
+
+    # Spawn 6-8 bouncing rocks around epicenter
+    set {_numRocks} to random integer between 6 and 8
+    loop {_numRocks} times:
+        set {_rockId} to random integer between 1000000 and 9999999
+        set {_angle} to (loop-number - 1) * (360 / {_numRocks}) + (random number between -20 and 20)
+        set {_dist} to random number between 2 and 8
+        set {_rockX} to {_x} + ({_dist} * cos({_angle}))
+        set {_rockZ} to {_z} + ({_dist} * sin({_angle}))
+
+        set {_spawnLoc} to location({_rockX}, {_y}, {_rockZ}, {_world})
+        spawn fake item display at {_spawnLoc} for {_p} with id {_rockId}
+
+        # Random rock type
+        set {_rand} to random integer between 1 and 6
+        if {_rand} = 1:
+            set {_item} to cobblestone
+        else if {_rand} = 2:
+            set {_item} to stone
+        else if {_rand} = 3:
+            set {_item} to andesite
+        else if {_rand} = 4:
+            set {_item} to gravel
+        else if {_rand} = 5:
+            set {_item} to cobbled deepslate
+        else:
+            set {_item} to tuff
+
+        set {_scale} to random number between 0.4 and 0.9
+
+        set {_m} to new metadata packet with id {_rockId}:
+            display item: {_item}
+            display scale: vector({_scale}, {_scale}, {_scale})
+            display billboard: center
+            display brightness block: 15
+            display teleportduration: 2
+        send packet {_m} to {_p}
+
+        # Animate rock bouncing up and falling
+        earthquake_animateRock({_p}, {_rockId}, {_rockX}, {_y}, {_rockZ}, {_world}, {_angle})
+
+
+function earthquake_animateRock(p: player, eid: integer, x: number, baseY: number, z: number, w: world, angle: number):
+    set {_currentY} to {_baseY}
+    set {_velocityY} to random number between 0.8 and 1.5
+    set {_velocityX} to cos({_angle}) * (random number between 0.1 and 0.3)
+    set {_velocityZ} to sin({_angle}) * (random number between 0.1 and 0.3)
+    set {_currentX} to {_x}
+    set {_currentZ} to {_z}
+    set {_gravity} to 0.12
+    set {_bounces} to 0
+    set {_maxBounces} to random integer between 2 and 3
+
+    # Pop up effect
+    draw 3 of dust using dustOption(rgb(100, 90, 70), 1.5) at location({_x}, {_baseY} + 0.3, {_z}, {_w}) for {_p}
+    play sound "block.stone.break" with volume 0.3 and pitch 0.8 at location({_x}, {_baseY}, {_z}, {_w}) for {_p}
+
+    while {_bounces} < {_maxBounces}:
+        # Apply physics
+        add {_velocityX} to {_currentX}
+        add {_velocityY} to {_currentY}
+        add {_velocityZ} to {_currentZ}
+        subtract {_gravity} from {_velocityY}
+
+        set {_loc} to location({_currentX}, {_currentY}, {_currentZ}, {_w})
+        send teleport packet with id {_eid} with location {_loc} to {_p}
+
+        # Check if hit ground
+        if {_currentY} <= {_baseY}:
+            set {_currentY} to {_baseY}
+            set {_velocityY} to {_velocityY} * -0.5  # Bounce with energy loss
+            add 1 to {_bounces}
+
+            # Bounce dust
+            draw 2 of dust using dustOption(rgb(90, 80, 60), 1.0) at {_loc} for {_p}
+            play sound "block.stone.hit" with volume 0.15 and pitch 1.2 at {_loc} for {_p}
+
+            # Reduce horizontal velocity
+            set {_velocityX} to {_velocityX} * 0.6
+            set {_velocityZ} to {_velocityZ} * 0.6
+
+        wait 2 ticks
+
+    # Shrink and remove
+    set {_m} to new metadata packet with id {_eid}:
+        display scale: vector(0.05, 0.05, 0.05)
+        display transformation: 5
+        display interpolation: 0
+    send packet {_m} to {_p}
+
+    wait 5 ticks
+    remove fake entity with id {_eid} for {_p}
+
+
+function earthquake_drawShockwave(p: player, center: location, waveRadius: number):
+    set {_world} to world of {_center}
+    set {_x} to x-coord of {_center}
+    set {_y} to y-coord of {_center}
+    set {_z} to z-coord of {_center}
+
+    # Draw ring of particles - more points for larger rings
+    set {_points} to floor({_waveRadius} * 4)
+    if {_points} < 16:
+        set {_points} to 16
+    if {_points} > 60:
+        set {_points} to 60
+
+    loop {_points} times:
+        set {_angle} to (loop-number - 1) * (360 / {_points})
+        set {_px} to {_x} + ({_waveRadius} * cos({_angle}))
+        set {_pz} to {_z} + ({_waveRadius} * sin({_angle}))
+        set {_particleLoc} to location({_px}, {_y} + 0.2, {_pz}, {_world})
+
+        # Main dust ring - bigger particles
+        draw 1 of dust using dustOption(rgb(110, 95, 70), 2.0) at {_particleLoc} for {_p}
+
+        # Ground crack effect at wave front
+        if mod(loop-number, 3) = 0:
+            draw 1 of dust using dustOption(rgb(50, 45, 35), 1.2) at location({_px}, {_y} + 0.05, {_pz}, {_world}) for {_p}
+
+        # Rising debris particles
+        if mod(loop-number, 4) = 0:
+            set {_riseY} to {_y} + (random number between 0.3 and 0.8)
+            draw 1 of dust using dustOption(rgb(90, 80, 60), 1.5) at location({_px}, {_riseY}, {_pz}, {_world}) for {_p}
+            draw 1 of campfire cosy smoke at {_particleLoc} with offset vector(0.2, 0.4, 0.2) for {_p}
+
+        # Extra ground disturbance every few points
+        if mod(loop-number, 6) = 0:
+            draw 1 of explosion at location({_px}, {_y} + 0.1, {_pz}, {_world}) with offset vector(0.3, 0.1, 0.3) for {_p}
+
+
+function earthquake_drawFissure(p: player, center: location, angle: number, length: number):
+    set {_world} to world of {_center}
+    set {_startX} to x-coord of {_center}
+    set {_startZ} to z-coord of {_center}
+    set {_y} to y-coord of {_center}
+
+    set {_dirX} to cos({_angle})
+    set {_dirZ} to sin({_angle})
+
+    # Draw crack line from center outward
+    set {_step} to 0
+    while {_step} < {_length}:
+        set {_wobble} to random number between -0.3 and 0.3
+        set {_px} to {_startX} + ({_dirX} * {_step}) + ({_dirZ} * {_wobble})
+        set {_pz} to {_startZ} + ({_dirZ} * {_step}) + ({_dirX} * {_wobble})
+        set {_crackLoc} to location({_px}, {_y} + 0.1, {_pz}, {_world})
+
+        # Dark crack particles
+        draw 1 of dust using dustOption(rgb(30, 25, 20), 1.0) at {_crackLoc} for {_p}
+
+        # Some dust rising from crack
+        if random number between 0 and 1 > 0.6:
+            draw 1 of dust using dustOption(rgb(80, 70, 55), 0.8) at location({_px}, {_y} + 0.4, {_pz}, {_world}) for {_p}
+
+        add 0.5 to {_step}
+
+
+function earthquake_damageRing(center: location, ringRadius: number):
+    set {_world} to world of {_center}
+    set {_centerX} to floor(x-coord of {_center})
+    set {_centerY} to floor(y-coord of {_center}) - 1
+    set {_centerZ} to floor(z-coord of {_center})
+
+    # Damage blocks in a ring pattern
+    set {_innerRadius} to {_ringRadius} - 1
+    if {_innerRadius} < 0:
+        set {_innerRadius} to 0
+
+    set {_points} to floor({_ringRadius} * 4)
+    if {_points} < 8:
+        set {_points} to 8
+
+    loop {_points} times:
+        set {_angle} to (loop-number - 1) * (360 / {_points})
+        set {_checkX} to {_centerX} + floor({_ringRadius} * cos({_angle}))
+        set {_checkZ} to {_centerZ} + floor({_ringRadius} * sin({_angle}))
+        set {_checkLoc} to location({_checkX}, {_centerY}, {_checkZ}, {_world})
+
+        set {_checkType} to type of block at {_checkLoc}
+        if {_checkType} is bedrock:
+            continue
+
+        if mining_isMineable({_checkType}) = true:
+            loop all players in radius 80 of {_checkLoc}:
+                if mining_isLocked(loop-player, {_checkLoc}) = false:
+                    quake_crackBlock(loop-player, {_checkLoc})
+
+
+function quake_crackBlock(p: player, loc: location):
+    if mining_hasSession({_p}, {_loc}) = false:
+        mining_createSession({_p}, {_loc})
+
+    mining_setProgress({_p}, {_loc}, 0.8)
+
+    set {_key} to mining_getLocKey({_loc})
+    set {_id} to {-miningData::%{_p}'s uuid%::damageID::%{_key}%}
+    make {_p} see damage of block at {_loc} as 0.8 from {_id}
+    set {-miningData::%{_p}'s uuid%::lastStage::%{_key}%} to 8
+
+
+function earthquake_stop():
+    if worldevent_isActive("earthquake") is false:
+        stop
+
+    worldevent_setActive("earthquake", false)
+
+    broadcast ""
+    broadcast "&8&m                                                  "
+    broadcast ""
+    broadcast "         &7The &6earthquake &7has subsided..."
+    broadcast ""
+    broadcast "&8&m                                                  "
+    broadcast ""
+
+    loop all players:
+        play sound "block.respawn_anchor.set_spawn" with volume 0.6 and pitch 0.6 to loop-player
+
+
+# ============================================================
+# CLEANUP
+# ============================================================
+
+on quit:
+    if {-whirlwind::%player's uuid%::count} is set:
+        delete {-whirlwind::%player's uuid%::*}
+
+on join:
+    if worldevent_isActive("whirlwind") is true:
+        set {_center} to worldevent_getCenter("whirlwind")
+        if {_center} is set:
+            if distance between player's location and {_center} <= 200:
+                wait 10 ticks
+                whirlwind_spawnForPlayer(player, {_center})
+
+
+# ============================================================
+# ADMIN COMMANDS
+# ============================================================
+
+command /worldevent <text> [<text>] [<number>] [<number>]:
+    permission: op
+    trigger:
+        if arg-1 is "setlocation":
+            set {_targetBlock} to target block of player
+            if {_targetBlock} is air:
+                set {_loc} to player's location
+                worldevent_setSavedLocation({_loc})
+                send "&aSaved event location to your current position"
+            else:
+                set {_loc} to location of {_targetBlock}
+                add 1 to y-coord of {_loc}
+                worldevent_setSavedLocation({_loc})
+                send "&aSaved event location to targeted block"
+            send "&7Location: &e%x-coord of {_loc}%, %y-coord of {_loc}%, %z-coord of {_loc}%"
+            send "&7World: &e%world of {_loc}%"
+
+        else if arg-1 is "clearlocation":
+            worldevent_clearSavedLocation()
+            send "&cCleared saved event location"
+
+        else if arg-1 is "location":
+            if worldevent_hasSavedLocation() is true:
+                set {_loc} to worldevent_getSavedLocation()
+                send "&6--- Saved Event Location ---"
+                send "&7X: &e%x-coord of {_loc}%"
+                send "&7Y: &e%y-coord of {_loc}%"
+                send "&7Z: &e%z-coord of {_loc}%"
+                send "&7World: &e%world of {_loc}%"
+            else:
+                send "&cNo saved location set!"
+                send "&7Use &e/worldevent setlocation &7to set one."
+
+        else if arg-1 is "whirlwind":
+            if arg-2 is "start":
+                set {_radius} to arg-3 ? 30
+                set {_duration} to arg-4 ? 60
+
+                if worldevent_hasSavedLocation() is true:
+                    set {_center} to worldevent_getSavedLocation()
+                    send "&aStarted Whirlwind at saved location"
+                else:
+                    set {_center} to player's location
+                    send "&aStarted Whirlwind at your location"
+                    send "&7Tip: Use &e/worldevent setlocation &7to set a fixed center"
+
+                whirlwind_start({_center}, {_radius}, {_duration})
+                send "&7Radius: %{_radius}% blocks, Duration: %{_duration}%s"
+
+            else if arg-2 is "stop":
+                whirlwind_stop()
+                send "&cStopped Whirlwind event"
+
+            else:
+                send "&e/worldevent whirlwind start [radius] [duration]"
+                send "&e/worldevent whirlwind stop"
+
+        else if arg-1 is "meteor":
+            if arg-2 is "start":
+                set {_radius} to arg-3 ? 40
+                set {_duration} to arg-4 ? 60
+
+                if worldevent_hasSavedLocation() is true:
+                    set {_center} to worldevent_getSavedLocation()
+                    send "&aStarted Meteor Rain at saved location"
+                else:
+                    set {_center} to player's location
+                    send "&aStarted Meteor Rain at your location"
+                    send "&7Tip: Use &e/worldevent setlocation &7to set a fixed center"
+
+                meteor_start({_center}, {_radius}, {_duration})
+                send "&7Radius: %{_radius}% blocks, Duration: %{_duration}%s"
+
+            else if arg-2 is "stop":
+                meteor_stop()
+                send "&cStopped Meteor Rain event"
+
+            else:
+                send "&e/worldevent meteor start [radius] [duration]"
+                send "&e/worldevent meteor stop"
+
+        else if arg-1 is "earthquake":
+            if arg-2 is "start":
+                set {_radius} to arg-3 ? 40
+                set {_duration} to arg-4 ? 50
+
+                if worldevent_hasSavedLocation() is true:
+                    set {_center} to worldevent_getSavedLocation()
+                    send "&aStarted Earthquake at saved location"
+                else:
+                    set {_center} to player's location
+                    send "&aStarted Earthquake at your location"
+                    send "&7Tip: Use &e/worldevent setlocation &7to set a fixed center"
+
+                earthquake_start({_center}, {_radius}, {_duration})
+                send "&7Radius: %{_radius}% blocks, Duration: %{_duration}%s"
+
+            else if arg-2 is "stop":
+                earthquake_stop()
+                send "&cStopped Earthquake event"
+
+            else:
+                send "&e/worldevent earthquake start [radius] [duration]"
+                send "&e/worldevent earthquake stop"
+
+        else if arg-1 is "list":
+            send "&6--- Active World Events ---"
+            set {_anyActive} to false
+            if worldevent_isActive("whirlwind") is true:
+                send "&7- &b⚡ Whirlwind"
+                set {_anyActive} to true
+            if worldevent_isActive("meteor") is true:
+                send "&7- &c☄ Meteor Rain"
+                set {_anyActive} to true
+            if worldevent_isActive("earthquake") is true:
+                send "&7- &6⚠ Earthquake"
+                set {_anyActive} to true
+            if {_anyActive} is false:
+                send "&7No events currently active"
+
+        else if arg-1 is "stopall":
+            whirlwind_stop()
+            meteor_stop()
+            earthquake_stop()
+            send "&cStopped all world events"
+
+        else:
+            send "&6--- World Events ---"
+            send "&e/worldevent setlocation &7- Set center to targeted block"
+            send "&e/worldevent clearlocation &7- Clear saved location"
+            send "&e/worldevent location &7- View saved location"
+            send ""
+            send "&b⚡ Whirlwind:"
+            send "&e/worldevent whirlwind start [radius] [duration]"
+            send "&e/worldevent whirlwind stop"
+            send ""
+            send "&c☄ Meteor Rain:"
+            send "&e/worldevent meteor start [radius] [duration]"
+            send "&e/worldevent meteor stop"
+            send ""
+            send "&6⚠ Earthquake:"
+            send "&e/worldevent earthquake start [radius] [duration]"
+            send "&e/worldevent earthquake stop"
+            send ""
+            send "&e/worldevent list &7- Show active events"
+            send "&e/worldevent stopall &7- Stop all events"

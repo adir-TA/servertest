@@ -1,0 +1,675 @@
+# ============================================================
+# PET MENU SYSTEM
+# ============================================================
+#
+# Handles /pets GUI for viewing, equipping, and salvaging pets
+#
+# Layout:
+#   Row 1: Equipped pet slots (1-5)
+#   Row 2-5: Owned pets grid
+#   Row 6: Info, Sort, Slot Unlock, Close
+#
+# ============================================================
+
+# ============================================================
+# MAIN MENU
+# ============================================================
+
+command /pets:
+    permission: pets.use
+    trigger:
+        pet_openMainMenu(player, 1, "tier")
+
+function pet_openMainMenu(p: player, page: number, sortBy: text):
+    # Progression check - require Level 10
+    if progression_canAccessPets({_p}) = false:
+        send "" to {_p}
+        send "&c&l🔒 PETS LOCKED" to {_p}
+        send "" to {_p}
+        send "&7Pets unlock at &eLevel 5&7!" to {_p}
+        send "" to {_p}
+        set {_level} to progression_getLevel({_p})
+        send "&7Current Level: &e%{_level}%&7/&a5" to {_p}
+        send "" to {_p}
+        send "&7Keep mining to unlock pets!" to {_p}
+        send "" to {_p}
+        play sound "entity.villager.no" with volume 0.5 and pitch 1 to {_p}
+        stop
+
+    set {_uuid} to {_p}'s uuid
+    set {_menu} to chest inventory with 6 rows named "&d&lPets"
+    
+    # Fill with glass
+    set {_filler} to black stained glass pane named "&1"
+    loop 54 times:
+        set slot loop-number - 1 of {_menu} to {_filler}
+    
+    # ════════════════════════════════════════
+    # ROW 1: EQUIPPED SLOTS (slots 0-8, we use 2-6)
+    # ════════════════════════════════════════
+    set {_unlockedSlots} to pet_getUnlockedSlots({_p})
+    set {_equippedList::*} to pet_getEquipped({_p})
+    
+    loop 5 times:
+        set {_slotNum} to loop-number
+        set {_guiSlot} to loop-number + 1  # GUI slots 2,3,4,5,6
+        
+        if {_slotNum} <= {_unlockedSlots}:
+            # Slot is unlocked
+            if size of {_equippedList::*} >= {_slotNum}:
+                # Has pet in this slot - show equipped pet
+                set {_petId} to {_equippedList::%{_slotNum}%}
+                set {_petItem} to pet_createItem({_p}, {_petId})
+                set slot {_guiSlot} of {_menu} to {_petItem}
+            else:
+                # Empty slot
+                set {_empty} to bamboo button named "&e✦ Empty Slot"
+                set lore of {_empty} to menu_utils_getMenuItemFirstLoreLine(), "", "&7Equip a pet from your", "&7collection below!"
+                set slot {_guiSlot} of {_menu} to {_empty}
+        else:
+            # Slot is locked
+            set {_locked} to mangrove button named "&c🔒 Locked Slot %{_slotNum}%"
+
+            add menu_utils_getMenuItemFirstLoreLine() to {_lockedLore::*}
+            add "" to {_lockedLore::*}
+            add "&7Unlock this slot to equip" to {_lockedLore::*}
+            add "&7more pets!" to {_lockedLore::*}
+            add "" to {_lockedLore::*}
+            add "&d▶ Use &5/research &dto unlock" to {_lockedLore::*}
+
+            set lore of {_locked} to {_lockedLore::*}
+            delete {_lockedLore::*}
+            set slot {_guiSlot} of {_menu} to {_locked}
+    
+    # ════════════════════════════════════════
+    # ROWS 2-5: OWNED PETS (slots 9-44, but we use 10-16, 19-25, 28-34, 37-43)
+    # ════════════════════════════════════════
+    
+    # Get and sort owned pets
+    set {_owned::*} to pet_getOwned({_p})
+    set {_sortedPets::*} to pet_sortPets({_p}, {_owned::*}, {_sortBy})
+    
+    # Pagination
+    set {_petsPerPage} to 28  # 7 columns × 4 rows
+    set {_totalPets} to size of {_sortedPets::*}
+    set {_totalPages} to max(1, ceiling({_totalPets} / {_petsPerPage}))
+    
+    if {_page} > {_totalPages}:
+        set {_page} to {_totalPages}
+    if {_page} < 1:
+        set {_page} to 1
+    
+    set {_startIndex} to (({_page} - 1) * {_petsPerPage}) + 1
+    set {_endIndex} to min({_startIndex} + {_petsPerPage} - 1, {_totalPets})
+    
+    # Display slots mapping (7 per row, 4 rows)
+    set {_displaySlots::*} to 10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 31, 32, 33, 34, 37, 38, 39, 40, 41, 42 and 43
+    
+    set {_displayIndex} to 1
+    loop integers from {_startIndex} to {_endIndex}:
+        set {_petIndex} to loop-number
+        set {_petId} to {_sortedPets::%{_petIndex}%}
+        
+        if {_petId} is set:
+            set {_petItem} to pet_createItem({_p}, {_petId})
+            set {_guiSlot} to {_displaySlots::%{_displayIndex}%}
+            set slot {_guiSlot} of {_menu} to {_petItem}
+        
+        add 1 to {_displayIndex}
+    
+    # ════════════════════════════════════════
+    # ROW 6: CONTROLS (slots 45-53)
+    # ════════════════════════════════════════
+    
+    # Stats info - Slot 45
+    set {_info} to book named "&ePet Guide"
+    add menu_utils_getMenuItemFirstLoreLine() to {_infoLore::*}
+    add "" to {_infoLore::*}
+    add "&6What is this?" to {_infoLore::*}
+    add "&7Pets provide passive bonuses" to {_infoLore::*}
+    add "&7to your mining stats." to {_infoLore::*}
+    add "" to {_infoLore::*}
+    add "&aStorage" to {_infoLore::*}
+    set {_petStorageMax} to research_getPetStorageMax({_p})
+    add "&7Owned: &8[&a%{_totalPets}%&8/&c%{_petStorageMax}%&8]" to {_infoLore::*}
+    add "&7Equipped: &8[&a%size of {_equippedList::*}%&8/&c%{_unlockedSlots}%&8]" to {_infoLore::*}
+    add "" to {_infoLore::*}
+    add "&dActive Bonuses:" to {_infoLore::*}
+    
+    # Show active bonuses
+    set {_hasBonus} to false
+    loop "mining_speed", "drops", "xp", "token", "enchant_proc", "damage" and "durability":
+        set {_stat} to loop-value
+        set {_bonus} to pet_getTotalBonus({_p}, {_stat})
+        if {_bonus} > 0:
+            set {_bonusPercent} to {_bonus} * 100
+            set {_statFormatted} to pet_formatStatName({_stat})
+            add " &a+%{_bonusPercent}%%% &f%{_statFormatted}%" to {_infoLore::*}
+            set {_hasBonus} to true
+    
+    if {_hasBonus} = false:
+        add " &8No pets equipped" to {_infoLore::*}
+    
+    set lore of {_info} to {_infoLore::*}
+    set slot 45 of {_menu} to {_info}
+    
+    # Salvage All button - Slot 46
+    set {_salvageAll} to tnt named "&c&lSalvage All"
+    add menu_utils_getMenuItemFirstLoreLine() to {_salvageAllLore::*}
+    add "" to {_salvageAllLore::*}
+    add "&7Salvage all unequipped pets" to {_salvageAllLore::*}
+    add "&7for tokens." to {_salvageAllLore::*}
+    add "" to {_salvageAllLore::*}
+    # Count unequipped pets
+    set {_unequippedCount} to 0
+    set {_totalTokens} to 0
+    loop {pet::owned::%{_uuid}%::*}:
+        set {_petId} to loop-value
+        if pet_isEquipped({_p}, {_petId}) = false:
+            add 1 to {_unequippedCount}
+            set {_r} to pet_getInstanceRarity({_p}, {_petId})
+            add pet_getSalvageValue({_r}) to {_totalTokens}
+    add "&6Summary:" to {_salvageAllLore::*}
+    add " &7Pets: &e%{_unequippedCount}%" to {_salvageAllLore::*}
+    add " &7Tokens: &6%formatNum({_totalTokens})%" to {_salvageAllLore::*}
+    add "" to {_salvageAllLore::*}
+    if {_unequippedCount} > 0:
+        add "&eClick to salvage all" to {_salvageAllLore::*}
+        set string tag "pet;action" of custom nbt of {_salvageAll} to "salvage_all"
+    else:
+        add "&8No pets to salvage" to {_salvageAllLore::*}
+    set lore of {_salvageAll} to {_salvageAllLore::*}
+    set slot 46 of {_menu} to {_salvageAll}
+    
+    # Sort button - Slot 47
+    set {_sort} to hopper named "&e&lSort Pets"
+    add menu_utils_getMenuItemFirstLoreLine() to {_sortLore::*}
+    add "" to {_sortLore::*}
+    add "&6Sort Mode:" to {_sortLore::*}
+    if {_sortBy} = "tier":
+        add " &a▶ By Tier" to {_sortLore::*}
+        add " &7  By Bonus Amount" to {_sortLore::*}
+        add " &7  By Stat Type" to {_sortLore::*}
+    else if {_sortBy} = "bonus":
+        add " &7  By Tier" to {_sortLore::*}
+        add " &a▶ By Bonus Amount" to {_sortLore::*}
+        add " &7  By Stat Type" to {_sortLore::*}
+    else:
+        add " &7  By Tier" to {_sortLore::*}
+        add " &7  By Bonus Amount" to {_sortLore::*}
+        add " &a▶ By Stat Type" to {_sortLore::*}
+    add "" to {_sortLore::*}
+    add "&eClick to cycle" to {_sortLore::*}
+    set lore of {_sort} to {_sortLore::*}
+    set string tag "pet;action" of custom nbt of {_sort} to "sort"
+    set string tag "pet;sortBy" of custom nbt of {_sort} to {_sortBy}
+    set slot 47 of {_menu} to {_sort}
+    
+    # Previous page - Slot 48
+    if {_page} > 1:
+        set {_prev} to arrow named "&c&lBACK"
+        add menu_utils_getMenuItemFirstLoreLine() to {_prevLore::*}
+        add "" to {_prevLore::*}
+        add "&7Page: &8[&a%{_page} - 1%&8/&c%{_totalPages}%&8]" to {_prevLore::*}
+        add "" to {_prevLore::*}
+        add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ɢᴏ ʙᴀᴄᴋ" to {_prevLore::*}
+        set lore of {_prev} to {_prevLore::*}
+        set string tag "pet;action" of custom nbt of {_prev} to "page"
+        set int tag "pet;page" of custom nbt of {_prev} to {_page} - 1
+        set string tag "pet;sortBy" of custom nbt of {_prev} to {_sortBy}
+        set slot 48 of {_menu} to {_prev}
+    
+    # Page indicator - Slot 49
+    set {_pageItem} to paper named "&7Page: &8[&a%{_page}%&8/&c%{_totalPages}%&8]"
+    set slot 49 of {_menu} to {_pageItem}
+    
+    # Next page - Slot 50
+    if {_page} < {_totalPages}:
+        set {_next} to arrow named "&a&lNEXT"
+        add menu_utils_getMenuItemFirstLoreLine() to {_nextLore::*}
+        add "" to {_nextLore::*}
+        add "&7Page: &8[&a%{_page} + 1%&8/&c%{_totalPages}%&8]" to {_nextLore::*}
+        add "" to {_nextLore::*}
+        add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ɢᴏ ɴᴇxᴛ" to {_nextLore::*}
+        set lore of {_next} to {_nextLore::*}
+        set string tag "pet;action" of custom nbt of {_next} to "page"
+        set int tag "pet;page" of custom nbt of {_next} to {_page} + 1
+        set string tag "pet;sortBy" of custom nbt of {_next} to {_sortBy}
+        set slot 50 of {_menu} to {_next}
+    
+    # Filter button - Slot 51
+    set {_filteredCount} to filter_countFilteredPets({_p})
+    set {_totalPetTypes} to filter_countTotalPets()
+    set {_filter} to comparator named "&c&lAuto-Salvage Filter"
+    add menu_utils_getMenuItemFirstLoreLine() to {_filterLore::*}
+    add "" to {_filterLore::*}
+    add "&7Configure which pets to" to {_filterLore::*}
+    add "&7auto-salvage when obtained." to {_filterLore::*}
+    add "" to {_filterLore::*}
+    add "&6Filtered: &c%{_filteredCount}%&7/%{_totalPetTypes}%" to {_filterLore::*}
+    add "" to {_filterLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴄᴏɴғɪɢᴜʀᴇ" to {_filterLore::*}
+    set lore of {_filter} to {_filterLore::*}
+    set string tag "pet;action" of custom nbt of {_filter} to "open_filter"
+    set slot 51 of {_menu} to {_filter}
+
+    # Close button - Slot 53
+    set {_close} to barrier named "&c&lCLOSE"
+    delete {_closeLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_closeLore::*}
+    add "" to {_closeLore::*}
+    add "&7Close this menu" to {_closeLore::*}
+    add "" to {_closeLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴄʟᴏsᴇ" to {_closeLore::*}
+    set lore of {_close} to {_closeLore::*}
+    set string tag "pet;action" of custom nbt of {_close} to "close"
+    set slot 53 of {_menu} to {_close}
+    
+    open {_menu} to {_p}
+    set {-pet::menu::%{_uuid}%} to "PET_MAIN"
+    set {-pet::menu::%{_uuid}%::page} to {_page}
+    set {-pet::menu::%{_uuid}%::sort} to {_sortBy}
+
+
+# ============================================================
+# SALVAGE CONFIRMATION MENU
+# ============================================================
+
+function pet_openSalvageConfirm(p: player, petId: text):
+    set {_uuid} to {_p}'s uuid
+    set {_type} to pet_getInstanceType({_p}, {_petId})
+    set {_rarity} to pet_getInstanceRarity({_p}, {_petId})
+    set {_name} to pet_getTypeName({_type})
+    set {_color} to pet_getRarityColor({_rarity})
+    set {_tokens} to pet_getSalvageValue({_rarity})
+    
+    set {_menu} to chest inventory with 3 rows named "&c&lConfirm Salvage"
+    
+    # Fill with glass
+    set {_filler} to black stained glass pane named "&1"
+    loop 27 times:
+        set slot loop-number - 1 of {_menu} to {_filler}
+    
+    # Red glass warning
+    set {_warning} to red stained glass pane named "&1"
+    set slot 3,4,5,12,14,21,22,23 of {_menu} to {_warning}
+    
+    # Pet preview - Slot 13
+    set {_petItem} to pet_createItem({_p}, {_petId})
+    set slot 13 of {_menu} to {_petItem}
+    
+    # Confirm - Slot 11
+    set {_confirm} to lime dye named "&a&lConfirm"
+    add menu_utils_getMenuItemFirstLoreLine() to {_confirmLore::*}
+    add "" to {_confirmLore::*}
+    add "&6Summary:" to {_confirmLore::*}
+    add " &7Salvage: %{_color}%%{_name}%" to {_confirmLore::*}
+    add " &7Receive: &6%formatNum({_tokens})% Tokens" to {_confirmLore::*}
+    add "" to {_confirmLore::*}
+    add "&c⚠ This cannot be undone!" to {_confirmLore::*}
+    add "" to {_confirmLore::*}
+    add "&aClick to confirm" to {_confirmLore::*}
+    set lore of {_confirm} to {_confirmLore::*}
+    set string tag "pet;action" of custom nbt of {_confirm} to "confirm_salvage"
+    set string tag "pet;id" of custom nbt of {_confirm} to {_petId}
+    set slot 11 of {_menu} to {_confirm}
+    
+    # Cancel - Slot 15
+    set {_cancel} to red dye named "&c&lCANCEL"
+    add menu_utils_getMenuItemFirstLoreLine() to {_cancelLore::*}
+    add "" to {_cancelLore::*}
+    add "&7Go back to pet menu" to {_cancelLore::*}
+    add "" to {_cancelLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ɢᴏ ʙᴀᴄᴋ" to {_cancelLore::*}
+    set lore of {_cancel} to {_cancelLore::*}
+    set string tag "pet;action" of custom nbt of {_cancel} to "cancel_salvage"
+    set slot 15 of {_menu} to {_cancel}
+    
+    open {_menu} to {_p}
+    set {-pet::menu::%{_uuid}%} to "SALVAGE_CONFIRM"
+
+
+# ============================================================
+# SALVAGE ALL CONFIRMATION MENU
+# ============================================================
+
+function pet_openSalvageAllConfirm(p: player):
+    set {_uuid} to {_p}'s uuid
+    
+    # Count unequipped pets and total tokens
+    set {_unequippedCount} to 0
+    set {_totalTokens} to 0
+    loop {pet::owned::%{_uuid}%::*}:
+        set {_petId} to loop-value
+        if pet_isEquipped({_p}, {_petId}) = false:
+            add 1 to {_unequippedCount}
+            set {_r} to pet_getInstanceRarity({_p}, {_petId})
+            add pet_getSalvageValue({_r}) to {_totalTokens}
+    
+    if {_unequippedCount} = 0:
+        send "&cNo pets to salvage!" to {_p}
+        stop
+    
+    set {_menu} to chest inventory with 3 rows named "&c&lSALVAGE ALL"
+    
+    # Fill with glass
+    set {_filler} to black stained glass pane named "&1"
+    loop 27 times:
+        set slot loop-number - 1 of {_menu} to {_filler}
+    
+    # Red glass warning
+    set {_warning} to red stained glass pane named "&1"
+    set slot 0,1,2,3,4,5,6,7,8,9,17,18,26 of {_menu} to {_warning}
+    
+    # Info - Slot 13
+    set {_info} to tnt named "&c&lSALVAGE ALL"
+    add menu_utils_getMenuItemFirstLoreLine() to {_infoLore::*}
+    add "" to {_infoLore::*}
+    add "&7This will salvage &c&lALL" to {_infoLore::*}
+    add "&7unequipped pets!" to {_infoLore::*}
+    add "" to {_infoLore::*}
+    add "&6Summary:" to {_infoLore::*}
+    add " &7Pets: &e%{_unequippedCount}%" to {_infoLore::*}
+    add " &7Tokens: &6%formatNum({_totalTokens})%" to {_infoLore::*}
+    add "" to {_infoLore::*}
+    add "&c⚠ ᴛʜɪs ᴄᴀɴɴᴏᴛ ʙᴇ ᴜɴᴅᴏɴᴇ!" to {_infoLore::*}
+    set lore of {_info} to {_infoLore::*}
+    set slot 13 of {_menu} to {_info}
+    
+    # Confirm - Slot 11
+    set {_confirm} to lime dye named "&a&lCONFIRM"
+    add menu_utils_getMenuItemFirstLoreLine() to {_confirmLore::*}
+    add "" to {_confirmLore::*}
+    add "&6Summary:" to {_confirmLore::*}
+    add " &7Salvage: &e%{_unequippedCount}% pets" to {_confirmLore::*}
+    add " &7Receive: &6%formatNum({_totalTokens})% Tokens" to {_confirmLore::*}
+    add "" to {_confirmLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴄᴏɴғɪʀᴍ" to {_confirmLore::*}
+    set lore of {_confirm} to {_confirmLore::*}
+    set string tag "pet;action" of custom nbt of {_confirm} to "confirm_salvage_all"
+    set slot 11 of {_menu} to {_confirm}
+    
+    # Cancel - Slot 15
+    set {_cancel} to red dye named "&c&lCANCEL"
+    add menu_utils_getMenuItemFirstLoreLine() to {_cancelLore::*}
+    add "" to {_cancelLore::*}
+    add "&7Go back to pet menu" to {_cancelLore::*}
+    add "" to {_cancelLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴄᴀɴᴄᴇʟ" to {_cancelLore::*}
+    set lore of {_cancel} to {_cancelLore::*}
+    set string tag "pet;action" of custom nbt of {_cancel} to "cancel_salvage"
+    set slot 15 of {_menu} to {_cancel}
+    
+    open {_menu} to {_p}
+    set {-pet::menu::%{_uuid}%} to "SALVAGE_ALL_CONFIRM"
+
+
+# ============================================================
+# CLICK HANDLER
+# ============================================================
+
+on inventory click:
+    set {_uuid} to player's uuid
+    set {_menuType} to {-pet::menu::%{_uuid}%}
+    
+    if {_menuType} = "PET_MAIN":
+        cancel event
+        
+        set {_nbt} to custom nbt of clicked slot
+        set {_petId} to string tag "pet;id" of {_nbt}
+        set {_action} to string tag "pet;action" of {_nbt}
+        
+        # Handle pet click
+        if {_petId} is set:
+            # Drop key (Q) = salvage
+            if click type is drop key:
+                play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+                pet_openSalvageConfirm(player, {_petId})
+                stop
+            
+            # Normal click = equip/unequip
+            if pet_isEquipped(player, {_petId}) = true:
+                pet_unequip(player, {_petId})
+            else:
+                pet_equip(player, {_petId})
+            
+            # Refresh menu
+            set {_page} to {-pet::menu::%{_uuid}%::page} ? 1
+            set {_sort} to {-pet::menu::%{_uuid}%::sort} ? "tier"
+            pet_openMainMenu(player, {_page}, {_sort})
+            stop
+        
+        # Handle actions
+        if {_action} = "unlock_slot":
+            # Point to /research instead
+            send "&c&l! &7Use &d/research &7to unlock more pet slots!" to player
+            play sound "entity.villager.no" with volume 0.5 and pitch 1 to player
+
+        else if {_action} = "sort":
+            play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+            set {_currentSort} to string tag "pet;sortBy" of {_nbt}
+            if {_currentSort} = "tier":
+                set {_newSort} to "bonus"
+            else if {_currentSort} = "bonus":
+                set {_newSort} to "stat"
+            else:
+                set {_newSort} to "tier"
+            set {_page} to {-pet::menu::%{_uuid}%::page} ? 1
+            pet_openMainMenu(player, {_page}, {_newSort})
+        
+        else if {_action} = "page":
+            play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+            set {_newPage} to int tag "pet;page" of {_nbt}
+            set {_sort} to string tag "pet;sortBy" of {_nbt}
+            pet_openMainMenu(player, {_newPage}, {_sort})
+        
+        else if {_action} = "buy_eggs":
+            play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+            pet_openTierMenu(player)
+        
+        else if {_action} = "salvage_all":
+            play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+            pet_openSalvageAllConfirm(player)
+
+        else if {_action} = "open_filter":
+            play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+            delete {-pet::menu::%{_uuid}%}
+            filter_openPetFilter(player, 1)
+
+        else if {_action} = "close":
+            close inventory of player
+    
+    else if {_menuType} = "SALVAGE_CONFIRM":
+        cancel event
+        
+        set {_nbt} to custom nbt of clicked slot
+        set {_action} to string tag "pet;action" of {_nbt}
+        
+        if {_action} = "confirm_salvage":
+            set {_petId} to string tag "pet;id" of {_nbt}
+            pet_salvage(player, {_petId})
+            set {_page} to {-pet::menu::%{_uuid}%::page} ? 1
+            set {_sort} to {-pet::menu::%{_uuid}%::sort} ? "tier"
+            pet_openMainMenu(player, {_page}, {_sort})
+        
+        else if {_action} = "cancel_salvage":
+            play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+            set {_page} to {-pet::menu::%{_uuid}%::page} ? 1
+            set {_sort} to {-pet::menu::%{_uuid}%::sort} ? "tier"
+            pet_openMainMenu(player, {_page}, {_sort})
+    
+    else if {_menuType} = "SALVAGE_ALL_CONFIRM":
+        cancel event
+        
+        set {_nbt} to custom nbt of clicked slot
+        set {_action} to string tag "pet;action" of {_nbt}
+        
+        if {_action} = "confirm_salvage_all":
+            # Salvage all unequipped pets
+            set {_totalTokens} to 0
+            set {_count} to 0
+            
+            # Collect pets to delete (can't modify list while looping)
+            loop {pet::owned::%{_uuid}%::*}:
+                set {_petId} to loop-value
+                if pet_isEquipped(player, {_petId}) = false:
+                    add {_petId} to {_toDelete::*}
+            
+            # Delete them
+            loop {_toDelete::*}:
+                set {_petId} to loop-value
+                set {_type} to pet_getInstanceType(player, {_petId})
+                set {_rarity} to pet_getInstanceRarity(player, {_petId})
+                set {_tokens} to pet_getSalvageValue({_rarity})
+                add {_tokens} to {_totalTokens}
+                add 1 to {_count}
+                pet_delete(player, {_petId})
+            
+            # Add tokens
+            add {_totalTokens} to {data::tokens::%{_uuid}%}
+            
+            send "" to player
+            send "&6Mass salvage complete!" to player
+            send "&7Salvaged: &e%{_count}% &7pets" to player
+            send "&7Tokens: &6+%formatNum({_totalTokens})%" to player
+            send "" to player
+            
+            play sound "entity.item.break" with volume 1 and pitch 0.8 to player
+            
+            set {_page} to {-pet::menu::%{_uuid}%::page} ? 1
+            set {_sort} to {-pet::menu::%{_uuid}%::sort} ? "tier"
+            pet_openMainMenu(player, {_page}, {_sort})
+        
+        else if {_action} = "cancel_salvage":
+            play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+            set {_page} to {-pet::menu::%{_uuid}%::page} ? 1
+            set {_sort} to {-pet::menu::%{_uuid}%::sort} ? "tier"
+            pet_openMainMenu(player, {_page}, {_sort})
+
+
+on inventory close:
+    set {_uuid} to player's uuid
+    set {_menu} to {-pet::menu::%{_uuid}%}
+    if {_menu} is set:
+        # Clear all pet menu states (PET_MAIN, SALVAGE_*)
+        if {_menu} is "PET_MAIN":
+            delete {-pet::menu::%{_uuid}%}
+            delete {-pet::menu::%{_uuid}%::page}
+            delete {-pet::menu::%{_uuid}%::sort}
+        else if {_menu} contains "SALVAGE":
+            delete {-pet::menu::%{_uuid}%}
+            delete {-pet::menu::%{_uuid}%::page}
+            delete {-pet::menu::%{_uuid}%::sort}
+
+
+# ============================================================
+# SORTING FUNCTIONS
+# ============================================================
+
+function pet_sortPets(p: player, pets: objects, sortBy: text) :: objects:
+    # Simple bubble sort (fine for reasonable pet counts)
+    set {_sorted::*} to {_pets::*}
+    set {_size} to size of {_sorted::*}
+    
+    if {_size} <= 1:
+        return {_sorted::*}
+    
+    loop {_size} times:
+        set {_i} to loop-number
+        loop integers from 1 to ({_size} - {_i}):
+            set {_j} to loop-number-2
+            set {_pet1} to {_sorted::%{_j}%}
+            set {_pet2} to {_sorted::%{_j} + 1%}
+            
+            set {_shouldSwap} to pet_shouldSwap({_p}, {_pet1}, {_pet2}, {_sortBy})
+            
+            if {_shouldSwap} = true:
+                set {_sorted::%{_j}%} to {_pet2}
+                set {_sorted::%{_j} + 1%} to {_pet1}
+    
+    return {_sorted::*}
+
+function pet_shouldSwap(p: player, pet1: text, pet2: text, sortBy: text) :: boolean:
+    set {_type1} to pet_getInstanceType({_p}, {_pet1})
+    set {_type2} to pet_getInstanceType({_p}, {_pet2})
+    set {_rarity1} to pet_getInstanceRarity({_p}, {_pet1})
+    set {_rarity2} to pet_getInstanceRarity({_p}, {_pet2})
+    
+    set {_tier1} to pet_getTypeTier({_type1})
+    set {_tier2} to pet_getTypeTier({_type2})
+    set {_tierRank1} to pet_getTierRank({_tier1})
+    set {_tierRank2} to pet_getTierRank({_tier2})
+    
+    set {_bonus1} to pet_calculateBonus({_type1}, {_rarity1})
+    set {_bonus2} to pet_calculateBonus({_type2}, {_rarity2})
+    
+    set {_stat1} to pet_getTypeStat({_type1})
+    set {_stat2} to pet_getTypeStat({_type2})
+    
+    # Sort by Tier: tier (high to low), then bonus (high to low)
+    if {_sortBy} = "tier":
+        if {_tierRank1} < {_tierRank2}:
+            return true
+        if {_tierRank1} > {_tierRank2}:
+            return false
+        # Same tier, sort by bonus
+        if {_bonus1} < {_bonus2}:
+            return true
+        return false
+    
+    # Sort by Bonus Amount: bonus (high to low)
+    else if {_sortBy} = "bonus":
+        if {_bonus1} < {_bonus2}:
+            return true
+        return false
+    
+    # Sort by Stat Type: stat by priority, then bonus (high to low)
+    else if {_sortBy} = "stat":
+        set {_statRank1} to pet_getStatRank({_stat1})
+        set {_statRank2} to pet_getStatRank({_stat2})
+        if {_statRank1} > {_statRank2}:
+            return true
+        if {_statRank1} < {_statRank2}:
+            return false
+        # Same stat, sort by bonus (high to low)
+        if {_bonus1} < {_bonus2}:
+            return true
+        return false
+    
+    return false
+
+# Stat priority ranking (higher = shows first)
+function pet_getStatRank(stat: text) :: number:
+    if {_stat} = "drops":
+        return 7
+    else if {_stat} = "token":
+        return 6
+    else if {_stat} = "xp":
+        return 5
+    else if {_stat} = "mining_speed":
+        return 4
+    else if {_stat} = "damage":
+        return 3
+    else if {_stat} = "enchant_proc":
+        return 2
+    else if {_stat} = "durability":
+        return 1
+    return 0
+
+function pet_getRarityRank(rarity: text) :: number:
+    if {_rarity} = "legendary":
+        return 5
+    else if {_rarity} = "epic":
+        return 4
+    else if {_rarity} = "rare":
+        return 3
+    else if {_rarity} = "uncommon":
+        return 2
+    return 1
+
+function pet_getTierRank(tier: text) :: number:
+    if {_tier} = "divine":
+        return 3
+    else if {_tier} = "ultra":
+        return 2
+    return 1

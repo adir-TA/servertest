@@ -1,0 +1,12 @@
+
+on inventory click:
+    set {_menuData} to menu_getCurrentMenu(player)
+    # broadcast "%{_menuData}%"
+    if {_menuData} != "N/A":
+        cancel event
+#        if {_menuData} = "PICKAXE_MENU":
+#            clickHandler_PickaxeMenu(player, event-slot, click type, event-inventory, index of event-slot)
+#            stop
+        if {_menuData} = "ARCHETYPE_MENU":
+            clickHandler_ArchetypeMenu(player, event-slot, event-inventory, index of event-slot)
+            stop

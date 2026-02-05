@@ -1,0 +1,448 @@
+# ============================================================
+# PLACEHOLDERAPI - MINING STATS
+# ============================================================
+# 
+# Usage: %api_<identifier>%
+#
+# GENERAL:
+#   %api_balance%
+#   %api_balance_formatted%      - "&2$&a<balance>"
+#   %api_tokens%
+#   %api_tokens_formatted%       - "&6⛂&e<tokens>"
+#   %api_archetype%              - Current archetype name (Global/Demolition/Precision/Arcane)
+#   %api_archetype_short%        - Short archetype with color + bold (e.g. "&b&lPRC")
+#   %api_archetype_id%           - Current archetype ID (1-4)
+#   %api_durability%             - Current durability
+#   %api_durability_max%         - Max durability
+#   %api_durability_percent%     - Durability percentage
+#   %api_team_name%              - Team name, if no team = "N/A"
+#
+# PRESTIGE GLOBAL:
+#   %api_prestige_total%         - Total prestiges across all archetypes
+#   %api_prestige_points%        - Prestige currency points
+#
+# DEMOLITION:
+#   %api_demolition_level%
+#   %api_demolition_level_formatted%
+#   %api_demolition_xp%
+#   %api_demolition_xp_needed%
+#   %api_demolition_prestige%
+#   %api_demolition_prestige_formatted%
+#   %api_demolition_max_level%
+#
+# PRECISION:
+#   %api_precision_level%
+#   %api_precision_level_formatted%
+#   %api_precision_xp%
+#   %api_precision_xp_needed%
+#   %api_precision_prestige%
+#   %api_precision_prestige_formatted%
+#   %api_precision_max_level%
+#
+# ARCANE:
+#   %api_arcane_level%
+#   %api_arcane_level_formatted%
+#   %api_arcane_xp%
+#   %api_arcane_xp_needed%
+#   %api_arcane_prestige%
+#   %api_arcane_prestige_formatted%
+#   %api_arcane_max_level%
+#
+# CURRENT ARCHETYPE (whichever is active):
+#   %api_current_level%
+#   %api_current_level_formatted%
+#   %api_current_xp%
+#   %api_current_xp_needed%
+#   %api_current_prestige%
+#   %api_current_prestige_formatted%
+#   %api_current_max_level%
+#   %api_current_rank%           - Shows prestige (roman) if > 0, else level
+#   %api_current_rank_formatted% - Colored version
+#
+# AVERAGE:
+#   %api_average_level%          - Average level across all 3 archetypes
+#
+# ============================================================
+
+placeholderapi placeholder with the prefix "api":
+
+    # ════════════════════════════════════════
+    # GENERAL
+    # ════════════════════════════════════════
+
+    if the identifier is "balance":
+        set the result to "%economy_getMoney(player)%"
+        stop
+
+    if the identifier is "balance_formatted":
+        set the result to economy_getFormattedMoney(player)
+        stop
+
+    if the identifier is "tokens":
+        set the result to "%economy_getTokens(player)%"
+        stop
+
+    if the identifier is "tokens_formatted":
+        set the result to economy_getFormattedTokens(player)
+        stop
+
+    if the identifier is "archetype":
+        set {_id} to player_getArchetype(player)
+        if {_id} = 2:
+            set the result to "Precision"
+        else if {_id} = 3:
+            set the result to "Demolition"
+        else if {_id} = 4:
+            set the result to "Arcane"
+        else:
+            set the result to "Global"
+        stop
+
+    if the identifier is "archetype_short":
+        set {_id} to player_getArchetype(player)
+        if {_id} = 2:
+            set the result to "&b&lPRC"
+        else if {_id} = 3:
+            set the result to "&c&lDEM"
+        else if {_id} = 4:
+            set the result to "&d&lARC"
+        else:
+            set the result to "&7&lGBL"
+        stop
+
+    if the identifier is "archetype_id":
+        set the result to "%player_getArchetype(player)%"
+        stop
+
+    if the identifier is "durability":
+        set {_val} to {data::durability::%player's uuid%} ? 100
+        set the result to "%{_val}%"
+        stop
+
+    if the identifier is "durability_max":
+        set {_val} to {data::maxDurability::%player's uuid%} ? 100
+        set the result to "%{_val}%"
+        stop
+
+    if the identifier is "durability_percent":
+        set {_dur} to {data::durability::%player's uuid%} ? 100
+        set {_max} to {data::maxDurability::%player's uuid%} ? 100
+        if {_max} > 0:
+            set {_percent} to round({_dur} / {_max} * 100)
+        else:
+            set {_percent} to 100
+        set the result to "%{_percent}%"
+        stop
+
+    if the identifier is "team_name":
+        set {_teamID} to team_getPlayerTeamID(player)
+        if {_teamID} = 0:
+            set the result to "N/A"
+            stop
+        set the result to team_getTeamName({_teamID})
+        stop
+
+    # ════════════════════════════════════════
+    # PRESTIGE GLOBAL
+    # ════════════════════════════════════════
+
+    if the identifier is "prestige_total":
+        set the result to "%economy_getTotalPrestiges(player)%"
+        stop
+
+    if the identifier is "prestige_points":
+        set the result to "%economy_getPrestigePoints(player)%"
+        stop
+
+    # ════════════════════════════════════════
+    # DEMOLITION
+    # ════════════════════════════════════════
+
+    if the identifier is "demolition_level":
+        set {_val} to {mining::demolition::%player's uuid%::level} ? 1
+        set the result to "%{_val}%"
+        stop
+
+    if the identifier is "demolition_level_formatted":
+        set the result to prestige_getFormattedLevel(player, "demolition")
+        stop
+
+    if the identifier is "demolition_xp":
+        set {_val} to {mining::demolition::%player's uuid%::xp} ? 0
+        set the result to "%{_val}%"
+        stop
+
+    if the identifier is "demolition_xp_needed":
+        set {_level} to {mining::demolition::%player's uuid%::level} ? 1
+        set {_val} to round(100 * {_level} ^ 1.2)
+        set the result to "%{_val}%"
+        stop
+
+    if the identifier is "demolition_prestige":
+        set {_val} to {mining::demolition::%player's uuid%::prestige} ? 0
+        set the result to "%{_val}%"
+        stop
+
+    if the identifier is "demolition_prestige_formatted":
+        set the result to prestige_getFormattedPrestige(player, "demolition")
+        stop
+
+    if the identifier is "demolition_max_level":
+        set {_prestige} to {mining::demolition::%player's uuid%::prestige} ? 0
+        set {_val} to 50 + ({_prestige} * 25)
+        set the result to "%{_val}%"
+        stop
+
+    # ════════════════════════════════════════
+    # PRECISION
+    # ════════════════════════════════════════
+
+    if the identifier is "precision_level":
+        set {_val} to {mining::precision::%player's uuid%::level} ? 1
+        set the result to "%{_val}%"
+        stop
+
+    if the identifier is "precision_level_formatted":
+        set the result to prestige_getFormattedLevel(player, "precision")
+        stop
+
+    if the identifier is "precision_xp":
+        set {_val} to {mining::precision::%player's uuid%::xp} ? 0
+        set the result to "%{_val}%"
+        stop
+
+    if the identifier is "precision_xp_needed":
+        set {_level} to {mining::precision::%player's uuid%::level} ? 1
+        set {_val} to round(100 * {_level} ^ 1.2)
+        set the result to "%{_val}%"
+        stop
+
+    if the identifier is "precision_prestige":
+        set {_val} to {mining::precision::%player's uuid%::prestige} ? 0
+        set the result to "%{_val}%"
+        stop
+
+    if the identifier is "precision_prestige_formatted":
+        set the result to prestige_getFormattedPrestige(player, "precision")
+        stop
+
+    if the identifier is "precision_max_level":
+        set {_prestige} to {mining::precision::%player's uuid%::prestige} ? 0
+        set {_val} to 50 + ({_prestige} * 25)
+        set the result to "%{_val}%"
+        stop
+
+    # ════════════════════════════════════════
+    # ARCANE
+    # ════════════════════════════════════════
+
+    if the identifier is "arcane_level":
+        set {_val} to {mining::arcane::%player's uuid%::level} ? 1
+        set the result to "%{_val}%"
+        stop
+
+    if the identifier is "arcane_level_formatted":
+        set the result to prestige_getFormattedLevel(player, "arcane")
+        stop
+
+    if the identifier is "arcane_xp":
+        set {_val} to {mining::arcane::%player's uuid%::xp} ? 0
+        set the result to "%{_val}%"
+        stop
+
+    if the identifier is "arcane_xp_needed":
+        set {_level} to {mining::arcane::%player's uuid%::level} ? 1
+        set {_val} to round(100 * {_level} ^ 1.2)
+        set the result to "%{_val}%"
+        stop
+
+    if the identifier is "arcane_prestige":
+        set {_val} to {mining::arcane::%player's uuid%::prestige} ? 0
+        set the result to "%{_val}%"
+        stop
+
+    if the identifier is "arcane_prestige_formatted":
+        set the result to prestige_getFormattedPrestige(player, "arcane")
+        stop
+
+    if the identifier is "arcane_max_level":
+        set {_prestige} to {mining::arcane::%player's uuid%::prestige} ? 0
+        set {_val} to 50 + ({_prestige} * 25)
+        set the result to "%{_val}%"
+        stop
+
+    # ════════════════════════════════════════
+    # CURRENT ARCHETYPE (dynamic)
+    # ════════════════════════════════════════
+
+    if the identifier is "current_level":
+        set {_id} to player_getArchetype(player)
+        if {_id} = 2:
+            set {_arch} to "precision"
+        else if {_id} = 3:
+            set {_arch} to "demolition"
+        else if {_id} = 4:
+            set {_arch} to "arcane"
+        else:
+            set the result to "1"
+            stop
+        set {_val} to {mining::%{_arch}%::%player's uuid%::level} ? 1
+        set the result to "%{_val}%"
+        stop
+
+    if the identifier is "current_level_formatted":
+        set {_id} to player_getArchetype(player)
+        if {_id} <= 1:
+            set the result to "&71"
+            stop
+        set the result to prestige_getCurrentFormattedLevel(player)
+        stop
+
+    if the identifier is "current_xp":
+        set {_id} to player_getArchetype(player)
+        if {_id} = 2:
+            set {_arch} to "precision"
+        else if {_id} = 3:
+            set {_arch} to "demolition"
+        else if {_id} = 4:
+            set {_arch} to "arcane"
+        else:
+            set the result to "0"
+            stop
+        set {_val} to {mining::%{_arch}%::%player's uuid%::xp} ? 0
+        set the result to "%{_val}%"
+        stop
+
+    if the identifier is "current_xp_needed":
+        set {_id} to player_getArchetype(player)
+        if {_id} = 2:
+            set {_arch} to "precision"
+        else if {_id} = 3:
+            set {_arch} to "demolition"
+        else if {_id} = 4:
+            set {_arch} to "arcane"
+        else:
+            set the result to "100"
+            stop
+        set {_level} to {mining::%{_arch}%::%player's uuid%::level} ? 1
+        set {_val} to round(100 * {_level} ^ 1.2)
+        set the result to "%{_val}%"
+        stop
+
+    if the identifier is "current_prestige":
+        set {_id} to player_getArchetype(player)
+        if {_id} = 2:
+            set {_arch} to "precision"
+        else if {_id} = 3:
+            set {_arch} to "demolition"
+        else if {_id} = 4:
+            set {_arch} to "arcane"
+        else:
+            set the result to "0"
+            stop
+        set {_val} to {mining::%{_arch}%::%player's uuid%::prestige} ? 0
+        set the result to "%{_val}%"
+        stop
+
+    if the identifier is "current_prestige_formatted":
+        set {_id} to player_getArchetype(player)
+        if {_id} <= 1:
+            set the result to ""
+            stop
+        set the result to prestige_getCurrentFormattedPrestige(player)
+        stop
+
+    if the identifier is "current_max_level":
+        set {_id} to player_getArchetype(player)
+        if {_id} = 2:
+            set {_arch} to "precision"
+        else if {_id} = 3:
+            set {_arch} to "demolition"
+        else if {_id} = 4:
+            set {_arch} to "arcane"
+        else:
+            set the result to "50"
+            stop
+        set {_prestige} to {mining::%{_arch}%::%player's uuid%::prestige} ? 0
+        set {_val} to 50 + ({_prestige} * 25)
+        set the result to "%{_val}%"
+        stop
+
+    # ════════════════════════════════════════
+    # CURRENT RANK (prestige > level priority)
+    # ════════════════════════════════════════
+
+    # Shows prestige roman numeral if > 0, otherwise shows level
+    if the identifier is "current_rank":
+        set {_id} to player_getArchetype(player)
+        if {_id} = 2:
+            set {_arch} to "precision"
+        else if {_id} = 3:
+            set {_arch} to "demolition"
+        else if {_id} = 4:
+            set {_arch} to "arcane"
+        else:
+            set the result to "1"
+            stop
+        set {_prestige} to {mining::%{_arch}%::%player's uuid%::prestige} ? 0
+        if {_prestige} > 0:
+            set the result to {_prestige} as roman numeral
+        else:
+            set {_level} to {mining::%{_arch}%::%player's uuid%::level} ? 1
+            set the result to "%{_level}%"
+        stop
+
+    # Formatted version with colors
+    if the identifier is "current_rank_formatted":
+        set {_id} to player_getArchetype(player)
+        if {_id} = 2:
+            set {_arch} to "precision"
+        else if {_id} = 3:
+            set {_arch} to "demolition"
+        else if {_id} = 4:
+            set {_arch} to "arcane"
+        else:
+            # Global/no archetype - show level 1
+            set the result to "&8[&7Lvl. &71&8]"
+            stop
+        set {_prestige} to {mining::%{_arch}%::%player's uuid%::prestige} ? 0
+        if {_prestige} > 0:
+            # Return prestige formatted
+            set {_roman} to {_prestige} as roman numeral
+            if {_prestige} <= 1:
+                set the result to "&8[&7&l%{_roman}%&8]"
+            else if {_prestige} <= 2:
+                set the result to "&8[&f&l%{_roman}%&8]"
+            else if {_prestige} <= 3:
+                set the result to "&8[&a&l%{_roman}%&8]"
+            else if {_prestige} <= 4:
+                set the result to "&8[&2&l%{_roman}%&8]"
+            else if {_prestige} <= 5:
+                set the result to "&8[&b&l%{_roman}%&8]"
+            else if {_prestige} <= 6:
+                set the result to "&8[&3&l%{_roman}%&8]"
+            else if {_prestige} <= 7:
+                set the result to "&8[&9&l%{_roman}%&8]"
+            else if {_prestige} <= 8:
+                set the result to "&8[&5&l%{_roman}%&8]"
+            else if {_prestige} <= 9:
+                set the result to "&8[&d&l%{_roman}%&8]"
+            else if {_prestige} <= 10:
+                set the result to "&8[&6&l%{_roman}%&8]"
+            else:
+                set the result to "&8[<#FFD700>&l%{_roman}%&8]"
+        else:
+            set the result to "&8[&7Lvl. %prestige_getFormattedLevel(player, {_arch})%&8]"
+        stop
+
+    # ════════════════════════════════════════
+    # AVERAGE
+    # ════════════════════════════════════════
+
+    if the identifier is "average_level":
+        set {_demo} to {mining::demolition::%player's uuid%::level} ? 1
+        set {_prec} to {mining::precision::%player's uuid%::level} ? 1
+        set {_arc} to {mining::arcane::%player's uuid%::level} ? 1
+        set {_avg} to round((({_demo} + {_prec} + {_arc}) / 3) * 10) / 10
+        set the result to "%{_avg}%"
+        stop

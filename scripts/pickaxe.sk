@@ -1,0 +1,997 @@
+# ============================================================
+# MENU UTILITIES
+# ============================================================
+
+function menu_utils_getMenuItemFirstLoreLine() :: string:
+    return "&8ᴍᴇɴᴜ ɪᴛᴇᴍ"
+
+function menu_create(name: string, rows: integer) :: inventory:
+    set {_menu} to a new chest inventory with {_rows} rows named {_name}
+    return {_menu}
+
+function menu_fill(menu: inventory, rows: integer, fillItem: item type):
+    set slot (integers from 0 to ({_rows}*9-1)) of {_menu} to {_fillItem} named "&1"
+
+function menu_setCurrentMenu(p: player, menu: string):
+    set {-menuData::%{_p}'s uuid%} to {_menu}
+
+function menu_deleteSession(p: player):
+    delete {-menuData::%{_p}'s uuid%}
+
+function menu_getCurrentMenu(p: player) :: string:
+    return ({-menuData::%{_p}'s uuid%} ? "N/A")
+
+
+# ============================================================
+# ENCHANT REGISTRATION
+# ============================================================
+
+function enchant_register(archetypeID: integer, name: string, id: integer, icon: item type, max: integer, baseCost: integer, increase_1: integer, increase_2: integer, increase_3: integer, description: string):
+    set {-dataEnchants::%{_id}%::name} to {_name}
+    set {-dataEnchants::%{_id}%::archetypeID} to {_archetypeID}
+    set {-dataEnchants::%{_id}%::icon} to {_icon}
+
+    set {-dataEnchants::%{_id}%::max} to {_max}
+    set {-dataEnchants::%{_id}%::baseCost} to {_baseCost}
+    set {-dataEnchants::%{_id}%::increase_1} to {_increase_1}
+    set {-dataEnchants::%{_id}%::increase_2} to {_increase_2}
+    set {-dataEnchants::%{_id}%::increase_3} to {_increase_3}
+
+    set {-dataEnchants::%{_id}%::description} to {_description}
+
+    set {-dataEnchantsByName::%{_name}%} to {_id}
+
+    add {_id} to {-dataArchetypes::%{_archetypeID}%::enchants::*}
+    
+    # Track all IDs in a flat list
+    add {_id} to {-dataEnchants::ids::*}
+
+
+# Call this before registering enchants (in your on load)
+function enchant_clearRegistry():
+    delete {-dataEnchants::ids::*}
+    delete {-dataArchetypes::*}
+
+
+function enchant_getIcon(id: integer) :: item type:
+    return {-dataEnchants::%{_id}%::icon}
+
+function enchant_getMax(id: integer) :: integer:
+    return {-dataEnchants::%{_id}%::max}
+
+function enchnat_getDescription(id: integer) :: string:
+    return {-dataEnchants::%{_id}%::description}
+
+function enchant_getAllEnchantsIds() :: integers:
+    return {-dataEnchants::ids::*}
+
+function enchant_getNameByID(id: integer) :: string:
+    return {-dataEnchants::%{_id}%::name}
+
+function enchant_getArchetypeIDByEnchantID(id: integer) :: integer:
+    return {-dataEnchants::%{_id}%::archetypeID}
+
+
+# ============================================================
+# SLOT REGISTRATION
+# ============================================================
+
+function slot_clearRegistry():
+    delete {-dataSlots::*}
+
+function slot_register(slotNum: integer, moneyCost: number, precisionLevel: integer, demolitionLevel: integer, arcaneLevel: integer, precisionPrestige: integer, demolitionPrestige: integer, arcanePrestige: integer):
+    set {-dataSlots::%{_slotNum}%::moneyCost} to {_moneyCost}
+    set {-dataSlots::%{_slotNum}%::precisionLevel} to {_precisionLevel}
+    set {-dataSlots::%{_slotNum}%::demolitionLevel} to {_demolitionLevel}
+    set {-dataSlots::%{_slotNum}%::arcaneLevel} to {_arcaneLevel}
+    set {-dataSlots::%{_slotNum}%::precisionPrestige} to {_precisionPrestige}
+    set {-dataSlots::%{_slotNum}%::demolitionPrestige} to {_demolitionPrestige}
+    set {-dataSlots::%{_slotNum}%::arcanePrestige} to {_arcanePrestige}
+
+function slot_registerAll():
+    slot_clearRegistry()
+    # slot_register(slot, money, precLvl, demoLvl, arcLvl, precP, demoP, arcP)
+    slot_register(1, 0, 0, 0, 0, 0, 0, 0)
+    slot_register(2, 0, 0, 0, 0, 0, 0, 0)
+    slot_register(3, 30000, 0, 0, 0, 0, 0, 0)
+    slot_register(4, 175000, 0, 0, 0, 0, 0, 0)
+    slot_register(5, 350000, 10, 10, 10, 0, 0, 0)
+    slot_register(6, 1000000, 0, 0, 0, 1, 1, 1)
+    slot_register(7, 2000000, 0, 0, 0, 3, 3, 3)
+
+
+# ============================================================
+# SLOT PLAYER DATA
+# ============================================================
+
+function slot_getUnlockedCount(p: player) :: integer:
+    set {_slots} to {data::slots::enchants::%{_p}'s uuid%} ? 0
+    return {_slots}
+
+function slot_setUnlockedCount(p: player, amount: integer):
+    set {data::slots::enchants::%{_p}'s uuid%} to {_amount}
+
+function slot_isUnlocked(p: player, slotNum: integer) :: boolean:
+    if {_slotNum} <= slot_getUnlockedCount({_p}):
+        return true
+    return false
+
+
+# ============================================================
+# SLOT REQUIREMENT CHECKING
+# ============================================================
+
+function slot_canUnlock(p: player, slotNum: integer) :: boolean:
+    set {_uuid} to {_p}'s uuid
+    
+    # Check money
+    set {_moneyCost} to {-dataSlots::%{_slotNum}%::moneyCost} ? 0
+    if {_moneyCost} > 0:
+        if economy_hasMoney({_p}, {_moneyCost}) = false:
+            return false
+    
+    # Check precision level (effective = level + prestige * 15)
+    set {_precLvl} to {-dataSlots::%{_slotNum}%::precisionLevel} ? 0
+    if {_precLvl} > 0:
+        set {_playerPrecLvl} to {mining::precision::%{_uuid}%::level} ? 1
+        set {_playerPrecP} to {mining::precision::%{_uuid}%::prestige} ? 0
+        set {_effectivePrecLvl} to {_playerPrecLvl} + ({_playerPrecP} * 15)
+        if {_effectivePrecLvl} < {_precLvl}:
+            return false
+    
+    # Check demolition level (effective = level + prestige * 15)
+    set {_demoLvl} to {-dataSlots::%{_slotNum}%::demolitionLevel} ? 0
+    if {_demoLvl} > 0:
+        set {_playerDemoLvl} to {mining::demolition::%{_uuid}%::level} ? 1
+        set {_playerDemoP} to {mining::demolition::%{_uuid}%::prestige} ? 0
+        set {_effectiveDemoLvl} to {_playerDemoLvl} + ({_playerDemoP} * 15)
+        if {_effectiveDemoLvl} < {_demoLvl}:
+            return false
+    
+    # Check arcane level (effective = level + prestige * 15)
+    set {_arcLvl} to {-dataSlots::%{_slotNum}%::arcaneLevel} ? 0
+    if {_arcLvl} > 0:
+        set {_playerArcLvl} to {mining::arcane::%{_uuid}%::level} ? 1
+        set {_playerArcP} to {mining::arcane::%{_uuid}%::prestige} ? 0
+        set {_effectiveArcLvl} to {_playerArcLvl} + ({_playerArcP} * 15)
+        if {_effectiveArcLvl} < {_arcLvl}:
+            return false
+    
+    # Check precision prestige
+    set {_precP} to {-dataSlots::%{_slotNum}%::precisionPrestige} ? 0
+    if {_precP} > 0:
+        set {_playerPrecP} to {mining::precision::%{_uuid}%::prestige} ? 0
+        if {_playerPrecP} < {_precP}:
+            return false
+    
+    # Check demolition prestige
+    set {_demoP} to {-dataSlots::%{_slotNum}%::demolitionPrestige} ? 0
+    if {_demoP} > 0:
+        set {_playerDemoP} to {mining::demolition::%{_uuid}%::prestige} ? 0
+        if {_playerDemoP} < {_demoP}:
+            return false
+    
+    # Check arcane prestige
+    set {_arcP} to {-dataSlots::%{_slotNum}%::arcanePrestige} ? 0
+    if {_arcP} > 0:
+        set {_playerArcP} to {mining::arcane::%{_uuid}%::prestige} ? 0
+        if {_playerArcP} < {_arcP}:
+            return false
+    
+    return true
+
+function slot_getRequirementsLore(p: player, slotNum: integer) :: strings:
+    add "&7Unlock this slot to equip" to {_lore::*}
+    add "&7more enchantments!" to {_lore::*}
+    add "" to {_lore::*}
+    add "&d▶ Use &5/research &dto unlock" to {_lore::*}
+
+    return {_lore::*}
+
+function slot_purchase(p: player, slotNum: integer) :: boolean:
+    # Check if already unlocked
+    if slot_isUnlocked({_p}, {_slotNum}) = true:
+        return false
+    
+    # Check if this is the next slot to unlock (sequential)
+    set {_currentUnlocked} to slot_getUnlockedCount({_p})
+    if {_slotNum} != {_currentUnlocked} + 1:
+        return false
+    
+    # Check requirements
+    if slot_canUnlock({_p}, {_slotNum}) = false:
+        return false
+    
+    # Take money
+    set {_moneyCost} to {-dataSlots::%{_slotNum}%::moneyCost} ? 0
+    if {_moneyCost} > 0:
+        economy_removeMoney({_p}, {_moneyCost})
+    
+    # Unlock the slot
+    slot_setUnlockedCount({_p}, {_slotNum})
+    
+    return true
+
+
+# ============================================================
+# ENCHANT PLAYER DATA
+# ============================================================
+
+function enchant_checkIfEquipped(p: player, id: integer) :: boolean:
+    return ({data::enchants::%{_p}'s uuid%::%{_id}%::isEquipped} ? false)
+
+function enchant_markAsEquipped(p: player, id: integer):
+    set {data::enchants::%{_p}'s uuid%::%{_id}%::isEquipped} to true
+    # Apply Speed enchant if this is the Speed enchant
+    enchant_applySpeed({_p})
+
+function enchant_markAsUnequipped(p: player, id: integer):
+    delete {data::enchants::%{_p}'s uuid%::%{_id}%::isEquipped}
+    # Re-check Speed enchant (removes if no longer equipped)
+    enchant_applySpeed({_p})
+
+function enchant_getPlayerLevel(p: player, id: integer) :: integer:
+    set {_level} to ({data::enchants::%{_p}'s uuid%::%{_id}%::level} ? 0)
+    return {_level}
+
+function enchant_setPlayerLevel(p: player, id: integer, value: integer):
+    set {data::enchants::%{_p}'s uuid%::%{_id}%::level} to {_value}
+    # Re-apply Speed enchant if level changed while equipped
+    enchant_applySpeed({_p})
+
+function enchant_getIdByString(name: string) :: integer:
+    return {-dataEnchantsByName::%{_name}%}
+
+function enchant_getPlayerLevelByString(p: player, name: string) :: integer:
+    set {_level} to enchant_getPlayerLevel({_p}, enchant_getIdByString({_name}))
+    return {_level}
+
+function enchant_getMaxSlots(p: player) :: integer:
+    return slot_getUnlockedCount({_p})
+
+function enchant_clearEquipped(p: player):
+    loop enchant_getAllEnchantsIds():
+        enchant_markAsUnequipped({_p}, loop-value)
+
+function enchant_getEquippedCount(p: player) :: integer:
+    set {_count} to 0
+    loop enchant_getAllEnchantsIds():
+        if enchant_checkIfEquipped({_p}, loop-value) = true:
+            add 1 to {_count}
+    return {_count}
+
+function enchant_getAllPlayerEquippedEnchants(p: player) :: integers:
+    set {_maxSlots} to enchant_getMaxSlots({_p})
+    
+    # Initialize all slots as 0 (empty)
+    set {_i} to 1
+    loop {_maxSlots} times:
+        set {_equipped::%{_i}%} to 0
+        add 1 to {_i}
+    
+    # Fill equipped enchants into slots
+    set {_slotIndex} to 1
+    loop enchant_getAllEnchantsIds():
+        if enchant_checkIfEquipped({_p}, loop-value) = true:
+            if {_slotIndex} > {_maxSlots}:
+                enchant_clearEquipped({_p})
+                send "&cSomething went wrong with your equipped enchants, please re-equip them." to {_p}
+                set {_j} to 1
+                loop {_maxSlots} times:
+                    set {_equipped::%{_j}%} to 0
+                    add 1 to {_j}
+                return {_equipped::*}
+            set {_equipped::%{_slotIndex}%} to loop-value
+            add 1 to {_slotIndex}
+    
+    return {_equipped::*}
+
+
+# ============================================================
+# TIER SYSTEM
+# ============================================================
+
+function enchant_getTierIncrease(id: integer, tier: integer) :: integer:
+    if {_tier} = 1:
+        return {-dataEnchants::%{_id}%::increase_1}
+    else if {_tier} = 2:
+        return {-dataEnchants::%{_id}%::increase_2}
+    else:
+        return {-dataEnchants::%{_id}%::increase_3}
+
+function enchant_getRangeCost(base: number, inc: number, A: integer, B: integer) :: number:
+    set {_count} to {_B} - {_A} + 1
+    return {_count} * {_base} + {_inc} * ( ({_A} + {_B} - 2) * {_count} / 2 )
+
+function enchant_getLevelsFitInTier(base: number, inc: number, startLevel: integer, tokens: number) :: integer:
+    set {_b} to {_base} + {_inc} * ({_startLevel} - 1.5)
+    return floor((( ("-%{_b}%" parsed as number) )+ sqrt( {_b}^2 + 2 * {_inc} * {_tokens} ))/ {_inc})
+
+function enchant_getMaxAffordable(p: player, id: integer, currentLevel: integer) :: integer:
+
+    set {_tokens} to {data::tokens::%{_p}'s uuid%}
+
+    set {_base} to {-dataEnchants::%{_id}%::baseCost}
+    set {_max} to {-dataEnchants::%{_id}%::max}
+
+    set {_bounds::*} to enchant_getTierBounds({_max})
+    set {_t1End} to {_bounds::1}
+    set {_t2End} to {_bounds::2}
+
+    set {_level} to {_currentLevel}
+    set {_bought} to 0
+
+    if {_level} < {_t1End}:
+        set {_A} to {_level} + 1
+        set {_B} to {_t1End}
+        set {_inc} to enchant_getTierIncrease({_id}, 1)
+
+        set {_cost} to enchant_getRangeCost({_base}, {_inc}, {_A}, {_B})
+
+        if {_tokens} >= {_cost}:
+            remove {_cost} from {_tokens}
+            add {_B} - {_A} + 1 to {_bought}
+            set {_level} to {_B}
+        else:
+            return {_bought} + enchant_getLevelsFitInTier({_base}, {_inc}, {_A}, {_tokens})
+
+    if {_level} < {_t2End}:
+        set {_A} to {_level} + 1
+        set {_B} to {_t2End}
+        set {_inc} to enchant_getTierIncrease({_id}, 2)
+
+        set {_cost} to enchant_getRangeCost({_base}, {_inc}, {_A}, {_B})
+
+        if {_tokens} >= {_cost}:
+            remove {_cost} from {_tokens}
+            add {_B} - {_A} + 1 to {_bought}
+            set {_level} to {_B}
+        else:
+            return {_bought} + enchant_getLevelsFitInTier({_base}, {_inc}, {_A}, {_tokens})
+
+    if {_level} < {_max}:
+        set {_A} to {_level} + 1
+        set {_B} to {_max}
+        set {_inc} to enchant_getTierIncrease({_id}, 3)
+
+        set {_cost} to enchant_getRangeCost({_base}, {_inc}, {_A}, {_B})
+
+        if {_tokens} >= {_cost}:
+            add {_B} - {_A} + 1 to {_bought}
+        else:
+            add enchant_getLevelsFitInTier({_base}, {_inc}, {_A}, {_tokens}) to {_bought}
+
+    return {_bought}
+
+function enchant_getTierBounds(max: integer) :: objects:
+    set {_t1End} to ceiling({_max} * 0.40)
+    set {_t2End} to ceiling({_max} * 0.75)
+    return {_t1End}, {_t2End}
+
+function enchant_getTier(level: integer, max: integer) :: integer:
+    set {_bounds::*} to enchant_getTierBounds({_max})
+    set {_t1End} to {_bounds::1}
+    set {_t2End} to {_bounds::2}
+
+    if {_level} <= {_t1End}:
+        return 1
+    else if {_level} <= {_t2End}:
+        return 2
+    else:
+        return 3
+
+function enchant_getLevelCost(id: integer, level: integer) :: integer:
+    set {_base} to {-dataEnchants::%{_id}%::baseCost}
+    set {_inc1} to {-dataEnchants::%{_id}%::increase_1}
+    set {_inc2} to {-dataEnchants::%{_id}%::increase_2}
+    set {_inc3} to {-dataEnchants::%{_id}%::increase_3}
+    set {_max} to {-dataEnchants::%{_id}%::max}
+
+    set {_tier} to enchant_getTier({_level}, {_max})
+
+    if {_tier} = 1:
+        set {_inc} to {_inc1}
+    else if {_tier} = 2:
+        set {_inc} to {_inc2}
+    else:
+        set {_inc} to {_inc3}
+
+    return {_base} + (({_level} - 1) * {_inc})
+
+function enchant_getTotalUpgradeCost(id: integer, A: integer, B: integer) :: number:
+    if {_B} < {_A}:
+        return 0
+
+    set {_base} to {-dataEnchants::%{_id}%::baseCost}
+    set {_max} to {-dataEnchants::%{_id}%::max}
+
+    set {_bounds::*} to enchant_getTierBounds({_max})
+    set {_t1End} to {_bounds::1}
+    set {_t2End} to {_bounds::2}
+
+    set {_total} to 0
+    set {_from} to {_A}
+
+    if {_from} <= {_t1End}:
+        set {_to} to min({_B}, {_t1End})
+        set {_inc} to enchant_getTierIncrease({_id}, 1)
+        add enchant_getRangeCost({_base}, {_inc}, {_from}, {_to}) to {_total}
+        set {_from} to {_to} + 1
+
+    if {_from} <= {_t2End}:
+        if {_from} <= {_B}:
+            set {_to} to min({_B}, {_t2End})
+            set {_inc} to enchant_getTierIncrease({_id}, 2)
+            add enchant_getRangeCost({_base}, {_inc}, {_from}, {_to}) to {_total}
+            set {_from} to {_to} + 1
+
+    if {_from} <= {_B}:
+        set {_inc} to enchant_getTierIncrease({_id}, 3)
+        add enchant_getRangeCost({_base}, {_inc}, {_from}, {_B}) to {_total}
+
+    return {_total}
+
+
+# ============================================================
+# EQUIPPED SLOTS (TOP ROW)
+# ============================================================
+
+function pickaxe_menu_formatEquippedSlots(p: player, menu: inventory):
+    set {_equipped::*} to enchant_getAllPlayerEquippedEnchants({_p})
+    set {_maxSlots} to slot_getUnlockedCount({_p})
+    
+    loop 7 times:
+        set {_slotNum} to loop-number
+        set {_enchantID} to {_equipped::%{_slotNum}%}
+        
+        # Locked slot (beyond unlocked count)
+        if {_slotNum} > {_maxSlots}:
+            set {_item} to mangrove button named "&c🔒 Locked Slot %{_slotNum}%"
+            set {_lore::*} to slot_getRequirementsLore({_p}, {_slotNum})
+            set lore of {_item} to {_lore::*}
+            set boolean tag "slotButton;Locked" of custom nbt of {_item} to true
+            set int tag "slotButton;SlotNum" of custom nbt of {_item} to {_slotNum}
+            delete {_lore::*}
+        
+        # Filled slot (ID > 0) - show actual enchant icon
+        else if {_enchantID} is set:
+            if {_enchantID} > 0:
+                set {_name} to enchant_getNameByID({_enchantID})
+                set {_level} to enchant_getPlayerLevel({_p}, {_enchantID})
+                set {_icon} to enchant_getIcon({_enchantID})
+                set {_item} to {_icon}
+                set name of {_item} to "&a✔ %{_name}%"
+                set lore of {_item} to menu_utils_getMenuItemFirstLoreLine(), "", "&7Level: &a%{_level}%", "", "&d✔ Equipped", "", "&eClick to unequip"
+                set int tag "slotButton;EquippedID" of custom nbt of {_item} to {_enchantID}
+            else:
+                set {_item} to bamboo button named "&e✦ Empty Slot"
+                set lore of {_item} to "&7Click to equip an enchant"
+                set boolean tag "slotButton;Empty" of custom nbt of {_item} to true
+        
+        # Empty slot
+        else:
+            set {_item} to bamboo button named "&e✦ Empty Slot"
+            set lore of {_item} to "&7Click to equip an enchant"
+            set boolean tag "slotButton;Empty" of custom nbt of {_item} to true
+        
+        set slot {_slotNum} of {_menu} to {_item}
+
+
+# ============================================================
+# ENCHANT ITEM DISPLAY (UPGRADE MENU)
+# ============================================================
+
+function pickaxe_menu_getActualEnchantItem(p: player, id: integer) :: item type:
+
+    set {_item} to enchant_getIcon({_id})
+    set {_name} to enchant_getNameByID({_id})
+    set {_level} to enchant_getPlayerLevel({_p}, {_id})
+    set {_max} to enchant_getMax({_id})
+    set {_isEquipped} to enchant_checkIfEquipped({_p}, {_id})
+    set {_archetype} to enchant_getArchetypeNameByEnchantID({_id})
+
+    # Check progression gating
+    set {_canAccess} to progression_canAccessEnchant({_p}, {_id})
+    if {_canAccess} = false:
+        set {_lockedItem} to gray dye named "&c&l🔒 %{_name}%"
+        set {_status} to progression_getEnchantStatus({_p}, {_id})
+        add menu_utils_getMenuItemFirstLoreLine() to {_lockedLore::*}
+        add "" to {_lockedLore::*}
+        add "&7This enchant is locked." to {_lockedLore::*}
+        add "" to {_lockedLore::*}
+        add {_status} to {_lockedLore::*}
+        add "" to {_lockedLore::*}
+        add "&8Keep leveling to unlock!" to {_lockedLore::*}
+        set lore of {_lockedItem} to {_lockedLore::*}
+        set boolean tag "enchantButton;Locked" of custom nbt of {_lockedItem} to true
+        return {_lockedItem}
+
+    set {_amount.max} to enchant_getMaxAffordable({_p}, {_id}, {_level})
+
+    set {_displayName} to "&4&l%{_name}% Enchantment"
+
+    add menu_utils_getMenuItemFirstLoreLine() to {_lore::*}
+    add "" to {_lore::*}
+
+    if {_level} >= {_max}:
+        add "&7Level: &8[&c&lMAX&8]" to {_lore::*}
+    else:
+        add "&7Level: &8[&a%{_level}%&8/&c%{_max}%&8]" to {_lore::*}
+
+    add "&7Max Affordable: &a%{_amount.max}%" to {_lore::*}
+    add "" to {_lore::*}
+
+    add "&d&l%{_archetype}% Archetype" to {_lore::*}
+
+    loop autosplit(enchnat_getDescription({_id}), 10):
+        add " &b%loop-value%" to {_lore::*}
+
+    add "" to {_lore::*}
+
+    if {_level} >= {_max}:
+        add "&c▶ Upgrade Options" to {_lore::*}
+        add "&8Max level reached" to {_lore::*}
+        set boolean tag "enchantButton;MaxLevelReached" of custom nbt of {_item} to true
+
+    else if {_amount.max} = 0:
+        add "&e▶ Upgrade Options" to {_lore::*}
+        add "&cNot enough tokens to upgrade" to {_lore::*}
+        add "&cNeed atleast %enchant_getTotalUpgradeCost({_id}, ({_level} + 1), ({_level} + 1))%" to {_lore::*}
+        set boolean tag "enchantButton;CantAfford" of custom nbt of {_item} to true
+
+    else:
+        add "&a▶ Upgrade Options" to {_lore::*}
+
+        loop 1, 10 and {_amount.max}:
+            set {_target} to {_level} + loop-value
+
+            if {_target} > {_max}:
+                continue
+
+            set {_A} to {_level} + 1
+            set {_B} to {_target}
+            set {_cost} to enchant_getTotalUpgradeCost({_id}, {_A}, {_B})
+
+            add "&f+%loop-value% Levels &8→ &6%{_cost}% Tokens" to {_lore::*}
+
+        add "" to {_lore::*}
+        add "&a▶ Press &f[Drop] &ato max upgrade" to {_lore::*}
+
+    if {_isEquipped} = true:
+        add "" to {_lore::*}
+        add "&d✔ Equipped" to {_lore::*}
+        set boolean tag "enchantButton;IsEquipped" of custom nbt of {_item} to true
+        set {_item} to green dye
+
+    set lore of {_item} to {_lore::*}
+    set name of {_item} to {_displayName}
+
+    set int tag "enchantButton;ID" of custom nbt of {_item} to {_id}
+
+    return {_item}
+
+
+# ============================================================
+# EQUIP MENU
+# ============================================================
+
+function enchant_menu_equip(p: player):
+    set {_menu} to menu_create("&8Equip Enchant", 4)
+    menu_fill({_menu}, 4, gray stained glass pane)
+    
+    # Back button
+
+    set {_back} to arrow named "&c&lBACK"
+    add menu_utils_getMenuItemFirstLoreLine() to {_backLore::*}
+    add "" to {_backLore::*}
+    add "&7Return to pickaxe menu" to {_backLore::*}
+    add "" to {_backLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ɢᴏ ʙᴀᴄᴋ" to {_backLore::*}
+    set lore of {_back} to {_backLore::*}
+    set boolean tag "equipMenu;Back" of custom nbt of {_back} to true
+    set slot 31 of {_menu} to {_back}
+
+    # Get global enchants (archetype 1)
+    set {_globalEnchants::*} to pickaxe_getArchetypeEnchantsIDs(1)
+    
+    # Get player's archetype enchants
+    set {_archetypeID} to player_getArchetype({_p})
+    if {_archetypeID} > 1:
+        set {_archetypeEnchants::*} to pickaxe_getArchetypeEnchantsIDs({_archetypeID})
+    
+    # Combine into one list
+    set {_allEnchants::*} to {_globalEnchants::*}
+    if {_archetypeEnchants::*} is set:
+        add {_archetypeEnchants::*} to {_allEnchants::*}
+    
+    # Display slots
+    set {_displaySlots::*} to 10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23, 24, 25
+    
+    set {_index} to 1
+    loop {_allEnchants::*}:
+        set {_id} to loop-value
+        set {_displaySlot} to {_displaySlots::%{_index}%}
+        
+        if {_displaySlot} is not set:
+            stop
+        
+        set {_item} to enchant_menu_getEquipItem({_p}, {_id})
+        set slot {_displaySlot} of {_menu} to {_item}
+        
+        add 1 to {_index}
+    
+    open {_menu} to {_p}
+    menu_setCurrentMenu({_p}, "ENCHANT_EQUIP_MENU")
+
+
+function enchant_menu_getEquipItem(p: player, id: integer) :: item:
+    set {_level} to enchant_getPlayerLevel({_p}, {_id})
+    set {_isEquipped} to enchant_checkIfEquipped({_p}, {_id})
+    set {_name} to enchant_getNameByID({_id})
+    set {_icon} to enchant_getIcon({_id})
+
+    # Progression locked
+    if progression_canAccessEnchant({_p}, {_id}) = false:
+        set {_status} to progression_getEnchantStatus({_p}, {_id})
+        set {_item} to gray dye named "&c🔒 %{_name}%"
+        set lore of {_item} to "&7This enchant is locked.", "", {_status}
+        set boolean tag "equipItem;ProgressionLocked" of custom nbt of {_item} to true
+        return {_item}
+
+    # Already equipped
+    if {_isEquipped} = true:
+        set {_item} to lime dye named "&a✔ %{_name}%"
+        set lore of {_item} to "&7Level: &a%{_level}%", "", "&cAlready equipped"
+        set boolean tag "equipItem;AlreadyEquipped" of custom nbt of {_item} to true
+        return {_item}
+
+    # Not unlocked (level 0)
+    if {_level} < 1:
+        set {_item} to gray dye named "&c🔒 %{_name}%"
+        set lore of {_item} to "&7Level: &c0", "", "&cRequires at least level 1"
+        set boolean tag "equipItem;Locked" of custom nbt of {_item} to true
+        return {_item}
+
+    # Available to equip
+    set {_item} to {_icon}
+    set name of {_item} to "&b%{_name}%"
+    set lore of {_item} to "&7Level: &a%{_level}%", "", "&eClick to equip"
+    set int tag "equipItem;ID" of custom nbt of {_item} to {_id}
+
+    return {_item}
+
+
+# ============================================================
+# MENU FORMATTING
+# ============================================================
+
+function pickaxe_menu_formatGlobalEnchantsSlots(p: player, menu: inventory):
+    set {_slots::*} to pickaxe_getArchetypeSlots(1)
+    set {_count} to 1
+    loop pickaxe_getArchetypeEnchantsIDs(1):
+        set {_item} to pickaxe_menu_getActualEnchantItem({_p}, loop-value)
+        set slot {_slots::%{_count}%} of {_menu} to {_item}
+        add 1 to {_count}
+
+function pickaxe_menu_formatArchetypeEnchantsSlots(p: player, menu: inventory):
+    set {_archetypeID} to player_getArchetype({_p})
+    set {_slots::*} to pickaxe_getArchetypeSlots({_archetypeID})
+
+    set {_count} to 1
+    loop pickaxe_getArchetypeEnchantsIDs({_archetypeID}):
+        set {_item} to pickaxe_menu_getActualEnchantItem({_p}, loop-value)
+        set slot {_slots::%{_count}%} of {_menu} to {_item}
+        add 1 to {_count}
+
+function pickaxe_menu_getInfoBook() :: item:
+    set {_item} to book named "&ePickaxe Guide"
+    
+    set {_lore::*} to menu_utils_getMenuItemFirstLoreLine(), ""
+    
+    add "&6What is this?" to {_lore::*}
+    add "&7Upgrade your pickaxe with" to {_lore::*}
+    add "&7special enchantments." to {_lore::*}
+    add "" to {_lore::*}
+    
+    add "&aUpgrading" to {_lore::*}
+    add "&7Left Click: &f+1 level" to {_lore::*}
+    add "&7Right Click: &f+10 levels" to {_lore::*}
+    add "&7Drop (Q): &fMax upgrade" to {_lore::*}
+    add "" to {_lore::*}
+    
+    add "&dEquipping" to {_lore::*}
+    add "&7Click an empty slot at the top" to {_lore::*}
+    add "&7to equip an enchantment." to {_lore::*}
+    add "" to {_lore::*}
+    
+    add "&cArchetypes" to {_lore::*}
+    add "&7Choose an archetype to unlock" to {_lore::*}
+    add "&7unique enchantments." to {_lore::*}
+    add "&7Use the Ender Eye to select." to {_lore::*}
+    add "" to {_lore::*}
+    
+    add "&6Tokens" to {_lore::*}
+    add "&7Earn tokens by mining and" to {_lore::*}
+    add "&7completing challenges." to {_lore::*}
+    
+    set lore of {_item} to {_lore::*}
+    set boolean tag "menuItem;Info" of custom nbt of {_item} to true
+    
+    return {_item}
+
+
+
+function enchant_getArchetypeMenuIcon(p: player) :: item:
+    # Check if archetype selection is unlocked (Level 25+)
+    if progression_canSelectArchetype({_p}) = false:
+        set {_level} to progression_getLevel({_p})
+        set {_item} to gray dye named "&c&l🔒 Archetype Selection"
+        add menu_utils_getMenuItemFirstLoreLine() to {_lockedLore::*}
+        add "" to {_lockedLore::*}
+        add "&7Choose your mining specialization:" to {_lockedLore::*}
+        add "&b  • Precision &8- &7Speed & precision" to {_lockedLore::*}
+        add "&c  • Demolition &8- &7AOE & explosions" to {_lockedLore::*}
+        add "&d  • Arcane &8- &7Magic & drops" to {_lockedLore::*}
+        add "" to {_lockedLore::*}
+        add "&c&lLOCKED" to {_lockedLore::*}
+        add "&7Requires: &eLevel 25" to {_lockedLore::*}
+        add "&7Current: &c%{_level}%" to {_lockedLore::*}
+        set lore of {_item} to {_lockedLore::*}
+        set boolean tag "enchantButton;ArchetypeLocked" of custom nbt of {_item} to true
+        return {_item}
+
+    set {_item} to ender eye
+    set {_name} to "&fArchetype Selection Menu"
+
+    add menu_utils_getMenuItemFirstLoreLine() to {_lore::*}
+    add "" to {_lore::*}
+    add "&eClick to open the archetypes menu!" to {_lore::*}
+
+    set name of {_item} to {_name}
+    set lore of {_item} to {_lore::*}
+
+    set boolean tag "enchantButton;Archetype" of custom nbt of {_item} to true
+    return {_item}
+
+
+# ============================================================
+# MAIN PICKAXE MENU
+# ============================================================
+
+function pickaxe_menu_main(p: player):
+    if tutorial_canOpenMenu({_p}) = false:
+        stop
+    set {_menu} to menu_create("Pickaxe", 6)
+    menu_fill({_menu}, 6, red stained glass pane)
+
+    set slot 28,29,30,37,38,39,46,47,48 of {_menu} to stone button named "&8/\"
+    set slot 32,33,34,41,42,43,50,51,52 of {_menu} to stone button named "&8/\"
+
+    # set slot 12 of {_menu} to wooden pickaxe named "Pickaxe Ascension"
+    set slot 13 of {_menu} to enchant_getArchetypeMenuIcon({_p})
+    set slot 14 of {_menu} to pickaxe_menu_getInfoBook()
+    
+    set slot 9,10,11,15,16 and 17 of {_menu} to black stained glass pane named "&1"
+    pickaxe_menu_formatEquippedSlots({_p}, {_menu})
+
+    pickaxe_menu_formatGlobalEnchantsSlots({_p}, {_menu})
+    pickaxe_menu_formatArchetypeEnchantsSlots({_p}, {_menu})
+
+    open {_menu} to {_p}
+    menu_setCurrentMenu({_p}, "PICKAXE_MENU")
+    tutorial_onMenuOpen({_p})
+
+
+# ============================================================
+# CLICK HANDLERS
+# ============================================================
+
+function clickHandler_PickaxeMenuEnchant(p: player, id: integer, click: click type, nbt: nbt, gui: inventory, slotIndex: integer):
+
+    # Anti-spam check
+    if metadata tag "enchant_cooldown" of {_p} is set:
+        stop
+    set metadata tag "enchant_cooldown" of {_p} to true
+
+    # Progression check - block upgrades for locked enchants
+    if progression_canAccessEnchant({_p}, {_id}) = false:
+        set {_status} to progression_getEnchantStatus({_p}, {_id})
+        send "&c&l! &c%{_status}%" to {_p}
+        play sound "entity.villager.no" with volume 0.5 and pitch 1 to {_p}
+        delete metadata tag "enchant_cooldown" of {_p}
+        stop
+
+    # Get enchant name for checks
+    set {_name} to enchant_getNameByID({_id})
+
+    # Tutorial check - block upgrades for non-tutorial enchants
+    if tutorial_canUpgradeEnchant({_p}, {_name}) = false:
+        send "&c&l! &cComplete the current tutorial step first!" to {_p}
+        play sound "entity.villager.no" with volume 0.5 and pitch 1 to {_p}
+        delete metadata tag "enchant_cooldown" of {_p}
+        stop
+
+    set {_level} to enchant_getPlayerLevel({_p}, {_id})
+    set {_max} to enchant_getMax({_id})
+    set {_affordable} to enchant_getMaxAffordable({_p}, {_id}, {_level})
+
+    if {_click} = left mouse button:
+        set {_amount} to 1
+
+    if {_click} = right mouse button:
+        set {_amount} to 10
+
+    if {_click} = drop key:
+        set {_amount} to {_affordable}
+
+    # Check if amount is valid
+    if {_amount} is not set:
+        delete metadata tag "enchant_cooldown" of {_p}
+        stop
+    
+    if {_amount} < 1:
+        delete metadata tag "enchant_cooldown" of {_p}
+        stop
+
+    set {_target} to ({_level} + {_amount})
+    set {_cost} to enchant_getTotalUpgradeCost({_id}, ({_level} + 1), {_target})
+
+    if {_level} = {_max}:
+        send "&cCan't upgrade this enchant, because it will exceed the limit" to {_p}
+        delete metadata tag "enchant_cooldown" of {_p}
+        stop   
+
+    if {_target} > {_max}:
+        send "&cCan't upgrade this enchant, because it will exceed the limit" to {_p}
+        delete metadata tag "enchant_cooldown" of {_p}
+        stop
+        
+    if ({data::tokens::%{_p}'s uuid%} ? 0) >= {_cost}:
+        remove {_cost} from {data::tokens::%{_p}'s uuid%}
+        enchant_setPlayerLevel({_p}, {_id}, {_target})
+        set slot {_slotIndex} of {_gui} to pickaxe_menu_getActualEnchantItem({_p}, {_id})
+        play sound "entity.experience_orb.pickup" with volume 0.5 and pitch 1.5 to {_p}
+        send "&aUpgraded %{_name}% by %{_amount}% &7(-%{_cost}% tokens)" to {_p}
+        
+        # Notify tutorial system
+        tutorial_onEnchantUpgrade({_p}, {_name}, {_target})
+        
+        # Small delay before allowing next upgrade
+        wait 2 ticks
+        delete metadata tag "enchant_cooldown" of {_p}
+        stop
+        
+    send "&cYou don't have enough tokens to upgrade %{_name}%" to {_p}
+    delete metadata tag "enchant_cooldown" of {_p}
+
+
+function clickHandler_PickaxeMenu(p: player, slot: item, click: click type, gui: inventory, slotIndex: integer):
+    set {_nbt} to custom nbt of {_slot}
+    
+    # ===== SLOT BUTTONS (TOP ROW 1-7) =====
+    
+    # Locked slot - point to /research
+    if boolean tag "slotButton;Locked" of {_nbt} is true:
+        set {_slotNum} to int tag "slotButton;SlotNum" of {_nbt}
+        if {_slotNum} is set:
+            send "&c&l! &7Use &d/research &7to unlock more enchant slots!" to {_p}
+            play sound "entity.villager.no" with volume 0.5 and pitch 1 to {_p}
+        stop
+    
+    # Empty slot - open equip menu
+    if boolean tag "slotButton;Empty" of {_nbt} is true:
+        set {_count} to enchant_getEquippedCount({_p})
+        
+        if {_count} >= enchant_getMaxSlots({_p}):
+            send "&cAll slots are full!" to {_p}
+            stop
+        
+        enchant_menu_equip({_p})
+        stop
+    
+    # Filled slot - unequip
+    set {_equippedID} to int tag "slotButton;EquippedID" of {_nbt}
+    if {_equippedID} is set:
+        set {_name} to enchant_getNameByID({_equippedID})
+        enchant_markAsUnequipped({_p}, {_equippedID})
+        play sound "entity.item.pickup" with volume 0.5 and pitch 0.8 to {_p}
+        send "&eUnequipped &f%{_name}%&e." to {_p}
+        pickaxe_menu_main({_p})
+        stop
+    
+    # ===== ENCHANT BUTTONS (UPGRADE) =====
+    
+    set {_enchantID} to int tag "enchantButton;ID" of {_nbt}
+    if {_enchantID} is set:
+        clickHandler_PickaxeMenuEnchant({_p}, {_enchantID}, {_click}, {_nbt}, {_gui}, {_slotIndex})
+        stop
+    
+    # ===== ARCHETYPE BUTTON =====
+
+    # Locked archetype button
+    if boolean tag "enchantButton;ArchetypeLocked" of {_nbt} is true:
+        set {_level} to progression_getLevel({_p})
+        send "&c&lARCHETYPE LOCKED" to {_p}
+        send "&7Reach &eLevel 25 &7to choose your archetype." to {_p}
+        send "&7Current level: &c%{_level}%" to {_p}
+        play sound "entity.villager.no" with volume 0.5 and pitch 1 to {_p}
+        stop
+
+    set {_archetypeButton} to boolean tag "enchantButton;Archetype" of {_nbt}
+    if {_archetypeButton} is set:
+        archetype_menu_selection({_p}, true)
+        stop
+
+
+function clickHandler_EnchantEquipMenu(p: player, slot: item, click: click type):
+    set {_nbt} to custom nbt of {_slot}
+
+    # Back button
+    if boolean tag "equipMenu;Back" of {_nbt} is true:
+        pickaxe_menu_main({_p})
+        stop
+
+    # Progression locked
+    if boolean tag "equipItem;ProgressionLocked" of {_nbt} is true:
+        send "&cThis enchant is locked! Keep leveling to unlock it." to {_p}
+        play sound "entity.villager.no" with volume 0.5 and pitch 1 to {_p}
+        stop
+
+    # Already equipped
+    if boolean tag "equipItem;AlreadyEquipped" of {_nbt} is true:
+        send "&cThis enchant is already equipped!" to {_p}
+        stop
+
+    # Locked (level 0)
+    if boolean tag "equipItem;Locked" of {_nbt} is true:
+        send "&cYou need at least level 1 to equip this!" to {_p}
+        stop
+    
+    # Equip the enchant
+    set {_id} to int tag "equipItem;ID" of {_nbt}
+    if {_id} is set:
+        set {_count} to enchant_getEquippedCount({_p})
+        
+        if {_count} >= enchant_getMaxSlots({_p}):
+            send "&cAll slots are full!" to {_p}
+            stop
+        
+        set {_name} to enchant_getNameByID({_id})
+        enchant_markAsEquipped({_p}, {_id})
+        play sound "block.note_block.pling" with volume 0.8 and pitch 1.5 to {_p}
+        send "&aEquipped &f%{_name}%&a!" to {_p}
+        tutorial_onEnchantEquip({_p}, {_name})
+        pickaxe_menu_main({_p})
+        stop
+
+
+# ============================================================
+# EVENTS
+# ============================================================
+
+on inventory click:
+    if menu_getCurrentMenu(player) = "PICKAXE_MENU":
+        cancel event
+        if clicked slot is not air:
+            clickHandler_PickaxeMenu(player, clicked slot, click type, player's current inventory, index of clicked slot)
+    
+    if menu_getCurrentMenu(player) = "ENCHANT_EQUIP_MENU":
+        cancel event
+        if clicked slot is not air:
+            clickHandler_EnchantEquipMenu(player, clicked slot, click type)
+
+
+on inventory close:
+    menu_deleteSession(player)
+
+
+on right click holding wooden pickaxe:
+    pickaxe_menu_main(player)
+
+
+# ============================================================
+# SLOT REGISTRATION ON LOAD
+# ============================================================
+
+on script load:
+    slot_registerAll()

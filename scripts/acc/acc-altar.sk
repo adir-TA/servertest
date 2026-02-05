@@ -1,0 +1,1176 @@
+# ============================================================
+# ACCESSORY SYSTEM - TREASURE ALTAR
+# ============================================================
+# Right-click a set location to open treasure chests
+# Tiers: Normal, Ultra, Divine, Mythic, Celestial
+# Supports opening 1, 3, or 5 chests at a time
+# Uses PHYSICAL keys from inventory only
+# ============================================================
+
+# ============================================================
+# ALTAR LOCATION STORAGE
+# ============================================================
+
+function acc_setAltarLocation(loc: location):
+    set {data::acc::altar::world} to "%world of {_loc}%"
+    set {data::acc::altar::x} to x-coord of {_loc}
+    set {data::acc::altar::y} to y-coord of {_loc}
+    set {data::acc::altar::z} to z-coord of {_loc}
+
+
+function acc_getAltarLocation() :: location:
+    if {data::acc::altar::world} is not set:
+        return {_null}
+    set {_world} to {data::acc::altar::world} parsed as world
+    if {_world} is not set:
+        return {_null}
+    set {_x} to {data::acc::altar::x}
+    set {_y} to {data::acc::altar::y}
+    set {_z} to {data::acc::altar::z}
+    return location({_x}, {_y}, {_z}, {_world})
+
+
+function acc_hasAltarLocation() :: boolean:
+    if {data::acc::altar::world} is set:
+        return true
+    return false
+
+
+function acc_isAtAltar(loc: location) :: boolean:
+    if acc_hasAltarLocation() is false:
+        return false
+    set {_altar} to acc_getAltarLocation()
+    if {_altar} is not set:
+        return false
+    if floor(x-coord of {_loc}) != floor(x-coord of {_altar}):
+        return false
+    if floor(y-coord of {_loc}) != floor(y-coord of {_altar}):
+        return false
+    if floor(z-coord of {_loc}) != floor(z-coord of {_altar}):
+        return false
+    if "%world of {_loc}%" != "%world of {_altar}%":
+        return false
+    return true
+
+
+# ============================================================
+# ADMIN COMMAND
+# ============================================================
+
+command /setaccessorylocation:
+    permission: op
+    trigger:
+        set {_target} to target block
+        if {_target} is not set:
+            send "&cYou must be looking at a block!"
+            stop
+
+        acc_setAltarLocation(location of {_target})
+
+        send ""
+        send "&a&l✓ ACCESSORY ALTAR SET!"
+        send "&7Location: &f%location of {_target}%"
+        send "&7Block: &f%type of {_target}%"
+        send ""
+        send "&7Players can right-click this block to"
+        send "&7open treasure chests with their keys."
+        send ""
+
+        play sound "block.anvil.use" with volume 1 and pitch 1.2 to player
+
+
+command /removeaccessorylocation:
+    permission: op
+    trigger:
+        if acc_hasAltarLocation() is false:
+            send "&cNo accessory altar location is set!"
+            stop
+
+        delete {data::acc::altar::world}
+        delete {data::acc::altar::x}
+        delete {data::acc::altar::y}
+        delete {data::acc::altar::z}
+
+        send "&a&l✓ Accessory altar location removed!"
+
+
+# ============================================================
+# ALTAR INTERACTION
+# ============================================================
+
+on right click:
+    clicked block is set
+    if acc_isAtAltar(location of clicked block) is true:
+        cancel event
+        acc_openAltarTierMenu(player)
+
+
+# ============================================================
+# TIER SELECTION MENU (Physical Keys)
+# ============================================================
+
+function acc_openAltarTierMenu(p: player):
+    set {_uuid} to {_p}'s uuid
+    set {_menu} to chest inventory with 3 rows named "&6&lTREASURE CHESTS"
+
+    # Fill with glass
+    set {_filler} to black stained glass pane named "&1"
+    loop 27 times:
+        set slot loop-number - 1 of {_menu} to {_filler}
+
+    # Title item - Slot 4
+    set {_totalKeys} to acc_getTotalKeys({_p})
+    set {_titleItem} to ender chest named "&6&lSelect a Chest"
+    add "&8ᴍᴇɴᴜ" to {_titleLore::*}
+    add "" to {_titleLore::*}
+    add "&7Choose a treasure chest to open" to {_titleLore::*}
+    add "&7with your keys!" to {_titleLore::*}
+    add "" to {_titleLore::*}
+    add "&7Total Keys: &e%{_totalKeys}%" to {_titleLore::*}
+    set lore of {_titleItem} to {_titleLore::*}
+    set slot 4 of {_menu} to {_titleItem}
+
+    # Normal Chest - Slot 10
+    set {_normalKeys} to acc_getKeyCount({_p}, "normal")
+    set {_normalItem} to acc_getTreasureChestIcon("normal") named "&a&lNORMAL CHEST"
+    delete {_normalLore::*}
+    add "&8ᴛʀᴇᴀsᴜʀᴇ ᴄʜᴇsᴛ" to {_normalLore::*}
+    add "" to {_normalLore::*}
+    add "&7Your Keys: &e%{_normalKeys}%" to {_normalLore::*}
+    add "" to {_normalLore::*}
+    add "&7Drop Rates:" to {_normalLore::*}
+    add "  &fCommon: &760%%" to {_normalLore::*}
+    add "  &aUncommon: &728%%" to {_normalLore::*}
+    add "  &9Rare: &79%%" to {_normalLore::*}
+    add "  &5Epic: &72.5%%" to {_normalLore::*}
+    add "  &6Legendary: &70.5%%" to {_normalLore::*}
+    add "" to {_normalLore::*}
+    if {_normalKeys} > 0:
+        add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ sᴇʟᴇᴄᴛ" to {_normalLore::*}
+        set string tag "altar;treasure" of custom nbt of {_normalItem} to "normal"
+    else:
+        add "&cɴᴏ ᴋᴇʏs ᴀᴠᴀɪʟᴀʙʟᴇ" to {_normalLore::*}
+    set lore of {_normalItem} to {_normalLore::*}
+    set slot 10 of {_menu} to {_normalItem}
+
+    # Ultra Chest - Slot 11
+    set {_ultraKeys} to acc_getKeyCount({_p}, "ultra")
+    # Check progression lock
+    if progression_canOpenTreasure({_p}, "ultra") = false:
+        set {_ultraItem} to gray dye named "&c&l🔒 ULTRA CHEST"
+        delete {_ultraLore::*}
+        add "&8ᴛʀᴇᴀsᴜʀᴇ ᴄʜᴇsᴛ" to {_ultraLore::*}
+        add "" to {_ultraLore::*}
+        add "&cRequires: &6Prestige I" to {_ultraLore::*}
+        add "" to {_ultraLore::*}
+        add "&7Your Keys: &e%{_ultraKeys}%" to {_ultraLore::*}
+        set lore of {_ultraItem} to {_ultraLore::*}
+    else:
+        set {_ultraItem} to acc_getTreasureChestIcon("ultra") named "&b&lULTRA CHEST"
+        delete {_ultraLore::*}
+        add "&8ᴛʀᴇᴀsᴜʀᴇ ᴄʜᴇsᴛ" to {_ultraLore::*}
+        add "" to {_ultraLore::*}
+        add "&7Your Keys: &e%{_ultraKeys}%" to {_ultraLore::*}
+        add "" to {_ultraLore::*}
+        add "&7Drop Rates:" to {_ultraLore::*}
+        add "  &fCommon: &750%%" to {_ultraLore::*}
+        add "  &aUncommon: &732%%" to {_ultraLore::*}
+        add "  &9Rare: &713%%" to {_ultraLore::*}
+        add "  &5Epic: &74%%" to {_ultraLore::*}
+        add "  &6Legendary: &71%%" to {_ultraLore::*}
+        add "" to {_ultraLore::*}
+        if {_ultraKeys} > 0:
+            add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ sᴇʟᴇᴄᴛ" to {_ultraLore::*}
+            set string tag "altar;treasure" of custom nbt of {_ultraItem} to "ultra"
+        else:
+            add "&cɴᴏ ᴋᴇʏs ᴀᴠᴀɪʟᴀʙʟᴇ" to {_ultraLore::*}
+        set lore of {_ultraItem} to {_ultraLore::*}
+    set slot 11 of {_menu} to {_ultraItem}
+
+    # Divine Chest - Slot 13
+    set {_divineKeys} to acc_getKeyCount({_p}, "divine")
+    if progression_canOpenTreasure({_p}, "divine") = false:
+        set {_divineItem} to gray dye named "&c&l🔒 DIVINE CHEST"
+        delete {_divineLore::*}
+        add "&8ᴛʀᴇᴀsᴜʀᴇ ᴄʜᴇsᴛ" to {_divineLore::*}
+        add "" to {_divineLore::*}
+        add "&cRequires: &6Prestige III" to {_divineLore::*}
+        add "" to {_divineLore::*}
+        add "&7Your Keys: &e%{_divineKeys}%" to {_divineLore::*}
+        set lore of {_divineItem} to {_divineLore::*}
+    else:
+        set {_divineItem} to acc_getTreasureChestIcon("divine") named "&d&lDIVINE CHEST"
+        delete {_divineLore::*}
+        add "&8ᴛʀᴇᴀsᴜʀᴇ ᴄʜᴇsᴛ" to {_divineLore::*}
+        add "" to {_divineLore::*}
+        add "&7Your Keys: &e%{_divineKeys}%" to {_divineLore::*}
+        add "" to {_divineLore::*}
+        add "&7Drop Rates:" to {_divineLore::*}
+        add "  &fCommon: &740%%" to {_divineLore::*}
+        add "  &aUncommon: &735%%" to {_divineLore::*}
+        add "  &9Rare: &717%%" to {_divineLore::*}
+        add "  &5Epic: &76%%" to {_divineLore::*}
+        add "  &6Legendary: &72%%" to {_divineLore::*}
+        add "" to {_divineLore::*}
+        if {_divineKeys} > 0:
+            add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ sᴇʟᴇᴄᴛ" to {_divineLore::*}
+            set string tag "altar;treasure" of custom nbt of {_divineItem} to "divine"
+        else:
+            add "&cɴᴏ ᴋᴇʏs ᴀᴠᴀɪʟᴀʙʟᴇ" to {_divineLore::*}
+        set lore of {_divineItem} to {_divineLore::*}
+    set slot 13 of {_menu} to {_divineItem}
+
+    # Mythic Chest - Slot 15
+    set {_mythicKeys} to acc_getKeyCount({_p}, "mythic")
+    if progression_canOpenTreasure({_p}, "mythic") = false:
+        set {_mythicItem} to gray dye named "&c&l🔒 MYTHIC CHEST"
+        delete {_mythicLore::*}
+        add "&8ᴛʀᴇᴀsᴜʀᴇ ᴄʜᴇsᴛ" to {_mythicLore::*}
+        add "" to {_mythicLore::*}
+        add "&cRequires: &6Prestige V" to {_mythicLore::*}
+        add "" to {_mythicLore::*}
+        add "&7Your Keys: &e%{_mythicKeys}%" to {_mythicLore::*}
+        set lore of {_mythicItem} to {_mythicLore::*}
+    else:
+        set {_mythicItem} to acc_getTreasureChestIcon("mythic") named "&6&lMYTHIC CHEST"
+        delete {_mythicLore::*}
+        add "&8ᴛʀᴇᴀsᴜʀᴇ ᴄʜᴇsᴛ" to {_mythicLore::*}
+        add "" to {_mythicLore::*}
+        add "&7Your Keys: &e%{_mythicKeys}%" to {_mythicLore::*}
+        add "" to {_mythicLore::*}
+        add "&7Drop Rates:" to {_mythicLore::*}
+        add "  &fCommon: &728%%" to {_mythicLore::*}
+        add "  &aUncommon: &735%%" to {_mythicLore::*}
+        add "  &9Rare: &724%%" to {_mythicLore::*}
+        add "  &5Epic: &79%%" to {_mythicLore::*}
+        add "  &6Legendary: &74%%" to {_mythicLore::*}
+        add "" to {_mythicLore::*}
+        if {_mythicKeys} > 0:
+            add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ sᴇʟᴇᴄᴛ" to {_mythicLore::*}
+            set string tag "altar;treasure" of custom nbt of {_mythicItem} to "mythic"
+        else:
+            add "&cɴᴏ ᴋᴇʏs ᴀᴠᴀɪʟᴀʙʟᴇ" to {_mythicLore::*}
+        set lore of {_mythicItem} to {_mythicLore::*}
+    set slot 15 of {_menu} to {_mythicItem}
+
+    # Celestial Chest - Slot 16
+    set {_celestialKeys} to acc_getKeyCount({_p}, "celestial")
+    if progression_canOpenTreasure({_p}, "celestial") = false:
+        set {_celestialItem} to gray dye named "&c&l🔒 CELESTIAL CHEST"
+        delete {_celestialLore::*}
+        add "&8ᴛʀᴇᴀsᴜʀᴇ ᴄʜᴇsᴛ" to {_celestialLore::*}
+        add "" to {_celestialLore::*}
+        add "&cRequires: &6Prestige X" to {_celestialLore::*}
+        add "" to {_celestialLore::*}
+        add "&7Your Keys: &e%{_celestialKeys}%" to {_celestialLore::*}
+        set lore of {_celestialItem} to {_celestialLore::*}
+    else:
+        set {_celestialItem} to acc_getTreasureChestIcon("celestial") named "&c&lCELESTIAL CHEST"
+        delete {_celestialLore::*}
+        add "&8ᴛʀᴇᴀsᴜʀᴇ ᴄʜᴇsᴛ" to {_celestialLore::*}
+        add "" to {_celestialLore::*}
+        add "&7Your Keys: &e%{_celestialKeys}%" to {_celestialLore::*}
+        add "" to {_celestialLore::*}
+        add "&7Drop Rates:" to {_celestialLore::*}
+        add "  &fCommon: &718%%" to {_celestialLore::*}
+        add "  &aUncommon: &732%%" to {_celestialLore::*}
+        add "  &9Rare: &730%%" to {_celestialLore::*}
+        add "  &5Epic: &713%%" to {_celestialLore::*}
+        add "  &6Legendary: &77%%" to {_celestialLore::*}
+        add "" to {_celestialLore::*}
+        if {_celestialKeys} > 0:
+            add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ sᴇʟᴇᴄᴛ" to {_celestialLore::*}
+            set string tag "altar;treasure" of custom nbt of {_celestialItem} to "celestial"
+        else:
+            add "&cɴᴏ ᴋᴇʏs ᴀᴠᴀɪʟᴀʙʟᴇ" to {_celestialLore::*}
+        set lore of {_celestialItem} to {_celestialLore::*}
+    set slot 16 of {_menu} to {_celestialItem}
+
+    # Key summary - Slot 22
+    set {_keyInfo} to tripwire hook named "&e&lYour Keys"
+    delete {_keyLore::*}
+    add "&8ɪɴᴠᴇɴᴛᴏʀʏ" to {_keyLore::*}
+    add "" to {_keyLore::*}
+    add "&aNormal: &f%{_normalKeys}%" to {_keyLore::*}
+    add "&bUltra: &f%{_ultraKeys}%" to {_keyLore::*}
+    add "&dDivine: &f%{_divineKeys}%" to {_keyLore::*}
+    add "&6Mythic: &f%{_mythicKeys}%" to {_keyLore::*}
+    add "&cCelestial: &f%{_celestialKeys}%" to {_keyLore::*}
+    add "" to {_keyLore::*}
+    add "&7Total: &e%{_totalKeys}%" to {_keyLore::*}
+    set lore of {_keyInfo} to {_keyLore::*}
+    set slot 22 of {_menu} to {_keyInfo}
+
+    open {_menu} to {_p}
+    set {-acc::altar::menu::%{_uuid}%} to "TIER_SELECT"
+
+
+# ============================================================
+# AMOUNT SELECTION MENU
+# ============================================================
+
+function acc_openAltarAmountMenu(p: player, treasureId: text):
+    set {_uuid} to {_p}'s uuid
+    set {_keys} to acc_getKeyCount({_p}, {_treasureId})
+
+    set {_color} to acc_getTreasureColor({_treasureId})
+    set {_name} to acc_getTreasureName({_treasureId})
+
+    set {_menu} to chest inventory with 3 rows named "%{_color}%&l%{_name} in uppercase%"
+
+    # Fill with glass
+    set {_filler} to black stained glass pane named "&1"
+    loop 27 times:
+        set slot loop-number - 1 of {_menu} to {_filler}
+
+    # Title - Slot 4
+    set {_titleItem} to acc_getTreasureChestIcon({_treasureId}) named "%{_color}%&l%{_name}%"
+    delete {_titleLore::*}
+    add "&8ᴍᴇɴᴜ" to {_titleLore::*}
+    add "" to {_titleLore::*}
+    add "&7Select how many to open" to {_titleLore::*}
+    add "" to {_titleLore::*}
+    add "&7Your Keys: &e%{_keys}%" to {_titleLore::*}
+    set lore of {_titleItem} to {_titleLore::*}
+    set slot 4 of {_menu} to {_titleItem}
+
+    # Open 1 - Slot 11
+    set {_item1} to acc_getTreasureChestIcon({_treasureId}) named "%{_color}%&lOPEN 1"
+    delete {_lore1::*}
+    add "&8ᴍᴇɴᴜ ɪᴛᴇᴍ" to {_lore1::*}
+    add "" to {_lore1::*}
+    add "&7Cost: &e1 Key" to {_lore1::*}
+    add "" to {_lore1::*}
+    if {_keys} >= 1:
+        add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴏᴘᴇɴ" to {_lore1::*}
+        set string tag "altar;treasure" of custom nbt of {_item1} to {_treasureId}
+        set int tag "altar;amount" of custom nbt of {_item1} to 1
+    else:
+        add "&cɴᴏᴛ ᴇɴᴏᴜɢʜ ᴋᴇʏs!" to {_lore1::*}
+    set lore of {_item1} to {_lore1::*}
+    set slot 11 of {_menu} to {_item1}
+
+    # Open 3 - Slot 13
+    set {_item3} to 3 of acc_getTreasureChestIcon({_treasureId}) named "%{_color}%&lOPEN 3"
+    delete {_lore3::*}
+    add "&8ᴍᴇɴᴜ ɪᴛᴇᴍ" to {_lore3::*}
+    add "" to {_lore3::*}
+    add "&7Cost: &e3 Keys" to {_lore3::*}
+    add "" to {_lore3::*}
+    if {_keys} >= 3:
+        add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴏᴘᴇɴ" to {_lore3::*}
+        set string tag "altar;treasure" of custom nbt of {_item3} to {_treasureId}
+        set int tag "altar;amount" of custom nbt of {_item3} to 3
+    else:
+        add "&cɴᴏᴛ ᴇɴᴏᴜɢʜ ᴋᴇʏs!" to {_lore3::*}
+        add "&7You need &e3 &7keys (have &c%{_keys}%&7)" to {_lore3::*}
+    set lore of {_item3} to {_lore3::*}
+    set slot 13 of {_menu} to {_item3}
+
+    # Open 5 - Slot 15
+    set {_item5} to 5 of acc_getTreasureChestIcon({_treasureId}) named "%{_color}%&lOPEN 5"
+    delete {_lore5::*}
+    add "&8ᴍᴇɴᴜ ɪᴛᴇᴍ" to {_lore5::*}
+    add "" to {_lore5::*}
+    add "&7Cost: &e5 Keys" to {_lore5::*}
+    add "" to {_lore5::*}
+    if {_keys} >= 5:
+        add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴏᴘᴇɴ" to {_lore5::*}
+        set string tag "altar;treasure" of custom nbt of {_item5} to {_treasureId}
+        set int tag "altar;amount" of custom nbt of {_item5} to 5
+    else:
+        add "&cɴᴏᴛ ᴇɴᴏᴜɢʜ ᴋᴇʏs!" to {_lore5::*}
+        add "&7You need &e5 &7keys (have &c%{_keys}%&7)" to {_lore5::*}
+    set lore of {_item5} to {_lore5::*}
+    set slot 15 of {_menu} to {_item5}
+
+    # Back button - Slot 22
+    set {_back} to arrow named "&c&lBACK"
+    delete {_backLore::*}
+    add "&8ᴍᴇɴᴜ ɪᴛᴇᴍ" to {_backLore::*}
+    add "" to {_backLore::*}
+    add "&7Return to chest selection" to {_backLore::*}
+    add "" to {_backLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ɢᴏ ʙᴀᴄᴋ" to {_backLore::*}
+    set lore of {_back} to {_backLore::*}
+    set string tag "altar;action" of custom nbt of {_back} to "back"
+    set slot 22 of {_menu} to {_back}
+
+    open {_menu} to {_p}
+    set {-acc::altar::menu::%{_uuid}%} to "AMOUNT_SELECT"
+    set {-acc::altar::selected::%{_uuid}%} to {_treasureId}
+
+
+# ============================================================
+# CLICK HANDLERS
+# ============================================================
+
+on inventory click:
+    set {_uuid} to player's uuid
+    set {_menu} to {-acc::altar::menu::%{_uuid}%}
+
+    if {_menu} is "TIER_SELECT":
+        cancel event
+
+        set {_nbt} to custom nbt of clicked slot
+        set {_treasureId} to string tag "altar;treasure" of {_nbt}
+
+        if {_treasureId} is set:
+            play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+            acc_openAltarAmountMenu(player, {_treasureId})
+
+    else if {_menu} is "AMOUNT_SELECT":
+        cancel event
+
+        set {_nbt} to custom nbt of clicked slot
+
+        # Check for back button
+        set {_action} to string tag "altar;action" of {_nbt}
+        if {_action} is "back":
+            play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+            delete {-acc::altar::selected::%{_uuid}%}
+            acc_openAltarTierMenu(player)
+            stop
+
+        # Check for opening
+        set {_treasureId} to string tag "altar;treasure" of {_nbt}
+        set {_amount} to int tag "altar;amount" of {_nbt}
+
+        if {_treasureId} is set:
+            if {_amount} is set:
+                # Verify keys in inventory
+                set {_keys} to acc_getKeyCount(player, {_treasureId})
+                if {_keys} < {_amount}:
+                    play sound "entity.villager.no" with volume 0.5 and pitch 1 to player
+                    send "&cYou don't have enough keys!" to player
+                    stop
+
+                play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+                close inventory of player
+                delete {-acc::altar::selected::%{_uuid}%}
+
+                # Store altar location for animation
+                set {-acc::altar::loc::%{_uuid}%} to acc_getAltarLocation()
+
+                # Open treasures with animation
+                acc_playTreasureAnimation(player, {_treasureId}, {_amount})
+
+
+on inventory close:
+    set {_menu} to {-acc::altar::menu::%player's uuid%}
+    if {_menu} is "TIER_SELECT":
+        delete {-acc::altar::menu::%player's uuid%}
+    else if {_menu} is "AMOUNT_SELECT":
+        delete {-acc::altar::menu::%player's uuid%}
+        delete {-acc::altar::selected::%player's uuid%}
+
+
+# ============================================================
+# TREASURE OPENING ANIMATION (Display Entities)
+# Line-up style like pet eggs, unique chest theme
+# ============================================================
+
+function acc_playTreasureAnimation(p: player, treasureId: text, amount: integer):
+    # Prevent duplicate opening
+    if {-acc::opening::%{_p}'s uuid%} is set:
+        send "&cAlready opening treasures!" to {_p}
+        stop
+
+    set {-acc::opening::%{_p}'s uuid%} to true
+
+    # Check accessory storage space
+    set {_currentStorage} to acc_getInventorySize({_p})
+    set {_maxStorage} to acc_getStorageMax({_p})
+    set {_spaceAvailable} to {_maxStorage} - {_currentStorage}
+    if {_spaceAvailable} < {_amount}:
+        send "&cNot enough accessory storage space!" to {_p}
+        send "&7You have &e%{_currentStorage}%&7/&e%{_maxStorage}% &7accessories." to {_p}
+        send "&7Need &e%{_amount}% &7free slots. You have &c%{_spaceAvailable}%&7." to {_p}
+        send "&7Salvage some accessories first!" to {_p}
+        play sound "entity.villager.no" with volume 0.8 and pitch 1 to {_p}
+        delete {-acc::opening::%{_p}'s uuid%}
+        stop
+
+    # Verify and use keys from inventory
+    set {_hasKeys} to acc_getKeyCount({_p}, {_treasureId})
+    if {_hasKeys} < {_amount}:
+        send "&cYou need %{_amount}% keys! You have %{_hasKeys}%." to {_p}
+        delete {-acc::opening::%{_p}'s uuid%}
+        stop
+
+    # Use physical keys
+    loop {_amount} times:
+        acc_useKey({_p}, {_treasureId})
+
+    # Get altar location
+    set {_altarLoc} to {-acc::altar::loc::%{_p}'s uuid%}
+    delete {-acc::altar::loc::%{_p}'s uuid%}
+
+    if {_altarLoc} is not set:
+        set {_altarLoc} to location of {_p}
+
+    # Get treasure info
+    set {_color} to acc_getTreasureColor({_treasureId})
+    set {_treasureName} to acc_getTreasureName({_treasureId})
+    set {_chestIcon} to acc_getTreasureChestIcon({_treasureId})
+    set {_keyIcon} to acc_getTreasureKeyIcon({_treasureId})
+
+    # Setup center location - centered on altar block
+    set {_centerX} to floor(x-coord of {_altarLoc}) + 0.5
+    set {_centerY} to floor(y-coord of {_altarLoc}) + 1.2
+    set {_centerZ} to floor(z-coord of {_altarLoc}) + 0.5
+    set {_world} to world of {_altarLoc}
+
+    # Calculate direction to face player - SNAP to 4 cardinal directions (no diagonals)
+    set {_playerX} to x-coord of {_p}'s location
+    set {_playerZ} to z-coord of {_p}'s location
+    set {_dirX} to {_playerX} - {_centerX}
+    set {_dirZ} to {_playerZ} - {_centerZ}
+
+    # Snap to nearest cardinal direction (N/S/E/W)
+    if abs({_dirX}) >= abs({_dirZ}):
+        # East or West
+        if {_dirX} >= 0:
+            set {_dirX} to 1
+        else:
+            set {_dirX} to -1
+        set {_dirZ} to 0
+    else:
+        # North or South
+        if {_dirZ} >= 0:
+            set {_dirZ} to 1
+        else:
+            set {_dirZ} to -1
+        set {_dirX} to 0
+
+    # Perpendicular direction (rotate 90 degrees) for lineup
+    set {_perpX} to 0 - {_dirZ}
+    set {_perpZ} to {_dirX}
+
+    # Store and hide the altar block (show as air)
+    set {_originalBlock} to type of block at {_altarLoc}
+    make {_p} see block at {_altarLoc} as air
+
+    # Get tier glow color
+    if {_treasureId} is "normal":
+        set {_glowColor} to rgb(85, 255, 85)
+        set {_dustColor} to dustOption(rgb(85, 255, 85), 1.2)
+    else if {_treasureId} is "ultra":
+        set {_glowColor} to rgb(85, 255, 255)
+        set {_dustColor} to dustOption(rgb(85, 255, 255), 1.2)
+    else if {_treasureId} is "divine":
+        set {_glowColor} to rgb(255, 85, 255)
+        set {_dustColor} to dustOption(rgb(255, 85, 255), 1.2)
+    else if {_treasureId} is "mythic":
+        set {_glowColor} to rgb(255, 170, 0)
+        set {_dustColor} to dustOption(rgb(255, 170, 0), 1.2)
+    else:
+        set {_glowColor} to rgb(255, 85, 85)
+        set {_dustColor} to dustOption(rgb(255, 85, 85), 1.2)
+
+    # Base ID for entities
+    set {_baseId} to random integer between 100000 and 9999999
+
+    # Roll all rewards and setup positions (LINE UP like pet eggs)
+    set {_totalSalvageTokens} to 0
+    set {_salvageCount} to 0
+    set {_keptCount} to 0
+    loop {_amount} times:
+        set {_i} to loop-number
+
+        set {_rarity::%{_i}%} to acc_rollRarity({_treasureId})
+        # Cap rarity based on player progression
+        set {_rarity::%{_i}%} to progression_capAccessoryRarity({_p}, {_rarity::%{_i}%})
+        set {_type::%{_i}%} to acc_rollType({_treasureId})
+        set {_encoded::%{_i}%} to acc_encodeAccessory({_type::%{_i}%}, {_rarity::%{_i}%})
+
+        # Check if this is a NEW discovery (before adding)
+        set {_isNewDiscovery} to discovery_hasAccDiscovered({_p}, {_type::%{_i}%})
+        if {_isNewDiscovery} is false:
+            set {_isNew::%{_i}%} to true
+        else:
+            set {_isNew::%{_i}%} to false
+
+        # Check if this accessory should be auto-salvaged
+        set {_shouldSalvage} to filter_shouldSalvageAcc({_p}, {_type::%{_i}%}, {_rarity::%{_i}%})
+        set {_salvaged::%{_i}%} to {_shouldSalvage}
+
+        if {_shouldSalvage} is true:
+            # Auto-salvage: track tokens
+            set {_salvageValue::%{_i}%} to acc_getSalvageValue({_rarity::%{_i}%})
+            add {_salvageValue::%{_i}%} to {_totalSalvageTokens}
+            add 1 to {_salvageCount}
+            # Still track discovery even if salvaged
+            discovery_discoverAcc({_p}, {_type::%{_i}%})
+        else:
+            add 1 to {_keptCount}
+
+        # Calculate offset position - perpendicular to player view (LINE UP)
+        set {_offsetMult} to ({_i} - (({_amount} + 1) / 2)) * 1.0
+        set {_chestX::%{_i}%} to {_centerX} + ({_perpX} * {_offsetMult})
+        set {_chestY::%{_i}%} to {_centerY}
+        set {_chestZ::%{_i}%} to {_centerZ} + ({_perpZ} * {_offsetMult})
+
+        # Entity IDs
+        set {_chestId::%{_i}%} to {_baseId} + ({_i} * 10)
+        set {_keyId::%{_i}%} to {_baseId} + ({_i} * 10) + 1
+        set {_itemId::%{_i}%} to {_baseId} + ({_i} * 10) + 2
+        set {_textId::%{_i}%} to {_baseId} + ({_i} * 10) + 3
+
+        # Get accessory icon based on type - use barrier for auto-salvaged
+        if {_shouldSalvage} is true:
+            set {_accIcon::%{_i}%} to barrier
+        else:
+            set {_accIcon::%{_i}%} to acc_getTypeIcon({_type::%{_i}%})
+
+        # Get rarity glow - grey for salvaged
+        if {_shouldSalvage} is true:
+            set {_itemGlow::%{_i}%} to rgb(100, 100, 100)
+        else if {_rarity::%{_i}%} is "legendary":
+            set {_itemGlow::%{_i}%} to rgb(255, 170, 0)
+        else if {_rarity::%{_i}%} is "epic":
+            set {_itemGlow::%{_i}%} to rgb(255, 85, 255)
+        else if {_rarity::%{_i}%} is "rare":
+            set {_itemGlow::%{_i}%} to rgb(85, 85, 255)
+        else if {_rarity::%{_i}%} is "uncommon":
+            set {_itemGlow::%{_i}%} to rgb(85, 255, 85)
+        else:
+            set {_itemGlow::%{_i}%} to rgb(170, 170, 170)
+
+    # ════════════════════════════════════════
+    # PHASE 1: Chests appear and grow (lined up)
+    # ════════════════════════════════════════
+
+    loop {_amount} times:
+        set {_i} to loop-number
+        set {_spawnLoc} to location({_chestX::%{_i}%}, {_chestY::%{_i}%}, {_chestZ::%{_i}%}, {_world})
+
+        spawn fake item display at {_spawnLoc} for {_p} with id {_chestId::%{_i}%}
+
+        set {_m} to new metadata packet with id {_chestId::%{_i}%}:
+            display item: {_chestIcon}
+            display scale: vector(0.01, 0.01, 0.01)
+            display billboard: center
+            display brightness block: 15
+            display teleportduration: 2
+            display transformation: 3
+            display interpolation: 0
+            glowing: true
+            display glow: {_glowColor}
+        send packet {_m} to {_p}
+
+    play sound "block.chest.open" with volume 0.7 and pitch 0.6 to {_p}
+
+    wait 1 tick
+
+    # Grow all chests
+    loop {_amount} times:
+        set {_i} to loop-number
+        set {_m} to new metadata packet with id {_chestId::%{_i}%}:
+            display scale: vector(0.8, 0.8, 0.8)
+            display transformation: 4
+            display interpolation: 0
+        send packet {_m} to {_p}
+
+    wait 4 ticks
+
+    # ════════════════════════════════════════
+    # PHASE 2: Keys float down to chests
+    # ════════════════════════════════════════
+
+    play sound "entity.item.pickup" with volume 0.6 and pitch 1.5 to {_p}
+
+    # Spawn keys above chests
+    loop {_amount} times:
+        set {_i} to loop-number
+        set {_keySpawnLoc} to location({_chestX::%{_i}%}, {_chestY::%{_i}%} + 1.5, {_chestZ::%{_i}%}, {_world})
+
+        spawn fake item display at {_keySpawnLoc} for {_p} with id {_keyId::%{_i}%}
+
+        set {_m} to new metadata packet with id {_keyId::%{_i}%}:
+            display item: {_keyIcon}
+            display scale: vector(0.01, 0.01, 0.01)
+            display billboard: center
+            display brightness block: 15
+            display teleportduration: 2
+            display transformation: 3
+            display interpolation: 0
+            glowing: true
+            display glow: {_glowColor}
+        send packet {_m} to {_p}
+
+    wait 1 tick
+
+    # Grow keys
+    loop {_amount} times:
+        set {_i} to loop-number
+        set {_m} to new metadata packet with id {_keyId::%{_i}%}:
+            display scale: vector(0.5, 0.5, 0.5)
+            display transformation: 3
+            display interpolation: 0
+        send packet {_m} to {_p}
+
+    wait 3 ticks
+
+    # Keys float down and rotate
+    loop 10 times:
+        set {_frame} to loop-number
+        set {_keyY} to 1.5 - ({_frame} * 0.12)
+        set {_rotAngle} to {_frame} * 36
+
+        loop {_amount} times:
+            set {_i} to loop-number-2
+            set {_keyLoc} to location({_chestX::%{_i}%}, {_chestY::%{_i}%} + {_keyY}, {_chestZ::%{_i}%}, {_world})
+            send teleport packet with id {_keyId::%{_i}%} with location {_keyLoc} to {_p}
+
+            set {_qy} to sin({_rotAngle} * 0.5 * 0.0174533)
+            set {_qw} to cos({_rotAngle} * 0.5 * 0.0174533)
+            set {_m} to new metadata packet with id {_keyId::%{_i}%}:
+                display rotation left: 0, {_qy}, 0, {_qw}
+                display transformation: 2
+                display interpolation: 0
+            send packet {_m} to {_p}
+
+        wait 2 ticks
+
+    # Keys insert (shrink into chests)
+    play sound "block.iron_door.close" with volume 0.5 and pitch 1.8 to {_p}
+
+    loop {_amount} times:
+        set {_i} to loop-number
+        set {_m} to new metadata packet with id {_keyId::%{_i}%}:
+            display scale: vector(0.01, 0.01, 0.01)
+            display transformation: 2
+            display interpolation: 0
+        send packet {_m} to {_p}
+
+        set {_insertLoc} to location({_chestX::%{_i}%}, {_chestY::%{_i}%}, {_chestZ::%{_i}%}, {_world})
+        send teleport packet with id {_keyId::%{_i}%} with location {_insertLoc} to {_p}
+
+    wait 3 ticks
+
+    # Remove keys
+    loop {_amount} times:
+        set {_i} to loop-number
+        remove fake entity with id {_keyId::%{_i}%} for {_p}
+
+    # ════════════════════════════════════════
+    # PHASE 3: Chests shake (unlocking)
+    # ════════════════════════════════════════
+
+    play sound "block.chain.break" with volume 0.6 and pitch 0.8 to {_p}
+
+    # Chests wobble like eggs
+    loop 3 times:
+        set {_wobble} to loop-number
+
+        # Tilt all left
+        loop {_amount} times:
+            set {_i} to loop-number-2
+            set {_m} to new metadata packet with id {_chestId::%{_i}%}:
+                display rotation left: 0, 0, 0.15, 0.99
+                display transformation: 2
+                display interpolation: 0
+            send packet {_m} to {_p}
+
+        play sound "block.wood.hit" with volume 0.5 and pitch 1.2 + ({_wobble} * 0.1) to {_p}
+
+        wait 3 ticks
+
+        # Tilt all right
+        loop {_amount} times:
+            set {_i} to loop-number-2
+            set {_m} to new metadata packet with id {_chestId::%{_i}%}:
+                display rotation left: 0, 0, -0.15, 0.99
+                display transformation: 2
+                display interpolation: 0
+            send packet {_m} to {_p}
+
+        wait 3 ticks
+
+        # Center all
+        loop {_amount} times:
+            set {_i} to loop-number-2
+            set {_m} to new metadata packet with id {_chestId::%{_i}%}:
+                display rotation left: 0, 0, 0, 1
+                display transformation: 2
+                display interpolation: 0
+            send packet {_m} to {_p}
+
+        wait 2 ticks
+
+    # ════════════════════════════════════════
+    # PHASE 4: Chests shake fast and EXPLODE open
+    # ════════════════════════════════════════
+
+    # Quick shake all - more intense
+    loop 6 times:
+        set {_intensity} to loop-number * 0.02
+        loop {_amount} times:
+            set {_i} to loop-number-2
+            set {_shakeX} to random number between (0 - {_intensity}) and {_intensity}
+            set {_shakeZ} to random number between (0 - {_intensity}) and {_intensity}
+            set {_shakeLoc} to location({_chestX::%{_i}%} + {_shakeX}, {_chestY::%{_i}%}, {_chestZ::%{_i}%} + {_shakeZ}, {_world})
+            send teleport packet with id {_chestId::%{_i}%} with location {_shakeLoc} to {_p}
+        play sound "block.anvil.land" with volume 0.2 and pitch 2 to {_p}
+        wait 1 tick
+
+    # Expand before pop
+    loop {_amount} times:
+        set {_i} to loop-number
+        set {_m} to new metadata packet with id {_chestId::%{_i}%}:
+            display scale: vector(1.3, 1.3, 1.3)
+            display transformation: 2
+            display interpolation: 0
+        send packet {_m} to {_p}
+
+    play sound "block.respawn_anchor.charge" with volume 0.8 and pitch 1.5 to {_p}
+    wait 3 ticks
+
+    # Determine best rarity for effects
+    set {_bestRarity} to "common"
+    loop {_amount} times:
+        set {_i} to loop-number
+        set {_r} to {_rarity::%{_i}%}
+        if {_r} is "legendary":
+            set {_bestRarity} to "legendary"
+        else if {_r} is "epic":
+            if {_bestRarity} != "legendary":
+                set {_bestRarity} to "epic"
+
+    # EXPLOSION! with golden particles
+    if {_bestRarity} is "legendary":
+        play sound "ui.toast.challenge_complete" with volume 1.5 and pitch 1.0 to {_p}
+        play sound "entity.firework_rocket.twinkle" with volume 1 and pitch 1 to {_p}
+    else if {_bestRarity} is "epic":
+        play sound "entity.player.levelup" with volume 1.2 and pitch 1.3 to {_p}
+        play sound "entity.firework_rocket.blast" with volume 0.8 and pitch 1.2 to {_p}
+    else:
+        play sound "block.chest.open" with volume 1.2 and pitch 1.0 to {_p}
+        play sound "entity.firework_rocket.blast" with volume 0.5 and pitch 1.5 to {_p}
+
+    # Golden treasure particles burst from each chest
+    loop {_amount} times:
+        set {_i} to loop-number
+        set {_burstLoc} to location({_chestX::%{_i}%}, {_chestY::%{_i}%}, {_chestZ::%{_i}%}, {_world})
+        draw 15 of dust using dustOption(rgb(255, 215, 0), 1.5) at {_burstLoc} with offset vector(0.5, 0.5, 0.5) for {_p}
+        if {_rarity::%{_i}%} is "legendary":
+            draw 8 of totem of undying at {_burstLoc} with offset vector(0.3, 0.5, 0.3) for {_p}
+        else if {_rarity::%{_i}%} is "epic":
+            draw 5 of dragon breath at {_burstLoc} with offset vector(0.3, 0.4, 0.3) for {_p}
+
+    # Shrink chests dramatically
+    loop {_amount} times:
+        set {_i} to loop-number
+        set {_m} to new metadata packet with id {_chestId::%{_i}%}:
+            display scale: vector(0.01, 0.01, 0.01)
+            display transformation: 1
+            display interpolation: 0
+        send packet {_m} to {_p}
+
+    wait 2 ticks
+
+    loop {_amount} times:
+        set {_i} to loop-number
+        remove fake entity with id {_chestId::%{_i}%} for {_p}
+
+    # ════════════════════════════════════════
+    # PHASE 5: Treasure items BURST upward
+    # ════════════════════════════════════════
+
+    play sound "entity.allay.item_given" with volume 1 and pitch 0.8 to {_p}
+
+    # Items spawn at chest positions
+    loop {_amount} times:
+        set {_i} to loop-number
+        set {_revealLoc} to location({_chestX::%{_i}%}, {_chestY::%{_i}%} - 0.2, {_chestZ::%{_i}%}, {_world})
+
+        spawn fake item display at {_revealLoc} for {_p} with id {_itemId::%{_i}%}
+
+        set {_m} to new metadata packet with id {_itemId::%{_i}%}:
+            display item: {_accIcon::%{_i}%}
+            display scale: vector(0.01, 0.01, 0.01)
+            display billboard: center
+            display brightness block: 15
+            display teleportduration: 1
+            display transformation: 2
+            display interpolation: 0
+            glowing: true
+            display glow: {_itemGlow::%{_i}%}
+        send packet {_m} to {_p}
+
+    wait 1 tick
+
+    # Items burst UPWARD dramatically
+    loop {_amount} times:
+        set {_i} to loop-number
+        set {_m} to new metadata packet with id {_itemId::%{_i}%}:
+            display scale: vector(0.8, 0.8, 0.8)
+            display teleportduration: 3
+            display transformation: 3
+            display interpolation: 0
+        send packet {_m} to {_p}
+
+        set {_burstY} to {_chestY::%{_i}%} + 1.2
+        set {_burstLoc} to location({_chestX::%{_i}%}, {_burstY}, {_chestZ::%{_i}%}, {_world})
+        send teleport packet with id {_itemId::%{_i}%} with location {_burstLoc} to {_p}
+
+    play sound "entity.experience_orb.pickup" with volume 0.8 and pitch 0.6 to {_p}
+    wait 4 ticks
+
+    # Floating sparkle animation
+    loop 15 times:
+        set {_frame} to loop-number - 1
+        set {_floatOffset} to sin({_frame} * 24) * 0.12
+        set {_spinAngle} to {_frame} * 24
+
+        loop {_amount} times:
+            set {_i} to loop-number-2
+            set {_floatY} to {_chestY::%{_i}%} + 1.2 + {_floatOffset}
+            set {_floatLoc} to location({_chestX::%{_i}%}, {_floatY}, {_chestZ::%{_i}%}, {_world})
+            send teleport packet with id {_itemId::%{_i}%} with location {_floatLoc} to {_p}
+
+            set {_qy} to sin({_spinAngle} * 0.5 * 0.0174533)
+            set {_qw} to cos({_spinAngle} * 0.5 * 0.0174533)
+            set {_m} to new metadata packet with id {_itemId::%{_i}%}:
+                display rotation left: 0, {_qy}, 0, {_qw}
+                display transformation: 1
+                display interpolation: 0
+            send packet {_m} to {_p}
+
+            # Sparkle particles every few frames
+            if mod({_frame}, 3) = 0:
+                draw 2 of dust using dustOption(rgb(255, 223, 128), 0.8) at {_floatLoc} with offset vector(0.15, 0.15, 0.15) for {_p}
+
+        wait 2 ticks
+
+    # ════════════════════════════════════════
+    # PHASE 6: Show detailed result cards
+    # ════════════════════════════════════════
+
+    play sound "block.note_block.chime" with volume 0.7 and pitch 1.2 to {_p}
+
+    loop {_amount} times:
+        set {_i} to loop-number
+        set {_type} to {_type::%{_i}%}
+        set {_rarity} to {_rarity::%{_i}%}
+
+        # Calculate arc position - center highest, edges lower
+        set {_centerIndex} to ({_amount} + 1) / 2
+        set {_diff} to {_i} - {_centerIndex}
+        if {_diff} < 0:
+            set {_distFromCenter} to 0 - {_diff}
+        else:
+            set {_distFromCenter} to {_diff}
+
+        # Arc height - center is highest
+        set {_arcHeight} to 2.2 - ({_distFromCenter} * 0.12)
+
+        # Arc spread
+        set {_spreadMult} to 1 + ({_distFromCenter} * 0.35)
+        set {_offsetMult} to {_diff} * {_spreadMult} * 1.2
+
+        set {_textX} to {_centerX} + ({_perpX} * {_offsetMult})
+        set {_textZ} to {_centerZ} + ({_perpZ} * {_offsetMult})
+        set {_textLoc} to location({_textX}, {_chestY::%{_i}%} + {_arcHeight}, {_textZ}, {_world})
+
+        # Store for later
+        set {_textArcHeight::%{_i}%} to {_arcHeight}
+        set {_textX::%{_i}%} to {_textX}
+        set {_textZ::%{_i}%} to {_textZ}
+
+        spawn fake text display at {_textLoc} for {_p} with id {_textId::%{_i}%}
+
+        # Get display info
+        set {_rarityColor} to acc_getRarityColor({_rarity})
+        set {_rarityName} to acc_getRarityName({_rarity})
+        set {_typeName} to acc_getTypeName({_type})
+        set {_stat} to acc_getTypeStat({_type})
+        set {_statName} to acc_formatStatName({_stat})
+        set {_bonus} to acc_calculateBonus({_type}, {_rarity})
+
+        # Build beautiful display text with stats
+        # Check if this accessory was auto-salvaged
+        set {_wasSalvaged} to {_salvaged::%{_i}%}
+        set {_isNew} to {_isNew::%{_i}%}
+
+        # NEW! prefix for first-time discoveries
+        if {_isNew} is true:
+            set {_newPrefix} to "&b&lNEW!%nl%"
+        else:
+            set {_newPrefix} to ""
+
+        if {_wasSalvaged} is true:
+            set {_salvageValue} to {_salvageValue::%{_i}%}
+            set {_displayText} to "%{_newPrefix}%&8&l[RECYCLED]%nl%%{_rarityColor}%%{_typeName}%%nl%&6+%{_salvageValue}% tokens"
+        else if {_rarity} is "legendary":
+            set {_displayText} to "%{_newPrefix}%&6&lLEGENDARY%nl%%{_rarityColor}%&l%{_typeName}%%nl%&8━━━━━━━━━━━━%nl%&a+%{_bonus}%%% &f%{_statName}%"
+        else if {_rarity} is "epic":
+            set {_displayText} to "%{_newPrefix}%&d&lEPIC%nl%%{_rarityColor}%%{_typeName}%%nl%&8─────────%nl%&a+%{_bonus}%%% &7%{_statName}%"
+        else if {_rarity} is "rare":
+            set {_displayText} to "%{_newPrefix}%&9Rare%nl%%{_rarityColor}%%{_typeName}%%nl%&a+%{_bonus}%%% &7%{_statName}%"
+        else if {_rarity} is "uncommon":
+            set {_displayText} to "%{_newPrefix}%&aUncommon%nl%%{_rarityColor}%%{_typeName}%%nl%&a+%{_bonus}%%% &7%{_statName}%"
+        else:
+            set {_displayText} to "%{_newPrefix}%&7Common%nl%%{_rarityColor}%%{_typeName}%%nl%&a+%{_bonus}%%% &7%{_statName}%"
+
+        set {_m} to new metadata packet with id {_textId::%{_i}%}:
+            display text: {_displayText}
+            display billboard: center
+            display brightness block: 15
+            display shadow: true
+            display defaultbackground: false
+            display scale: vector(0.01, 0.01, 0.01)
+            display teleportduration: 2
+        send packet {_m} to {_p}
+
+    wait 1 tick
+
+    # Scale up texts with staggered timing for drama
+    loop {_amount} times:
+        set {_i} to loop-number
+        set {_m} to new metadata packet with id {_textId::%{_i}%}:
+            display scale: vector(0.65, 0.65, 0.65)
+            display transformation: 4
+            display interpolation: 0
+        send packet {_m} to {_p}
+
+        set {_textEndLoc} to location({_textX::%{_i}%}, {_chestY::%{_i}%} + {_textArcHeight::%{_i}%} + 0.3, {_textZ::%{_i}%}, {_world})
+        send teleport packet with id {_textId::%{_i}%} with location {_textEndLoc} to {_p}
+
+        play sound "entity.experience_orb.pickup" with volume 0.4 and pitch (1.2 + ({_i} * 0.15)) to {_p}
+        wait 2 ticks
+
+    # ════════════════════════════════════════
+    # PHASE 7: Items fly to player
+    # ════════════════════════════════════════
+
+    wait 25 ticks
+
+    # Shrink all texts
+    loop {_amount} times:
+        set {_i} to loop-number
+        set {_m} to new metadata packet with id {_textId::%{_i}%}:
+            display scale: vector(0.01, 0.01, 0.01)
+            display transformation: 3
+            display interpolation: 0
+        send packet {_m} to {_p}
+
+    # All items fly to player
+    set {_playerLoc} to location of {_p}
+    set {_playerLoc} to {_playerLoc} ~ vector(0, 1.2, 0)
+
+    loop {_amount} times:
+        set {_i} to loop-number
+        set {_m} to new metadata packet with id {_itemId::%{_i}%}:
+            display scale: vector(0.3, 0.3, 0.3)
+            display teleportduration: 4
+            display transformation: 3
+            display interpolation: 0
+        send packet {_m} to {_p}
+
+        send teleport packet with id {_itemId::%{_i}%} with location {_playerLoc} to {_p}
+
+    wait 4 ticks
+
+    # Shrink and collect all
+    loop {_amount} times:
+        set {_i} to loop-number
+        set {_m} to new metadata packet with id {_itemId::%{_i}%}:
+            display scale: vector(0.01, 0.01, 0.01)
+            display transformation: 2
+            display interpolation: 0
+        send packet {_m} to {_p}
+
+    play sound "entity.item.pickup" with volume 0.6 and pitch 1.2 to {_p}
+
+    wait 3 ticks
+
+    # Cleanup all entities
+    loop {_amount} times:
+        set {_i} to loop-number
+        remove fake entity with id {_itemId::%{_i}%} for {_p}
+        remove fake entity with id {_textId::%{_i}%} for {_p}
+
+    # Restore the altar block
+    make {_p} see block at {_altarLoc} as {_originalBlock}
+
+    # Give rewards only for non-salvaged items (with overflow protection)
+    set {_overflowTokens} to 0
+    set {_overflowCount} to 0
+    loop {_amount} times:
+        set {_i} to loop-number
+        if {_salvaged::%{_i}%} is not true:
+            set {_added} to acc_addToInventory({_p}, {_encoded::%{_i}%})
+            if {_added} is false:
+                # Storage full - auto-salvage overflow
+                set {_overflowValue} to acc_getSalvageValue({_rarity::%{_i}%})
+                add {_overflowValue} to {_overflowTokens}
+                add 1 to {_overflowCount}
+                set {_salvaged::%{_i}%} to true
+
+    # Give salvage tokens if any (including overflow)
+    set {_totalTokens} to {_totalSalvageTokens} + {_overflowTokens}
+    if {_totalTokens} > 0:
+        mining_giveTokens({_p}, {_totalTokens})
+
+    # Send summary
+    send "" to {_p}
+    send "&6&lTREASURES OPENED" to {_p}
+    send "%{_color}%%{_treasureName}% &7x%{_amount}%" to {_p}
+    send "" to {_p}
+
+    set {_actualKept} to {_keptCount} - {_overflowCount}
+    if {_actualKept} > 0:
+        send "&7You obtained:" to {_p}
+        loop {_amount} times:
+            set {_i} to loop-number
+            if {_salvaged::%{_i}%} is not true:
+                set {_rarityColor} to acc_getRarityColor({_rarity::%{_i}%})
+                set {_rarityName} to acc_getRarityName({_rarity::%{_i}%})
+                set {_typeName} to acc_getTypeName({_type::%{_i}%})
+                send " %{_rarityColor}%%{_rarityName}% %{_typeName}%" to {_p}
+
+    if {_salvageCount} > 0:
+        send "&8Auto-salvaged %{_salvageCount}% accessories: &6+%{_totalSalvageTokens}% tokens" to {_p}
+
+    if {_overflowCount} > 0:
+        send "&c⚠ Storage full! %{_overflowCount}% accessories converted to &6+%{_overflowTokens}% tokens" to {_p}
+
+    send "" to {_p}
+
+    delete {-acc::opening::%{_p}'s uuid%}
+
+
+# ============================================================
+# QUICK OPEN COMMAND (alternative to altar)
+# ============================================================
+
+command /openchest [<text>] [<number=1>]:
+    aliases: /opentreasure
+    trigger:
+        if arg-1 is not set:
+            acc_openAltarTierMenu(player)
+            stop
+
+        set {_treasureId} to arg-1
+        set {_amount} to arg-2
+
+        # Validate treasure ID
+        if acc_isValidTreasure({_treasureId}) is false:
+            send "&cInvalid treasure! Use: normal, ultra, divine, mythic, celestial"
+            stop
+
+        if {_amount} != 1:
+            if {_amount} != 3:
+                if {_amount} != 5:
+                    send "&cAmount must be 1, 3, or 5!"
+                    stop
+
+        set {_keys} to acc_getKeyCount(player, {_treasureId})
+        if {_keys} < {_amount}:
+            send "&cYou need %{_amount}% keys! You have %{_keys}%." to player
+            stop
+
+        set {-acc::altar::loc::%player's uuid%} to location of player
+        acc_playTreasureAnimation(player, {_treasureId}, {_amount})

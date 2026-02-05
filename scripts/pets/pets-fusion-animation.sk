@@ -1,0 +1,348 @@
+# ============================================================
+# PET FUSION SYSTEM - ANIMATION
+# ============================================================
+#
+# Handles the 5-second fusion animation:
+#   - Phase 1: Setup & Pet Entrance (0-1s)
+#   - Phase 2: Convergence (1-2.5s)
+#   - Phase 3: Merge & Flash (2.5-3s)
+#   - Phase 4: Result Reveal (3-4s)
+#   - Phase 5: Collection (4-5s)
+#   - Phase 6: Cleanup (5s)
+#
+# ============================================================
+
+function petFusion_playAnimation(p: player, anvilLoc: location, petType: text, rarity: text, inputFusion: number, outputFusion: number, newPetId: text):
+    set {_uuid} to {_p}'s uuid
+
+    # Prevent multiple animations
+    if {-fusion::animating::%{_uuid}%} is set:
+        stop
+    set {-fusion::animating::%{_uuid}%} to true
+
+    # ════════════════════════════════════════
+    # SETUP
+    # ════════════════════════════════════════
+
+    # Hide the anvil block (show as air)
+    make {_p} see block at {_anvilLoc} as air
+
+    # Get pet properties
+    set {_petIcon} to pet_getTypeIcon({_petType})
+    set {_petName} to pet_getTypeName({_petType})
+    set {_rarityColor} to pet_getRarityColor({_rarity})
+
+    # Get rarity glow color
+    if {_rarity} = "legendary":
+        set {_rarityGlow} to rgb(255, 170, 0)
+    else if {_rarity} = "epic":
+        set {_rarityGlow} to rgb(255, 85, 255)
+    else if {_rarity} = "rare":
+        set {_rarityGlow} to rgb(85, 85, 255)
+    else if {_rarity} = "uncommon":
+        set {_rarityGlow} to rgb(85, 255, 85)
+    else:
+        set {_rarityGlow} to rgb(170, 170, 170)
+
+    # Get fusion glow color (outer glow)
+    if {_outputFusion} = 1:
+        # Gold fusion - yellow
+        set {_fusionGlow} to rgb(255, 215, 0)
+    else if {_outputFusion} = 2:
+        # Diamond fusion - cyan
+        set {_fusionGlow} to rgb(0, 255, 255)
+    else:
+        set {_fusionGlow} to rgb(255, 255, 255)
+
+    # Base ID for all entities
+    set {_baseId} to random integer between 100000 and 9999999
+
+    # Calculate circle positions around anvil (radius 2 blocks)
+    set {_centerX} to x-coordinate of {_anvilLoc} + 0.5
+    set {_centerY} to y-coordinate of {_anvilLoc} + 1.5
+    set {_centerZ} to z-coordinate of {_anvilLoc} + 0.5
+    set {_radius} to 2.0
+
+    loop 5 times:
+        set {_i} to loop-number
+        set {_angle} to ({_i} - 1) * 72  # 360/5 = 72 degrees apart
+        set {_radians} to {_angle} * 3.14159 / 180
+        set {_petX::%{_i}%} to {_centerX} + (cos({_radians}) * {_radius})
+        set {_petY::%{_i}%} to {_centerY}
+        set {_petZ::%{_i}%} to {_centerZ} + (sin({_radians}) * {_radius})
+
+        # Entity IDs
+        set {_petId::%{_i}%} to {_baseId} + ({_i} * 10)
+
+    # Result entity IDs
+    set {_resultId} to {_baseId} + 100
+    set {_resultOuterId} to {_baseId} + 101
+
+    # ════════════════════════════════════════
+    # PHASE 1: PET ENTRANCE (0-1s)
+    # ════════════════════════════════════════
+
+    # Spawn all 5 pets in circle
+    loop 5 times:
+        set {_i} to loop-number
+        set {_spawnPos} to location({_petX::%{_i}%}, {_petY::%{_i}%}, {_petZ::%{_i}%}, world of {_anvilLoc})
+
+        spawn fake item display at {_spawnPos} for {_p} with id {_petId::%{_i}%}
+
+        set {_m} to new metadata packet with id {_petId::%{_i}%}:
+            display item: {_petIcon}
+            display scale: vector(0.01, 0.01, 0.01)
+            display billboard: center
+            display brightness block: 15
+            display teleportduration: 2
+            display transformation: 3
+            display interpolation: 0
+            glowing: true
+            display glow: {_rarityGlow}
+        send packet {_m} to {_p}
+
+    play sound "entity.item.pickup" with volume 0.8 and pitch 0.6 to {_p}
+    wait 1 tick
+
+    # Grow all pets to normal size
+    loop 5 times:
+        set {_i} to loop-number
+        set {_m} to new metadata packet with id {_petId::%{_i}%}:
+            display scale: vector(0.7, 0.7, 0.7)
+            display transformation: 5
+            display interpolation: 0
+        send packet {_m} to {_p}
+
+    wait 5 ticks
+
+    # ════════════════════════════════════════
+    # PHASE 2: CONVERGENCE (1-2.5s)
+    # ════════════════════════════════════════
+
+    play sound "block.beacon.activate" with volume 0.7 and pitch 1.2 to {_p}
+
+    # Move all pets toward center over 20 ticks (1 second)
+    loop 20 times:
+        set {_progress} to loop-number / 20
+        set {_scale} to 0.7 * (1 - {_progress})  # Shrink as they approach
+
+        loop 5 times:
+            set {_i} to loop-number-2
+            set {_newX} to {_petX::%{_i}%} + (({_centerX} - {_petX::%{_i}%}) * {_progress})
+            set {_newY} to {_petY::%{_i}%} + (({_centerY} - {_petY::%{_i}%}) * {_progress})
+            set {_newZ} to {_petZ::%{_i}%} + (({_centerZ} - {_petZ::%{_i}%}) * {_progress})
+
+            set {_moveLoc} to location({_newX}, {_newY}, {_newZ}, world of {_anvilLoc})
+            send teleport packet with id {_petId::%{_i}%} with location {_moveLoc} to {_p}
+
+            # Shrink and rotate
+            set {_angle} to loop-number-2 * 30
+            set {_qy} to sin({_angle} / 2)
+            set {_qw} to cos({_angle} / 2)
+
+            set {_m} to new metadata packet with id {_petId::%{_i}%}:
+                display scale: vector({_scale}, {_scale}, {_scale})
+                display rotation left: 0, {_qy}, 0, {_qw}
+                display transformation: 1
+                display interpolation: 0
+            send packet {_m} to {_p}
+
+        wait 1 tick
+
+    # ════════════════════════════════════════
+    # PHASE 3: MERGE & FLASH (2.5-3s)
+    # ════════════════════════════════════════
+
+    # All pets reach center - remove them
+    loop 5 times:
+        set {_i} to loop-number
+        remove fake entity with id {_petId::%{_i}%} for {_p}
+
+    # Flash effect - spawn and remove particles at center
+    set {_centerLoc} to location({_centerX}, {_centerY}, {_centerZ}, world of {_anvilLoc})
+
+    # Use temporary entity for flash effect
+    set {_flashId} to {_baseId} + 200
+    spawn fake item display at {_centerLoc} for {_p} with id {_flashId}
+    set {_m} to new metadata packet with id {_flashId}:
+        display item: nether star
+        display scale: vector(2, 2, 2)
+        display billboard: center
+        display brightness block: 15
+        glowing: true
+        display glow: {_fusionGlow}
+    send packet {_m} to {_p}
+
+    play sound "entity.generic.explode" with volume 0.6 and pitch 1.5 to {_p}
+    play sound "entity.player.levelup" with volume 1 and pitch 1.2 to {_p}
+
+    wait 3 ticks
+
+    # Expand flash
+    set {_m} to new metadata packet with id {_flashId}:
+        display scale: vector(3, 3, 3)
+        display transformation: 2
+        display interpolation: 0
+    send packet {_m} to {_p}
+
+    wait 3 ticks
+
+    # Remove flash
+    remove fake entity with id {_flashId} for {_p}
+
+    wait 2 ticks
+
+    # ════════════════════════════════════════
+    # PHASE 4: RESULT REVEAL (3-4s)
+    # ════════════════════════════════════════
+
+    # Spawn result pet with DUAL GLOW (inner rarity + outer fusion)
+    set {_revealLoc} to location({_centerX}, {_centerY}, {_centerZ}, world of {_anvilLoc})
+
+    # Inner glow (rarity)
+    spawn fake item display at {_revealLoc} for {_p} with id {_resultId}
+    set {_m} to new metadata packet with id {_resultId}:
+        display item: {_petIcon}
+        display scale: vector(0.01, 0.01, 0.01)
+        display billboard: center
+        display brightness block: 15
+        display teleportduration: 2
+        display transformation: 3
+        display interpolation: 0
+        glowing: true
+        display glow: {_rarityGlow}
+    send packet {_m} to {_p}
+
+    # Outer glow (fusion tier) - slightly larger, same position
+    spawn fake item display at {_revealLoc} for {_p} with id {_resultOuterId}
+    set {_m} to new metadata packet with id {_resultOuterId}:
+        display item: {_petIcon}
+        display scale: vector(0.01, 0.01, 0.01)
+        display billboard: center
+        display brightness block: 15
+        display teleportduration: 2
+        display transformation: 3
+        display interpolation: 0
+        glowing: true
+        display glow: {_fusionGlow}
+    send packet {_m} to {_p}
+
+    wait 1 tick
+
+    # Grow both layers to reveal size
+    set {_m} to new metadata packet with id {_resultId}:
+        display scale: vector(1.2, 1.2, 1.2)
+        display transformation: 8
+        display interpolation: 0
+    send packet {_m} to {_p}
+
+    set {_m} to new metadata packet with id {_resultOuterId}:
+        display scale: vector(1.4, 1.4, 1.4)  # Outer layer slightly larger
+        display transformation: 8
+        display interpolation: 0
+    send packet {_m} to {_p}
+
+    # Move up slightly
+    set {_riseLoc} to location({_centerX}, {_centerY} + 0.5, {_centerZ}, world of {_anvilLoc})
+    send teleport packet with id {_resultId} with location {_riseLoc} to {_p}
+    send teleport packet with id {_resultOuterId} with location {_riseLoc} to {_p}
+
+    play sound "block.end_portal_frame.fill" with volume 0.8 and pitch 1.5 to {_p}
+
+    wait 8 ticks
+
+    # Spin both layers together (showcase)
+    loop 12 times:
+        set {_frame} to loop-number - 1
+        set {_angle} to {_frame} * 30
+        set {_qy} to sin({_angle} / 2)
+        set {_qw} to cos({_angle} / 2)
+        set {_floatOffset} to sin({_frame} * 30) * 0.1
+
+        set {_spinLoc} to location({_centerX}, {_centerY} + 0.5 + {_floatOffset}, {_centerZ}, world of {_anvilLoc})
+        send teleport packet with id {_resultId} with location {_spinLoc} to {_p}
+        send teleport packet with id {_resultOuterId} with location {_spinLoc} to {_p}
+
+        set {_m} to new metadata packet with id {_resultId}:
+            display rotation left: 0, {_qy}, 0, {_qw}
+            display transformation: 1
+            display interpolation: 0
+        send packet {_m} to {_p}
+
+        set {_m} to new metadata packet with id {_resultOuterId}:
+            display rotation left: 0, {_qy}, 0, {_qw}
+            display transformation: 1
+            display interpolation: 0
+        send packet {_m} to {_p}
+
+        wait 1 tick
+
+    # ════════════════════════════════════════
+    # PHASE 5: COLLECTION (4-5s)
+    # ════════════════════════════════════════
+
+    play sound "entity.item.pickup" with volume 0.8 and pitch 1.5 to {_p}
+
+    # Scale down and fly to player over 10 ticks
+    set {_playerLoc} to {_p}'s location
+    set {_targetX} to x-coordinate of {_playerLoc}
+    set {_targetY} to y-coordinate of {_playerLoc} + 1.5
+    set {_targetZ} to z-coordinate of {_playerLoc}
+
+    loop 10 times:
+        set {_progress} to loop-number / 10
+        set {_scale} to 1.2 * (1 - {_progress})
+        set {_outerScale} to 1.4 * (1 - {_progress})
+
+        set {_newX} to {_centerX} + (({_targetX} - {_centerX}) * {_progress})
+        set {_newY} to ({_centerY} + 0.5) + (({_targetY} - {_centerY} - 0.5) * {_progress})
+        set {_newZ} to {_centerZ} + (({_targetZ} - {_centerZ}) * {_progress})
+
+        set {_flyLoc} to location({_newX}, {_newY}, {_newZ}, world of {_anvilLoc})
+        send teleport packet with id {_resultId} with location {_flyLoc} to {_p}
+        send teleport packet with id {_resultOuterId} with location {_flyLoc} to {_p}
+
+        set {_m} to new metadata packet with id {_resultId}:
+            display scale: vector({_scale}, {_scale}, {_scale})
+            display transformation: 1
+            display interpolation: 0
+        send packet {_m} to {_p}
+
+        set {_m} to new metadata packet with id {_resultOuterId}:
+            display scale: vector({_outerScale}, {_outerScale}, {_outerScale})
+            display transformation: 1
+            display interpolation: 0
+        send packet {_m} to {_p}
+
+        wait 1 tick
+
+    # ════════════════════════════════════════
+    # PHASE 6: CLEANUP & SUCCESS MESSAGE (5s)
+    # ════════════════════════════════════════
+
+    # Remove display entities
+    remove fake entity with id {_resultId} for {_p}
+    remove fake entity with id {_resultOuterId} for {_p}
+
+    # Reset anvil block
+    make {_p} see block at {_anvilLoc} as anvil
+
+    # Success message
+    set {_fusionName} to petFusion_getTierName({_outputFusion})
+    send "" to {_p}
+    send "&6&l✦ FUSION COMPLETE!" to {_p}
+    send "" to {_p}
+    send "&7You created: %{_fusionName}%%{_rarityColor}%%{_petName}%&7!" to {_p}
+    send "" to {_p}
+
+    # Play final sound
+    if {_outputFusion} = 2:
+        play sound "ui.toast.challenge_complete" with volume 1 and pitch 1.2 to {_p}
+    else:
+        play sound "entity.player.levelup" with volume 1 and pitch 1.5 to {_p}
+
+    # Recalculate multipliers if the new pet is equipped
+    multiplier_recalculate({_p})
+
+    # Clear animation lock
+    delete {-fusion::animating::%{_uuid}%}

@@ -1,0 +1,304 @@
+# ============================================================
+# PICKAXE ITEM SYSTEM
+# ============================================================
+#
+# Handles:
+#   - Pickaxe lore generation with all stats
+#   - Lore updates on stat changes
+#   - Starter pickaxe for new players
+#   - Pickaxe loss prevention
+#   - Pickaxe locked to slot 0
+#   - Auto-update every 15 seconds
+#
+# ============================================================
+
+
+# ============================================================
+# PICKAXE LORE GENERATION
+# ============================================================
+
+function pickaxe_generateLore(p: player) :: texts:
+    set {_uuid} to {_p}'s uuid
+    
+    # ═══ HEADER ═══
+    add "&8belongs to %{_p}%" to {_lore::*}
+    add "&f&m                              " to {_lore::*}
+    add "" to {_lore::*}
+    
+    # ═══ DURABILITY ═══
+    set {_durability} to mining_getDurability({_p})
+    set {_maxDurability} to mining_getTotalDurability({_p})
+    set {_durPercent} to round({_durability} / {_maxDurability} * 100)
+    
+    if {_durPercent} > 50:
+        set {_durColor} to "&a"
+    else if {_durPercent} > 25:
+        set {_durColor} to "&e"
+    else:
+        set {_durColor} to "&c"
+    
+    # Build durability bar
+    set {_barLength} to 20
+    set {_filled} to round({_durPercent} / 100 * {_barLength})
+    set {_bar} to ""
+    loop {_barLength} times:
+        if loop-number <= {_filled}:
+            set {_bar} to "%{_bar}%&a|"
+        else:
+            set {_bar} to "%{_bar}%&8|"
+    
+    add " &e&lDURABILITY" to {_lore::*}
+    add " %{_bar}%" to {_lore::*}
+    add " %{_durColor}%%round({_durability})%&7/%{_maxDurability}%" to {_lore::*}
+    add "" to {_lore::*}
+    
+    # ═══ EQUIPPED ENCHANTS ═══
+    add " &d&lEQUIPPED ENCHANTS" to {_lore::*}
+    
+    set {_equipped::*} to enchant_getAllPlayerEquippedEnchants({_p})
+    set {_hasEquipped} to false
+    
+    loop {_equipped::*}:
+        set {_enchId} to loop-value
+        if {_enchId} > 0:
+            set {_hasEquipped} to true
+            set {_enchName} to enchant_getNameByID({_enchId})
+            set {_enchLevel} to enchant_getPlayerLevel({_p}, {_enchId})
+            set {_enchMax} to enchant_getMax({_enchId})
+            set {_enchArchId} to enchant_getArchetypeIDByEnchantID({_enchId})
+            
+            # Color based on archetype
+            if {_enchArchId} = 1:
+                set {_enchColor} to "&7"
+            else if {_enchArchId} = 2:
+                set {_enchColor} to "<#F621FF>"
+            else if {_enchArchId} = 3:
+                set {_enchColor} to "<#FF1F1F>"
+            else if {_enchArchId} = 4:
+                set {_enchColor} to "<#0E61C2>"
+            else:
+                set {_enchColor} to "&7"
+            
+            if {_enchLevel} >= {_enchMax}:
+                add " %{_enchColor}%• %{_enchName}% &8[&6&lMAX&8]" to {_lore::*}
+            else:
+                add " %{_enchColor}%• %{_enchName}% &8[&a%{_enchLevel}%&8/&c%{_enchMax}%&8]" to {_lore::*}
+    
+    if {_hasEquipped} = false:
+        add " &8No enchants equipped" to {_lore::*}
+    
+    add "" to {_lore::*}
+    add "&f&m                              " to {_lore::*}
+    add "" to {_lore::*}
+    add "&e&oRight-click to open menu" to {_lore::*}
+    
+    return {_lore::*}
+
+
+# ============================================================
+# PICKAXE CREATION & UPDATE
+# ============================================================
+
+function pickaxe_create(p: player) :: item:
+    set {_archetypeId} to player_getArchetype({_p})
+    
+    if {_archetypeId} = 2:
+        set {_archName} to "Precision"
+        set {_archColor} to "<#F621FF>"
+    else if {_archetypeId} = 3:
+        set {_archName} to "Demolition"
+        set {_archColor} to "<#FF1F1F>"
+    else if {_archetypeId} = 4:
+        set {_archName} to "Arcane"
+        set {_archColor} to "<#0E61C2>"
+    else:
+        set {_archName} to "Mining"
+        set {_archColor} to "&e"
+    
+    # Create pickaxe with unbreakable component (1.20.5+ format)
+    set {_pick} to wooden pickaxe with nbt from "{""minecraft:unbreakable"":{show_in_tooltip:0},""minecraft:attribute_modifiers"":{modifiers:[],show_in_tooltip:0}}"
+    set name of {_pick} to "%{_archColor}%%{_archName}% Pickaxe ⛏"
+    set lore of {_pick} to pickaxe_generateLore({_p})
+    
+    # Mark as the player's pickaxe using custom NBT
+    set boolean tag "miningPickaxe" of custom nbt of {_pick} to true
+    set string tag "miningPickaxeOwner" of custom nbt of {_pick} to "%{_p}'s uuid%"
+    
+    return {_pick}
+
+
+function pickaxe_updateLore(p: player):
+    # Create new pickaxe and place in slot 0
+    set {_newPick} to pickaxe_create({_p})
+    set slot 0 of {_p}'s inventory to {_newPick}
+
+
+function pickaxe_give(p: player):
+    # Always place pickaxe in slot 0
+    set {_pick} to pickaxe_create({_p})
+    set slot 0 of {_p}'s inventory to {_pick}
+
+
+function pickaxe_ensureHas(p: player):
+    # Check slot 0 for pickaxe
+    set {_slot0} to slot 0 of {_p}'s inventory
+    set {_nbt} to custom nbt of {_slot0}
+    if boolean tag "miningPickaxe" of {_nbt} is not true:
+        pickaxe_give({_p})
+
+
+function pickaxe_isPickaxe(i: item) :: boolean:
+    set {_nbt} to custom nbt of {_i}
+    if boolean tag "miningPickaxe" of {_nbt} is true:
+        return true
+    return false
+
+
+# ============================================================
+# STARTER PICKAXE ON JOIN + AUTO UPDATE LOOP
+# ============================================================
+
+on script load:
+    # Clear all guards on reload to prevent orphaned loops blocking new ones
+    delete {-guard::pickaxe-loop::*}
+    delete {-pickaxe::loop::*}
+
+on join:
+    # Small delay to ensure player is fully loaded
+    wait 5 ticks
+    pickaxe_ensureHas(player)
+    pickaxe_updateLore(player)
+    
+    # Start auto-update loop with guard
+    pickaxe_startLoop(player)
+
+on quit:
+    delete {-pickaxe::loop::%player's uuid%}
+    delete {-guard::pickaxe-loop::%player's uuid%}
+
+
+# Guarded loop - prevents duplicate loops from spawning
+function pickaxe_startLoop(p: player):
+    # Guard check - only one loop instance per player
+    {-guard::pickaxe-loop::%{_p}'s uuid%} is not set
+    set {-guard::pickaxe-loop::%{_p}'s uuid%} to a random uuid
+    
+    set {-pickaxe::loop::%{_p}'s uuid%} to true
+    while {-pickaxe::loop::%{_p}'s uuid%} is true:
+        wait 15 seconds
+        if {_p} is online:
+            pickaxe_updateLore({_p})
+        else:
+            delete {-pickaxe::loop::%{_p}'s uuid%}
+            delete {-guard::pickaxe-loop::%{_p}'s uuid%}
+            stop
+    
+    delete {-guard::pickaxe-loop::%{_p}'s uuid%}
+
+
+# ============================================================
+# PICKAXE LOSS PREVENTION
+# ============================================================
+
+# Prevent dropping the pickaxe
+on drop:
+    if pickaxe_isPickaxe(event-item) = true:
+        cancel event
+        send "&cYou cannot drop your pickaxe!" to player
+
+# Prevent losing pickaxe on death
+on death of player:
+    loop drops:
+        if pickaxe_isPickaxe(loop-item) = true:
+            remove loop-item from drops
+
+on respawn:
+    wait 5 ticks
+    pickaxe_ensureHas(player)
+    pickaxe_updateLore(player)
+
+# Prevent moving pickaxe from slot 0
+on inventory click:
+    # Allow menu interactions
+    set {_currentMenu} to menu_getCurrentMenu(player)
+    if {_currentMenu} != "N/A":
+        stop
+    
+    # Check if clicking on slot 0 (the pickaxe slot)
+    if index of event-slot = 0:
+        set {_item} to event-slot
+        if pickaxe_isPickaxe({_item}) = true:
+            cancel event
+            stop
+    
+    # Check if shift-clicking a pickaxe anywhere
+    if event-slot is set:
+        set {_item} to event-slot
+        if pickaxe_isPickaxe({_item}) = true:
+            cancel event
+            stop
+    
+    # Block pressing "1" key (hotbar button 0) - this would swap with pickaxe slot
+    if click type is number key:
+        set {_button} to hotbar button
+        # Hotbar button 0 = key "1" = slot 0 where pickaxe is
+        if {_button} = 0:
+            cancel event
+            stop
+        # Also check if the clicked slot itself has the pickaxe
+        if event-slot is set:
+            set {_item} to event-slot
+            if pickaxe_isPickaxe({_item}) = true:
+                cancel event
+                stop
+
+# Prevent F key swap when holding pickaxe
+on swap hand items:
+    if pickaxe_isPickaxe(player's tool) = true:
+        cancel event
+    if pickaxe_isPickaxe(offhand tool of player) = true:
+        cancel event
+
+
+# ============================================================
+# LORE UPDATE TRIGGERS
+# ============================================================
+
+function pickaxe_onArchetypeChange(p: player):
+    pickaxe_updateLore({_p})
+
+function pickaxe_onEnchantChange(p: player):
+    pickaxe_updateLore({_p})
+
+function pickaxe_onLevelUp(p: player):
+    pickaxe_updateLore({_p})
+
+function pickaxe_onPrestige(p: player):
+    pickaxe_updateLore({_p})
+
+function pickaxe_onDurabilityChange(p: player):
+    set {_dur} to round(mining_getDurability({_p}))
+    if mod({_dur}, 10) = 0:
+        pickaxe_updateLore({_p})
+
+
+# ============================================================
+# ADMIN COMMANDS
+# ============================================================
+
+command /pickaxe [<text>]:
+    permission: op
+    trigger:
+        if arg-1 is "give":
+            pickaxe_give(player)
+            send "&aPickaxe given to slot 0!"
+        else if arg-1 is "update":
+            pickaxe_updateLore(player)
+            send "&aPickaxe lore updated!"
+        else if arg-1 is "reset":
+            pickaxe_give(player)
+            send "&aPickaxe reset!"
+        else:
+            send "&e/pickaxe give &7- Give yourself a pickaxe"
+            send "&e/pickaxe update &7- Update pickaxe lore"
+            send "&e/pickaxe reset &7- Reset your pickaxe"

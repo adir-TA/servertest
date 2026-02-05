@@ -1,0 +1,1048 @@
+# ============================================================
+# TUTORIAL SYSTEM v11 (With Archetype Research)
+# ============================================================
+# A clean, standalone tutorial for new players
+#
+# Tutorial Steps:
+#   1 = Welcome
+#   2 = Mine 5 blocks
+#   3 = Sell items (/sell)
+#   4 = Research first enchant slot
+#   5 = Upgrade & Equip Efficiency
+#   6 = Reach level 5
+#   7 = Research pet slot + Equip pet
+#   8 = Reach level 7
+#   9 = Research accessory slot + Equip accessory
+#   10 = Reach level 10
+#   11 = Research booster slot + Use booster
+#   12 = Reach level 15
+#   13 = Prestige
+#   14 = Research archetype
+#   15 = Select archetype in /arc
+#   16 = Complete
+# ============================================================
+
+
+# ============================================================
+# TEXT DISPLAY SYSTEM
+# ============================================================
+
+function tutorial_createDisplay(p: player):
+    set {_id} to random integer between 100000 and 9999999
+    set {-tutorial::%{_p}'s uuid%::displayId} to {_id}
+
+    set {_loc} to location 3 meters in front of {_p}'s eyes
+    set y-coord of {_loc} to y-coord of {_p}'s location + 1
+
+    spawn fake text display at {_loc} for {_p} with id {_id}
+
+    set {_m} to new metadata packet with id {_id}:
+        display text: ""
+        display scale: vector(0.01, 0.01, 0.01)
+        display billboard: center
+        display brightness block: 15
+        display shadow: true
+        display defaultbackground: false
+        display background alpha: 140
+        display teleportduration: 30
+    send packet {_m} to {_p}
+
+
+function tutorial_updateDisplayPosition(p: player):
+    set {_id} to {-tutorial::%{_p}'s uuid%::displayId}
+    if {_id} is not set:
+        stop
+
+    set {_loc} to location 3 meters in front of {_p}'s eyes
+    set y-coord of {_loc} to y-coord of {_p}'s location + 1
+
+    send teleport packet with id {_id} with location {_loc} to {_p}
+
+
+function tutorial_setText(p: player, text: text):
+    set {_id} to {-tutorial::%{_p}'s uuid%::displayId}
+    if {_id} is not set:
+        tutorial_createDisplay({_p})
+        set {_id} to {-tutorial::%{_p}'s uuid%::displayId}
+
+    set {_m} to new metadata packet with id {_id}:
+        display text: {_text}
+        display scale: vector(1, 1, 1)
+        display transformation: 0
+        display interpolation: 0
+    send packet {_m} to {_p}
+
+
+function tutorial_setTextAnimated(p: player, text: text, fadeIn: boolean=true):
+    set {_id} to {-tutorial::%{_p}'s uuid%::displayId}
+    if {_id} is not set:
+        tutorial_createDisplay({_p})
+        set {_id} to {-tutorial::%{_p}'s uuid%::displayId}
+
+    if {_fadeIn} = true:
+        set {_m} to new metadata packet with id {_id}:
+            display scale: vector(0.01, 0.01, 0.01)
+            display transformation: 2
+            display interpolation: 0
+        send packet {_m} to {_p}
+        wait 2 ticks
+
+    set {_m} to new metadata packet with id {_id}:
+        display text: {_text}
+    send packet {_m} to {_p}
+
+    if {_fadeIn} = true:
+        wait 1 tick
+        set {_m} to new metadata packet with id {_id}:
+            display scale: vector(1.1, 1.1, 1.1)
+            display transformation: 3
+            display interpolation: 0
+        send packet {_m} to {_p}
+        wait 3 ticks
+        set {_m} to new metadata packet with id {_id}:
+            display scale: vector(1, 1, 1)
+            display transformation: 3
+            display interpolation: 0
+        send packet {_m} to {_p}
+
+
+function tutorial_fadeOut(p: player):
+    set {_id} to {-tutorial::%{_p}'s uuid%::displayId}
+    if {_id} is not set:
+        stop
+
+    set {_m} to new metadata packet with id {_id}:
+        display scale: vector(0.01, 0.01, 0.01)
+        display transformation: 4
+        display interpolation: 0
+    send packet {_m} to {_p}
+    wait 4 ticks
+
+    set {_m} to new metadata packet with id {_id}:
+        display text: ""
+    send packet {_m} to {_p}
+
+
+function tutorial_removeDisplay(p: player):
+    set {_id} to {-tutorial::%{_p}'s uuid%::displayId}
+    if {_id} is set:
+        remove fake entity with id {_id} for {_p}
+    delete {-tutorial::%{_p}'s uuid%::displayId}
+
+
+# ============================================================
+# DISPLAY FOLLOW LOOP
+# ============================================================
+
+function tutorial_startFollowLoop(p: player):
+    set {_uuid} to {_p}'s uuid
+    set {-tutorial::%{_uuid}%::following} to true
+
+    if {-guard::tutorial::%{_uuid}%} is set:
+        stop
+
+    set {-guard::tutorial::%{_uuid}%} to true
+
+    while {-tutorial::%{_uuid}%::following} is true:
+        if {_p} is not online:
+            delete {-tutorial::%{_uuid}%::following}
+            delete {-guard::tutorial::%{_uuid}%}
+            stop
+
+        tutorial_updateDisplayPosition({_p})
+        wait 30 ticks
+
+    delete {-guard::tutorial::%{_uuid}%}
+
+
+function tutorial_stopFollowLoop(p: player):
+    set {_uuid} to {_p}'s uuid
+    delete {-tutorial::%{_uuid}%::following}
+    delete {-guard::tutorial::%{_uuid}%}
+
+
+# ============================================================
+# TUTORIAL STATE
+# ============================================================
+
+function tutorial_isComplete(p: player) :: boolean:
+    if {data::tutorial-complete::%{_p}'s uuid%} is set:
+        return true
+    return false
+
+function tutorial_markComplete(p: player):
+    set {data::tutorial-complete::%{_p}'s uuid%} to true
+    tutorial_cleanup({_p})
+
+function tutorial_getStep(p: player) :: integer:
+    if {-tutorial::%{_p}'s uuid%::step} is set:
+        return {-tutorial::%{_p}'s uuid%::step}
+    return 0
+
+function tutorial_setStep(p: player, step: integer):
+    set {-tutorial::%{_p}'s uuid%::step} to {_step}
+
+function tutorial_getBlocks(p: player) :: integer:
+    if {-tutorial::%{_p}'s uuid%::blocks} is set:
+        return {-tutorial::%{_p}'s uuid%::blocks}
+    return 0
+
+function tutorial_addBlock(p: player):
+    add 1 to {-tutorial::%{_p}'s uuid%::blocks}
+
+function tutorial_resetBlocks(p: player):
+    set {-tutorial::%{_p}'s uuid%::blocks} to 0
+
+function tutorial_cleanup(p: player):
+    set {_uuid} to {_p}'s uuid
+    delete {-tutorial::%{_uuid}%::following}
+    delete {-guard::tutorial::%{_uuid}%}
+    tutorial_removeDisplay({_p})
+    delete {-tutorial::%{_uuid}%::*}
+
+
+# ============================================================
+# PARTICLES
+# ============================================================
+
+function tutorial_spawnParticles(p: player, type: text):
+    set {_loc} to {_p}'s location
+    add 1 to y-coord of {_loc}
+
+    if {_type} = "happy":
+        draw 15 happy villager at {_loc}
+        draw 10 end rod at {_loc} with extra 0.1
+
+    if {_type} = "enchant":
+        draw 20 enchant at {_loc} with extra 1
+
+    if {_type} = "success":
+        draw 30 totem of undying at {_loc}
+        draw 20 end rod at {_loc} with extra 0.2
+
+    if {_type} = "levelup":
+        draw 25 end rod at {_loc} with extra 0.3
+        draw 15 happy villager at {_loc}
+
+    if {_type} = "money":
+        draw 20 happy villager at {_loc}
+        draw 15 end rod at {_loc} with extra 0.15
+
+
+# ============================================================
+# TUTORIAL START
+# ============================================================
+
+function tutorial_start(p: player):
+    # Clear any existing enchants
+    enchant_clearEquipped({_p})
+    loop enchant_getAllEnchantsIds():
+        enchant_setPlayerLevel({_p}, loop-value, 0)
+
+    # Give starter Efficiency enchant (can't equip until slot researched)
+    set {_efficiencyID} to enchant_getIdByString("Efficiency")
+    enchant_setPlayerLevel({_p}, {_efficiencyID}, 5)
+
+    # Give starting tokens
+    add 1000 to {data::tokens::%{_p}'s uuid%}
+
+    # Create display and start follow loop
+    tutorial_createDisplay({_p})
+    tutorial_startFollowLoop({_p})
+
+    wait 1 second
+
+    tutorial_setStep({_p}, 1)
+    tutorial_step1_welcome({_p})
+
+
+# ============================================================
+# STEP 1: WELCOME
+# ============================================================
+
+function tutorial_step1_welcome(p: player):
+    play sound "block.amethyst_block.chime" with volume 0.8 and pitch 1.2 to {_p}
+    tutorial_setTextAnimated({_p}, "&e&lWelcome, Miner!")
+
+    wait 2 seconds
+
+    tutorial_setTextAnimated({_p}, "&fYour adventure begins...")
+    play sound "block.amethyst_block.chime" with volume 0.5 and pitch 1.5 to {_p}
+
+    wait 2 seconds
+
+    tutorial_setStep({_p}, 2)
+    tutorial_resetBlocks({_p})
+    tutorial_step2_mine({_p})
+
+
+# ============================================================
+# STEP 2: MINE 5 BLOCKS
+# ============================================================
+
+function tutorial_step2_mine(p: player):
+    set {_remaining} to 5 - tutorial_getBlocks({_p})
+    tutorial_setTextAnimated({_p}, "&e&lMine %{_remaining}% Blocks%nl%%nl%&7Break some stone to start!")
+    play sound "block.note_block.bell" with volume 0.5 and pitch 1.5 to {_p}
+
+
+function tutorial_step2_complete(p: player):
+    play sound "entity.player.levelup" with volume 1 and pitch 1.2 to {_p}
+    tutorial_setTextAnimated({_p}, "&a&lNice!%nl%%nl%&7Now sell your items for money!")
+    tutorial_spawnParticles({_p}, "happy")
+
+    wait 2.5 seconds
+
+    tutorial_setStep({_p}, 3)
+    tutorial_step3_sell({_p})
+
+
+# ============================================================
+# STEP 3: SELL ITEMS
+# ============================================================
+
+function tutorial_step3_sell(p: player):
+    tutorial_setTextAnimated({_p}, "&2&lSell Your Items%nl%%nl%&7Type &a/sell &7to get money!")
+    play sound "block.note_block.bell" with volume 0.5 and pitch 1.2 to {_p}
+
+
+function tutorial_step3_complete(p: player):
+    play sound "entity.experience_orb.pickup" with volume 1 and pitch 1.2 to {_p}
+    tutorial_setTextAnimated({_p}, "&a&lMoney Earned!%nl%%nl%&7Use money to buy upgrades!")
+    tutorial_spawnParticles({_p}, "money")
+
+    wait 2.5 seconds
+
+    tutorial_setStep({_p}, 4)
+    tutorial_step4_researchSlot({_p})
+
+
+# ============================================================
+# STEP 4: RESEARCH FIRST ENCHANT SLOT
+# ============================================================
+
+function tutorial_step4_researchSlot(p: player):
+    tutorial_setTextAnimated({_p}, "&5&lResearch Enchant Slot%nl%%nl%&7Open &5/research &7and start%nl%&7researching &5Enchant Slots&7!")
+    play sound "block.note_block.bell" with volume 0.5 and pitch 1.2 to {_p}
+    set {-tutorial::%{_p}'s uuid%::waitingResearch} to "enchants"
+
+
+function tutorial_step4_slotUnlocked(p: player):
+    play sound "entity.player.levelup" with volume 1 and pitch 1.2 to {_p}
+    tutorial_setTextAnimated({_p}, "&a&lEnchant Slot Unlocked!%nl%%nl%&7Now upgrade &bEfficiency&7!")
+    tutorial_spawnParticles({_p}, "success")
+
+    wait 2.5 seconds
+
+    tutorial_setStep({_p}, 5)
+    tutorial_step5_upgradeEfficiency({_p})
+
+
+# ============================================================
+# STEP 5: UPGRADE & EQUIP EFFICIENCY
+# ============================================================
+
+function tutorial_step5_upgradeEfficiency(p: player):
+    tutorial_setTextAnimated({_p}, "&b&lUpgrade Efficiency%nl%%nl%&7Right-click your &bpickaxe%nl%&7and upgrade &bEfficiency &7a few times!")
+    play sound "block.note_block.bell" with volume 0.5 and pitch 1.2 to {_p}
+    set {-tutorial::%{_p}'s uuid%::waitingUpgrade} to true
+
+
+function tutorial_step5_upgradeComplete(p: player):
+    delete {-tutorial::%{_p}'s uuid%::waitingUpgrade}
+    play sound "block.enchantment_table.use" with volume 0.8 and pitch 1.2 to {_p}
+    tutorial_setTextAnimated({_p}, "&a&lEfficiency Upgraded!%nl%%nl%&7Now equip it to your slot!")
+    tutorial_spawnParticles({_p}, "enchant")
+
+    wait 2 seconds
+
+    tutorial_step5_equipEfficiency({_p})
+
+
+function tutorial_step5_equipEfficiency(p: player):
+    tutorial_setTextAnimated({_p}, "&b&lEquip Efficiency%nl%%nl%&7Click the &eempty slot&7 in your%nl%&7pickaxe menu and select &bEfficiency")
+    play sound "block.note_block.bell" with volume 0.5 and pitch 1.2 to {_p}
+
+
+function tutorial_step5_complete(p: player):
+    close {_p}'s inventory
+    wait 5 ticks
+
+    play sound "block.enchantment_table.use" with volume 1 and pitch 1.2 to {_p}
+    tutorial_setTextAnimated({_p}, "&a&lEfficiency Equipped!%nl%%nl%&7You mine faster now!")
+    tutorial_spawnParticles({_p}, "enchant")
+
+    wait 2.5 seconds
+
+    tutorial_setStep({_p}, 6)
+    tutorial_step6_level5({_p})
+
+
+# ============================================================
+# STEP 6: REACH LEVEL 5
+# ============================================================
+
+function tutorial_step6_level5(p: player):
+    set {_level} to mining_getGlobalLevel({_p})
+    if {_level} >= 5:
+        tutorial_step6_complete({_p})
+        stop
+
+    set {_remaining} to 5 - {_level}
+    tutorial_setTextAnimated({_p}, "&d&lReach Level 5%nl%%nl%&7%{_remaining}% more levels to unlock &dPets&7!")
+    play sound "block.note_block.bell" with volume 0.5 and pitch 1.2 to {_p}
+
+
+function tutorial_step6_complete(p: player):
+    play sound "entity.player.levelup" with volume 1 and pitch 1.2 to {_p}
+    tutorial_setTextAnimated({_p}, "&a&lLevel 5!%nl%%nl%&dPets &7are now available!")
+    tutorial_spawnParticles({_p}, "levelup")
+
+    wait 2.5 seconds
+
+    tutorial_setStep({_p}, 7)
+    tutorial_step7_researchPet({_p})
+
+
+# ============================================================
+# STEP 7: RESEARCH PET SLOT + EQUIP PET
+# ============================================================
+
+function tutorial_step7_researchPet(p: player):
+    tutorial_setTextAnimated({_p}, "&d&lResearch Pet Slot%nl%%nl%&7Open &d/research &7and start%nl%&7researching &dPet Slots&7!")
+    play sound "block.note_block.bell" with volume 0.5 and pitch 1.2 to {_p}
+    set {-tutorial::%{_p}'s uuid%::waitingResearch} to "pets"
+
+
+function tutorial_step7_slotUnlocked(p: player):
+    # Give starter pet
+    set {_petId} to pet_create({_p}, "cow", "common")
+
+    play sound "entity.player.levelup" with volume 1 and pitch 1.2 to {_p}
+    tutorial_setTextAnimated({_p}, "&a&lPet Slot Unlocked!%nl%%nl%&7You got a &dCow &7pet!")
+    tutorial_spawnParticles({_p}, "success")
+
+    wait 2.5 seconds
+
+    tutorial_setTextAnimated({_p}, "&d&lEquip Your Pet%nl%%nl%&7Open &d/pets &7and equip%nl%&7your new &dCow&7!")
+    play sound "block.note_block.bell" with volume 0.5 and pitch 1.2 to {_p}
+
+    set {-tutorial::%{_p}'s uuid%::waitingPet} to true
+
+
+function tutorial_step7_complete(p: player):
+    delete {-tutorial::%{_p}'s uuid%::waitingPet}
+
+    play sound "entity.cat.purreow" with volume 1 and pitch 1.2 to {_p}
+    tutorial_setTextAnimated({_p}, "&a&lPet Equipped!%nl%%nl%&7Pets boost your stats!")
+    tutorial_spawnParticles({_p}, "happy")
+
+    wait 2.5 seconds
+
+    tutorial_setStep({_p}, 8)
+    tutorial_step8_level7({_p})
+
+
+# ============================================================
+# STEP 8: REACH LEVEL 7
+# ============================================================
+
+function tutorial_step8_level7(p: player):
+    set {_level} to mining_getGlobalLevel({_p})
+    if {_level} >= 7:
+        tutorial_step8_complete({_p})
+        stop
+
+    set {_remaining} to 7 - {_level}
+    tutorial_setTextAnimated({_p}, "&6&lReach Level 7%nl%%nl%&7%{_remaining}% more levels to unlock%nl%&6Accessories&7!")
+    play sound "block.note_block.bell" with volume 0.5 and pitch 1.2 to {_p}
+
+
+function tutorial_step8_complete(p: player):
+    play sound "entity.player.levelup" with volume 1 and pitch 1.2 to {_p}
+    tutorial_setTextAnimated({_p}, "&a&lLevel 7!%nl%%nl%&6Accessories &7are now available!")
+    tutorial_spawnParticles({_p}, "levelup")
+
+    wait 2.5 seconds
+
+    tutorial_setStep({_p}, 9)
+    tutorial_step9_researchAccessory({_p})
+
+
+# ============================================================
+# STEP 9: RESEARCH ACCESSORY SLOT + EQUIP ACCESSORY
+# ============================================================
+
+function tutorial_step9_researchAccessory(p: player):
+    tutorial_setTextAnimated({_p}, "&e&lResearch Accessory Slot%nl%%nl%&7Open &e/research &7and start%nl%&7researching &eAccessory Slots&7!")
+    play sound "block.note_block.bell" with volume 0.5 and pitch 1.2 to {_p}
+    set {-tutorial::%{_p}'s uuid%::waitingResearch} to "accessories"
+
+
+function tutorial_step9_slotUnlocked(p: player):
+    # Give starter accessory
+    set {_encoded} to acc_encodeAccessory("luck_ring", "common")
+    acc_addToInventory({_p}, {_encoded})
+
+    play sound "entity.player.levelup" with volume 1 and pitch 1.2 to {_p}
+    tutorial_setTextAnimated({_p}, "&a&lAccessory Slot Unlocked!%nl%%nl%&7You got a &6Lucky Ring&7!")
+    tutorial_spawnParticles({_p}, "success")
+
+    wait 2.5 seconds
+
+    tutorial_setTextAnimated({_p}, "&6&lEquip Accessory%nl%%nl%&7Open &6/acc &7and equip%nl%&7your new &6Lucky Ring&7!")
+    play sound "block.note_block.bell" with volume 0.5 and pitch 1.2 to {_p}
+
+    set {-tutorial::%{_p}'s uuid%::waitingAcc} to true
+
+
+function tutorial_step9_complete(p: player):
+    delete {-tutorial::%{_p}'s uuid%::waitingAcc}
+
+    play sound "item.armor.equip_gold" with volume 1 and pitch 1.2 to {_p}
+    tutorial_setTextAnimated({_p}, "&a&lAccessory Equipped!%nl%%nl%&7Accessories give bonuses!")
+    tutorial_spawnParticles({_p}, "happy")
+
+    wait 2.5 seconds
+
+    tutorial_setStep({_p}, 10)
+    tutorial_step10_level10({_p})
+
+
+# ============================================================
+# STEP 10: REACH LEVEL 10
+# ============================================================
+
+function tutorial_step10_level10(p: player):
+    set {_level} to mining_getGlobalLevel({_p})
+    if {_level} >= 10:
+        tutorial_step10_complete({_p})
+        stop
+
+    set {_remaining} to 10 - {_level}
+    tutorial_setTextAnimated({_p}, "&b&lReach Level 10%nl%%nl%&7%{_remaining}% more levels to unlock%nl%&bBoosters&7!")
+    play sound "block.note_block.bell" with volume 0.5 and pitch 1.2 to {_p}
+
+
+function tutorial_step10_complete(p: player):
+    play sound "entity.player.levelup" with volume 1 and pitch 1.2 to {_p}
+    tutorial_setTextAnimated({_p}, "&a&lLevel 10!%nl%%nl%&bBoosters &7are now available!")
+    tutorial_spawnParticles({_p}, "levelup")
+
+    wait 2.5 seconds
+
+    tutorial_setStep({_p}, 11)
+    tutorial_step11_researchBooster({_p})
+
+
+# ============================================================
+# STEP 11: RESEARCH BOOSTER SLOT + USE BOOSTER
+# ============================================================
+
+function tutorial_step11_researchBooster(p: player):
+    tutorial_setTextAnimated({_p}, "&b&lResearch Booster Slot%nl%%nl%&7Open &b/research &7and start%nl%&7researching &bBooster Slots&7!")
+    play sound "block.note_block.bell" with volume 0.5 and pitch 1.2 to {_p}
+    set {-tutorial::%{_p}'s uuid%::waitingResearch} to "boosters"
+
+
+function tutorial_step11_slotUnlocked(p: player):
+    # Give 100% XP booster for 5 minutes
+    set {_encoded} to booster_encode("basic", "common", "xp", 100, 300)
+    booster_addToStorage({_p}, {_encoded})
+
+    play sound "entity.player.levelup" with volume 1 and pitch 1.2 to {_p}
+    tutorial_setTextAnimated({_p}, "&a&lBooster Slot Unlocked!%nl%%nl%&7You got a &b100%% XP Booster&7!")
+    tutorial_spawnParticles({_p}, "success")
+
+    wait 2.5 seconds
+
+    tutorial_setTextAnimated({_p}, "&b&lEquip Your Booster%nl%%nl%&7Open &b/boosters &7and equip%nl%&7your &b100%% XP Booster&7!")
+    play sound "block.note_block.bell" with volume 0.5 and pitch 1.2 to {_p}
+
+    set {-tutorial::%{_p}'s uuid%::waitingBooster} to true
+
+
+function tutorial_step11_complete(p: player):
+    delete {-tutorial::%{_p}'s uuid%::waitingBooster}
+
+    play sound "entity.firework_rocket.launch" with volume 1 and pitch 1.2 to {_p}
+    tutorial_setTextAnimated({_p}, "&a&lBooster Active!%nl%%nl%&7You're gaining bonus XP!")
+    tutorial_spawnParticles({_p}, "happy")
+
+    wait 2.5 seconds
+
+    tutorial_setStep({_p}, 12)
+    tutorial_step12_level15({_p})
+
+
+# ============================================================
+# STEP 12: REACH LEVEL 15
+# ============================================================
+
+function tutorial_step12_level15(p: player):
+    set {_level} to mining_getGlobalLevel({_p})
+    if {_level} >= 15:
+        tutorial_step12_complete({_p})
+        stop
+
+    set {_remaining} to 15 - {_level}
+    tutorial_setTextAnimated({_p}, "&5&lReach Level 15%nl%%nl%&7%{_remaining}% more levels to unlock%nl%&5Prestige&7!")
+    play sound "block.note_block.bell" with volume 0.5 and pitch 1.2 to {_p}
+
+
+function tutorial_step12_complete(p: player):
+    play sound "ui.toast.challenge_complete" with volume 1 and pitch 1 to {_p}
+    tutorial_setTextAnimated({_p}, "&a&lLevel 15!%nl%%nl%&5Prestige &7is now available!")
+    tutorial_spawnParticles({_p}, "success")
+
+    wait 2.5 seconds
+
+    tutorial_setStep({_p}, 13)
+    tutorial_step13_prestige({_p})
+
+
+# ============================================================
+# STEP 13: PRESTIGE
+# ============================================================
+
+function tutorial_step13_prestige(p: player):
+    tutorial_setTextAnimated({_p}, "&5&lPrestige Time!%nl%%nl%&7Use &5/prestige &7to reset%nl%&7and gain permanent bonuses!")
+    play sound "block.note_block.bell" with volume 0.5 and pitch 1.2 to {_p}
+
+
+function tutorial_step13_complete(p: player):
+    play sound "ui.toast.challenge_complete" with volume 1 and pitch 1.2 to {_p}
+    tutorial_setTextAnimated({_p}, "&5&lPrestige 1!%nl%%nl%&7Now research your archetype!")
+    tutorial_spawnParticles({_p}, "success")
+
+    wait 2.5 seconds
+
+    tutorial_setStep({_p}, 14)
+    tutorial_step14_researchArchetype({_p})
+
+
+# ============================================================
+# STEP 14: RESEARCH ARCHETYPE
+# ============================================================
+
+function tutorial_step14_researchArchetype(p: player):
+    tutorial_setTextAnimated({_p}, "&6&lResearch Archetype%nl%%nl%&7Open &6/research &7and start%nl%&7researching &6Archetypes&7!")
+    play sound "block.note_block.bell" with volume 0.5 and pitch 1.2 to {_p}
+    set {-tutorial::%{_p}'s uuid%::waitingResearch} to "archetypes"
+
+
+function tutorial_step14_slotUnlocked(p: player):
+    play sound "entity.player.levelup" with volume 1 and pitch 1.2 to {_p}
+    tutorial_setTextAnimated({_p}, "&a&lArchetype Unlocked!%nl%%nl%&7Now select it in &b/arc&7!")
+    tutorial_spawnParticles({_p}, "success")
+
+    wait 2.5 seconds
+
+    tutorial_setStep({_p}, 15)
+    tutorial_step15_selectArchetype({_p})
+
+
+# ============================================================
+# STEP 15: SELECT ARCHETYPE
+# ============================================================
+
+function tutorial_step15_selectArchetype(p: player):
+    tutorial_setTextAnimated({_p}, "&b&lChoose Your Archetype%nl%%nl%&7Use &b/arc &7to pick your%nl%&7specialization path!")
+    play sound "block.note_block.bell" with volume 0.5 and pitch 1.2 to {_p}
+
+
+function tutorial_step15_complete(p: player):
+    play sound "entity.ender_dragon.growl" with volume 0.5 and pitch 1.5 to {_p}
+    tutorial_setTextAnimated({_p}, "&b&lArchetype Selected!%nl%%nl%&7You're ready to dominate!")
+    tutorial_spawnParticles({_p}, "success")
+
+    wait 2.5 seconds
+
+    tutorial_setStep({_p}, 16)
+    tutorial_step16_complete({_p})
+
+
+# ============================================================
+# STEP 16: TUTORIAL COMPLETE
+# ============================================================
+
+function tutorial_step16_complete(p: player):
+    play sound "block.amethyst_block.chime" with volume 1 and pitch 1 to {_p}
+    tutorial_setTextAnimated({_p}, "&6&lTutorial Complete!%nl%%nl%&aYou're ready to mine!")
+
+    wait 3 seconds
+
+    tutorial_fadeOut({_p})
+
+    wait 1 second
+
+    tutorial_markComplete({_p})
+
+    send "" to {_p}
+    send "&6&m                                                   " to {_p}
+    send "" to {_p}
+    send "   &e&lTutorial Complete!" to {_p}
+    send "" to {_p}
+    send "   &7Keep prestiging to unlock more content!" to {_p}
+    send "   &7Check &e/help &7for all commands" to {_p}
+    send "" to {_p}
+    send "&6&m                                                   " to {_p}
+    send "" to {_p}
+
+
+# ============================================================
+# EVENT CALLBACKS
+# ============================================================
+
+function tutorial_onBlockMined(p: player):
+    if tutorial_isComplete({_p}) is true:
+        stop
+
+    set {_step} to tutorial_getStep({_p})
+
+    if {_step} is 2:
+        tutorial_addBlock({_p})
+        set {_count} to tutorial_getBlocks({_p})
+        set {_remaining} to 5 - {_count}
+
+        if {_remaining} > 0:
+            tutorial_setText({_p}, "&e&lMine %{_remaining}% Blocks%nl%%nl%&a%{_count}%&7/&e5 &7mined!")
+            play sound "block.note_block.hat" with volume 0.3 and pitch 1.5 to {_p}
+        else:
+            tutorial_step2_complete({_p})
+
+
+function tutorial_onSell(p: player):
+    if tutorial_isComplete({_p}) is true:
+        stop
+
+    set {_step} to tutorial_getStep({_p})
+
+    if {_step} is 3:
+        tutorial_step3_complete({_p})
+
+
+function tutorial_onResearchComplete(p: player, category: text, track: text):
+    if tutorial_isComplete({_p}) is true:
+        stop
+
+    set {_step} to tutorial_getStep({_p})
+    set {_waiting} to {-tutorial::%{_p}'s uuid%::waitingResearch}
+
+    # Step 4: Waiting for enchants slots research
+    if {_step} is 4:
+        if {_waiting} = "enchants":
+            if {_category} = "enchants":
+                if {_track} = "slots":
+                    delete {-tutorial::%{_p}'s uuid%::waitingResearch}
+                    tutorial_step4_slotUnlocked({_p})
+
+    # Step 7: Waiting for pets slots research
+    if {_step} is 7:
+        if {_waiting} = "pets":
+            if {_category} = "pets":
+                if {_track} = "slots":
+                    delete {-tutorial::%{_p}'s uuid%::waitingResearch}
+                    tutorial_step7_slotUnlocked({_p})
+
+    # Step 9: Waiting for accessories slots research
+    if {_step} is 9:
+        if {_waiting} = "accessories":
+            if {_category} = "accessories":
+                if {_track} = "slots":
+                    delete {-tutorial::%{_p}'s uuid%::waitingResearch}
+                    tutorial_step9_slotUnlocked({_p})
+
+    # Step 11: Waiting for boosters slots research
+    if {_step} is 11:
+        if {_waiting} = "boosters":
+            if {_category} = "boosters":
+                if {_track} = "slots":
+                    delete {-tutorial::%{_p}'s uuid%::waitingResearch}
+                    tutorial_step11_slotUnlocked({_p})
+
+    # Step 14: Waiting for archetypes research
+    if {_step} is 14:
+        if {_waiting} = "archetypes":
+            if {_category} = "archetypes":
+                if {_track} = "archetypes":
+                    delete {-tutorial::%{_p}'s uuid%::waitingResearch}
+                    tutorial_step14_slotUnlocked({_p})
+
+
+function tutorial_onEnchantEquip(p: player, enchantName: text):
+    if tutorial_isComplete({_p}) is true:
+        stop
+
+    set {_step} to tutorial_getStep({_p})
+
+    # Step 5: Equip Efficiency
+    if {_step} is 5:
+        if {_enchantName} is "Efficiency":
+            tutorial_step5_complete({_p})
+
+
+function tutorial_onPetEquip(p: player):
+    if tutorial_isComplete({_p}) is true:
+        stop
+
+    set {_step} to tutorial_getStep({_p})
+
+    if {_step} is 7:
+        if {-tutorial::%{_p}'s uuid%::waitingPet} is true:
+            tutorial_step7_complete({_p})
+
+
+function tutorial_onAccessoryEquip(p: player):
+    if tutorial_isComplete({_p}) is true:
+        stop
+
+    set {_step} to tutorial_getStep({_p})
+
+    if {_step} is 9:
+        if {-tutorial::%{_p}'s uuid%::waitingAcc} is true:
+            tutorial_step9_complete({_p})
+
+
+function tutorial_onBoosterEquip(p: player):
+    if tutorial_isComplete({_p}) is true:
+        stop
+
+    set {_step} to tutorial_getStep({_p})
+
+    if {_step} is 11:
+        if {-tutorial::%{_p}'s uuid%::waitingBooster} is true:
+            tutorial_step11_complete({_p})
+
+
+function tutorial_onGlobalLevelUp(p: player, level: integer):
+    if tutorial_isComplete({_p}) is true:
+        milestone_update({_p})
+        stop
+
+    set {_step} to tutorial_getStep({_p})
+
+    # Step 6: Reach level 5
+    if {_step} is 6:
+        if {_level} >= 5:
+            tutorial_step6_complete({_p})
+        else:
+            set {_remaining} to 5 - {_level}
+            tutorial_setText({_p}, "&d&lReach Level 5%nl%%nl%&aLevel %{_level}%&7! &e%{_remaining}% &7more!")
+            play sound "entity.experience_orb.pickup" with volume 0.5 and pitch 1.2 to {_p}
+
+    # Step 8: Reach level 7
+    if {_step} is 8:
+        if {_level} >= 7:
+            tutorial_step8_complete({_p})
+        else:
+            set {_remaining} to 7 - {_level}
+            tutorial_setText({_p}, "&6&lReach Level 7%nl%%nl%&aLevel %{_level}%&7! &e%{_remaining}% &7more!")
+            play sound "entity.experience_orb.pickup" with volume 0.5 and pitch 1.2 to {_p}
+
+    # Step 10: Reach level 10
+    if {_step} is 10:
+        if {_level} >= 10:
+            tutorial_step10_complete({_p})
+        else:
+            set {_remaining} to 10 - {_level}
+            tutorial_setText({_p}, "&b&lReach Level 10%nl%%nl%&aLevel %{_level}%&7! &e%{_remaining}% &7more!")
+            play sound "entity.experience_orb.pickup" with volume 0.5 and pitch 1.2 to {_p}
+
+    # Step 12: Reach level 15
+    if {_step} is 12:
+        if {_level} >= 15:
+            tutorial_step12_complete({_p})
+        else:
+            set {_remaining} to 15 - {_level}
+            tutorial_setText({_p}, "&5&lReach Level 15%nl%%nl%&aLevel %{_level}%&7! &e%{_remaining}% &7more!")
+            play sound "entity.experience_orb.pickup" with volume 0.5 and pitch 1.2 to {_p}
+
+
+function tutorial_onPrestige(p: player, prestige: integer):
+    if tutorial_isComplete({_p}) is true:
+        stop
+
+    set {_step} to tutorial_getStep({_p})
+
+    if {_step} is 13:
+        if {_prestige} >= 1:
+            tutorial_step13_complete({_p})
+
+
+function tutorial_onArchetypeSelect(p: player):
+    if tutorial_isComplete({_p}) is true:
+        stop
+
+    set {_step} to tutorial_getStep({_p})
+
+    if {_step} is 15:
+        tutorial_step15_complete({_p})
+
+
+function tutorial_onLevelUp(p: player, archetype: text, level: integer):
+    if tutorial_isComplete({_p}) is true:
+        milestone_update({_p})
+
+
+# Unused callbacks (kept for compatibility)
+function tutorial_onMenuOpen(p: player):
+    stop
+
+function tutorial_onEnchantUpgrade(p: player, enchantName: text, newLevel: integer):
+    if tutorial_isComplete({_p}) is true:
+        stop
+
+    set {_step} to tutorial_getStep({_p})
+
+    # Step 5: Upgrade Efficiency
+    if {_step} = 5:
+        if {-tutorial::%{_p}'s uuid%::waitingUpgrade} is true:
+            if {_enchantName} = "Efficiency":
+                tutorial_step5_upgradeComplete({_p})
+
+function tutorial_onSlotUnlock(p: player, slotNum: integer):
+    stop
+
+
+# ============================================================
+# MENU CONTROL
+# ============================================================
+
+function tutorial_canOpenMenu(p: player) :: boolean:
+    if tutorial_isComplete({_p}) is true:
+        return true
+    return true
+
+function tutorial_canUnlockSlot(p: player) :: boolean:
+    return true
+
+
+# Check if player can upgrade a specific enchant during tutorial
+function tutorial_canUpgradeEnchant(p: player, enchantName: text) :: boolean:
+    # Tutorial complete = no restrictions
+    if tutorial_isComplete({_p}) is true:
+        return true
+
+    # During tutorial, only allow Efficiency upgrades
+    if {_enchantName} is "Efficiency":
+        return true
+
+    return false
+
+
+# Research system removed - function kept for compatibility
+function tutorial_canStartResearch(p: player, researchId: text) :: boolean:
+    return true
+
+
+# Get which research the tutorial wants the player to start
+function tutorial_getRequiredResearch(p: player) :: text:
+    if tutorial_isComplete({_p}) is true:
+        return ""
+
+    set {_step} to tutorial_getStep({_p})
+
+    if {_step} is 4:
+        return "enchant_slot_1"
+    if {_step} is 7:
+        return "pet_slot_1"
+    if {_step} is 9:
+        return "acc_slot_1"
+
+    return ""
+
+
+# ============================================================
+# EVENTS
+# ============================================================
+
+on join:
+    wait 5 ticks
+    console command "attribute %player% minecraft:block_break_speed base set 0"
+
+    if tutorial_isComplete(player) is false:
+        if tutorial_getStep(player) is 0:
+            tutorial_start(player)
+        else:
+            # Resume tutorial from where they left off
+            wait 1 second
+            tutorial_createDisplay(player)
+            tutorial_startFollowLoop(player)
+
+            set {_step} to tutorial_getStep(player)
+
+            if {_step} is 1:
+                tutorial_step1_welcome(player)
+            else if {_step} is 2:
+                tutorial_step2_mine(player)
+            else if {_step} is 3:
+                tutorial_step3_sell(player)
+            else if {_step} is 4:
+                tutorial_step4_researchSlot(player)
+            else if {_step} is 5:
+                tutorial_step5_upgradeEfficiency(player)
+            else if {_step} is 6:
+                tutorial_step6_level5(player)
+            else if {_step} is 7:
+                tutorial_step7_researchPet(player)
+            else if {_step} is 8:
+                tutorial_step8_level7(player)
+            else if {_step} is 9:
+                tutorial_step9_researchAccessory(player)
+            else if {_step} is 10:
+                tutorial_step10_level10(player)
+            else if {_step} is 11:
+                tutorial_step11_researchBooster(player)
+            else if {_step} is 12:
+                tutorial_step12_level15(player)
+            else if {_step} is 13:
+                tutorial_step13_prestige(player)
+            else if {_step} is 14:
+                tutorial_step14_researchArchetype(player)
+            else if {_step} is 15:
+                tutorial_step15_selectArchetype(player)
+            else:
+                tutorial_step16_complete(player)
+
+
+on quit:
+    tutorial_cleanup(player)
+    milestone_stop(player)
+
+
+# ============================================================
+# ADMIN COMMANDS
+# ============================================================
+
+command /tutorial [<text>] [<integer>]:
+    permission: op
+    trigger:
+        if arg-1 is "reset":
+            tutorial_cleanup(player)
+            milestone_stop(player)
+            enchant_clearEquipped(player)
+            loop enchant_getAllEnchantsIds():
+                enchant_setPlayerLevel(player, loop-value, 0)
+            delete {data::tutorial-complete::%player's uuid%}
+            delete {data::prestige::%player's uuid%}
+            delete {mining::global::%player's uuid%::*}
+            send "&aTutorial reset! Rejoin to restart."
+        else if arg-1 is "skip":
+            tutorial_cleanup(player)
+            tutorial_markComplete(player)
+            milestone_start(player)
+            send "&aTutorial skipped."
+        else if arg-1 is "step":
+            send "&7Current step: &e%tutorial_getStep(player)%"
+            send "&7Blocks: &e%tutorial_getBlocks(player)%"
+            send "&7Complete: &e%tutorial_isComplete(player)%"
+        else if arg-1 is "setstep":
+            if arg-2 is set:
+                tutorial_setStep(player, arg-2)
+                send "&aSet step to %arg-2%"
+        else:
+            send "&e/tutorial reset &8- &7Reset tutorial"
+            send "&e/tutorial skip &8- &7Skip tutorial"
+            send "&e/tutorial step &8- &7Check progress"
+            send "&e/tutorial setstep <n> &8- &7Set step"

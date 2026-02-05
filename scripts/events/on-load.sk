@@ -1,0 +1,91 @@
+
+on load:
+
+    enchant_clearRegistry()
+    delete {-dataArchetypes::*}
+    delete {-dataEnchants::*}
+    
+    pickaxe_registerArchetype(1, "Global", clock with nbt from "{""minecraft:attribute_modifiers"":{modifiers:[],show_in_tooltip:0}}", (28,29,30,37,38,39,46,47,48), "&0", "&0")
+    pickaxe_registerArchetype(2, "Precision", strong regeneration tipped arrow with nbt from "{""minecraft:attribute_modifiers"":{modifiers:[],show_in_tooltip:0},""minecraft:potion_contents"":{show_in_tooltip:0}}", (32,33,34,41,42,43,50,51,52), "<#F621FF>", "<#EB6CF0>")
+    pickaxe_registerArchetype(3, "Demolition", instant health tipped arrow with nbt from "{""minecraft:attribute_modifiers"":{modifiers:[],show_in_tooltip:0},""minecraft:potion_contents"":{show_in_tooltip:0}}", (32,33,34,41,42,43,50,51,52), "<#FF1F1F>", "<#F54C4C>")
+    pickaxe_registerArchetype(4, "Arcane", strong swiftness tipped arrow with nbt from "{""minecraft:attribute_modifiers"":{modifiers:[],show_in_tooltip:0},""minecraft:potion_contents"":{show_in_tooltip:0}}", (32,33,34,41,42,43,50,51,52), "<#0E61C2>", "<#5899E8>")
+
+    set {-dataArchetypes::arcane::guiDesignSlots::*} to 9, 10, 11, 18, 20, 27, 28 and 29
+    set {-dataArchetypes::precision::guiDesignSlots::*} to 12, 13, 14, 21, 23, 30, 31 and 32
+    set {-dataArchetypes::demolition::guiDesignSlots::*} to 15, 16, 17, 24, 26, 33, 34 and 35
+
+    # ════════════════════════════════════════════════════════════
+    # ARCHETYPE DESCRIPTIONS
+    # ════════════════════════════════════════════════════════════
+
+    set {-dataArchetypes::precision::description::*} to " &eFast single-target miner", " &eExcel at speed, tokens, and XP gains"
+    set {-dataArchetypes::demolition::description::*} to " &eTanky AOE miner with explosive power", " &eChain reactions and durability define this archetype"
+    set {-dataArchetypes::arcane::description::*} to " &eGlass cannon focused on drops", " &eHigh risk, high reward with magic enchants"
+
+    # ════════════════════════════════════════════════════════════
+    # PRECISION BUFFS
+    # Fast single-target miner - Best tokens/XP, fastest mining
+    # ════════════════════════════════════════════════════════════
+
+    add "&8• <#5BC973>+5%% &7Mining Speed" to {-dataArchetypes::precision::buffs::*}
+    add "&8• <#5BC973>+15%% &7Block Damage" to {-dataArchetypes::precision::buffs::*}
+    add "&8• <#5BC973>+30%% &7Tokens" to {-dataArchetypes::precision::buffs::*}
+    add "&8• <#5BC973>+30%% &7XP" to {-dataArchetypes::precision::buffs::*}
+    add "" to {-dataArchetypes::precision::buffs::*}
+    add "&8Best for fast, focused mining" to {-dataArchetypes::precision::buffs::*}
+
+    # ════════════════════════════════════════════════════════════
+    # DEMOLITION BUFFS
+    # Tanky AOE miner - Durable but slower rewards
+    # ════════════════════════════════════════════════════════════
+
+    add "&8• <#5BC973>+30%% &7Durability" to {-dataArchetypes::demolition::buffs::*}
+    add "&8• <#BF5454>-20%% &7Tokens" to {-dataArchetypes::demolition::buffs::*}
+    add "&8• <#BF5454>-10%% &7XP" to {-dataArchetypes::demolition::buffs::*}
+    add "&8• <#BF5454>-10%% &7Enchant Proc Chance" to {-dataArchetypes::demolition::buffs::*}
+    add "" to {-dataArchetypes::demolition::buffs::*}
+    add "&8Best for AOE and mass mining" to {-dataArchetypes::demolition::buffs::*}
+
+    # ════════════════════════════════════════════════════════════
+    # ARCANE BUFFS
+    # Glass cannon - High drops but fragile
+    # ════════════════════════════════════════════════════════════
+
+    add "&8• <#5BC973>+30%% &7Drops" to {-dataArchetypes::arcane::buffs::*}
+    add "&8• <#5BC973>+10%% &7XP" to {-dataArchetypes::arcane::buffs::*}
+    add "&8• <#BF5454>-10%% &7Block Damage" to {-dataArchetypes::arcane::buffs::*}
+    add "&8• <#BF5454>-60%% &7Durability" to {-dataArchetypes::arcane::buffs::*}
+    add "" to {-dataArchetypes::arcane::buffs::*}
+    add "&8Best for drop farming (risky!)" to {-dataArchetypes::arcane::buffs::*}
+
+
+#enchant_register(Archetype category, Name, ID, Icon, Max, Base Cost, Increase By Start, Increase by Second, Increase by Third)
+
+    enchant_register(1, "Efficiency", 101, golden pickaxe with nbt from "{""minecraft:attribute_modifiers"":{modifiers:[],show_in_tooltip:0}}", (50), 40, 25, 60, 120, "Increases mining speed when swinging your pickaxe.")
+    enchant_register(1, "Unbreaking", 102, anvil with nbt from "{""minecraft:attribute_modifiers"":{modifiers:[],show_in_tooltip:0}}", (10), 35, 20, 55, 110, "Increases your pickaxe durability while mining.")
+    enchant_register(1, "Excavator", 103, brush with nbt from "{""minecraft:attribute_modifiers"":{modifiers:[],show_in_tooltip:0}}", (100), 50, 30, 75, 150, "Gives a chance to earn tokens when breaking blocks.")
+    enchant_register(1, "Speed", 105, feather with nbt from "{""minecraft:attribute_modifiers"":{modifiers:[],show_in_tooltip:0}}", (5), 100, 50, 100, 200, "Increases your walking speed while in the mine. Higher levels = faster movement.")
+    enchant_register(1, "Autosell", 106, minecart with hopper, (1), 500, 0, 0, 0, "Automatically sells block drops for money instead of adding them to your inventory.")
+
+
+    enchant_register(2, "Focus", 201, ender pearl with nbt from "{""minecraft:attribute_modifiers"":{modifiers:[],show_in_tooltip:0}}", (30), 35, 20, 55, 110, "Chance to deal double mining damage when swinging.")
+    enchant_register(2, "Laser", 202, blaze rod with nbt from "{""minecraft:attribute_modifiers"":{modifiers:[],show_in_tooltip:0}}", (20), 40, 25, 60, 120, "Chance to fire a laser that instantly destroys a nearby block.")
+    enchant_register(2, "Lucky Miner", 203, potion of luck with nbt from "{""minecraft:attribute_modifiers"":{modifiers:[],show_in_tooltip:0},""minecraft:potion_contents"":{show_in_tooltip:0}}", (30), 45, 30, 70, 140, "Increases the amount of gemstones gained from Prospecting.")
+    enchant_register(2, "Fortune", 204, diamond with nbt from "{""minecraft:attribute_modifiers"":{modifiers:[],show_in_tooltip:0}}", (50), 60, 35, 85, 170, "Increases the number of drops received from blocks.")
+    enchant_register(2, "Critical Hit", 205, redstone with nbt from "{""minecraft:attribute_modifiers"":{modifiers:[],show_in_tooltip:0}}", (30), 40, 25, 60, 120, "Chance to instantly remove 25%% of a block's health.")
+
+
+    enchant_register(3, "Stability", 301, clock with nbt from "{""minecraft:attribute_modifiers"":{modifiers:[],show_in_tooltip:0}}", (20), 50, 30, 80, 160, "Reduces cooldowns of area damage enchantments.")
+    enchant_register(3, "Explosive", 302, minecart with tnt with nbt from "{""minecraft:attribute_modifiers"":{modifiers:[],show_in_tooltip:0}}", (40), 75, 45, 120, 250, "Chance to cause an explosion that damages nearby blocks.")
+    enchant_register(3, "Shockwave", 303, firework star with nbt from "{""minecraft:attribute_modifiers"":{modifiers:[],show_in_tooltip:0}}", (60), 65, 40, 100, 220, "Chance to summon 3 pulses, damaging nearby blocks.")
+    enchant_register(3, "Lightning", 304, lightning rod with nbt from "{""minecraft:attribute_modifiers"":{modifiers:[],show_in_tooltip:0}}", (50), 80, 50, 130, 280, "Chance to strike nearby ores with lightning while mining.")
+    enchant_register(3, "Earthquake", 305, bogged spawn egg with nbt from "{""minecraft:attribute_modifiers"":{modifiers:[],show_in_tooltip:0}}", (20), 90, 55, 150, 320, "Chance to shake the ground and damage nearby blocks.")
+    enchant_register(3, "Treasure Hunter", 306, tripwire hook with nbt from "{""minecraft:attribute_modifiers"":{modifiers:[],show_in_tooltip:0}}", (50), 80, 45, 100, 200, "Chance to find treasure keys while mining. Higher prestige unlocks rarer treasures!")
+
+
+    enchant_register(4, "Control", 401, compass with nbt from "{""minecraft:attribute_modifiers"":{modifiers:[],show_in_tooltip:0}}", (30), 30, 15, 40, 80, "Increases the activation chance of all enchantments.")
+    enchant_register(4, "Tornado", 402, hopper with nbt from "{""minecraft:attribute_modifiers"":{modifiers:[],show_in_tooltip:0}}", (50), 45, 25, 65, 140, "Chance to summon a tornado that damages nearby blocks.")
+    enchant_register(4, "Magnet", 403, daylight detector with nbt from "{""minecraft:attribute_modifiers"":{modifiers:[],show_in_tooltip:0}}", (20), 35, 20, 50, 100, "Chance to gain multiple tokens from Excavator.")
+    enchant_register(4, "Prospecting", 104, amethyst shard with nbt from "{""minecraft:attribute_modifiers"":{modifiers:[],show_in_tooltip:0}}", (100), 45, 25, 65, 130, "Gives a chance to find gemstones while mining blocks.")
+    enchant_register(4, "Amplify", 404, beacon with nbt from "{""minecraft:attribute_modifiers"":{modifiers:[],show_in_tooltip:0}}", (50), 50, 30, 75, 150, "Chance to upgrade nearby blocks to their best form.")
+    enchant_register(4, "Overcharge", 405, soul campfire with nbt from "{""minecraft:attribute_modifiers"":{modifiers:[],show_in_tooltip:0}}", (100), 40, 25, 65, 130, "Break blocks to reach overcharge, then deal a huge damage bonus to the next block")

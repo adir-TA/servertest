@@ -1,0 +1,596 @@
+# ============================================================
+# RESEARCH SYSTEM - CORE FUNCTIONS
+# ============================================================
+#
+# Handles research progress, completion, and reward application.
+#
+# Data Storage:
+#   {data::research::%uuid%::%category%::%track%} = completed tier (0 = none)
+#   {data::research::%uuid%::active::category} = current category
+#   {data::research::%uuid%::active::track} = current track
+#   {data::research::%uuid%::active::tier} = current tier
+#   {data::research::%uuid%::active::started} = unix timestamp
+#   {data::research::%uuid%::active::progress} = accumulated seconds
+#   {data::research::%uuid%::active::lastUpdate} = last update timestamp
+#
+# ============================================================
+
+# ============================================================
+# PROGRESS TRACKING
+# ============================================================
+
+# Get player's completed tier for a track (0 = none completed)
+function research_getCompletedTier(p: player, category: text, track: text) :: number:
+    set {_uuid} to {_p}'s uuid
+    return {data::research::%{_uuid}%::%{_category}%::%{_track}%} ? 0
+
+# Set player's completed tier for a track
+function research_setCompletedTier(p: player, category: text, track: text, tier: number):
+    set {_uuid} to {_p}'s uuid
+    set {data::research::%{_uuid}%::%{_category}%::%{_track}%} to {_tier}
+
+# Get next available tier for a track (completed + 1)
+function research_getNextTier(p: player, category: text, track: text) :: number:
+    set {_completed} to research_getCompletedTier({_p}, {_category}, {_track})
+    return {_completed} + 1
+
+# Check if player has completed all tiers in a track
+function research_isTrackComplete(p: player, category: text, track: text) :: boolean:
+    set {_completed} to research_getCompletedTier({_p}, {_category}, {_track})
+    set {_max} to research_getTrackMaxTier({_category}, {_track})
+    if {_completed} >= {_max}:
+        return true
+    return false
+
+# Check if entire category is complete (all tracks maxed)
+function research_isCategoryComplete(p: player, category: text) :: boolean:
+    set {_tracks::*} to research_getTracks({_category})
+    loop {_tracks::*}:
+        if research_isTrackComplete({_p}, {_category}, loop-value) is false:
+            return false
+    return true
+
+# Get total completed tiers in a category
+function research_getCategoryProgress(p: player, category: text) :: number:
+    set {_total} to 0
+    set {_tracks::*} to research_getTracks({_category})
+    loop {_tracks::*}:
+        add research_getCompletedTier({_p}, {_category}, loop-value) to {_total}
+    return {_total}
+
+# Get total max tiers in a category
+function research_getCategoryMaxProgress(category: text) :: number:
+    set {_total} to 0
+    set {_tracks::*} to research_getTracks({_category})
+    loop {_tracks::*}:
+        add research_getTrackMaxTier({_category}, loop-value) to {_total}
+    return {_total}
+
+
+# ============================================================
+# ACTIVE RESEARCH
+# ============================================================
+
+# Check if player has active research
+function research_hasActive(p: player) :: boolean:
+    set {_uuid} to {_p}'s uuid
+    if {data::research::%{_uuid}%::active::category} is set:
+        return true
+    return false
+
+# Get active research category
+function research_getActiveCategory(p: player) :: text:
+    set {_uuid} to {_p}'s uuid
+    return {data::research::%{_uuid}%::active::category} ? ""
+
+# Get active research track
+function research_getActiveTrack(p: player) :: text:
+    set {_uuid} to {_p}'s uuid
+    return {data::research::%{_uuid}%::active::track} ? ""
+
+# Get active research tier
+function research_getActiveTier(p: player) :: number:
+    set {_uuid} to {_p}'s uuid
+    return {data::research::%{_uuid}%::active::tier} ? 0
+
+# Get accumulated progress (in seconds)
+function research_getActiveProgress(p: player) :: number:
+    set {_uuid} to {_p}'s uuid
+    return {data::research::%{_uuid}%::active::progress} ? 0
+
+# Get progress percentage (0-100)
+function research_getProgressPercent(p: player) :: number:
+    if research_hasActive({_p}) is false:
+        return 0
+
+    set {_category} to research_getActiveCategory({_p})
+    set {_track} to research_getActiveTrack({_p})
+    set {_tier} to research_getActiveTier({_p})
+    set {_progress} to research_getActiveProgress({_p})
+    set {_required} to research_getTimeRequiredForPlayer({_p}, {_category}, {_track}, {_tier})
+
+    if {_required} <= 0:
+        return 100
+
+    set {_percent} to ({_progress} / {_required}) * 100
+
+    if {_percent} > 100:
+        return 100
+
+    return floor({_percent})
+
+# Get remaining time in seconds
+function research_getRemainingTime(p: player) :: number:
+    if research_hasActive({_p}) is false:
+        return 0
+
+    set {_category} to research_getActiveCategory({_p})
+    set {_track} to research_getActiveTrack({_p})
+    set {_tier} to research_getActiveTier({_p})
+    set {_progress} to research_getActiveProgress({_p})
+    set {_required} to research_getTimeRequiredForPlayer({_p}, {_category}, {_track}, {_tier})
+
+    set {_remaining} to {_required} - {_progress}
+
+    if {_remaining} < 0:
+        return 0
+
+    return floor({_remaining})
+
+
+# ============================================================
+# START / CANCEL / COMPLETE
+# ============================================================
+
+# Check if player can start a specific research
+function research_canStart(p: player, category: text, track: text, tier: number) :: boolean:
+    # Already has active research
+    if research_hasActive({_p}) is true:
+        return false
+
+    # Check tier is valid (must be next tier)
+    set {_nextTier} to research_getNextTier({_p}, {_category}, {_track})
+    if {_tier} != {_nextTier}:
+        return false
+
+    # Check track isn't complete
+    if research_isTrackComplete({_p}, {_category}, {_track}) is true:
+        return false
+
+    # Check prestige requirement
+    if research_meetsPrestigeRequirement({_p}, {_category}, {_track}, {_tier}) is false:
+        return false
+
+    # Check money requirement
+    if research_canAfford({_p}, {_category}, {_track}, {_tier}) is false:
+        return false
+
+    # Tutorial restriction - only allow specific researches
+    if tutorial_isComplete({_p}) is false:
+        if research_isTutorialAllowed({_p}, {_category}, {_track}) is false:
+            return false
+
+    return true
+
+
+# Check if a research is allowed during tutorial
+function research_isTutorialAllowed(p: player, category: text, track: text) :: boolean:
+    set {_step} to tutorial_getStep({_p})
+    set {_waiting} to {-tutorial::%{_p}'s uuid%::waitingResearch}
+
+    # Step 4: Only allow enchants/slots
+    if {_step} = 4:
+        if {_waiting} = "enchants":
+            if {_category} = "enchants":
+                if {_track} = "slots":
+                    return true
+        return false
+
+    # Step 7: Only allow pets/slots
+    if {_step} = 7:
+        if {_waiting} = "pets":
+            if {_category} = "pets":
+                if {_track} = "slots":
+                    return true
+        return false
+
+    # Step 9: Only allow accessories/slots
+    if {_step} = 9:
+        if {_waiting} = "accessories":
+            if {_category} = "accessories":
+                if {_track} = "slots":
+                    return true
+        return false
+
+    # Step 11: Only allow boosters/slots
+    if {_step} = 11:
+        if {_waiting} = "boosters":
+            if {_category} = "boosters":
+                if {_track} = "slots":
+                    return true
+        return false
+
+    # Step 14: Only allow archetypes/archetypes
+    if {_step} = 14:
+        if {_waiting} = "archetypes":
+            if {_category} = "archetypes":
+                if {_track} = "archetypes":
+                    return true
+        return false
+
+    # Other tutorial steps - block all research
+    return false
+
+# Start a new research
+function research_start(p: player, category: text, track: text, tier: number) :: boolean:
+    if research_canStart({_p}, {_category}, {_track}, {_tier}) is false:
+        return false
+
+    # Deduct money cost
+    set {_cost} to research_getMoneyCost({_category}, {_track}, {_tier})
+    if {_cost} > 0:
+        economy_removeMoney({_p}, {_cost})
+
+    set {_uuid} to {_p}'s uuid
+    set {_now} to now
+    set {_nowUnix} to unix timestamp of {_now}
+
+    set {data::research::%{_uuid}%::active::category} to {_category}
+    set {data::research::%{_uuid}%::active::track} to {_track}
+    set {data::research::%{_uuid}%::active::tier} to {_tier}
+    set {data::research::%{_uuid}%::active::started} to {_nowUnix}
+    set {data::research::%{_uuid}%::active::progress} to 0
+    set {data::research::%{_uuid}%::active::lastUpdate} to {_nowUnix}
+
+    # Feedback
+    set {_trackName} to research_getTrackName({_category}, {_track})
+    set {_timeRequired} to research_getTimeRequiredForPlayer({_p}, {_category}, {_track}, {_tier})
+    set {_timeFormatted} to research_formatTime({_timeRequired})
+
+    send "" to {_p}
+    send "&a&l! &aResearch Started!" to {_p}
+    send "&7Researching: %{_trackName}% &7Tier &e%{_tier}%" to {_p}
+    send "&7Time Required: &e%{_timeFormatted}%" to {_p}
+    send "" to {_p}
+
+    play sound "block.beacon.activate" with volume 0.7 and pitch 1.2 to {_p}
+
+    return true
+
+# Cancel active research (loses all progress)
+function research_cancel(p: player) :: boolean:
+    if research_hasActive({_p}) is false:
+        return false
+
+    set {_uuid} to {_p}'s uuid
+    set {_category} to research_getActiveCategory({_p})
+    set {_track} to research_getActiveTrack({_p})
+    set {_tier} to research_getActiveTier({_p})
+    set {_trackName} to research_getTrackName({_category}, {_track})
+
+    # Clear active research data
+    delete {data::research::%{_uuid}%::active::category}
+    delete {data::research::%{_uuid}%::active::track}
+    delete {data::research::%{_uuid}%::active::tier}
+    delete {data::research::%{_uuid}%::active::started}
+    delete {data::research::%{_uuid}%::active::progress}
+    delete {data::research::%{_uuid}%::active::lastUpdate}
+
+    send "" to {_p}
+    send "&c&l! &cResearch Cancelled" to {_p}
+    send "&7%{_trackName}% &7Tier &e%{_tier}% &7has been cancelled." to {_p}
+    send "&7All progress has been lost." to {_p}
+    send "" to {_p}
+
+    play sound "block.beacon.deactivate" with volume 0.7 and pitch 0.8 to {_p}
+
+    return true
+
+# Complete active research and apply rewards
+function research_complete(p: player) :: boolean:
+    if research_hasActive({_p}) is false:
+        return false
+
+    set {_uuid} to {_p}'s uuid
+    set {_category} to research_getActiveCategory({_p})
+    set {_track} to research_getActiveTrack({_p})
+    set {_tier} to research_getActiveTier({_p})
+
+    # Update completed tier
+    research_setCompletedTier({_p}, {_category}, {_track}, {_tier})
+
+    # Apply the reward
+    research_applyReward({_p}, {_category}, {_track}, {_tier})
+
+    # Get info for message
+    set {_trackName} to research_getTrackName({_category}, {_track})
+
+    # Clear active research
+    delete {data::research::%{_uuid}%::active::category}
+    delete {data::research::%{_uuid}%::active::track}
+    delete {data::research::%{_uuid}%::active::tier}
+    delete {data::research::%{_uuid}%::active::started}
+    delete {data::research::%{_uuid}%::active::progress}
+    delete {data::research::%{_uuid}%::active::lastUpdate}
+
+    # Completion message
+    send "" to {_p}
+    send "&a&l✓ &a&lResearch Complete!" to {_p}
+    send "&7%{_trackName}% &7Tier &e%{_tier}% &7completed!" to {_p}
+    send "" to {_p}
+
+    play sound "ui.toast.challenge_complete" with volume 1 and pitch 1 to {_p}
+
+    # Tutorial callback
+    tutorial_onResearchComplete({_p}, {_category}, {_track})
+
+    return true
+
+
+# ============================================================
+# REWARD APPLICATION
+# ============================================================
+
+function research_applyReward(p: player, category: text, track: text, tier: number):
+    set {_uuid} to {_p}'s uuid
+    set {_reward} to research_getTrackReward({_category}, {_track})
+
+    if {_reward} = "enchant_slot":
+        set {data::slots::enchants::%{_uuid}%} to {_tier}
+        send "&d▶ &7Unlocked &5Enchant Slot %{_tier}%&7!" to {_p}
+
+    else if {_reward} = "pet_slot":
+        set {pet::slots::%{_uuid}%} to {_tier}
+        send "&d▶ &7Unlocked &dPet Slot %{_tier}%&7!" to {_p}
+
+    else if {_reward} = "acc_slot":
+        set {data::accessories::%{_uuid}%::slots} to {_tier}
+        send "&d▶ &7Unlocked &eAccessory Slot %{_tier}%&7!" to {_p}
+
+    else if {_reward} = "booster_slot":
+        set {data::boosters::%{_uuid}%::slots} to {_tier}
+        send "&d▶ &7Unlocked &bBooster Slot %{_tier}%&7!" to {_p}
+
+    else if {_reward} = "pet_storage":
+        set {_amount} to research_getTrackRewardAmount({_category}, {_track})
+        set {_base} to research_getTrackBaseValue({_category}, {_track})
+        set {_newMax} to {_base} + ({_tier} * {_amount})
+        set {data::storage::pets::%{_uuid}%} to {_newMax}
+        send "&d▶ &7Pet storage increased to &d%{_newMax}%&7!" to {_p}
+
+    else if {_reward} = "pet_fusion":
+        # Store highest fusion tier completed (used by fusion system for validation)
+        set {data::research::%{_uuid}%::pets::pet_fusion} to {_tier}
+        # Get tier description
+        set {_tierDesc} to {-research::config::pets::pet_fusion::tierDesc::%{_tier}%} ? "Pet Fusion Tier %{_tier}%"
+        send "&d▶ &7Unlocked &6%{_tierDesc}%&7!" to {_p}
+
+    else if {_reward} = "acc_storage":
+        set {_amount} to research_getTrackRewardAmount({_category}, {_track})
+        set {_base} to research_getTrackBaseValue({_category}, {_track})
+        set {_newMax} to {_base} + ({_tier} * {_amount})
+        set {data::storage::accessories::%{_uuid}%} to {_newMax}
+        send "&d▶ &7Accessory storage increased to &e%{_newMax}%&7!" to {_p}
+
+    else if {_reward} = "booster_storage":
+        set {_amount} to research_getTrackRewardAmount({_category}, {_track})
+        set {_base} to research_getTrackBaseValue({_category}, {_track})
+        set {_newMax} to {_base} + ({_tier} * {_amount})
+        set {data::storage::boosters::%{_uuid}%} to {_newMax}
+        send "&d▶ &7Booster storage increased to &b%{_newMax}%&7!" to {_p}
+
+    else if {_reward} = "gem_type":
+        # Store highest gem tier unlocked (used by gem drop system)
+        set {data::research::%{_uuid}%::gems::gem_types} to {_tier}
+        # Get tier description (gem name)
+        set {_tierDesc} to {-research::config::gems::gem_types::tierDesc::%{_tier}%} ? "Gem Tier %{_tier}%"
+        send "&d▶ &7Unlocked &a%{_tierDesc}%&7!" to {_p}
+
+    else if {_reward} = "archetype":
+        # Unlock archetype: tier 1 = precision (2), tier 2 = arcane (4), tier 3 = demolition (3)
+        if {_tier} = 1:
+            set {data::research::%{_uuid}%::archetype::precision} to true
+            send "&d▶ &7Unlocked &bPrecision &7archetype!" to {_p}
+        else if {_tier} = 2:
+            set {data::research::%{_uuid}%::archetype::arcane} to true
+            send "&d▶ &7Unlocked &dArcane &7archetype!" to {_p}
+        else if {_tier} = 3:
+            set {data::research::%{_uuid}%::archetype::demolition} to true
+            send "&d▶ &7Unlocked &cDemolition &7archetype!" to {_p}
+
+
+# ============================================================
+# UTILITY FUNCTIONS
+# ============================================================
+
+# Format seconds into readable time (1h 30m 45s)
+function research_formatTime(seconds: number) :: text:
+    if {_seconds} <= 0:
+        return "0s"
+
+    set {_hours} to floor({_seconds} / 3600)
+    set {_remaining} to mod({_seconds}, 3600)
+    set {_minutes} to floor({_remaining} / 60)
+    set {_secs} to mod({_remaining}, 60)
+
+    set {_result} to ""
+
+    if {_hours} > 0:
+        set {_result} to "%{_hours}%h "
+
+    if {_minutes} > 0:
+        set {_result} to "%{_result}%%{_minutes}%m "
+
+    if {_secs} > 0:
+        set {_result} to "%{_result}%%{_secs}%s"
+    else if {_result} = "":
+        set {_result} to "0s"
+
+    return {_result}
+
+# Create a progress bar
+function research_createProgressBar(percent: number) :: text:
+    set {_filled} to floor({_percent} / 10)
+    set {_empty} to 10 - {_filled}
+
+    set {_bar} to "&a"
+    loop {_filled} times:
+        set {_bar} to "%{_bar}%█"
+
+    set {_bar} to "%{_bar}%&8"
+    loop {_empty} times:
+        set {_bar} to "%{_bar}%░"
+
+    return "%{_bar}% &7%{_percent}%%%"
+
+# Get reward description for display
+function research_getRewardDescription(category: text, track: text, tier: number) :: text:
+    set {_reward} to research_getTrackReward({_category}, {_track})
+
+    if {_reward} = "enchant_slot":
+        return "&5Enchant Slot %{_tier}%"
+    else if {_reward} = "pet_slot":
+        return "&dPet Slot %{_tier}%"
+    else if {_reward} = "acc_slot":
+        return "&eAccessory Slot %{_tier}%"
+    else if {_reward} = "booster_slot":
+        return "&bBooster Slot %{_tier}%"
+    else if {_reward} = "pet_storage":
+        set {_amount} to research_getTrackRewardAmount({_category}, {_track})
+        return "&d+%{_amount}% Pet Storage"
+    else if {_reward} = "acc_storage":
+        set {_amount} to research_getTrackRewardAmount({_category}, {_track})
+        return "&e+%{_amount}% Acc Storage"
+    else if {_reward} = "booster_storage":
+        set {_amount} to research_getTrackRewardAmount({_category}, {_track})
+        return "&b+%{_amount}% Booster Storage"
+    else if {_reward} = "archetype":
+        set {_tierName} to research_getTierName({_category}, {_track}, {_tier})
+        return "%{_tierName}% &7Archetype"
+    else if {_reward} = "pet_fusion":
+        # Use custom tier description from config
+        set {_tierDesc} to {-research::config::pets::pet_fusion::tierDesc::%{_tier}%}
+        if {_tierDesc} is set:
+            return "&6%{_tierDesc}%"
+        return "&6Pet Fusion Tier %{_tier}%"
+    else if {_reward} = "gem_type":
+        # Use custom tier description from config (gem names)
+        set {_tierDesc} to {-research::config::gems::gem_types::tierDesc::%{_tier}%}
+        if {_tierDesc} is set:
+            return "&a%{_tierDesc}%"
+        return "&aGem Tier %{_tier}%"
+
+    return "&7Unknown Reward"
+
+
+# ============================================================
+# SLOT/STORAGE GETTER FUNCTIONS
+# ============================================================
+
+function research_getEnchantSlots(p: player) :: number:
+    set {_uuid} to {_p}'s uuid
+    return {data::slots::enchants::%{_uuid}%} ? 0
+
+function research_getBoosterSlots(p: player) :: number:
+    set {_uuid} to {_p}'s uuid
+    return {data::boosters::%{_uuid}%::slots} ? 0
+
+function research_getPetStorageMax(p: player) :: number:
+    set {_uuid} to {_p}'s uuid
+    set {_base} to 50
+    set {_bonus} to {data::storage::pets::%{_uuid}%} ? {_base}
+    return {_bonus}
+
+function research_getAccStorageMax(p: player) :: number:
+    set {_uuid} to {_p}'s uuid
+    set {_base} to 150
+    set {_bonus} to {data::storage::accessories::%{_uuid}%} ? {_base}
+    return {_bonus}
+
+function research_getBoosterStorageMax(p: player) :: number:
+    set {_uuid} to {_p}'s uuid
+    set {_base} to 75
+    set {_bonus} to {data::storage::boosters::%{_uuid}%} ? {_base}
+    return {_bonus}
+
+
+# ============================================================
+# ARCHETYPE RESEARCH FUNCTIONS
+# ============================================================
+
+# Check if player has unlocked a specific archetype via research
+function research_hasArchetype(p: player, archetype: text) :: boolean:
+    set {_uuid} to {_p}'s uuid
+    if {data::research::%{_uuid}%::archetype::%{_archetype}%} is true:
+        return true
+    return false
+
+# Get archetype ID from name
+function research_getArchetypeId(archetype: text) :: number:
+    if {_archetype} = "precision":
+        return 2
+    else if {_archetype} = "demolition":
+        return 3
+    else if {_archetype} = "arcane":
+        return 4
+    return 0
+
+# Get archetype name from tier
+function research_getArchetypeFromTier(tier: number) :: text:
+    if {_tier} = 1:
+        return "precision"
+    else if {_tier} = 2:
+        return "arcane"
+    else if {_tier} = 3:
+        return "demolition"
+    return ""
+
+
+# ============================================================
+# OFFLINE PROGRESS SYNC
+# ============================================================
+
+function research_syncOfflineProgress(p: player):
+    if research_hasActive({_p}) is false:
+        stop
+
+    set {_uuid} to {_p}'s uuid
+    set {_lastUpdate} to {data::research::%{_uuid}%::active::lastUpdate} ? 0
+
+    if {_lastUpdate} <= 0:
+        stop
+
+    set {_now} to now
+    set {_nowUnix} to unix timestamp of {_now}
+    set {_elapsed} to {_nowUnix} - {_lastUpdate}
+
+    # Cap offline progress at 24 hours
+    if {_elapsed} > 86400:
+        set {_elapsed} to 86400
+
+    # Add offline progress
+    if {_elapsed} > 0:
+        add {_elapsed} to {data::research::%{_uuid}%::active::progress}
+        set {data::research::%{_uuid}%::active::lastUpdate} to {_nowUnix}
+
+        # Check if completed while offline
+        set {_progress} to research_getActiveProgress({_p})
+        set {_category} to research_getActiveCategory({_p})
+        set {_track} to research_getActiveTrack({_p})
+        set {_tier} to research_getActiveTier({_p})
+        set {_required} to research_getTimeRequiredForPlayer({_p}, {_category}, {_track}, {_tier})
+
+        if {_progress} >= {_required}:
+            research_complete({_p})
+        else:
+            # Notify about progress
+            set {_trackName} to research_getTrackName({_category}, {_track})
+            set {_percent} to research_getProgressPercent({_p})
+            set {_remaining} to research_getRemainingTime({_p})
+            set {_remainingFormatted} to research_formatTime({_remaining})
+
+            send "" to {_p}
+            send "&e&l! &eResearch Progress Update" to {_p}
+            send "&7%{_trackName}% &7Tier &e%{_tier}%&7: &a%{_percent}%%%" to {_p}
+            send "&7Time Remaining: &e%{_remainingFormatted}%" to {_p}
+            send "" to {_p}

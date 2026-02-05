@@ -1,0 +1,326 @@
+# ============================================================
+# PRECISION ARCHETYPE ENCHANTS
+# ============================================================
+
+# ============================================================
+# FOCUS ENCHANT
+# ============================================================
+
+function enchant_procFocus(p: player, loc: location) :: boolean:
+    set {_id} to enchant_getIdByString("Focus")
+    
+    if enchant_checkIfEquipped({_p}, {_id}) = false:
+        return false
+    
+    set {_level} to enchant_getPlayerLevelByString({_p}, "Focus")
+    
+    if {_level} < 1:
+        return false
+    
+    # Check cooldown (2 seconds)
+    if {-focus::%{_p}'s uuid%::cooldown} is set:
+        return false
+    
+    # 0.5% per level, max 15% at level 30
+    set {_baseChance} to {_level} * 0.5
+    
+    if enchant_rollChance({_p}, {_baseChance}) = false:
+        return false
+    
+    # Set cooldown
+    set {-focus::%{_p}'s uuid%::cooldown} to true
+    focus_clearCooldown({_p})
+    
+    # Play feedback
+    focus_playEffect({_p}, {_loc})
+    
+    return true
+
+
+function focus_clearCooldown(p: player):
+    wait 2 seconds
+    delete {-focus::%{_p}'s uuid%::cooldown}
+
+
+function focus_playEffect(p: player, loc: location):
+    set {_bx} to floor(x-coord of {_loc}) + 0.5
+    set {_by} to floor(y-coord of {_loc}) + 0.5
+    set {_bz} to floor(z-coord of {_loc}) + 0.5
+    set {_center} to location({_bx}, {_by}, {_bz}, world of {_loc})
+    
+    # Layered satisfying sounds
+    play sound "entity.player.attack.crit" with volume 0.6 and pitch 1.5 to {_p}
+    play sound "block.amethyst_block.break" with volume 0.5 and pitch 1.8 to {_p}
+    play sound "entity.experience_orb.pickup" with volume 0.3 and pitch 2.0 to {_p}
+    
+    # Cyan/white particles
+    draw 8 of dust using dustOption(rgb(100, 255, 255), 1.2) at {_center} with offset vector(0.35, 0.35, 0.35) for {_p}
+    draw 4 of dust using dustOption(white, 0.8) at {_center} with offset vector(0.25, 0.25, 0.25) for {_p}
+    draw 3 of enchanted hit at {_center} with offset vector(0.2, 0.2, 0.2) for {_p}
+
+
+# ============================================================
+# CRITICAL HIT ENCHANT
+# ============================================================
+
+function enchant_procCriticalHit(p: player, loc: location) :: boolean:
+    set {_id} to enchant_getIdByString("Critical Hit")
+    
+    if enchant_checkIfEquipped({_p}, {_id}) = false:
+        return false
+    
+    set {_level} to enchant_getPlayerLevelByString({_p}, "Critical Hit")
+    
+    if {_level} < 1:
+        return false
+    
+    # Check cooldown (2 seconds)
+    if {-criticalHit::%{_p}'s uuid%::cooldown} is set:
+        return false
+    
+    # 0.5% per level, max 12.5% at level 25
+    set {_baseChance} to {_level} * 0.5
+    
+    if enchant_rollChance({_p}, {_baseChance}) = false:
+        return false
+    
+    # Set cooldown
+    set {-criticalHit::%{_p}'s uuid%::cooldown} to true
+    criticalHit_clearCooldown({_p})
+    
+    # Add 25% progress
+    set {_currentProgress} to mining_getProgress({_p}, {_loc})
+    set {_newProgress} to {_currentProgress} + 0.25
+    if {_newProgress} > 1:
+        set {_newProgress} to 1
+    mining_setProgress({_p}, {_loc}, {_newProgress})
+    
+    # Update visual
+    mining_applyVisualUpdate({_p}, {_loc})
+    
+    # Play feedback
+    criticalHit_playEffect({_p}, {_loc})
+    
+    return true
+
+
+function criticalHit_clearCooldown(p: player):
+    wait 2 seconds
+    delete {-criticalHit::%{_p}'s uuid%::cooldown}
+
+
+function criticalHit_playEffect(p: player, loc: location):
+    set {_bx} to floor(x-coord of {_loc}) + 0.5
+    set {_by} to floor(y-coord of {_loc}) + 0.5
+    set {_bz} to floor(z-coord of {_loc}) + 0.5
+    set {_center} to location({_bx}, {_by}, {_bz}, world of {_loc})
+    
+    # Impactful layered sounds
+    play sound "entity.player.attack.knockback" with volume 0.7 and pitch 0.8 to {_p}
+    play sound "block.anvil.land" with volume 0.3 and pitch 1.8 to {_p}
+    play sound "entity.generic.explode" with volume 0.2 and pitch 1.5 to {_p}
+    
+    # Big red burst - very noticeable
+    draw 15 of dust using dustOption(red, 2.0) at {_center} with offset vector(0.5, 0.5, 0.5) for {_p}
+    draw 10 of dust using dustOption(rgb(255, 50, 50), 1.5) at {_center} with offset vector(0.4, 0.4, 0.4) for {_p}
+    draw 8 of dust using dustOption(rgb(255, 150, 150), 1.0) at {_center} with offset vector(0.3, 0.3, 0.3) for {_p}
+    draw 6 of damage indicator at {_center} with offset vector(0.4, 0.4, 0.4) for {_p}
+    draw 5 of crit at {_center} with offset vector(0.35, 0.35, 0.35) for {_p}
+
+
+# ============================================================
+# LASER ENCHANT
+# ============================================================
+
+function enchant_procLaser(p: player, loc: location, multiplier: integer) :: boolean:
+    set {_id} to enchant_getIdByString("Laser")
+    
+    if enchant_checkIfEquipped({_p}, {_id}) = false:
+        return false
+    
+    set {_level} to enchant_getPlayerLevelByString({_p}, "Laser")
+    
+    if {_level} < 1:
+        return false
+    
+    # 0.6% per level, max 15% at level 25
+    set {_baseChance} to {_level} * 0.6
+    
+    if enchant_rollChance({_p}, {_baseChance}) = false:
+        return false
+    
+    # Find target block
+    set {_target} to laser_findTarget({_p}, {_loc})
+    
+    if {_target} is not set:
+        return false
+    
+    # Play laser animation then destroy
+    laser_playEffect({_p}, {_loc}, {_target}, {_multiplier})
+    return true
+
+
+function laser_findTarget(p: player, origin: location) :: location:
+    set {_startX} to floor(x-coord of {_origin})
+    set {_startY} to floor(y-coord of {_origin})
+    set {_startZ} to floor(z-coord of {_origin})
+    set {_world} to world of {_origin}
+    
+    set {_validCount} to 0
+    
+    # Same Y level only
+    loop integers from -1 to 1:
+        set {_dx} to loop-value
+        loop integers from -1 to 1:
+            set {_dz} to loop-value-2
+            
+            # Skip center block
+            if {_dx} = 0:
+                if {_dz} = 0:
+                    continue
+            
+            set {_checkLoc} to location({_startX} + {_dx}, {_startY}, {_startZ} + {_dz}, {_world})
+            set {_checkType} to type of block at {_checkLoc}
+            
+            # Skip bedrock (respawning blocks)
+            if {_checkType} is bedrock:
+                continue
+            
+            # Must be mineable and not locked
+            if mining_isMineable({_checkType}) = true:
+                if mining_isLocked({_p}, {_checkLoc}) = false:
+                    add 1 to {_validCount}
+                    set {_validLoc::%{_validCount}%} to {_checkLoc}
+    
+    if {_validCount} = 0:
+        stop
+    
+    # Pick random valid block
+    set {_pick} to random integer between 1 and {_validCount}
+    return {_validLoc::%{_pick}%}
+
+
+function laser_playEffect(p: player, origin: location, target: location, multiplier: integer):
+    # Get player eye location as laser source
+    set {_eyeLoc} to eye location of {_p}
+    
+    # Get target block center
+    set {_tx} to floor(x-coord of {_target}) + 0.5
+    set {_ty} to floor(y-coord of {_target}) + 0.5
+    set {_tz} to floor(z-coord of {_target}) + 0.5
+    set {_targetCenter} to location({_tx}, {_ty}, {_tz}, world of {_target})
+    
+    # Play charge sound
+    play sound "block.beacon.activate" with volume 0.5 and pitch 2.0 to {_p}
+    
+    # Calculate beam direction
+    set {_startX} to x-coord of {_eyeLoc}
+    set {_startY} to y-coord of {_eyeLoc}
+    set {_startZ} to z-coord of {_eyeLoc}
+    
+    set {_dx} to {_tx} - {_startX}
+    set {_dy} to {_ty} - {_startY}
+    set {_dz} to {_tz} - {_startZ}
+    
+    set {_distance} to sqrt(({_dx} * {_dx}) + ({_dy} * {_dy}) + ({_dz} * {_dz}))
+    
+    # Draw laser beam with particles
+    set {_steps} to floor({_distance} * 4)
+    if {_steps} < 4:
+        set {_steps} to 4
+    
+    loop {_steps} times:
+        set {_i} to loop-number
+        set {_t} to {_i} / {_steps}
+        
+        set {_bx} to {_startX} + ({_dx} * {_t})
+        set {_by} to {_startY} + ({_dy} * {_t})
+        set {_bz} to {_startZ} + ({_dz} * {_t})
+        
+        set {_beamLoc} to location({_bx}, {_by}, {_bz}, world of {_target})
+        
+        # Orange/yellow laser beam
+        draw 2 of dust using dustOption(rgb(255, 150, 0), 0.8) at {_beamLoc} for {_p}
+        draw 1 of dust using dustOption(rgb(255, 255, 100), 0.5) at {_beamLoc} for {_p}
+    
+    # Play fire sound
+    play sound "entity.blaze.shoot" with volume 0.6 and pitch 1.5 to {_p}
+    
+    wait 2 ticks
+    
+    # Impact effect at target
+    draw 12 of dust using dustOption(rgb(255, 150, 0), 1.5) at {_targetCenter} with offset vector(0.4, 0.4, 0.4) for {_p}
+    draw 8 of dust using dustOption(rgb(255, 255, 100), 1.0) at {_targetCenter} with offset vector(0.3, 0.3, 0.3) for {_p}
+    draw 6 of flame at {_targetCenter} with offset vector(0.3, 0.3, 0.3) for {_p}
+    draw 4 of smoke at {_targetCenter} with offset vector(0.2, 0.2, 0.2) for {_p}
+    
+    # Impact sound
+    play sound "entity.generic.explode" with volume 0.4 and pitch 1.5 to {_p}
+    play sound "block.fire.extinguish" with volume 0.5 and pitch 1.2 to {_p}
+    
+    # Destroy the block
+    laser_destroyBlock({_p}, {_target}, {_multiplier})
+
+
+function laser_destroyBlock(p: player, loc: location, multiplier: integer):
+    # Clear any existing mining session on this block
+    mining_clearSession({_p}, {_loc})
+
+    set {_type} to type of block at {_loc}
+    set {_hardness} to mining_getHardness({_type})
+
+    # Check if block was amplified
+    set {_isAmplified} to amplify_isAmplified({_p}, {_loc})
+    if {_isAmplified} = true:
+        amplify_clearBlock({_p}, {_loc})
+        set {_finalMultiplier} to {_multiplier} * 2
+        play sound "block.respawn_anchor.deplete" with volume 0.6 and pitch 1.2 to {_p}
+        amplify_showText({_p}, {_loc})
+    else:
+        set {_finalMultiplier} to {_multiplier}
+
+    # Block break sound
+    play sound "block.stone.break" with volume 1 and pitch 0.8 at {_loc} for {_p}
+
+    # Block loot animation
+    packetBlockLoot({_p}, {_loc}, {_type})
+
+    # Only Excavator can proc (no Magnet, no Prospecting, no other enchants)
+    set {_tokens} to enchant_procExcavator({_p}, {_hardness}, false)
+    set {_tokens} to {_tokens} * {_finalMultiplier}
+
+    mining_giveTokens({_p}, {_tokens})
+    excavator_addTokens({_p}, {_loc}, {_tokens}, false)
+    
+    # Get Fortune level for bonus drops
+    set {_fortuneID} to enchant_getIdByString("Fortune")
+    if enchant_checkIfEquipped({_p}, {_fortuneID}) = true:
+        set {_fortuneLevel} to enchant_getPlayerLevelByString({_p}, "Fortune")
+    else:
+        set {_fortuneLevel} to 0
+    
+    # Give drops with Fortune and multiplier
+    mining_giveDrops({_p}, {_type}, {_fortuneLevel}, {_finalMultiplier})
+    
+    # Lock the block with coordinate-based key
+    set {_lockX} to floor(x-coord of {_loc})
+    set {_lockY} to floor(y-coord of {_loc})
+    set {_lockZ} to floor(z-coord of {_loc})
+    set {_lockKey} to "%{_lockX}%_%{_lockY}%_%{_lockZ}%"
+    set {-miningLocked::%{_p}'s uuid%::%{_lockKey}%} to true
+    make {_p} see block at {_loc} as bedrock
+    
+    # Schedule unlock
+    laser_unlockBlock({_p}, {_loc})
+
+
+function laser_unlockBlock(p: player, loc: location):
+    wait 5 seconds
+    make {_p} see block at {_loc} as original
+    set {_lockX} to floor(x-coord of {_loc})
+    set {_lockY} to floor(y-coord of {_loc})
+    set {_lockZ} to floor(z-coord of {_loc})
+    set {_lockKey} to "%{_lockX}%_%{_lockY}%_%{_lockZ}%"
+    delete {-miningLocked::%{_p}'s uuid%::%{_lockKey}%}
+
+

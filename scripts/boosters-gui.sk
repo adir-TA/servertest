@@ -1,0 +1,690 @@
+# ============================================================
+# BOOSTER GUI SYSTEM v2 (with Tiers & Rarities)
+# ============================================================
+#
+# Handles /boosters GUI for viewing, equipping, and managing boosters
+#
+# Layout:
+#   Row 0: Equipped booster slots (1-5)
+#   Row 1-4: Storage grid (28 per page)
+#   Row 5: Info, Cap, Effects, Sort, Pagination, Global, Close
+#
+# ============================================================
+
+# ============================================================
+# MAIN MENU
+# ============================================================
+
+command /boosters:
+    trigger:
+        booster_openMainMenu(player, 1, "tier")
+
+function booster_openMainMenu(p: player, page: number, sortBy: text):
+    set {_uuid} to {_p}'s uuid
+    set {_menu} to chest inventory with 6 rows named "&6&lBoosters"
+
+    # Fill with glass
+    set {_filler} to black stained glass pane named "&8"
+    loop 54 times:
+        set slot loop-number - 1 of {_menu} to {_filler}
+
+    # ════════════════════════════════════════
+    # ROW 0: EQUIPPED SLOTS (slots 2-6)
+    # ════════════════════════════════════════
+    set {_unlockedSlots} to booster_getUnlockedSlots({_p})
+
+    loop 5 times:
+        set {_slotNum} to loop-number
+        set {_guiSlot} to loop-number + 1  # GUI slots 2,3,4,5,6
+
+        if {_slotNum} is less than or equal to {_unlockedSlots}:
+            # Slot is unlocked
+            if booster_isSlotActive({_p}, {_slotNum}) is true:
+                # Has active booster - show it
+                set {_boosterItem} to booster_createEquippedItem({_p}, {_slotNum})
+                set slot {_guiSlot} of {_menu} to {_boosterItem}
+            else:
+                # Empty slot
+                set {_empty} to lime stained glass pane named "&e✦ Empty Slot %{_slotNum}%"
+                set lore of {_empty} to "", "&7Click a booster from your", "&7storage below to equip it!", "", "&aSlot is unlocked"
+                set string tag "booster;action" of custom nbt of {_empty} to "empty_slot"
+                set int tag "booster;slot" of custom nbt of {_empty} to {_slotNum}
+                set slot {_guiSlot} of {_menu} to {_empty}
+        else:
+            # Slot is locked
+            set {_locked} to red stained glass pane named "&c🔒 Locked Slot %{_slotNum}%"
+            set lore of {_locked} to "", "&7Unlock this slot to equip", "&7more boosters!", "", "&d▶ Use &5/research &dto unlock"
+            set slot {_guiSlot} of {_menu} to {_locked}
+
+    # ════════════════════════════════════════
+    # ROWS 1-4: STORAGE GRID (slots 10-16, 19-25, 28-34, 37-43)
+    # ════════════════════════════════════════
+
+    # Get storage
+    set {_storage::*} to booster_getStorage({_p})
+    set {_sorted::*} to booster_sortStorage({_storage::*}, {_sortBy})
+
+    # Pagination
+    set {_perPage} to 28
+    set {_total} to size of {_sorted::*}
+    set {_totalPages} to max(1, ceiling({_total} / {_perPage}))
+
+    if {_page} > {_totalPages}:
+        set {_page} to {_totalPages}
+    if {_page} < 1:
+        set {_page} to 1
+
+    set {_startIndex} to (({_page} - 1) * {_perPage}) + 1
+    set {_endIndex} to min({_startIndex} + {_perPage} - 1, {_total})
+
+    # Display slots
+    set {_displaySlots::*} to 10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 31, 32, 33, 34, 37, 38, 39, 40, 41, 42 and 43
+
+    set {_displayIndex} to 1
+    loop integers from {_startIndex} to {_endIndex}:
+        set {_storageIndex} to loop-number
+        set {_encoded} to {_sorted::%{_storageIndex}%}
+
+        if {_encoded} is set:
+            set {_boosterItem} to booster_createStorageItem({_encoded}, {_storageIndex})
+            set {_guiSlot} to {_displaySlots::%{_displayIndex}%}
+            set slot {_guiSlot} of {_menu} to {_boosterItem}
+
+        add 1 to {_displayIndex}
+
+    # ════════════════════════════════════════
+    # ROW 5: CONTROLS (slots 45-53)
+    # ════════════════════════════════════════
+
+    # Info - Slot 45
+    set {_info} to book named "&eBooster Guide"
+    add "" to {_infoLore::*}
+    add "&6What are Boosters?" to {_infoLore::*}
+    add "&7Temporary multiplier bonuses" to {_infoLore::*}
+    add "&7that boost your stats!" to {_infoLore::*}
+    add "" to {_infoLore::*}
+    add "&eTiers: &7Higher tier = longer duration" to {_infoLore::*}
+    add "&eRarity: &7Higher rarity = stronger effect" to {_infoLore::*}
+    add "" to {_infoLore::*}
+    add "&aStorage" to {_infoLore::*}
+    add "&7Stored: &8[&a%{_total}%&8/&c%booster_getStorageMax({_p})%&8]" to {_infoLore::*}
+    set {_activeCount} to 0
+    loop integers from 1 to 5:
+        if booster_isSlotActive({_p}, loop-value) is true:
+            add 1 to {_activeCount}
+    add "&7Equipped: &8[&a%{_activeCount}%&8/&c%{_unlockedSlots}%&8]" to {_infoLore::*}
+    add "" to {_infoLore::*}
+    add "&dActive Bonuses:" to {_infoLore::*}
+
+    # Show active bonuses per type
+    set {_hasBonus} to false
+    loop "mining_speed", "drops", "xp", "token", "money", "enchant_proc", "damage" and "durability":
+        set {_type} to loop-value
+        set {_personal} to booster_getTotalForType({_p}, {_type})
+        set {_global} to booster_getGlobalBonus({_type})
+        set {_totalBonus} to {_personal} + {_global}
+        if {_totalBonus} > 0:
+            set {_color} to booster_getTypeColor({_type})
+            set {_personalPct} to round({_personal} * 100)
+            set {_globalPct} to round({_global} * 100)
+            set {_bonusStr} to ""
+            if {_personalPct} > 0:
+                set {_bonusStr} to "+%{_personalPct}%%%"
+            if {_globalPct} > 0:
+                if {_bonusStr} is not "":
+                    set {_bonusStr} to "%{_bonusStr}% &7+ &6%{_globalPct}%%% global"
+                else:
+                    set {_bonusStr} to "&6+%{_globalPct}%%% global"
+            add " %{_color}%%booster_formatType({_type})%: &f%{_bonusStr}%" to {_infoLore::*}
+            set {_hasBonus} to true
+
+    if {_hasBonus} is false:
+        add " &8No active boosters" to {_infoLore::*}
+
+    set lore of {_info} to {_infoLore::*}
+    set slot 45 of {_menu} to {_info}
+
+    # Cap info - Slot 46
+    set {_cap} to booster_getCap({_p})
+    set {_capPct} to round({_cap} * 100)
+    set {_capItem} to beacon named "&b&lBooster Cap"
+    add "" to {_capLore::*}
+    add "&7Your max boost per type:" to {_capLore::*}
+    add "&a%{_capPct}%%%" to {_capLore::*}
+    add "" to {_capLore::*}
+    add "&7Upgrade via &d/research" to {_capLore::*}
+    add "&7to increase your cap!" to {_capLore::*}
+    add "" to {_capLore::*}
+    add "&8Base: 300%%" to {_capLore::*}
+    add "&8Max: 500%%" to {_capLore::*}
+    set lore of {_capItem} to {_capLore::*}
+    set slot 46 of {_menu} to {_capItem}
+
+    # Max Effects info - Slot 47
+    set {_maxEffects} to booster_getMaxEffects({_p})
+    set {_effectsItem} to brewing stand named "&d&lMax Effects"
+    add "" to {_effectsLore::*}
+    add "&7Max effects per booster:" to {_effectsLore::*}
+    add "&a%{_maxEffects}% effects" to {_effectsLore::*}
+    add "" to {_effectsLore::*}
+    add "&7Boosters with more effects" to {_effectsLore::*}
+    add "&7than your limit cannot" to {_effectsLore::*}
+    add "&7be merged at the workstation." to {_effectsLore::*}
+    add "" to {_effectsLore::*}
+    add "&7Upgrade via &d/research" to {_effectsLore::*}
+    add "&8Base: 2 effects" to {_effectsLore::*}
+    add "&8Max: 6 effects" to {_effectsLore::*}
+    set lore of {_effectsItem} to {_effectsLore::*}
+    set slot 47 of {_menu} to {_effectsItem}
+
+    # Sort button - Slot 48
+    set {_sort} to hopper named "&e&lSort Boosters"
+    add "" to {_sortLore::*}
+    add "&6Sort Mode:" to {_sortLore::*}
+    if {_sortBy} is "tier":
+        add " &a▶ By Tier" to {_sortLore::*}
+        add " &7  By Rarity" to {_sortLore::*}
+        add " &7  By Duration" to {_sortLore::*}
+        add " &7  By Type" to {_sortLore::*}
+    else if {_sortBy} is "rarity":
+        add " &7  By Tier" to {_sortLore::*}
+        add " &a▶ By Rarity" to {_sortLore::*}
+        add " &7  By Duration" to {_sortLore::*}
+        add " &7  By Type" to {_sortLore::*}
+    else if {_sortBy} is "duration":
+        add " &7  By Tier" to {_sortLore::*}
+        add " &7  By Rarity" to {_sortLore::*}
+        add " &a▶ By Duration" to {_sortLore::*}
+        add " &7  By Type" to {_sortLore::*}
+    else:
+        add " &7  By Tier" to {_sortLore::*}
+        add " &7  By Rarity" to {_sortLore::*}
+        add " &7  By Duration" to {_sortLore::*}
+        add " &a▶ By Type" to {_sortLore::*}
+    add "" to {_sortLore::*}
+    add "&eClick to cycle" to {_sortLore::*}
+    set lore of {_sort} to {_sortLore::*}
+    set string tag "booster;action" of custom nbt of {_sort} to "sort"
+    set string tag "booster;sortBy" of custom nbt of {_sort} to {_sortBy}
+    set slot 48 of {_menu} to {_sort}
+
+    # Previous page - Slot 49
+    if {_page} > 1:
+        set {_prev} to arrow named "&c&lPREVIOUS"
+        add "" to {_prevLore::*}
+        add "&7Page: &8[&a%{_page} - 1%&8/&c%{_totalPages}%&8]" to {_prevLore::*}
+        add "" to {_prevLore::*}
+        add "&eClick to go back" to {_prevLore::*}
+        set lore of {_prev} to {_prevLore::*}
+        set string tag "booster;action" of custom nbt of {_prev} to "page"
+        set int tag "booster;page" of custom nbt of {_prev} to {_page} - 1
+        set string tag "booster;sortBy" of custom nbt of {_prev} to {_sortBy}
+        set slot 49 of {_menu} to {_prev}
+
+    # Page indicator - Slot 50
+    set {_pageItem} to paper named "&7Page: &8[&a%{_page}%&8/&c%{_totalPages}%&8]"
+    set slot 50 of {_menu} to {_pageItem}
+
+    # Next page - Slot 51
+    if {_page} < {_totalPages}:
+        set {_next} to arrow named "&a&lNEXT"
+        add "" to {_nextLore::*}
+        add "&7Page: &8[&a%{_page} + 1%&8/&c%{_totalPages}%&8]" to {_nextLore::*}
+        add "" to {_nextLore::*}
+        add "&eClick to continue" to {_nextLore::*}
+        set lore of {_next} to {_nextLore::*}
+        set string tag "booster;action" of custom nbt of {_next} to "page"
+        set int tag "booster;page" of custom nbt of {_next} to {_page} + 1
+        set string tag "booster;sortBy" of custom nbt of {_next} to {_sortBy}
+        set slot 51 of {_menu} to {_next}
+
+    # Global boosters - Slot 52
+    set {_globals::*} to booster_getActiveGlobals()
+    set {_globalItem} to ender eye named "&6&lGlobal Boosters"
+    add "" to {_globalLore::*}
+    add "&7Server-wide active boosts:" to {_globalLore::*}
+    add "" to {_globalLore::*}
+    if size of {_globals::*} = 0:
+        add "&8No active global boosters" to {_globalLore::*}
+    else:
+        loop {_globals::*}:
+            set {_type} to loop-value
+            set {_amount} to {data::boosters::global::%{_type}%::amount} * 100
+            set {_remaining} to booster_getGlobalRemaining({_type})
+            set {_color} to booster_getTypeColor({_type})
+            add " %{_color}%+%{_amount}%%% %booster_formatType({_type})%" to {_globalLore::*}
+            add "   &7%booster_formatTime({_remaining})% remaining" to {_globalLore::*}
+    set lore of {_globalItem} to {_globalLore::*}
+    set slot 52 of {_menu} to {_globalItem}
+
+    # Close button - Slot 53
+    set {_close} to barrier named "&c&lCLOSE"
+    add "" to {_closeLore::*}
+    add "&7Close this menu" to {_closeLore::*}
+    add "" to {_closeLore::*}
+    add "&eClick to close" to {_closeLore::*}
+    set lore of {_close} to {_closeLore::*}
+    set string tag "booster;action" of custom nbt of {_close} to "close"
+    set slot 53 of {_menu} to {_close}
+
+    open {_menu} to {_p}
+    set {-booster::menu::%{_uuid}%} to "BOOSTER_MAIN"
+    set {-booster::menu::%{_uuid}%::page} to {_page}
+    set {-booster::menu::%{_uuid}%::sort} to {_sortBy}
+
+
+# ============================================================
+# ITEM CREATION
+# ============================================================
+
+function booster_createStorageItem(encoded: text, index: number) :: item:
+    set {_tier} to booster_getTier({_encoded})
+    set {_rarity} to booster_getRarity({_encoded})
+    set {_tierName} to booster_getTierName({_tier})
+    set {_rarityName} to booster_getRarityName({_rarity})
+    set {_types::*} to booster_getTypes({_encoded})
+    set {_duration} to booster_getDuration({_encoded})
+    set {_effectiveDuration} to booster_getEffectiveDuration({_encoded})
+
+    # Determine item icon based on tier
+    set {_icon} to booster_getTierIcon({_tier})
+
+    # Build name with tier and rarity colors
+    set {_item} to {_icon} named "%{_tierName}% %{_rarityName}% &fBooster"
+
+    # Build lore
+    add "" to {_lore::*}
+    add "&8%{_tier}% | %{_rarity}%" to {_lore::*}
+    add "" to {_lore::*}
+
+    # Show effects with both base and effective amounts
+    add "&6Effects:" to {_lore::*}
+    loop {_types::*}:
+        set {_t} to loop-value
+        set {_baseAmount} to booster_getAmount({_encoded}, {_t})
+        set {_effectiveAmount} to booster_getEffectiveAmount({_encoded}, {_t})
+        set {_c} to booster_getTypeColor({_t})
+        if {_baseAmount} is {_effectiveAmount}:
+            add " %{_c}%+%{_baseAmount}%%% %booster_formatType({_t})%" to {_lore::*}
+        else:
+            set {_baseDur} to booster_formatTime({_duration})
+            add " %{_c}%+%{_effectiveAmount}%%% %booster_formatType({_t})% &8[%{_baseAmount}%%% base]" to {_lore::*}
+    add "" to {_lore::*}
+
+    # Show duration with tier bonus
+    if {_duration} is {_effectiveDuration}:
+        add "&7Duration: &f%booster_formatTime({_effectiveDuration})%" to {_lore::*}
+    else:
+        set {_baseDurStr} to booster_formatTime({_duration})
+        add "&7Duration: &f%booster_formatTime({_effectiveDuration})% &8[%{_baseDurStr}% base]" to {_lore::*}
+    add "" to {_lore::*}
+    add "&eClick to equip" to {_lore::*}
+    add "&cShift-Click to delete" to {_lore::*}
+
+    set lore of {_item} to {_lore::*}
+    set string tag "booster;action" of custom nbt of {_item} to "storage_click"
+    set int tag "booster;index" of custom nbt of {_item} to {_index}
+    set string tag "booster;encoded" of custom nbt of {_item} to {_encoded}
+
+    return {_item}
+
+function booster_createEquippedItem(p: player, slot: number) :: item:
+    set {_data} to booster_getSlotData({_p}, {_slot})
+    set {_remaining} to booster_getSlotRemaining({_p}, {_slot})
+    set {_original} to booster_getSlotOriginal({_p}, {_slot})
+
+    set {_tier} to booster_getTier({_data})
+    set {_rarity} to booster_getRarity({_data})
+    set {_tierName} to booster_getTierName({_tier})
+    set {_rarityName} to booster_getRarityName({_rarity})
+    set {_types::*} to booster_getTypes({_data})
+
+    # Determine item icon based on tier
+    set {_icon} to booster_getTierIcon({_tier})
+
+    # Build name
+    set {_item} to {_icon} named "%{_tierName}% %{_rarityName}% &fBooster &7(Slot %{_slot}%)"
+
+    # Build lore
+    add "" to {_lore::*}
+    add "&8%{_tier}% | %{_rarity}%" to {_lore::*}
+    add "" to {_lore::*}
+
+    # Show effects
+    add "&6Effects:" to {_lore::*}
+    loop {_types::*}:
+        set {_t} to loop-value
+        set {_effectiveAmount} to booster_getEffectiveAmount({_data}, {_t})
+        set {_c} to booster_getTypeColor({_t})
+        add " %{_c}%+%{_effectiveAmount}%%% %booster_formatType({_t})%" to {_lore::*}
+    add "" to {_lore::*}
+
+    # Progress bar
+    set {_percent} to ({_remaining} / {_original}) * 100
+    set {_bar} to booster_getProgressBar({_percent}, 20)
+    add "&7Time: %{_bar}%" to {_lore::*}
+    add "&7Remaining: &f%booster_formatTime({_remaining})%" to {_lore::*}
+    add "" to {_lore::*}
+    add "&eClick to unequip" to {_lore::*}
+    add "&7(Returns to storage with remaining time)" to {_lore::*}
+
+    set lore of {_item} to {_lore::*}
+    set string tag "booster;action" of custom nbt of {_item} to "equipped_click"
+    set int tag "booster;slot" of custom nbt of {_item} to {_slot}
+
+    return {_item}
+
+function booster_getTierIcon(tier: text) :: item:
+    if {_tier} is "basic":
+        return glass bottle
+    if {_tier} is "advanced":
+        return potion
+    if {_tier} is "ultra":
+        return splash potion
+    if {_tier} is "divine":
+        return lingering potion
+    if {_tier} is "mythic":
+        return dragon breath
+    return glass bottle
+
+function booster_getProgressBar(percent: number, length: number) :: text:
+    set {_filled} to floor({_percent} / 100 * {_length})
+    if {_filled} > {_length}:
+        set {_filled} to {_length}
+    if {_filled} < 0:
+        set {_filled} to 0
+    set {_empty} to {_length} - {_filled}
+
+    set {_bar} to ""
+    loop {_filled} times:
+        set {_bar} to "%{_bar}%&a|"
+    loop {_empty} times:
+        set {_bar} to "%{_bar}%&7|"
+
+    return {_bar}
+
+# ============================================================
+# SORTING
+# ============================================================
+
+function booster_sortStorage(boosters: texts, sortBy: text) :: texts:
+    # Simple bubble sort
+    set {_sorted::*} to {_boosters::*}
+    set {_size} to size of {_sorted::*}
+
+    if {_size} is less than or equal to 1:
+        return {_sorted::*}
+
+    loop {_size} times:
+        set {_i} to loop-number
+        loop integers from 1 to ({_size} - {_i}):
+            set {_j} to loop-number-2
+            set {_b1} to {_sorted::%{_j}%}
+            set {_b2} to {_sorted::%{_j} + 1%}
+
+            set {_shouldSwap} to booster_shouldSwap({_b1}, {_b2}, {_sortBy})
+
+            if {_shouldSwap} is true:
+                set {_sorted::%{_j}%} to {_b2}
+                set {_sorted::%{_j} + 1%} to {_b1}
+
+    return {_sorted::*}
+
+function booster_shouldSwap(b1: text, b2: text, sortBy: text) :: boolean:
+    set {_tier1} to booster_getTier({_b1})
+    set {_tier2} to booster_getTier({_b2})
+    set {_rarity1} to booster_getRarity({_b1})
+    set {_rarity2} to booster_getRarity({_b2})
+    set {_dur1} to booster_getEffectiveDuration({_b1})
+    set {_dur2} to booster_getEffectiveDuration({_b2})
+    set {_types1::*} to booster_getTypes({_b1})
+    set {_type1} to {_types1::1}
+    set {_types2::*} to booster_getTypes({_b2})
+    set {_type2} to {_types2::1}
+
+    # Tier order value (higher = better)
+    set {_tierOrder1} to booster_getTierOrder({_tier1})
+    set {_tierOrder2} to booster_getTierOrder({_tier2})
+
+    # Rarity order value (higher = better)
+    set {_rarityOrder1} to booster_getRarityOrder({_rarity1})
+    set {_rarityOrder2} to booster_getRarityOrder({_rarity2})
+
+    # Sort by tier (best first)
+    if {_sortBy} is "tier":
+        if {_tierOrder1} is not {_tierOrder2}:
+            if {_tierOrder1} is less than {_tierOrder2}:
+                return true
+            return false
+        # Secondary sort by rarity
+        if {_rarityOrder1} is less than {_rarityOrder2}:
+            return true
+        return false
+
+    # Sort by rarity (best first)
+    else if {_sortBy} is "rarity":
+        if {_rarityOrder1} is not {_rarityOrder2}:
+            if {_rarityOrder1} is less than {_rarityOrder2}:
+                return true
+            return false
+        # Secondary sort by tier
+        if {_tierOrder1} is less than {_tierOrder2}:
+            return true
+        return false
+
+    # Sort by duration (longest first)
+    else if {_sortBy} is "duration":
+        if {_dur1} is less than {_dur2}:
+            return true
+        return false
+
+    # Sort by type (alphabetical)
+    else if {_sortBy} is "type":
+        if {_type1} is greater than {_type2}:
+            return true
+        return false
+
+    return false
+
+function booster_getTierOrder(tier: text) :: number:
+    if {_tier} is "basic":
+        return 1
+    if {_tier} is "advanced":
+        return 2
+    if {_tier} is "ultra":
+        return 3
+    if {_tier} is "divine":
+        return 4
+    if {_tier} is "mythic":
+        return 5
+    return 0
+
+function booster_getRarityOrder(rarity: text) :: number:
+    if {_rarity} is "common":
+        return 1
+    if {_rarity} is "uncommon":
+        return 2
+    if {_rarity} is "rare":
+        return 3
+    if {_rarity} is "epic":
+        return 4
+    if {_rarity} is "legendary":
+        return 5
+    return 0
+
+
+# ============================================================
+# CLICK HANDLER
+# ============================================================
+
+on inventory click:
+    set {_uuid} to player's uuid
+    set {_menuType} to {-booster::menu::%{_uuid}%}
+
+    if {_menuType} is "BOOSTER_MAIN":
+        cancel event
+
+        set {_nbt} to custom nbt of clicked slot
+        set {_action} to string tag "booster;action" of {_nbt}
+
+        # Storage item click
+        if {_action} is "storage_click":
+            set {_index} to int tag "booster;index" of {_nbt}
+            set {_encoded} to string tag "booster;encoded" of {_nbt}
+
+            # Shift-click to delete
+            if player is sneaking:
+                # Open delete confirmation
+                booster_openDeleteConfirm(player, {_index}, {_encoded})
+                stop
+
+            # Normal click to equip
+            set {_emptySlot} to booster_getFirstEmptySlot(player)
+            if {_emptySlot} is -1:
+                send "&c&l! &7No empty booster slots! Unequip one first or unlock more via &d/research&7." to player
+                play sound "entity.villager.no" with volume 0.5 and pitch 1 to player
+                stop
+
+            # Find actual index in storage (may have shifted due to sorting)
+            set {_storage::*} to booster_getStorage(player)
+            set {_realIndex} to 0
+            loop {_storage::*}:
+                add 1 to {_realIndex}
+                if loop-value is {_encoded}:
+                    exit loop
+
+            booster_equip(player, {_realIndex}, {_emptySlot})
+
+            # Refresh menu
+            set {_page} to {-booster::menu::%{_uuid}%::page} ? 1
+            set {_sort} to {-booster::menu::%{_uuid}%::sort} ? "tier"
+            booster_openMainMenu(player, {_page}, {_sort})
+
+        # Equipped item click (unequip)
+        else if {_action} is "equipped_click":
+            set {_slot} to int tag "booster;slot" of {_nbt}
+            booster_unequip(player, {_slot})
+
+            set {_page} to {-booster::menu::%{_uuid}%::page} ? 1
+            set {_sort} to {-booster::menu::%{_uuid}%::sort} ? "tier"
+            booster_openMainMenu(player, {_page}, {_sort})
+
+        # Sort
+        else if {_action} is "sort":
+            play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+            set {_currentSort} to string tag "booster;sortBy" of {_nbt}
+            if {_currentSort} is "tier":
+                set {_newSort} to "rarity"
+            else if {_currentSort} is "rarity":
+                set {_newSort} to "duration"
+            else if {_currentSort} is "duration":
+                set {_newSort} to "type"
+            else:
+                set {_newSort} to "tier"
+            set {_page} to {-booster::menu::%{_uuid}%::page} ? 1
+            booster_openMainMenu(player, {_page}, {_newSort})
+
+        # Pagination
+        else if {_action} is "page":
+            play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+            set {_newPage} to int tag "booster;page" of {_nbt}
+            set {_sort} to string tag "booster;sortBy" of {_nbt}
+            booster_openMainMenu(player, {_newPage}, {_sort})
+
+        # Close
+        else if {_action} is "close":
+            close player's inventory
+
+    else if {_menuType} is "BOOSTER_DELETE_CONFIRM":
+        cancel event
+
+        set {_nbt} to custom nbt of clicked slot
+        set {_action} to string tag "booster;action" of {_nbt}
+
+        if {_action} is "confirm_delete":
+            set {_encoded} to string tag "booster;encoded" of {_nbt}
+
+            # Find and remove from storage
+            set {_storage::*} to booster_getStorage(player)
+            set {_realIndex} to 0
+            loop {_storage::*}:
+                add 1 to {_realIndex}
+                if loop-value is {_encoded}:
+                    booster_removeFromStorage(player, {_realIndex})
+                    exit loop
+
+            send "&c&l! &7Booster deleted." to player
+            play sound "entity.item.break" with volume 0.5 and pitch 0.8 to player
+
+            set {_page} to {-booster::menu::%{_uuid}%::page} ? 1
+            set {_sort} to {-booster::menu::%{_uuid}%::sort} ? "tier"
+            booster_openMainMenu(player, {_page}, {_sort})
+
+        else if {_action} is "cancel_delete":
+            play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+            set {_page} to {-booster::menu::%{_uuid}%::page} ? 1
+            set {_sort} to {-booster::menu::%{_uuid}%::sort} ? "tier"
+            booster_openMainMenu(player, {_page}, {_sort})
+
+
+# ============================================================
+# DELETE CONFIRMATION
+# ============================================================
+
+function booster_openDeleteConfirm(p: player, index: number, encoded: text):
+    set {_uuid} to {_p}'s uuid
+    set {_menu} to chest inventory with 3 rows named "&c&lDelete Booster?"
+
+    # Fill with glass
+    set {_filler} to black stained glass pane named "&8"
+    loop 27 times:
+        set slot loop-number - 1 of {_menu} to {_filler}
+
+    # Red glass warning
+    set {_warning} to red stained glass pane named "&8"
+    set slot 3,4,5,12,14,21,22,23 of {_menu} to {_warning}
+
+    # Booster preview - Slot 13
+    set {_preview} to booster_createStorageItem({_encoded}, {_index})
+    set slot 13 of {_menu} to {_preview}
+
+    # Confirm - Slot 11
+    set {_confirm} to lime dye named "&a&lCONFIRM DELETE"
+    add "" to {_confirmLore::*}
+    add "&7This will permanently" to {_confirmLore::*}
+    add "&7delete this booster!" to {_confirmLore::*}
+    add "" to {_confirmLore::*}
+    add "&c⚠ Cannot be undone!" to {_confirmLore::*}
+    add "" to {_confirmLore::*}
+    add "&aClick to confirm" to {_confirmLore::*}
+    set lore of {_confirm} to {_confirmLore::*}
+    set string tag "booster;action" of custom nbt of {_confirm} to "confirm_delete"
+    set string tag "booster;encoded" of custom nbt of {_confirm} to {_encoded}
+    set slot 11 of {_menu} to {_confirm}
+
+    # Cancel - Slot 15
+    set {_cancel} to red dye named "&c&lCANCEL"
+    add "" to {_cancelLore::*}
+    add "&7Go back to booster menu" to {_cancelLore::*}
+    add "" to {_cancelLore::*}
+    add "&eClick to cancel" to {_cancelLore::*}
+    set lore of {_cancel} to {_cancelLore::*}
+    set string tag "booster;action" of custom nbt of {_cancel} to "cancel_delete"
+    set slot 15 of {_menu} to {_cancel}
+
+    open {_menu} to {_p}
+    set {-booster::menu::%{_uuid}%} to "BOOSTER_DELETE_CONFIRM"
+
+
+# ============================================================
+# INVENTORY CLOSE
+# ============================================================
+
+on inventory close:
+    set {_uuid} to player's uuid
+    set {_menu} to {-booster::menu::%{_uuid}%}
+    if {_menu} is set:
+        if {_menu} contains "BOOSTER":
+            delete {-booster::menu::%{_uuid}%}
+            delete {-booster::menu::%{_uuid}%::page}
+            delete {-booster::menu::%{_uuid}%::sort}

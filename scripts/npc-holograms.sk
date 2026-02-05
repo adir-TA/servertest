@@ -1,0 +1,256 @@
+# ============================================================
+# NPC HOLOGRAM SYSTEM
+# ============================================================
+# Spawns holograms above interactive blocks that open menus
+# when right-clicked
+# ============================================================
+
+# ============================================================
+# HOLOGRAM SPAWNING
+# ============================================================
+
+function npcHolo_spawnAll(p: player):
+    set {_uuid} to {_p}'s uuid
+
+    # Pet Egg Shop
+    set {_id1} to random integer between 100000 and 9999999
+    set {-npcHolo::%{_uuid}%::petshop} to {_id1}
+    set {_loc1} to location(131.5, 195, 197.5, world "season")
+    spawn fake text display at {_loc1} for {_p} with id {_id1}
+    set {_m} to new metadata packet with id {_id1}:
+        display text: "&d&l✦ PET EGGS ✦%nl%&7Right-click the block!"
+        display scale: vector(1.2, 1.2, 1.2)
+        display billboard: center
+        display brightness block: 15
+        display shadow: true
+        display defaultbackground: false
+        display background alpha: 120
+    send packet {_m} to {_p}
+
+    # Fusion Anvil
+    set {_id2} to random integer between 100000 and 9999999
+    set {-npcHolo::%{_uuid}%::fusion} to {_id2}
+    set {_loc2} to location(145.5, 193, 159.5, world "season")
+    spawn fake text display at {_loc2} for {_p} with id {_id2}
+    set {_m} to new metadata packet with id {_id2}:
+        display text: "&6&l⚒ PET FUSION ⚒%nl%&7Right-click the anvil!"
+        display scale: vector(1.2, 1.2, 1.2)
+        display billboard: center
+        display brightness block: 15
+        display shadow: true
+        display defaultbackground: false
+        display background alpha: 120
+    send packet {_m} to {_p}
+
+    # Boosters Cauldron
+    set {_id3} to random integer between 100000 and 9999999
+    set {-npcHolo::%{_uuid}%::boosters} to {_id3}
+    set {_loc3} to location(48.5, 194, 180.5, world "season")
+    spawn fake text display at {_loc3} for {_p} with id {_id3}
+    set {_m} to new metadata packet with id {_id3}:
+        display text: "&b&l⚗ BOOSTERS ⚗%nl%&7Right-click the cauldron!"
+        display scale: vector(1.2, 1.2, 1.2)
+        display billboard: center
+        display brightness block: 15
+        display shadow: true
+        display defaultbackground: false
+        display background alpha: 120
+    send packet {_m} to {_p}
+
+    # Treasure Chest
+    set {_id4} to random integer between 100000 and 9999999
+    set {-npcHolo::%{_uuid}%::treasures} to {_id4}
+    set {_loc4} to location(50.5, 195, 85.5, world "season")
+    spawn fake text display at {_loc4} for {_p} with id {_id4}
+    set {_m} to new metadata packet with id {_id4}:
+        display text: "&6&l★ TREASURES ★%nl%&7Right-click the chest!"
+        display scale: vector(1.2, 1.2, 1.2)
+        display billboard: center
+        display brightness block: 15
+        display shadow: true
+        display defaultbackground: false
+        display background alpha: 120
+    send packet {_m} to {_p}
+
+    # Research Brewing Stand
+    set {_id5} to random integer between 100000 and 9999999
+    set {-npcHolo::%{_uuid}%::research} to {_id5}
+    set {_loc5} to location(70.5, 197, 206.5, world "season")
+    spawn fake text display at {_loc5} for {_p} with id {_id5}
+    set {_m} to new metadata packet with id {_id5}:
+        display text: "&5&l⚗ RESEARCH ⚗%nl%&7Right-click the stand!"
+        display scale: vector(1.2, 1.2, 1.2)
+        display billboard: center
+        display brightness block: 15
+        display shadow: true
+        display defaultbackground: false
+        display background alpha: 120
+    send packet {_m} to {_p}
+
+    # Skill Tree Sapling
+    set {_id6} to random integer between 100000 and 9999999
+    set {-npcHolo::%{_uuid}%::skilltree} to {_id6}
+    set {_loc6} to location(96.5, 197, 50.5, world "season")
+    spawn fake text display at {_loc6} for {_p} with id {_id6}
+    set {_m} to new metadata packet with id {_id6}:
+        display text: "&a&l🌳 SKILL TREE 🌳%nl%&7Right-click the sapling!"
+        display scale: vector(1.2, 1.2, 1.2)
+        display billboard: center
+        display brightness block: 15
+        display shadow: true
+        display defaultbackground: false
+        display background alpha: 120
+    send packet {_m} to {_p}
+
+
+function npcHolo_removeAll(p: player):
+    set {_uuid} to {_p}'s uuid
+
+    # Remove all hologram entities
+    if {-npcHolo::%{_uuid}%::petshop} is set:
+        remove fake entity with id {-npcHolo::%{_uuid}%::petshop} for {_p}
+    if {-npcHolo::%{_uuid}%::fusion} is set:
+        remove fake entity with id {-npcHolo::%{_uuid}%::fusion} for {_p}
+    if {-npcHolo::%{_uuid}%::boosters} is set:
+        remove fake entity with id {-npcHolo::%{_uuid}%::boosters} for {_p}
+    if {-npcHolo::%{_uuid}%::treasures} is set:
+        remove fake entity with id {-npcHolo::%{_uuid}%::treasures} for {_p}
+    if {-npcHolo::%{_uuid}%::research} is set:
+        remove fake entity with id {-npcHolo::%{_uuid}%::research} for {_p}
+    if {-npcHolo::%{_uuid}%::skilltree} is set:
+        remove fake entity with id {-npcHolo::%{_uuid}%::skilltree} for {_p}
+
+    # Clear storage
+    delete {-npcHolo::%{_uuid}%::*}
+
+
+# ============================================================
+# LOCATION CHECKING
+# ============================================================
+
+function npcHolo_checkLocation(loc: location) :: text:
+    set {_x} to floor(x-coord of {_loc})
+    set {_y} to floor(y-coord of {_loc})
+    set {_z} to floor(z-coord of {_loc})
+
+    # Pet Egg Shop
+    if {_x} is 131:
+        if {_y} is 193:
+            if {_z} is 197:
+                return "petshop"
+
+    # Fusion Anvil
+    if {_x} is 145:
+        if {_y} is 191:
+            if {_z} is 159:
+                return "fusion"
+
+    # Boosters Cauldron
+    if {_x} is 48:
+        if {_y} is 192:
+            if {_z} is 180:
+                return "boosters"
+
+    # Treasure Chest
+    if {_x} is 50:
+        if {_y} is 193:
+            if {_z} is 85:
+                return "treasures"
+
+    # Research Brewing Stand
+    if {_x} is 70:
+        if {_y} is 195:
+            if {_z} is 206:
+                return "research"
+
+    # Skill Tree Oak Sapling
+    if {_x} is 96:
+        if {_y} is 195:
+            if {_z} is 50:
+                return "skilltree"
+
+    return ""
+
+
+function npcHolo_openMenu(p: player, npcType: text):
+    if {_npcType} = "petshop":
+        pet_openTierMenu({_p})
+    else if {_npcType} = "fusion":
+        petFusion_openMainMenu({_p})
+    else if {_npcType} = "boosters":
+        booster_openMainMenu({_p}, 1, "rarity")
+    else if {_npcType} = "treasures":
+        acc_openAltarTierMenu({_p})
+    else if {_npcType} = "research":
+        research_openMainMenu({_p})
+    else if {_npcType} = "skilltree":
+        skilltree_openPage({_p}, 0, 0)
+
+
+# ============================================================
+# EVENTS
+# ============================================================
+
+on join:
+    wait 10 ticks
+    npcHolo_spawnAll(player)
+
+
+on quit:
+    npcHolo_removeAll(player)
+
+
+on right click:
+    if player's world is world "season":
+        if event-block is set:
+            # Debug mode
+            if {-npcHolo::%player's uuid%::checking} is true:
+                delete {-npcHolo::%player's uuid%::checking}
+                set {_loc} to event-block's location
+                send "&7Block: %event-block%" to player
+                send "&7Location: &e%{_loc}%" to player
+                set {_bx} to floor(x-coord of {_loc})
+                set {_by} to floor(y-coord of {_loc})
+                set {_bz} to floor(z-coord of {_loc})
+                send "&7Block Coords: &e%{_bx}%, %{_by}%, %{_bz}%" to player
+                set {_type} to npcHolo_checkLocation({_loc})
+                if {_type} is "":
+                    send "&cNo NPC found at this location" to player
+                else:
+                    send "&aNPC Type: %{_type}%" to player
+                stop
+
+            # Normal operation
+            set {_npcType} to npcHolo_checkLocation(event-block's location)
+            if {_npcType} is not "":
+                cancel event
+                npcHolo_openMenu(player, {_npcType})
+                send "&aOpening %{_npcType}% menu..." to player
+
+
+# ============================================================
+# ADMIN COMMANDS
+# ============================================================
+
+command /sknpcs [<text>]:
+    permission: op
+    trigger:
+        if arg-1 = "reload":
+            npcHolo_removeAll(player)
+            wait 2 ticks
+            npcHolo_spawnAll(player)
+            send "&aHolograms reloaded!"
+        else if arg-1 = "remove":
+            npcHolo_removeAll(player)
+            send "&aHolograms removed!"
+        else if arg-1 = "spawn":
+            npcHolo_spawnAll(player)
+            send "&aHolograms spawned!"
+        else if arg-1 = "check":
+            send "&7Right-click a block to check its location..."
+            set {-npcHolo::%player's uuid%::checking} to true
+        else:
+            send "&e/sknpcs reload &8- &7Reload holograms"
+            send "&e/sknpcs remove &8- &7Remove holograms"
+            send "&e/sknpcs spawn &8- &7Spawn holograms"
+            send "&e/sknpcs check &8- &7Check block locations"

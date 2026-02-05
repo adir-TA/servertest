@@ -1,0 +1,88 @@
+# Temporary debug command for fusion system
+command /fusiondebug:
+    permission: op
+    trigger:
+        set {_uuid} to player's uuid
+        send "&6&l=== FUSION SYSTEM DEBUG ==="
+        send ""
+
+        # Check research config
+        send "&eResearch Config:"
+        send "&7- Tracks in pets: %{-research::tracks::pets::*}%"
+        send "&7- Fusion name: %{-research::config::pets::pet_fusion::name} ? "<not loaded>"%"
+        send "&7- Fusion max tier: %{-research::config::pets::pet_fusion::maxTier} ? 0%"
+        send ""
+
+        # Check player research progress
+        send "&eYour Progress:"
+        set {_researchTier} to {data::research::%{_uuid}%::pets::pet_fusion} ? 0
+        send "&7- Fusion research tier: %{_researchTier}%"
+        if {_researchTier} = 0:
+            send " &c⚠ You need research tier 1+ to fuse!"
+            send " &7Run: /research-admin set <name> pets pet_fusion 1"
+        send ""
+
+        # Check pets and group them manually
+        send "&ePet Inventory & Grouping:"
+        set {_owned} to size of {pet::owned::%{_uuid}%::*}
+        set {_equipped} to size of {pet::equipped::%{_uuid}%::*}
+        send "&7- Owned: %{_owned}%"
+        send "&7- Equipped: %{_equipped}%"
+        send "&7- Unequipped: %{_owned} - {_equipped}%"
+        send ""
+
+        # Manually group pets to show what CAN be fused
+        clear {_manualGroups::*}
+        loop {pet::owned::%{_uuid}%::*}:
+            set {_petId} to loop-value
+            if pet_isEquipped(player, {_petId}) is false:
+                set {_type} to pet_getInstanceType(player, {_petId})
+                set {_rarity} to pet_getInstanceRarity(player, {_petId})
+                set {_petTier} to pet_getTypeTier({_type})
+                set {_fusionTier} to petFusion_getInstanceTier(player, {_petId})
+                set {_groupKey} to "%{_type}%|%{_rarity}%|%{_petTier}%|%{_fusionTier}%"
+                add 1 to {_manualGroups::%{_groupKey}%}
+
+        send "&eRaw Pet Groups (before research check):"
+        if {_manualGroups::*} is set:
+            loop {_manualGroups::*}:
+                set {_count} to loop-value
+                set {_key} to loop-index
+                set {_parts::*} to {_key} split at "|"
+                send "&7- %{_parts::1}% %{_parts::2}% (Tier:%{_parts::3}%, Fusion:%{_parts::4}%): &e%{_count}% pets"
+                if {_count} >= 5:
+                    # Check what research tier is needed
+                    set {_fusionTier} to {_parts::4} parsed as number
+                    set {_targetFusion} to {_fusionTier} + 1
+                    set {_petTier} to {_parts::3}
+                    set {_reqTier} to petFusion_getRequiredResearchTier({_petTier}, {_targetFusion})
+                    if {_researchTier} >= {_reqTier}:
+                        send "  &a✓ Can fuse! (have tier %{_researchTier}%, need %{_reqTier}%)"
+                    else:
+                        send "  &c✗ BLOCKED by research (have tier %{_researchTier}%, need %{_reqTier}%)"
+        else:
+            send " &7No unequipped pets found"
+        send ""
+
+        # Check fusion groups (after research filter)
+        send "&eFusion Groups (after research filter):"
+        set {_groups::*} to petFusion_detectGroups(player)
+        if {_groups::*} is set:
+            loop {_groups::*}:
+                send "&a✓ %loop-value%"
+        else:
+            send "&cNo valid fusion groups!"
+
+        send ""
+
+        # Check fusion stations
+        send "&eFusion Stations:"
+        if {-fusion::station::locations::*} is set:
+            loop {-fusion::station::locations::*}:
+                send "&7- Station %loop-index%: %loop-value%"
+        else:
+            send "&cNo fusion stations set!"
+            send "&7Use: /fusion-admin setstation"
+
+        send ""
+        send "&6&l========================"

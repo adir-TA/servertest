@@ -1,0 +1,266 @@
+# ============================================================
+# PET FUSION SYSTEM - CORE LOGIC
+# ============================================================
+#
+# Handles:
+#   - Fusion validation and execution
+#   - Detection of valid fusion groups
+#   - Research requirement checking
+#
+# ============================================================
+
+# ============================================================
+# FUSION TIER MANAGEMENT
+# ============================================================
+
+# Get fusion tier of a pet instance (0 = normal, 1 = gold, 2 = diamond)
+function petFusion_getInstanceTier(p: player, petId: text) :: number:
+    return {pet::data::%{_p}'s uuid%::%{_petId}%::fusion} ? 0
+
+# Set fusion tier of a pet instance
+function petFusion_setInstanceTier(p: player, petId: text, tier: number):
+    set {pet::data::%{_p}'s uuid%::%{_petId}%::fusion} to {_tier}
+
+# ============================================================
+# RESEARCH VALIDATION
+# ============================================================
+
+# Check if player can perform a specific fusion
+function petFusion_canFuse(p: player, petTier: text, currentFusion: number, targetFusion: number) :: boolean:
+    # targetFusion must be exactly 1 higher than currentFusion
+    if {_targetFusion} != {_currentFusion} + 1:
+        return false
+
+    # Get required research tier
+    set {_requiredTier} to petFusion_getRequiredResearchTier({_petTier}, {_targetFusion})
+
+    # Check if player has completed that research tier
+    return petFusion_hasResearch({_p}, {_requiredTier})
+
+# ============================================================
+# FUSION GROUP DETECTION
+# ============================================================
+
+# Detects all valid fusion groups for a player
+# Returns a list of objects: type|rarity|petTier|fusionTier|count
+function petFusion_detectGroups(p: player) :: texts:
+    set {_uuid} to {_p}'s uuid
+    clear {_groups::*}
+    clear {_result::*}
+
+    # Group all unequipped pets by type+rarity+petTier+fusionTier
+    loop {pet::owned::%{_uuid}%::*}:
+        set {_petId} to loop-value
+
+        # Skip equipped pets
+        if pet_isEquipped({_p}, {_petId}) is true:
+            continue
+
+        set {_type} to pet_getInstanceType({_p}, {_petId})
+        set {_rarity} to pet_getInstanceRarity({_p}, {_petId})
+        set {_petTier} to pet_getTypeTier({_type})
+        set {_fusionTier} to petFusion_getInstanceTier({_p}, {_petId})
+
+        # Create group key
+        set {_key} to "%{_type}%|%{_rarity}%|%{_petTier}%|%{_fusionTier}%"
+
+        # Add to count
+        add 1 to {_groups::%{_key}%}
+
+    # Check which groups have 5+ pets
+    loop {_groups::*}:
+        if loop-value >= 5:
+            set {_key} to loop-index
+
+            # Parse key
+            set {_parts::*} to {_key} split at "|"
+            set {_type} to {_parts::1}
+            set {_rarity} to {_parts::2}
+            set {_petTier} to {_parts::3}
+            set {_fusionTier} to {_parts::4} parsed as number
+            set {_targetFusion} to {_fusionTier} + 1
+
+            # Check if player has research to fuse this
+            if petFusion_canFuse({_p}, {_petTier}, {_fusionTier}, {_targetFusion}) is true:
+                add {_key} to {_result::*}
+
+    return {_result::*}
+
+# Get all pet IDs matching a specific group key
+function petFusion_getPetsInGroup(p: player, groupKey: text) :: texts:
+    set {_uuid} to {_p}'s uuid
+    clear {_result::*}
+
+    # Parse group key
+    set {_parts::*} to {_groupKey} split at "|"
+    set {_targetType} to {_parts::1}
+    set {_targetRarity} to {_parts::2}
+    set {_targetPetTier} to {_parts::3}
+    set {_targetFusion} to {_parts::4} parsed as number
+
+    # Find all matching unequipped pets
+    loop {pet::owned::%{_uuid}%::*}:
+        set {_petId} to loop-value
+
+        # Skip equipped
+        if pet_isEquipped({_p}, {_petId}) is true:
+            continue
+
+        set {_type} to pet_getInstanceType({_p}, {_petId})
+        set {_rarity} to pet_getInstanceRarity({_p}, {_petId})
+        set {_petTier} to pet_getTypeTier({_type})
+        set {_fusionTier} to petFusion_getInstanceTier({_p}, {_petId})
+
+        # Check if matches
+        if {_type} = {_targetType}:
+            if {_rarity} = {_targetRarity}:
+                if {_petTier} = {_targetPetTier}:
+                    if {_fusionTier} = {_targetFusion}:
+                        add {_petId} to {_result::*}
+
+    return {_result::*}
+
+# ============================================================
+# FUSION VALIDATION
+# ============================================================
+
+# Validate that 5 specific pets can be fused together
+function petFusion_validate(p: player, petIds: texts) :: boolean:
+    # Must be exactly 5 pets
+    if size of {_petIds::*} != 5:
+        return false
+
+    # Get properties of first pet
+    set {_firstId} to {_petIds::1}
+    set {_type} to pet_getInstanceType({_p}, {_firstId})
+    set {_rarity} to pet_getInstanceRarity({_p}, {_firstId})
+    set {_petTier} to pet_getTypeTier({_type})
+    set {_fusionTier} to petFusion_getInstanceTier({_p}, {_firstId})
+
+    # Check if type/rarity/tier exists
+    if {_type} = "":
+        return false
+
+    # Check all pets match
+    loop {_petIds::*}:
+        set {_petId} to loop-value
+
+        # Check ownership
+        if pet_getInstanceType({_p}, {_petId}) = "":
+            return false
+
+        # Check not equipped
+        if pet_isEquipped({_p}, {_petId}) is true:
+            return false
+
+        # Check type matches
+        if pet_getInstanceType({_p}, {_petId}) != {_type}:
+            return false
+
+        # Check rarity matches
+        if pet_getInstanceRarity({_p}, {_petId}) != {_rarity}:
+            return false
+
+        # Check pet tier matches
+        set {_thisPetTier} to pet_getTypeTier(pet_getInstanceType({_p}, {_petId}))
+        if {_thisPetTier} != {_petTier}:
+            return false
+
+        # Check fusion tier matches
+        if petFusion_getInstanceTier({_p}, {_petId}) != {_fusionTier}:
+            return false
+
+    # Check player has research to fuse
+    set {_targetFusion} to {_fusionTier} + 1
+    if petFusion_canFuse({_p}, {_petTier}, {_fusionTier}, {_targetFusion}) is false:
+        return false
+
+    return true
+
+# ============================================================
+# FUSION EXECUTION
+# ============================================================
+
+# Executes fusion: consumes 5 pets, creates 1 fused pet
+function petFusion_execute(p: player, petIds: texts) :: text:
+    set {_uuid} to {_p}'s uuid
+
+    # Validate
+    if petFusion_validate({_p}, {_petIds::*}) is false:
+        return ""
+
+    # Get properties from first pet
+    set {_firstId} to {_petIds::1}
+    set {_type} to pet_getInstanceType({_p}, {_firstId})
+    set {_rarity} to pet_getInstanceRarity({_p}, {_firstId})
+    set {_fusionTier} to petFusion_getInstanceTier({_p}, {_firstId})
+    set {_targetFusion} to {_fusionTier} + 1
+
+    # Delete all 5 input pets
+    loop {_petIds::*}:
+        pet_delete({_p}, loop-value)
+
+    # Create new fused pet
+    set {_newPetId} to pet_create({_p}, {_type}, {_rarity})
+    if {_newPetId} = "":
+        # Storage full - refund pets (shouldn't happen but safety check)
+        send "&c&l! &7Storage full! Fusion failed." to {_p}
+        loop {_petIds::*}:
+            set {_refundId} to pet_create({_p}, {_type}, {_rarity})
+            petFusion_setInstanceTier({_p}, {_refundId}, {_fusionTier})
+        return ""
+
+    # Set fusion tier on new pet
+    petFusion_setInstanceTier({_p}, {_newPetId}, {_targetFusion})
+
+    return {_newPetId}
+
+# ============================================================
+# STAT CALCULATION HELPERS
+# ============================================================
+
+# Calculate final bonus including fusion multiplier
+# This is used by pets-core when calculating stat bonuses
+function petFusion_calculateBonus(p: player, petId: text, baseBonus: number) :: number:
+    set {_fusionTier} to petFusion_getInstanceTier({_p}, {_petId})
+    set {_multiplier} to petFusion_getMultiplier({_fusionTier})
+    return {_baseBonus} * {_multiplier}
+
+# Calculate salvage value including fusion multiplier
+function petFusion_calculateSalvageValue(p: player, petId: text, baseSalvage: number) :: number:
+    set {_fusionTier} to petFusion_getInstanceTier({_p}, {_petId})
+    set {_multiplier} to petFusion_getSalvageMultiplier({_fusionTier})
+    return {_baseSalvage} * {_multiplier}
+
+# ============================================================
+# DISPLAY HELPERS
+# ============================================================
+
+# Get formatted name with fusion prefix
+function petFusion_getFormattedName(p: player, petId: text) :: text:
+    set {_fusionTier} to petFusion_getInstanceTier({_p}, {_petId})
+    set {_tierName} to petFusion_getTierName({_fusionTier})
+    set {_baseName} to pet_getFormattedName({_p}, {_petId})
+    return "%{_tierName}%%{_baseName}%"
+
+# Get description of what a fusion will produce
+function petFusion_getFusionDescription(groupKey: text) :: text:
+    # Parse key
+    set {_parts::*} to {_groupKey} split at "|"
+    set {_type} to {_parts::1}
+    set {_rarity} to {_parts::2}
+    set {_fusionTier} to {_parts::4} parsed as number
+    set {_targetFusion} to {_fusionTier} + 1
+
+    set {_typeName} to pet_getTypeName({_type})
+    set {_rarityColor} to pet_getRarityColor({_rarity})
+    set {_rarityName} to pet_getFormattedRarity({_rarity})
+    set {_fusionName} to petFusion_getTierName({_targetFusion})
+
+    # Calculate power increase
+    set {_currentMult} to petFusion_getMultiplier({_fusionTier})
+    set {_targetMult} to petFusion_getMultiplier({_targetFusion})
+    set {_increase} to (({_targetMult} - {_currentMult}) / {_currentMult}) * 100
+    set {_increaseRounded} to round({_increase})
+
+    return "&75 %{_rarityColor}%%{_typeName}% &7→ %{_fusionName}%%{_rarityColor}%%{_typeName}% &a(+%{_increaseRounded}%%% power)"

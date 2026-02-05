@@ -1,0 +1,151 @@
+# ============================================================
+# PET FUSION SYSTEM - STATION MANAGEMENT
+# ============================================================
+#
+# Handles:
+#   - Admin commands to set/remove fusion stations
+#   - Anvil click event to open fusion GUI
+#   - Station location storage
+#
+# ============================================================
+
+# ============================================================
+# ADMIN COMMANDS
+# ============================================================
+
+command /fusion-admin [<text>]:
+    permission: fusion.admin
+    trigger:
+        set {_action} to arg-1 ? "help"
+
+        # ════════════════════════════════════════
+        # HELP
+        # ════════════════════════════════════════
+        if {_action} = "help":
+            send ""
+            send "&d&lPet Fusion Admin Commands"
+            send ""
+            send "&e/fusion-admin setstation"
+            send " &7Set the anvil you're looking at as a fusion station"
+            send ""
+            send "&e/fusion-admin removestation"
+            send " &7Remove the nearest fusion station (within 5 blocks)"
+            send ""
+            send "&e/fusion-admin list"
+            send " &7List all fusion station locations"
+            send ""
+            send "&e/fusion-admin clear"
+            send " &7Remove all fusion stations"
+            send ""
+            stop
+
+        # ════════════════════════════════════════
+        # SET STATION
+        # ════════════════════════════════════════
+        if {_action} = "setstation":
+            set {_target} to block at target block of player
+            if {_target} is not set:
+                send "&c&l! &7You must be looking at a block."
+                stop
+
+            if type of {_target} is not anvil:
+                send "&c&l! &7You must be looking at an anvil."
+                stop
+
+            set {_loc} to location of {_target}
+
+            # Check if already a station
+            loop {-fusion::station::locations::*}:
+                if loop-value = {_loc}:
+                    send "&c&l! &7This anvil is already a fusion station."
+                    stop
+
+            # Add to station list
+            add {_loc} to {-fusion::station::locations::*}
+            send "&a&l! &7Fusion station set at &e%{_loc}%"
+            stop
+
+        # ════════════════════════════════════════
+        # REMOVE STATION
+        # ════════════════════════════════════════
+        if {_action} = "removestation":
+            set {_playerLoc} to player's location
+            set {_closest} to none
+            set {_closestDist} to 999
+
+            loop {-fusion::station::locations::*}:
+                set {_dist} to distance between {_playerLoc} and loop-value
+                if {_dist} < {_closestDist}:
+                    set {_closestDist} to {_dist}
+                    set {_closest} to loop-value
+                    set {_closestIndex} to loop-index
+
+            if {_closest} is not set:
+                send "&c&l! &7No fusion stations found."
+                stop
+
+            if {_closestDist} > 5:
+                send "&c&l! &7No fusion station within 5 blocks."
+                send "&7Nearest is &e%{_closestDist}% blocks &7away."
+                stop
+
+            delete {-fusion::station::locations::%{_closestIndex}%}
+            send "&a&l! &7Fusion station removed at &e%{_closest}%"
+            stop
+
+        # ════════════════════════════════════════
+        # LIST STATIONS
+        # ════════════════════════════════════════
+        if {_action} = "list":
+            if {-fusion::station::locations::*} is not set:
+                send "&c&l! &7No fusion stations set."
+                stop
+
+            send ""
+            send "&d&lFusion Stations &7(%size of {-fusion::station::locations::*}%)"
+            send ""
+            loop {-fusion::station::locations::*}:
+                set {_loc} to loop-value
+                send "&7%loop-index%. &e%{_loc}%"
+            send ""
+            stop
+
+        # ════════════════════════════════════════
+        # CLEAR ALL STATIONS
+        # ════════════════════════════════════════
+        if {_action} = "clear":
+            if {-fusion::station::locations::*} is not set:
+                send "&c&l! &7No fusion stations to clear."
+                stop
+
+            set {_count} to size of {-fusion::station::locations::*}
+            delete {-fusion::station::locations::*}
+            send "&a&l! &7Cleared &e%{_count}% &7fusion stations."
+            stop
+
+        # Unknown action
+        send "&c&l! &7Unknown action. Use /fusion-admin help"
+
+
+# ============================================================
+# ANVIL CLICK EVENT
+# ============================================================
+
+on right click on anvil:
+    # Check if this anvil is a fusion station
+    set {_loc} to location of clicked block
+    set {_isStation} to false
+
+    loop {-fusion::station::locations::*}:
+        if loop-value = {_loc}:
+            set {_isStation} to true
+            stop loop
+
+    if {_isStation} is false:
+        stop # Not a fusion station, allow normal anvil use
+
+    # This is a fusion station - cancel normal anvil GUI
+    cancel event
+
+    # Open fusion menu
+    petFusion_openMainMenu(player)

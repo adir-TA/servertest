@@ -1,0 +1,288 @@
+# ============================================================
+# MILESTONE DISPLAY SYSTEM
+# ============================================================
+# Post-tutorial progression display that shows current goals
+#
+# Level Unlocks:
+#   - Level 5: Pets
+#   - Level 10: Uncommon Pets
+#   - Level 15: Prestige
+#   - Level 25: Archetype, Rare Pets
+#   - Level 27: Accessories
+#   - Level 35: Skill Tree
+#   - Level 100: Milestones
+#
+# Prestige Unlocks:
+#   - P1: Teams, Ultra Treasure, Deep Mines, Pet Slot 4
+#   - P2: Armor System
+#   - P3: Epic Pets, Ultra Accessories, Divine Treasure, Pet Slot 5
+#   - P5: Legendary Pets, Divine Accessories, The Abyss, Mythic Treasure
+#   - P7: Amethyst Gems
+#   - P10: Mythic Accessories, Celestial Treasure
+# ============================================================
+
+
+function milestone_start(p: player):
+    set {_uuid} to {_p}'s uuid
+
+    # Don't duplicate
+    if {-milestone::%{_uuid}%::displayId} is set:
+        milestone_update({_p})
+        stop
+
+    set {_id} to random integer between 100000 and 9999999
+    set {-milestone::%{_uuid}%::displayId} to {_id}
+
+    set {_loc} to location 3 meters in front of {_p}'s eyes
+    set y-coord of {_loc} to y-coord of {_p}'s location + 1
+
+    spawn fake text display at {_loc} for {_p} with id {_id}
+
+    set {_m} to new metadata packet with id {_id}:
+        display text: ""
+        display scale: vector(0.8, 0.8, 0.8)
+        display billboard: center
+        display brightness block: 15
+        display shadow: true
+        display defaultbackground: false
+        display background alpha: 100
+        display teleportduration: 30
+    send packet {_m} to {_p}
+
+    set {-milestone::%{_uuid}%::active} to true
+    milestone_followLoop({_p})
+    milestone_update({_p})
+
+
+function milestone_update(p: player):
+    set {_uuid} to {_p}'s uuid
+    set {_id} to {-milestone::%{_uuid}%::displayId}
+    if {_id} is not set:
+        stop
+
+    set {_text} to milestone_getCurrentText({_p})
+
+    set {_m} to new metadata packet with id {_id}:
+        display text: {_text}
+    send packet {_m} to {_p}
+
+
+function milestone_getCurrentText(p: player) :: text:
+    set {_uuid} to {_p}'s uuid
+    set {_level} to progression_getLevel({_p})
+    set {_archetypeId} to player_getArchetype({_p})
+    set {_prestige} to {data::prestige::%{_uuid}%} ? 0
+
+    # Calculate max level for current prestige (15 + prestige * 15)
+    set {_maxLevel} to 15 + ({_prestige} * 15)
+
+    # ========================================
+    # PRE-ARCHETYPE (Global levels 1-25)
+    # ========================================
+    # Archetype ID 0 or 1 = no archetype selected (global)
+    if {_archetypeId} <= 1:
+        set {_globalLevel} to mining_getGlobalLevel({_p})
+
+        # Level 5: Pets unlock
+        if {_globalLevel} < 5:
+            set {_remaining} to 5 - {_globalLevel}
+            return "&d&lLevel %{_globalLevel}%&7/&d5%nl%&dPets &7unlock in &e%{_remaining}% &7levels"
+
+        # Level 10: Uncommon pets
+        if {_globalLevel} < 10:
+            set {_remaining} to 10 - {_globalLevel}
+            return "&a&lLevel %{_globalLevel}%&7/&a10%nl%&aUncommon Pets &7in &e%{_remaining}% &7levels"
+
+        # Level 15: First prestige
+        if {_globalLevel} < 15:
+            set {_remaining} to 15 - {_globalLevel}
+            return "&5&lLevel %{_globalLevel}%&7/&515%nl%&5Prestige &7in &e%{_remaining}% &7levels"
+
+        # Level 25: Archetype
+        if {_globalLevel} < 25:
+            set {_remaining} to 25 - {_globalLevel}
+            return "&b&lLevel %{_globalLevel}%&7/&b25%nl%&bArchetype &7in &e%{_remaining}% &7levels%nl%&8(or &5/prestige&8)"
+
+        # Level 25+ - must choose archetype
+        return "&6&lChoose Archetype!%nl%&7Use &e/arc &7to specialize"
+
+    # ========================================
+    # HAS ARCHETYPE - PROGRESSIVE MILESTONES
+    # ========================================
+
+    # At max level - show what next prestige unlocks
+    if {_level} >= {_maxLevel}:
+        set {_nextPrestige} to {_prestige} + 1
+        set {_unlock} to milestone_getPrestigeUnlock({_nextPrestige})
+        return "&5&lMax Level!%nl%&7/prestige &7for P%{_nextPrestige}%%nl%&8Unlocks: %{_unlock}%"
+
+    # ========================================
+    # LEVEL-BASED UNLOCKS (within prestige)
+    # ========================================
+
+    # Level 27: Accessories
+    if {_level} < 27:
+        if {_maxLevel} >= 27:
+            set {_remaining} to 27 - {_level}
+            return "&6&lLevel %{_level}%&7/&627%nl%&6Accessories &7in &e%{_remaining}% &7levels"
+        else:
+            # Can't reach 27 this prestige
+            set {_remaining} to {_maxLevel} - {_level}
+            set {_unlock} to milestone_getPrestigeUnlock({_prestige} + 1)
+            return "&5&lLevel %{_level}%&7/&5%{_maxLevel}%%nl%&7Prestige for: %{_unlock}%%nl%&7%{_remaining}% &7levels left"
+
+    # Level 35: Skill Tree (requires P1+)
+    if {_level} < 35:
+        if {_maxLevel} >= 35:
+            set {_remaining} to 35 - {_level}
+            return "&a&lLevel %{_level}%&7/&a35%nl%&aSkill Tree &7in &e%{_remaining}% &7levels"
+
+    # Level 100: Milestones system
+    if {_level} < 100:
+        if {_maxLevel} >= 100:
+            set {_remaining} to 100 - {_level}
+            return "&e&lLevel %{_level}%&7/&e100%nl%&eMilestones &7in &e%{_remaining}% &7levels"
+
+    # ========================================
+    # PRESTIGE-BASED UNLOCKS
+    # ========================================
+
+    # Show progress to next prestige with unlock preview
+    set {_remaining} to {_maxLevel} - {_level}
+    set {_nextPrestige} to {_prestige} + 1
+    set {_unlock} to milestone_getPrestigeUnlock({_nextPrestige})
+
+    if {_unlock} != "":
+        return "&b&lLevel %{_level}%&7/&b%{_maxLevel}%%nl%&7P%{_nextPrestige}% unlocks: %{_unlock}%%nl%&7%{_remaining}% &7levels left"
+
+    # High prestige - just show progress
+    return "&b&lLevel %{_level}%&7/&b%{_maxLevel}%%nl%&7%{_remaining}% &7to P%{_nextPrestige}%"
+
+
+# Returns what unlocks at a specific prestige level
+function milestone_getPrestigeUnlock(prestige: integer) :: text:
+    # P1: Teams, Ultra Treasure, Deep Mines, Pet Slot 4
+    if {_prestige} = 1:
+        return "&cTeams&7, &6Ultra Treasure"
+
+    # P2: Armor system
+    if {_prestige} = 2:
+        return "&9Armor System"
+
+    # P3: Epic pets, Ultra accessories, Divine Treasure, Pet Slot 5
+    if {_prestige} = 3:
+        return "&5Epic Pets&7, &bDivine Treasure"
+
+    # P5: Legendary pets, Divine accessories, Abyss, Mythic Treasure
+    if {_prestige} = 5:
+        return "&6Legendary Pets&7, &5The Abyss"
+
+    # P7: Amethyst gemstones
+    if {_prestige} = 7:
+        return "&dAmethyst Gems"
+
+    # P10: Mythic accessories, Celestial Treasure
+    if {_prestige} = 10:
+        return "&cMythic Acc&7, &eCelestial Chest"
+
+    # P4, P6, P8, P9 - show generic
+    if {_prestige} = 4:
+        return "&7Higher max level"
+    if {_prestige} = 6:
+        return "&7Higher max level"
+    if {_prestige} = 8:
+        return "&7Higher max level"
+    if {_prestige} = 9:
+        return "&7Higher max level"
+
+    # Beyond P10
+    if {_prestige} > 10:
+        return ""
+
+    return ""
+
+
+function milestone_followLoop(p: player):
+    set {_uuid} to {_p}'s uuid
+
+    if {-guard::milestone::%{_uuid}%} is set:
+        stop
+
+    set {-guard::milestone::%{_uuid}%} to true
+
+    while {-milestone::%{_uuid}%::active} is true:
+        if {_p} is not online:
+            delete {-milestone::%{_uuid}%::active}
+            delete {-guard::milestone::%{_uuid}%}
+            stop
+
+        set {_id} to {-milestone::%{_uuid}%::displayId}
+        if {_id} is set:
+            set {_loc} to location 3 meters in front of {_p}'s eyes
+            set y-coord of {_loc} to y-coord of {_p}'s location + 1
+            send teleport packet with id {_id} with location {_loc} to {_p}
+
+        wait 30 ticks
+
+    delete {-guard::milestone::%{_uuid}%}
+
+
+function milestone_stop(p: player):
+    set {_uuid} to {_p}'s uuid
+    set {_id} to {-milestone::%{_uuid}%::displayId}
+    if {_id} is set:
+        remove fake entity with id {_id} for {_p}
+    delete {-milestone::%{_uuid}%::*}
+    delete {-guard::milestone::%{_uuid}%}
+
+
+function milestone_hide(p: player):
+    set {_uuid} to {_p}'s uuid
+    set {_id} to {-milestone::%{_uuid}%::displayId}
+    if {_id} is set:
+        set {_m} to new metadata packet with id {_id}:
+            display scale: vector(0.01, 0.01, 0.01)
+            display transformation: 3
+            display interpolation: 0
+        send packet {_m} to {_p}
+
+
+function milestone_show(p: player):
+    set {_uuid} to {_p}'s uuid
+    set {_id} to {-milestone::%{_uuid}%::displayId}
+    if {_id} is set:
+        set {_m} to new metadata packet with id {_id}:
+            display scale: vector(0.8, 0.8, 0.8)
+            display transformation: 3
+            display interpolation: 0
+        send packet {_m} to {_p}
+
+
+# ============================================================
+# ADMIN COMMAND
+# ============================================================
+
+command /milestone [<text>]:
+    permission: op
+    trigger:
+        if arg-1 = "refresh":
+            milestone_update(player)
+            send "&aMilestone refreshed"
+        else if arg-1 = "start":
+            milestone_start(player)
+            send "&aMilestone started"
+        else if arg-1 = "stop":
+            milestone_stop(player)
+            send "&aMilestone stopped"
+        else if arg-1 = "hide":
+            milestone_hide(player)
+            send "&aMilestone hidden"
+        else if arg-1 = "show":
+            milestone_show(player)
+            send "&aMilestone shown"
+        else:
+            send "&e/milestone refresh &8- &7Refresh display"
+            send "&e/milestone start &8- &7Start display"
+            send "&e/milestone stop &8- &7Stop display"
+            send "&e/milestone hide &8- &7Hide display"
+            send "&e/milestone show &8- &7Show display"

@@ -1,0 +1,352 @@
+# ============================================================
+# SKILL TREE - CONFIGURATION & REGISTRY
+# ============================================================
+# 3 Branches: Power, Fortune, Efficiency
+# Each branch has 6 nodes (5 passive + 1 capstone mechanic)
+# Dependencies: must own previous node to unlock next
+# Currency: Prestige Points
+# ============================================================
+
+on script load:
+    skilltree_initConfig()
+
+function skilltree_initConfig():
+    # ════════════════════════════════════════
+    # BRANCH DEFINITIONS
+    # ════════════════════════════════════════
+
+    set {-skilltree::branches::*} to "power", "fortune" and "efficiency"
+
+    set {-skilltree::branch::power::name} to "Power"
+    set {-skilltree::branch::power::color} to "&c"
+    set {-skilltree::branch::power::icon} to iron sword
+
+    set {-skilltree::branch::fortune::name} to "Fortune"
+    set {-skilltree::branch::fortune::color} to "&6"
+    set {-skilltree::branch::fortune::icon} to gold ingot
+
+    set {-skilltree::branch::efficiency::name} to "Efficiency"
+    set {-skilltree::branch::efficiency::color} to "&b"
+    set {-skilltree::branch::efficiency::icon} to experience bottle
+
+    # ════════════════════════════════════════
+    # NODE DEFINITIONS
+    # ════════════════════════════════════════
+    # Each node: name, branch, stat, bonus per rank, max rank,
+    #            cost per rank, requires (previous node id),
+    #            icon, description
+    #
+    # Cost array: comma-separated costs for rank 1,2,3...
+    # ════════════════════════════════════════
+
+    # ── POWER BRANCH ──────────────────────
+    # Node 1: Sharpness (Damage)
+    set {-skilltree::node::power_1::name} to "Sharpness"
+    set {-skilltree::node::power_1::branch} to "power"
+    set {-skilltree::node::power_1::stat} to "damage"
+    set {-skilltree::node::power_1::bonus} to 0.03
+    set {-skilltree::node::power_1::maxRank} to 5
+    set {-skilltree::node::power_1::costs::*} to 50, 50, 75, 75 and 100
+    set {-skilltree::node::power_1::requires} to ""
+    set {-skilltree::node::power_1::icon} to iron sword
+    set {-skilltree::node::power_1::desc} to "+3%% Damage per rank"
+
+    # Node 2: Haste (Mining Speed)
+    set {-skilltree::node::power_2::name} to "Haste"
+    set {-skilltree::node::power_2::branch} to "power"
+    set {-skilltree::node::power_2::stat} to "mining_speed"
+    set {-skilltree::node::power_2::bonus} to 0.02
+    set {-skilltree::node::power_2::maxRank} to 5
+    set {-skilltree::node::power_2::costs::*} to 75, 100, 100, 125 and 150
+    set {-skilltree::node::power_2::requires} to "power_1"
+    set {-skilltree::node::power_2::icon} to golden pickaxe
+    set {-skilltree::node::power_2::desc} to "+2%% Mining Speed per rank"
+
+    # Node 3: Reinforced (Durability)
+    set {-skilltree::node::power_3::name} to "Reinforced"
+    set {-skilltree::node::power_3::branch} to "power"
+    set {-skilltree::node::power_3::stat} to "durability"
+    set {-skilltree::node::power_3::bonus} to 0.04
+    set {-skilltree::node::power_3::maxRank} to 5
+    set {-skilltree::node::power_3::costs::*} to 100, 125, 150, 175 and 200
+    set {-skilltree::node::power_3::requires} to "power_2"
+    set {-skilltree::node::power_3::icon} to iron chestplate
+    set {-skilltree::node::power_3::desc} to "+4%% Durability per rank"
+
+    # Node 4: Fury (Damage)
+    set {-skilltree::node::power_4::name} to "Fury"
+    set {-skilltree::node::power_4::branch} to "power"
+    set {-skilltree::node::power_4::stat} to "damage"
+    set {-skilltree::node::power_4::bonus} to 0.05
+    set {-skilltree::node::power_4::maxRank} to 3
+    set {-skilltree::node::power_4::costs::*} to 150, 200 and 250
+    set {-skilltree::node::power_4::requires} to "power_3"
+    set {-skilltree::node::power_4::icon} to blaze powder
+    set {-skilltree::node::power_4::desc} to "+5%% Damage per rank"
+
+    # Node 5: Tenacity (Mining Speed + Durability)
+    set {-skilltree::node::power_5::name} to "Tenacity"
+    set {-skilltree::node::power_5::branch} to "power"
+    set {-skilltree::node::power_5::stat} to "mining_speed"
+    set {-skilltree::node::power_5::bonus} to 0.03
+    set {-skilltree::node::power_5::bonusStat2} to "durability"
+    set {-skilltree::node::power_5::bonus2} to 0.03
+    set {-skilltree::node::power_5::maxRank} to 3
+    set {-skilltree::node::power_5::costs::*} to 200, 275 and 350
+    set {-skilltree::node::power_5::requires} to "power_4"
+    set {-skilltree::node::power_5::icon} to diamond
+    set {-skilltree::node::power_5::desc} to "+3%% Mining Speed & Durability per rank"
+
+    # Node 6: Overload (Capstone - Mechanic)
+    set {-skilltree::node::power_6::name} to "Overload"
+    set {-skilltree::node::power_6::branch} to "power"
+    set {-skilltree::node::power_6::stat} to "mechanic"
+    set {-skilltree::node::power_6::bonus} to 0
+    set {-skilltree::node::power_6::maxRank} to 1
+    set {-skilltree::node::power_6::costs::*} to 275
+    set {-skilltree::node::power_6::requires} to "power_5"
+    set {-skilltree::node::power_6::icon} to nether star
+    set {-skilltree::node::power_6::desc} to "Mining has a 5%% chance to deal 3x damage"
+    set {-skilltree::node::power_6::mechanic} to "overload"
+
+    # ── FORTUNE BRANCH ────────────────────
+    # Node 1: Prospector (Drops)
+    set {-skilltree::node::fortune_1::name} to "Prospector"
+    set {-skilltree::node::fortune_1::branch} to "fortune"
+    set {-skilltree::node::fortune_1::stat} to "drops"
+    set {-skilltree::node::fortune_1::bonus} to 0.03
+    set {-skilltree::node::fortune_1::maxRank} to 5
+    set {-skilltree::node::fortune_1::costs::*} to 50, 50, 75, 75 and 100
+    set {-skilltree::node::fortune_1::requires} to ""
+    set {-skilltree::node::fortune_1::icon} to gold nugget
+    set {-skilltree::node::fortune_1::desc} to "+3%% Drops per rank"
+
+    # Node 2: Gem Finder (Drops)
+    set {-skilltree::node::fortune_2::name} to "Gem Finder"
+    set {-skilltree::node::fortune_2::branch} to "fortune"
+    set {-skilltree::node::fortune_2::stat} to "drops"
+    set {-skilltree::node::fortune_2::bonus} to 0.04
+    set {-skilltree::node::fortune_2::maxRank} to 5
+    set {-skilltree::node::fortune_2::costs::*} to 75, 100, 100, 125 and 150
+    set {-skilltree::node::fortune_2::requires} to "fortune_1"
+    set {-skilltree::node::fortune_2::icon} to emerald
+    set {-skilltree::node::fortune_2::desc} to "+4%% Drops per rank"
+
+    # Node 3: Key Hunter (Enchant Proc)
+    set {-skilltree::node::fortune_3::name} to "Key Hunter"
+    set {-skilltree::node::fortune_3::branch} to "fortune"
+    set {-skilltree::node::fortune_3::stat} to "enchant_proc"
+    set {-skilltree::node::fortune_3::bonus} to 0.03
+    set {-skilltree::node::fortune_3::maxRank} to 5
+    set {-skilltree::node::fortune_3::costs::*} to 100, 125, 150, 175 and 200
+    set {-skilltree::node::fortune_3::requires} to "fortune_2"
+    set {-skilltree::node::fortune_3::icon} to tripwire hook
+    set {-skilltree::node::fortune_3::desc} to "+3%% Enchant Proc per rank"
+
+    # Node 4: Treasure Sense (Drops + Enchant Proc)
+    set {-skilltree::node::fortune_4::name} to "Treasure Sense"
+    set {-skilltree::node::fortune_4::branch} to "fortune"
+    set {-skilltree::node::fortune_4::stat} to "drops"
+    set {-skilltree::node::fortune_4::bonus} to 0.04
+    set {-skilltree::node::fortune_4::bonusStat2} to "enchant_proc"
+    set {-skilltree::node::fortune_4::bonus2} to 0.03
+    set {-skilltree::node::fortune_4::maxRank} to 3
+    set {-skilltree::node::fortune_4::costs::*} to 150, 200 and 250
+    set {-skilltree::node::fortune_4::requires} to "fortune_3"
+    set {-skilltree::node::fortune_4::icon} to compass
+    set {-skilltree::node::fortune_4::desc} to "+4%% Drops & +3%% Enchant Proc per rank"
+
+    # Node 5: Golden Touch (Tokens)
+    set {-skilltree::node::fortune_5::name} to "Golden Touch"
+    set {-skilltree::node::fortune_5::branch} to "fortune"
+    set {-skilltree::node::fortune_5::stat} to "token"
+    set {-skilltree::node::fortune_5::bonus} to 0.05
+    set {-skilltree::node::fortune_5::maxRank} to 3
+    set {-skilltree::node::fortune_5::costs::*} to 200, 275 and 350
+    set {-skilltree::node::fortune_5::requires} to "fortune_4"
+    set {-skilltree::node::fortune_5::icon} to gold block
+    set {-skilltree::node::fortune_5::desc} to "+5%% Tokens per rank"
+
+    # Node 6: Fortune's Favor (Capstone - Mechanic)
+    set {-skilltree::node::fortune_6::name} to "Fortune's Favor"
+    set {-skilltree::node::fortune_6::branch} to "fortune"
+    set {-skilltree::node::fortune_6::stat} to "mechanic"
+    set {-skilltree::node::fortune_6::bonus} to 0
+    set {-skilltree::node::fortune_6::maxRank} to 1
+    set {-skilltree::node::fortune_6::costs::*} to 275
+    set {-skilltree::node::fortune_6::requires} to "fortune_5"
+    set {-skilltree::node::fortune_6::icon} to nether star
+    set {-skilltree::node::fortune_6::desc} to "Mining has a 5%% chance to double all drops"
+    set {-skilltree::node::fortune_6::mechanic} to "fortunes_favor"
+
+    # ── EFFICIENCY BRANCH ─────────────────
+    # Node 1: Scholar (XP)
+    set {-skilltree::node::efficiency_1::name} to "Scholar"
+    set {-skilltree::node::efficiency_1::branch} to "efficiency"
+    set {-skilltree::node::efficiency_1::stat} to "xp"
+    set {-skilltree::node::efficiency_1::bonus} to 0.03
+    set {-skilltree::node::efficiency_1::maxRank} to 5
+    set {-skilltree::node::efficiency_1::costs::*} to 50, 50, 75, 75 and 100
+    set {-skilltree::node::efficiency_1::requires} to ""
+    set {-skilltree::node::efficiency_1::icon} to experience bottle
+    set {-skilltree::node::efficiency_1::desc} to "+3%% XP per rank"
+
+    # Node 2: Midas (Tokens)
+    set {-skilltree::node::efficiency_2::name} to "Midas"
+    set {-skilltree::node::efficiency_2::branch} to "efficiency"
+    set {-skilltree::node::efficiency_2::stat} to "token"
+    set {-skilltree::node::efficiency_2::bonus} to 0.03
+    set {-skilltree::node::efficiency_2::maxRank} to 5
+    set {-skilltree::node::efficiency_2::costs::*} to 75, 100, 100, 125 and 150
+    set {-skilltree::node::efficiency_2::requires} to "efficiency_1"
+    set {-skilltree::node::efficiency_2::icon} to sunflower
+    set {-skilltree::node::efficiency_2::desc} to "+3%% Tokens per rank"
+
+    # Node 3: Catalyst (Enchant Proc)
+    set {-skilltree::node::efficiency_3::name} to "Catalyst"
+    set {-skilltree::node::efficiency_3::branch} to "efficiency"
+    set {-skilltree::node::efficiency_3::stat} to "enchant_proc"
+    set {-skilltree::node::efficiency_3::bonus} to 0.03
+    set {-skilltree::node::efficiency_3::maxRank} to 5
+    set {-skilltree::node::efficiency_3::costs::*} to 100, 125, 150, 175 and 200
+    set {-skilltree::node::efficiency_3::requires} to "efficiency_2"
+    set {-skilltree::node::efficiency_3::icon} to brewing stand
+    set {-skilltree::node::efficiency_3::desc} to "+3%% Enchant Proc per rank"
+
+    # Node 4: Wisdom (XP + Tokens)
+    set {-skilltree::node::efficiency_4::name} to "Wisdom"
+    set {-skilltree::node::efficiency_4::branch} to "efficiency"
+    set {-skilltree::node::efficiency_4::stat} to "xp"
+    set {-skilltree::node::efficiency_4::bonus} to 0.04
+    set {-skilltree::node::efficiency_4::bonusStat2} to "token"
+    set {-skilltree::node::efficiency_4::bonus2} to 0.04
+    set {-skilltree::node::efficiency_4::maxRank} to 3
+    set {-skilltree::node::efficiency_4::costs::*} to 150, 200 and 250
+    set {-skilltree::node::efficiency_4::requires} to "efficiency_3"
+    set {-skilltree::node::efficiency_4::icon} to enchanted book
+    set {-skilltree::node::efficiency_4::desc} to "+4%% XP & Tokens per rank"
+
+    # Node 5: Energize (Enchant Proc)
+    set {-skilltree::node::efficiency_5::name} to "Energize"
+    set {-skilltree::node::efficiency_5::branch} to "efficiency"
+    set {-skilltree::node::efficiency_5::stat} to "enchant_proc"
+    set {-skilltree::node::efficiency_5::bonus} to 0.05
+    set {-skilltree::node::efficiency_5::maxRank} to 3
+    set {-skilltree::node::efficiency_5::costs::*} to 200, 275 and 350
+    set {-skilltree::node::efficiency_5::requires} to "efficiency_4"
+    set {-skilltree::node::efficiency_5::icon} to redstone block
+    set {-skilltree::node::efficiency_5::desc} to "+5%% Enchant Proc per rank"
+
+    # Node 6: Double Down (Capstone - Mechanic)
+    set {-skilltree::node::efficiency_6::name} to "Double Down"
+    set {-skilltree::node::efficiency_6::branch} to "efficiency"
+    set {-skilltree::node::efficiency_6::stat} to "mechanic"
+    set {-skilltree::node::efficiency_6::bonus} to 0
+    set {-skilltree::node::efficiency_6::maxRank} to 1
+    set {-skilltree::node::efficiency_6::costs::*} to 275
+    set {-skilltree::node::efficiency_6::requires} to "efficiency_5"
+    set {-skilltree::node::efficiency_6::icon} to nether star
+    set {-skilltree::node::efficiency_6::desc} to "Mining has a 5%% chance to double XP & Tokens"
+    set {-skilltree::node::efficiency_6::mechanic} to "double_down"
+
+    # ════════════════════════════════════════
+    # ALL NODE IDS (for iteration)
+    # ════════════════════════════════════════
+    set {-skilltree::allNodes::*} to "power_1", "power_2", "power_3", "power_4", "power_5", "power_6", "fortune_1", "fortune_2", "fortune_3", "fortune_4", "fortune_5", "fortune_6", "efficiency_1", "efficiency_2", "efficiency_3", "efficiency_4", "efficiency_5" and "efficiency_6"
+
+    # ════════════════════════════════════════
+    # RESPEC CONFIG
+    # ════════════════════════════════════════
+    set {-skilltree::respec::cost} to 10000000
+
+    # ════════════════════════════════════════
+    # GUI LAYOUT - Virtual column positions
+    # Fan-out pattern: all branches start clustered (visible
+    # on one screen), then progressively spread apart.
+    # Virtual rows: 0-10 (even=node, odd=connector)
+    # Virtual cols: 0-18 (19 wide), visible 9 at a time
+    # Horizontal scroll: 0-10
+    #
+    # Node 1: P=1  F=4  E=7  (centered in cols 0-8)
+    # Node 2: P=0  F=6  E=11 (spreading)
+    # Node 3: P=3  F=8  E=14 (wider)
+    # Node 4: P=1  F=9  E=16 (full spread)
+    # Node 5: P=3  F=11 E=18 (widest)
+    # Node 6: P=2  F=9  E=17 (capstones)
+    # ════════════════════════════════════════
+
+    set {-skilltree::layout::virtualWidth} to 19
+
+    # Branch center columns (for header rendering)
+    # Uses node 1 positions since that's the starting view
+    set {-skilltree::layout::branchCenter::power} to 1
+    set {-skilltree::layout::branchCenter::fortune} to 4
+    set {-skilltree::layout::branchCenter::efficiency} to 7
+
+    # Power branch - drifts left as it goes deeper
+    set {-skilltree::layout::power::1} to 1
+    set {-skilltree::layout::power::2} to 0
+    set {-skilltree::layout::power::3} to 3
+    set {-skilltree::layout::power::4} to 1
+    set {-skilltree::layout::power::5} to 3
+    set {-skilltree::layout::power::6} to 2
+
+    # Fortune branch - stays center, drifts slightly right
+    set {-skilltree::layout::fortune::1} to 4
+    set {-skilltree::layout::fortune::2} to 6
+    set {-skilltree::layout::fortune::3} to 8
+    set {-skilltree::layout::fortune::4} to 9
+    set {-skilltree::layout::fortune::5} to 11
+    set {-skilltree::layout::fortune::6} to 9
+
+    # Efficiency branch - drifts right as it goes deeper
+    set {-skilltree::layout::efficiency::1} to 7
+    set {-skilltree::layout::efficiency::2} to 11
+    set {-skilltree::layout::efficiency::3} to 14
+    set {-skilltree::layout::efficiency::4} to 16
+    set {-skilltree::layout::efficiency::5} to 18
+    set {-skilltree::layout::efficiency::6} to 17
+
+
+# ============================================================
+# CONFIG GETTERS
+# ============================================================
+
+function skilltree_getNodeName(nodeId: text) :: text:
+    return {-skilltree::node::%{_nodeId}%::name} ? {_nodeId}
+
+function skilltree_getNodeBranch(nodeId: text) :: text:
+    return {-skilltree::node::%{_nodeId}%::branch} ? ""
+
+function skilltree_getNodeStat(nodeId: text) :: text:
+    return {-skilltree::node::%{_nodeId}%::stat} ? ""
+
+function skilltree_getNodeBonus(nodeId: text) :: number:
+    return {-skilltree::node::%{_nodeId}%::bonus} ? 0
+
+function skilltree_getNodeMaxRank(nodeId: text) :: number:
+    return {-skilltree::node::%{_nodeId}%::maxRank} ? 1
+
+function skilltree_getNodeRankCost(nodeId: text, rank: number) :: number:
+    return {-skilltree::node::%{_nodeId}%::costs::%{_rank}%} ? 999999
+
+function skilltree_getNodeRequires(nodeId: text) :: text:
+    return {-skilltree::node::%{_nodeId}%::requires} ? ""
+
+function skilltree_getNodeIcon(nodeId: text) :: item:
+    return {-skilltree::node::%{_nodeId}%::icon} ? barrier
+
+function skilltree_getNodeDesc(nodeId: text) :: text:
+    return {-skilltree::node::%{_nodeId}%::desc} ? ""
+
+function skilltree_getNodeMechanic(nodeId: text) :: text:
+    return {-skilltree::node::%{_nodeId}%::mechanic} ? ""
+
+function skilltree_getBranchName(branch: text) :: text:
+    return {-skilltree::branch::%{_branch}%::name} ? {_branch}
+
+function skilltree_getBranchColor(branch: text) :: text:
+    return {-skilltree::branch::%{_branch}%::color} ? "&7"
+
+function skilltree_getRespecCost() :: number:
+    return {-skilltree::respec::cost} ? 10000000
