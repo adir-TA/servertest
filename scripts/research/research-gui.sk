@@ -88,12 +88,11 @@ function research_openMainMenu(p: player):
 
     # ════════════════════════════════════════
     # ROW 2: CATEGORIES (slots 9-17)
-    # 6 categories centered: slots 10, 11, 12, 13, 14, 15
+    # 5 categories centered: slots 11, 12, 13, 14, 15
     # ════════════════════════════════════════
-    research_setMainCategoryItem({_menu}, {_p}, "enchants", 10)
-    research_setMainCategoryItem({_menu}, {_p}, "pets", 11)
-    research_setMainCategoryItem({_menu}, {_p}, "gems", 12)
-    research_setMainCategoryItem({_menu}, {_p}, "archetypes", 13)
+    research_setMainCategoryItem({_menu}, {_p}, "enchants", 11)
+    research_setMainCategoryItem({_menu}, {_p}, "pets", 12)
+    research_setMainCategoryItem({_menu}, {_p}, "gems", 13)
     research_setMainCategoryItem({_menu}, {_p}, "accessories", 14)
     research_setMainCategoryItem({_menu}, {_p}, "boosters", 15)
 
@@ -113,9 +112,8 @@ function research_openMainMenu(p: player):
     add "" to {_infoLore::*}
     add "&6Categories:" to {_infoLore::*}
     add " &5• Enchants &8(slots)" to {_infoLore::*}
-    add " &d• Pets &8(slots + storage)" to {_infoLore::*}
+    add " &d• Pets &8(slots, storage, eggs)" to {_infoLore::*}
     add " &a• Gems &8(unlock types)" to {_infoLore::*}
-    add " &6• Archetypes &8(unlock builds)" to {_infoLore::*}
     add " &e• Accessories &8(slots + storage)" to {_infoLore::*}
     add " &b• Boosters &8(slots + storage)" to {_infoLore::*}
     add "" to {_infoLore::*}
