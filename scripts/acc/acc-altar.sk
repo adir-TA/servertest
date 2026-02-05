@@ -510,8 +510,7 @@ function acc_playTreasureAnimation(p: player, treasureId: text, amount: integer)
     # Get treasure info
     set {_color} to acc_getTreasureColor({_treasureId})
     set {_treasureName} to acc_getTreasureName({_treasureId})
-    set {_chestIcon} to acc_getTreasureChestIcon({_treasureId})
-    set {_chestBlock} to type of {_chestIcon}  # Get the actual block type from icon
+    set {_chestBlock} to acc_getTreasureChestIcon({_treasureId})
     set {_keyIcon} to acc_getTreasureKeyIcon({_treasureId})
 
     # Setup center location - centered on altar block
