@@ -1,4 +1,0 @@
-
-on inventory close:
-    if menu_getCurrentMenu(player) != "N/A":
-        menu_deleteSession(player)
