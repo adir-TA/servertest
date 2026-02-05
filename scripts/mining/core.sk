@@ -677,11 +677,5 @@ function mining_addGlobalXP(p: player, amount: number):
         play sound "entity.player.levelup" with volume 1 and pitch 1.5 to {_p}
         tutorial_onLevelUp({_p}, "global", {_currentLevel})
         tutorial_onGlobalLevelUp({_p}, {_currentLevel})
-            send "" to {_p}
-            send "   &eUse &6/arc &eto choose!" to {_p}
-            send "" to {_p}
-            send "&6&m                                        " to {_p}
-            play sound "ui.toast.challenge_complete" with volume 1 and pitch 1 to {_p}
-            stop
 
         set {_xpNeeded} to mining_getXPRequired({_currentLevel})
