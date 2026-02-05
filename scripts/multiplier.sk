@@ -363,6 +363,12 @@ function multiplier_startLoop(p: player):
 command /multipliers:
     trigger:
         set {_uuid} to player's uuid
+        set {_menu} to chest inventory with 4 rows named "&e&lYOUR MULTIPLIERS"
+
+        # Fill with glass
+        set {_filler} to black stained glass pane named "&1"
+        loop 36 times:
+            set slot loop-number - 1 of {_menu} to {_filler}
 
         # Get archetype name
         set {_archetypeId} to player_getArchetype(player)
@@ -375,13 +381,17 @@ command /multipliers:
         else:
             set {_archName} to "&7Global"
 
-        send ""
-        send "&6&m                                "
-        send "&e&lYOUR MULTIPLIERS"
-        send "&6&m                                "
-        send ""
-        send "&7Archetype: %{_archName}%"
-        send ""
+        # Archetype display in slot 4
+        set {_archInfo} to nether star named "&6&lYour Archetype"
+        add "&7Current: %{_archName}%" to {_archLore::*}
+        add "" to {_archLore::*}
+        add "&7Use &e/arc &7to change" to {_archLore::*}
+        set lore of {_archInfo} to {_archLore::*}
+        set slot 4 of {_menu} to {_archInfo}
+
+        # Multiplier items (slots 10-16, 19-25)
+        set {_slots::*} to 10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23, 24 and 25
+        set {_slotIndex} to 1
 
         loop {-multiplier::types::*}:
             set {_type} to loop-value
@@ -391,23 +401,28 @@ command /multipliers:
             set {_val} to {-multiplier::%{_uuid}%::%{_type}%} ? 1
             set {_display} to round({_val} * 100) / 100
 
-            # Get pet bonus for breakdown
+            # Choose item based on value
+            if {_val} > 1:
+                set {_item} to emerald named "&a%{_typeName}%"
+                set {_color} to "&a"
+            else if {_val} < 1:
+                set {_item} to redstone named "&c%{_typeName}%"
+                set {_color} to "&c"
+            else:
+                set {_item} to quartz named "&f%{_typeName}%"
+                set {_color} to "&f"
+
+            # Build lore with breakdown
+            add "&7Multiplier: %{_color}%%{_display}%x" to {_itemLore::*}
+            add "" to {_itemLore::*}
+
+            # Get bonuses
             set {_petBonus} to pet_getTotalBonus(player, {_type})
-
-            # Get armor bonus for breakdown
             set {_armorBonus} to armor_getTotalBonus(player, {_type})
-
-            # Get accessory bonus for breakdown
             set {_accBonus} to acc_getTotalBonus(player, {_type})
-
-            # Get skill tree bonus for breakdown
             set {_skillBonus} to skilltree_getTotalBonus(player, {_type})
-
-            # Get booster bonuses for breakdown
             set {_personalBoosterBonus} to booster_getPersonalBonus(player, {_type})
             set {_globalBoosterBonus} to booster_getGlobalBonus({_type})
-
-            # Get team bonus for breakdown (purchased upgrades)
             set {_teamBonus} to 0
             set {_teamOnlineBonus} to 0
             set {_teamId} to team_getPlayerTeamID(player)
@@ -424,44 +439,38 @@ command /multipliers:
                 else if {_type} is "money":
                     set {_teamOnlineBonus} to team_getOnlineBonusPercent({_teamId})
 
-            if {_val} > 1:
-                set {_breakdown} to ""
-                if {_petBonus} > 0:
-                    set {_petPercent} to round({_petBonus} * 100)
-                    set {_breakdown} to "%{_breakdown}%+%{_petPercent}%%% pets "
-                if {_armorBonus} > 0:
-                    set {_armorPercent} to round({_armorBonus} * 100)
-                    set {_breakdown} to "%{_breakdown}%+%{_armorPercent}%%% armor "
-                if {_accBonus} > 0:
-                    set {_accPercent} to round({_accBonus} * 100 * 100) / 100
-                    set {_breakdown} to "%{_breakdown}%+%{_accPercent}%%% acc "
-                if {_skillBonus} > 0:
-                    set {_skillPercent} to round({_skillBonus} * 100)
-                    set {_breakdown} to "%{_breakdown}%+%{_skillPercent}%%% skills "
-                if {_teamBonus} > 0:
-                    set {_teamPercent} to round({_teamBonus} * 100 * 100) / 100
-                    set {_breakdown} to "%{_breakdown}%+%{_teamPercent}%%% team "
-                if {_teamOnlineBonus} > 0:
-                    set {_onlinePercent} to round({_teamOnlineBonus} * 100)
-                    set {_breakdown} to "%{_breakdown}%+%{_onlinePercent}%%% online "
-                if {_personalBoosterBonus} > 0:
-                    set {_boosterPercent} to round({_personalBoosterBonus} * 100)
-                    set {_breakdown} to "%{_breakdown}%&6+%{_boosterPercent}%%% booster "
-                if {_globalBoosterBonus} > 0:
-                    set {_globalBoosterPercent} to round({_globalBoosterBonus} * 100)
-                    set {_breakdown} to "%{_breakdown}%&b+%{_globalBoosterPercent}%%% global "
-                if {_type} is "token" or "money":
-                    if {data::linked::%{_uuid}%} is set:
-                        set {_breakdown} to "%{_breakdown}%+50%% discord"
+            # Add breakdown
+            if {_petBonus} > 0:
+                set {_petPercent} to round({_petBonus} * 100)
+                add "&8• &dPets: &7+%{_petPercent}%%%" to {_itemLore::*}
+            if {_armorBonus} > 0:
+                set {_armorPercent} to round({_armorBonus} * 100)
+                add "&8• &bArmor: &7+%{_armorPercent}%%%" to {_itemLore::*}
+            if {_accBonus} > 0:
+                set {_accPercent} to round({_accBonus} * 100 * 100) / 100
+                add "&8• &eAccessories: &7+%{_accPercent}%%%" to {_itemLore::*}
+            if {_skillBonus} > 0:
+                set {_skillPercent} to round({_skillBonus} * 100)
+                add "&8• &9Skills: &7+%{_skillPercent}%%%" to {_itemLore::*}
+            if {_teamBonus} > 0:
+                set {_teamPercent} to round({_teamBonus} * 100 * 100) / 100
+                add "&8• &aTeam: &7+%{_teamPercent}%%%" to {_itemLore::*}
+            if {_teamOnlineBonus} > 0:
+                set {_onlinePercent} to round({_teamOnlineBonus} * 100)
+                add "&8• &aOnline: &7+%{_onlinePercent}%%%" to {_itemLore::*}
+            if {_personalBoosterBonus} > 0:
+                set {_boosterPercent} to round({_personalBoosterBonus} * 100)
+                add "&8• &6Booster: &7+%{_boosterPercent}%%%" to {_itemLore::*}
+            if {_globalBoosterBonus} > 0:
+                set {_globalBoosterPercent} to round({_globalBoosterBonus} * 100)
+                add "&8• &bGlobal: &7+%{_globalBoosterPercent}%%%" to {_itemLore::*}
+            if {_type} is "token" or "money":
+                if {data::linked::%{_uuid}%} is set:
+                    add "&8• &5Discord: &7+50%%" to {_itemLore::*}
 
-                if {_breakdown} != "":
-                    send "&7%{_typeName}%: &a%{_display}%x &8(%{_breakdown}%)" to player
-                else:
-                    send "&7%{_typeName}%: &a%{_display}%x" to player
-            else if {_val} < 1:
-                send "&7%{_typeName}%: &c%{_display}%x" to player
-            else:
-                send "&7%{_typeName}%: &f1.0x" to player
-        
-        send ""
-        send "&6&m                                "
+            set lore of {_item} to {_itemLore::*}
+            set slot {_slots::%{_slotIndex}%} of {_menu} to {_item}
+            add 1 to {_slotIndex}
+            delete {_itemLore::*}
+
+        open {_menu} to player

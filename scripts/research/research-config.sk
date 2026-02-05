@@ -114,35 +114,23 @@ function research_loadConfig():
     set {-research::config::pets::storage::moneyCost::4} to 2500000
     set {-research::config::pets::storage::moneyCost::5} to 10000000
 
-    # Pet Fusion Track
+    # Pet Fusion Track (Simplified: 2 tiers only)
     set {-research::config::pets::pet_fusion::name} to "&6Pet Fusion"
     set {-research::config::pets::pet_fusion::icon} to nether star
-    set {-research::config::pets::pet_fusion::maxTier} to 6
-    set {-research::config::pets::pet_fusion::baseTime} to 30
-    set {-research::config::pets::pet_fusion::timeMultiplier} to 2
+    set {-research::config::pets::pet_fusion::maxTier} to 2
+    set {-research::config::pets::pet_fusion::baseTime} to 60
+    set {-research::config::pets::pet_fusion::timeMultiplier} to 3
     set {-research::config::pets::pet_fusion::reward} to "pet_fusion"
     set {-research::config::pets::pet_fusion::description} to "Unlock pet fusion tiers."
     # Tier descriptions
-    set {-research::config::pets::pet_fusion::tierDesc::1} to "Gold Fusion - Normal Pets"
-    set {-research::config::pets::pet_fusion::tierDesc::2} to "Diamond Fusion - Normal Pets"
-    set {-research::config::pets::pet_fusion::tierDesc::3} to "Gold Fusion - Ultra Pets"
-    set {-research::config::pets::pet_fusion::tierDesc::4} to "Diamond Fusion - Ultra Pets"
-    set {-research::config::pets::pet_fusion::tierDesc::5} to "Gold Fusion - Divine Pets"
-    set {-research::config::pets::pet_fusion::tierDesc::6} to "Diamond Fusion - Divine Pets"
-    # Prestige requirements: P3, P8, P13, P18, P24, P30
-    set {-research::config::pets::pet_fusion::prestigeReq::1} to 3
-    set {-research::config::pets::pet_fusion::prestigeReq::2} to 8
-    set {-research::config::pets::pet_fusion::prestigeReq::3} to 13
-    set {-research::config::pets::pet_fusion::prestigeReq::4} to 18
-    set {-research::config::pets::pet_fusion::prestigeReq::5} to 24
-    set {-research::config::pets::pet_fusion::prestigeReq::6} to 30
+    set {-research::config::pets::pet_fusion::tierDesc::1} to "Gold Fusion"
+    set {-research::config::pets::pet_fusion::tierDesc::2} to "Diamond Fusion"
+    # Prestige requirements: P5, P15
+    set {-research::config::pets::pet_fusion::prestigeReq::1} to 5
+    set {-research::config::pets::pet_fusion::prestigeReq::2} to 15
     # Money costs
-    set {-research::config::pets::pet_fusion::moneyCost::1} to 500000
-    set {-research::config::pets::pet_fusion::moneyCost::2} to 2500000
-    set {-research::config::pets::pet_fusion::moneyCost::3} to 5000000
-    set {-research::config::pets::pet_fusion::moneyCost::4} to 10000000
-    set {-research::config::pets::pet_fusion::moneyCost::5} to 20000000
-    set {-research::config::pets::pet_fusion::moneyCost::6} to 50000000
+    set {-research::config::pets::pet_fusion::moneyCost::1} to 750000
+    set {-research::config::pets::pet_fusion::moneyCost::2} to 5000000
 
     # ════════════════════════════════════════
     # ACCESSORIES CATEGORY

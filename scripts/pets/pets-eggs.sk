@@ -18,6 +18,17 @@
 on right click on beacon:
     cancel event
     if player has permission "pets.use":
+        # Check if player has unlocked pet eggs (requires pets slots research T1)
+        set {_uuid} to player's uuid
+        set {_petSlotsResearched} to {data::research::%{_uuid}%::pets::slots} ? 0
+        if {_petSlotsResearched} < 1:
+            send "" to player
+            send "&c&lPET EGGS LOCKED" to player
+            send "&7You need to unlock pet slots first!" to player
+            send "&7Research &d/research &7→ &dPets &7→ &dPet Slots" to player
+            send "" to player
+            play sound "entity.villager.no" with volume 0.5 and pitch 1 to player
+            stop
         set {-pet::altar::%player's uuid%} to location of clicked block
         pet_openTierMenu(player)
 

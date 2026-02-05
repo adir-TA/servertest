@@ -82,34 +82,21 @@ function petFusion_getOuterGlowScale() :: number:
 # ============================================================
 # RESEARCH REQUIREMENTS
 # ============================================================
-# Pet Fusion track has 6 tiers:
-# T1: Gold Fusion - Normal Pets (P3)
-# T2: Diamond Fusion - Normal Pets (P8)
-# T3: Gold Fusion - Ultra Pets (P10)
-# T4: Diamond Fusion - Ultra Pets (P15)
-# T5: Gold Fusion - Divine Pets (P20)
-# T6: Diamond Fusion - Divine Pets (P30)
+# Pet Fusion track has 2 tiers:
+# T1: Gold Fusion (P5)
+# T2: Diamond Fusion (P15)
 
 function petFusion_getRequiredResearchTier(petTier: text, targetFusionTier: number) :: number:
     # Returns which research tier is needed for this fusion
+    # Pet tier is ignored - same requirements for all pet types
 
-    # Gold fusions
+    # Gold fusion
     if {_targetFusionTier} = 1:
-        if {_petTier} = "normal":
-            return 1
-        if {_petTier} = "ultra":
-            return 3
-        if {_petTier} = "divine":
-            return 5
+        return 1
 
-    # Diamond fusions (requires fusing gold → diamond)
+    # Diamond fusion
     if {_targetFusionTier} = 2:
-        if {_petTier} = "normal":
-            return 2
-        if {_petTier} = "ultra":
-            return 4
-        if {_petTier} = "divine":
-            return 6
+        return 2
 
     return 999 # Invalid
 
