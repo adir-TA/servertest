@@ -660,7 +660,7 @@ function tutorial_step14_complete(p: player):
 # STEP 15: TUTORIAL COMPLETE
 # ============================================================
 
-function tutorial_step16_complete(p: player):
+function tutorial_step15_complete(p: player):
     play sound "block.amethyst_block.chime" with volume 1 and pitch 1 to {_p}
     tutorial_setTextAnimated({_p}, "&6&lTutorial Complete!%nl%%nl%&aYou're ready to mine!")
 
