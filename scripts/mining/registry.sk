@@ -34,52 +34,52 @@ function mining_registerBlocks():
     # ============================================================
 
     # ═══ EARLY GAME (+1 per block) ═══
-    mining_registerBlock(cobblestone, 0.6, (1 of cobblestone), 5, 0)
-    mining_registerBlock(stone, 0.9, (1 of stone), 5.15, 1)
-    mining_registerBlock(sandstone, 1.2, (1 of sandstone), 5.3, 2)
-    mining_registerBlock(red sandstone, 1.5, (1 of red sandstone), 5.45, 3)
-    mining_registerBlock(granite, 1.8, (1 of granite), 5.6, 4)
-    mining_registerBlock(diorite, 2.1, (1 of diorite), 5.75, 5)
-    mining_registerBlock(andesite, 2.4, (1 of andesite), 5.9, 6)
-    mining_registerBlock(smooth stone, 2.7, (1 of smooth stone), 6.05, 7)
-    mining_registerBlock(bricks, 3.0, (1 of bricks), 6.2, 8)
-    mining_registerBlock(stone bricks, 3.3, (1 of stone bricks), 6.35, 9)
+    mining_registerBlock(cobblestone, 0.6, (1 of cobblestone), 35, 0)
+    mining_registerBlock(stone, 0.9, (1 of stone), 36.05, 1)
+    mining_registerBlock(sandstone, 1.2, (1 of sandstone), 37.1, 2)
+    mining_registerBlock(red sandstone, 1.5, (1 of red sandstone), 38.15, 3)
+    mining_registerBlock(granite, 1.8, (1 of granite), 39.2, 4)
+    mining_registerBlock(diorite, 2.1, (1 of diorite), 40.25, 5)
+    mining_registerBlock(andesite, 2.4, (1 of andesite), 41.3, 6)
+    mining_registerBlock(smooth stone, 2.7, (1 of smooth stone), 42.35, 7)
+    mining_registerBlock(bricks, 3.0, (1 of bricks), 43.4, 8)
+    mining_registerBlock(stone bricks, 3.3, (1 of stone bricks), 44.45, 9)
 
     # ═══ EARLY-MID (+2 per block) ═══
-    mining_registerBlock(mossy stone bricks, 3.6, (1 of mossy stone bricks), 6.5, 11)
-    mining_registerBlock(basalt, 3.9, (1 of basalt), 6.65, 13)
-    mining_registerBlock(prismarine, 4.2, (1 of prismarine), 6.8, 15)
-    mining_registerBlock(quartz block, 4.5, (1 of quartz block), 6.95, 17)
-    mining_registerBlock(purpur block, 4.8, (1 of purpur block), 7.1, 19)
-    mining_registerBlock(end stone, 5.1, (1 of end stone), 7.25, 21)
-    mining_registerBlock(calcite, 5.4, (1 of calcite), 7.4, 23)
+    mining_registerBlock(mossy stone bricks, 3.6, (1 of mossy stone bricks), 45.5, 11)
+    mining_registerBlock(basalt, 3.9, (1 of basalt), 46.55, 13)
+    mining_registerBlock(prismarine, 4.2, (1 of prismarine), 47.6, 15)
+    mining_registerBlock(quartz block, 4.5, (1 of quartz block), 48.65, 17)
+    mining_registerBlock(purpur block, 4.8, (1 of purpur block), 49.7, 19)
+    mining_registerBlock(end stone, 5.1, (1 of end stone), 50.75, 21)
+    mining_registerBlock(calcite, 5.4, (1 of calcite), 51.8, 23)
 
     # ═══ MID GAME (+3 per block) ═══
-    mining_registerBlock(tuff, 5.7, (1 of tuff), 7.55, 26)
-    mining_registerBlock(dripstone block, 6.0, (1 of dripstone block), 7.7, 29)
-    mining_registerBlock(packed mud, 6.3, (1 of packed mud), 7.85, 32)
-    mining_registerBlock(mud bricks, 6.6, (1 of mud bricks), 8.0, 35)
-    mining_registerBlock(hay block, 6.9, (1 of hay block), 8.15, 38)
+    mining_registerBlock(tuff, 5.7, (1 of tuff), 52.85, 26)
+    mining_registerBlock(dripstone block, 6.0, (1 of dripstone block), 53.9, 29)
+    mining_registerBlock(packed mud, 6.3, (1 of packed mud), 54.95, 32)
+    mining_registerBlock(mud bricks, 6.6, (1 of mud bricks), 56, 35)
+    mining_registerBlock(hay block, 6.9, (1 of hay block), 57.05, 38)
 
     # ═══ MID-LATE (+4 per block) ═══
-    mining_registerBlock(packed ice, 7.2, (1 of packed ice), 8.3, 42)
-    mining_registerBlock(blue ice, 7.5, (1 of blue ice), 8.45, 46)
-    mining_registerBlock(magma block, 7.8, (1 of magma block), 8.6, 50)
-    mining_registerBlock(glowstone, 8.1, (1 of glowstone), 8.75, 54)
+    mining_registerBlock(packed ice, 7.2, (1 of packed ice), 58.1, 42)
+    mining_registerBlock(blue ice, 7.5, (1 of blue ice), 59.15, 46)
+    mining_registerBlock(magma block, 7.8, (1 of magma block), 60.2, 50)
+    mining_registerBlock(glowstone, 8.1, (1 of glowstone), 61.25, 54)
 
     # ═══ LATE GAME (+5 per block) ═══
-    mining_registerBlock(sea lantern, 8.4, (1 of sea lantern), 8.9, 59)
-    mining_registerBlock(obsidian, 8.7, (1 of obsidian), 9.05, 64)
-    mining_registerBlock(crying obsidian, 9.0, (1 of crying obsidian), 9.2, 69)
+    mining_registerBlock(sea lantern, 8.4, (1 of sea lantern), 62.3, 59)
+    mining_registerBlock(obsidian, 8.7, (1 of obsidian), 63.35, 64)
+    mining_registerBlock(crying obsidian, 9.0, (1 of crying obsidian), 64.4, 69)
 
     # ═══ ELITE (+6 per block) ═══
-    mining_registerBlock(amethyst block, 9.3, (1 of amethyst block), 9.35, 75)
-    mining_registerBlock(copper block, 9.6, (1 of copper block), 9.5, 81)
+    mining_registerBlock(amethyst block, 9.3, (1 of amethyst block), 65.45, 75)
+    mining_registerBlock(copper block, 9.6, (1 of copper block), 66.5, 81)
 
     # ═══ ENDGAME (+7 per block) ═══
-    mining_registerBlock(cut copper, 9.8, (1 of cut copper), 9.65, 88)
-    mining_registerBlock(ancient debris, 10.0, (1 of ancient debris), 9.85, 95)
-    mining_registerBlock(netherite block, 10.2, (1 of netherite block), 10, 102)
+    mining_registerBlock(cut copper, 9.8, (1 of cut copper), 67.55, 88)
+    mining_registerBlock(ancient debris, 10.0, (1 of ancient debris), 68.95, 95)
+    mining_registerBlock(netherite block, 10.2, (1 of netherite block), 70, 102)
     
     # Build sellable items list for quick lookup
     delete {mining.sellable::*}

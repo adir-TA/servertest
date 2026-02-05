@@ -172,26 +172,41 @@ function tutorial_isComplete(p: player) :: boolean:
 
 function tutorial_markComplete(p: player):
     set {data::tutorial-complete::%{_p}'s uuid%} to true
+    delete {data::tutorial-step::%{_p}'s uuid%}
+    delete {data::tutorial-blocks::%{_p}'s uuid%}
     tutorial_cleanup({_p})
 
 function tutorial_getStep(p: player) :: integer:
+    # Check persistent storage first
+    if {data::tutorial-step::%{_p}'s uuid%} is set:
+        return {data::tutorial-step::%{_p}'s uuid%}
+    # Fall back to temporary storage for backwards compatibility
     if {-tutorial::%{_p}'s uuid%::step} is set:
         return {-tutorial::%{_p}'s uuid%::step}
     return 0
 
 function tutorial_setStep(p: player, step: integer):
+    # Store in both temporary (for current session) and persistent storage
     set {-tutorial::%{_p}'s uuid%::step} to {_step}
+    set {data::tutorial-step::%{_p}'s uuid%} to {_step}
 
 function tutorial_getBlocks(p: player) :: integer:
+    # Check persistent storage first
+    if {data::tutorial-blocks::%{_p}'s uuid%} is set:
+        return {data::tutorial-blocks::%{_p}'s uuid%}
+    # Fall back to temporary storage for backwards compatibility
     if {-tutorial::%{_p}'s uuid%::blocks} is set:
         return {-tutorial::%{_p}'s uuid%::blocks}
     return 0
 
 function tutorial_addBlock(p: player):
+    # Store in both temporary and persistent storage
     add 1 to {-tutorial::%{_p}'s uuid%::blocks}
+    add 1 to {data::tutorial-blocks::%{_p}'s uuid%}
 
 function tutorial_resetBlocks(p: player):
     set {-tutorial::%{_p}'s uuid%::blocks} to 0
+    set {data::tutorial-blocks::%{_p}'s uuid%} to 0
 
 function tutorial_cleanup(p: player):
     set {_uuid} to {_p}'s uuid
@@ -1025,6 +1040,8 @@ command /tutorial [<text>] [<integer>]:
             loop enchant_getAllEnchantsIds():
                 enchant_setPlayerLevel(player, loop-value, 0)
             delete {data::tutorial-complete::%player's uuid%}
+            delete {data::tutorial-step::%player's uuid%}
+            delete {data::tutorial-blocks::%player's uuid%}
             delete {data::prestige::%player's uuid%}
             delete {mining::global::%player's uuid%::*}
             send "&aTutorial reset! Rejoin to restart."
