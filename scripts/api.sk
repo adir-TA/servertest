@@ -19,6 +19,7 @@
 #
 # PRESTIGE GLOBAL:
 #   %api_prestige_total%         - Total prestiges across all archetypes
+#   %api_prestige_total_formatted% - Total prestiges with GUI colors
 #   %api_prestige_points%        - Prestige currency points
 #
 # DEMOLITION:
@@ -148,6 +149,10 @@ placeholderapi placeholder with the prefix "api":
 
     if the identifier is "prestige_total":
         set the result to "%economy_getTotalPrestiges(player)%"
+        stop
+
+    if the identifier is "prestige_total_formatted":
+        set the result to prestige_getFormattedTotalPrestige(player)
         stop
 
     if the identifier is "prestige_points":

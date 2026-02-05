@@ -12,7 +12,7 @@ function chatFormat(p: player, x: text, hover: boolean = false) :: text:
     set {_archetype.name} to pickaxe_getArchetypeNameByID({_id})
 
     set {_level} to prestige_getFormattedLevel({_p}, {_archetype.name})
-    set {_prestige} to prestige_getFormattedPrestige({_p}, {_archetype.name})
+    set {_prestige} to prestige_getFormattedTotalPrestige({_p})
 
     return "%{_prestige}%&f[&f&k!%{_color}%&l%{_short}%&f. %{_level}%&f&k!&f] %{_p}'s prefix%&7%{_name}%%{tag::%{_p}'s uuid%} ? ""% &7▶ &f%{_message}%"
 

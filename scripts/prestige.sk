@@ -118,6 +118,51 @@ function prestige_getCurrentFormattedLevel(p: player) :: text:
         return prestige_getFormattedLevel({_p}, "arcane")
     return "&70"
 
+# Get formatted total prestige (across all archetypes)
+# Uses same color system as individual prestige display
+function prestige_getFormattedTotalPrestige(p: player) :: text:
+    set {_totalPrestige} to economy_getTotalPrestiges({_p})
+
+    if {_totalPrestige} = 0:
+        return ""
+
+    set {_roman} to {_totalPrestige} as roman numeral
+
+    # Color based on total prestige tier (same colors as prestige_getFormattedPrestige)
+    if {_totalPrestige} <= 1:
+        return "&7&l(%{_roman}%) "
+    else if {_totalPrestige} <= 2:
+        return "&f&l(%{_roman}%) "
+    else if {_totalPrestige} <= 3:
+        return "&a&l(%{_roman}%) "
+    else if {_totalPrestige} <= 4:
+        return "&2&l(%{_roman}%) "
+    else if {_totalPrestige} <= 5:
+        return "&b&l(%{_roman}%) "
+    else if {_totalPrestige} <= 6:
+        return "&3&l(%{_roman}%) "
+    else if {_totalPrestige} <= 7:
+        return "&9&l(%{_roman}%) "
+    else if {_totalPrestige} <= 8:
+        return "&5&l(%{_roman}%) "
+    else if {_totalPrestige} <= 9:
+        return "&d&l(%{_roman}%) "
+    else if {_totalPrestige} <= 10:
+        return "&6&l(%{_roman}%) "
+    else if {_totalPrestige} <= 12:
+        return "<#FF6B00>&l(%{_roman}%) "
+    else if {_totalPrestige} <= 14:
+        return "&c&l(%{_roman}%) "
+    else if {_totalPrestige} <= 16:
+        return "<#FF3366>&l(%{_roman}%) "
+    else if {_totalPrestige} <= 18:
+        return "<#AA00FF>&l(%{_roman}%) "
+    else if {_totalPrestige} <= 20:
+        return "<#00FFAA>&l(%{_roman}%) "
+    else:
+        # 21+ rainbow/special
+        return "<#FFD700>&l(✦%{_roman}%✦) "
+
 
 # ============================================================
 # PRESTIGE CORE FUNCTIONS
