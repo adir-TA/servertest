@@ -365,6 +365,13 @@ function research_applyReward(p: player, category: text, track: text, tier: numb
         set {_tierDesc} to {-research::config::pets::pet_fusion::tierDesc::%{_tier}%} ? "Pet Fusion Tier %{_tier}%"
         send "&d▶ &7Unlocked &6%{_tierDesc}%&7!" to {_p}
 
+    else if {_reward} = "pet_egg":
+        # Store highest egg tier unlocked (used by egg shop for validation)
+        set {data::research::%{_uuid}%::pets::pet_eggs} to {_tier}
+        # Get tier description
+        set {_tierDesc} to {-research::config::pets::pet_eggs::tierDesc::%{_tier}%} ? "Pet Egg Tier %{_tier}%"
+        send "&d▶ &7Unlocked &d%{_tierDesc}%&7!" to {_p}
+
     else if {_reward} = "acc_storage":
         set {_amount} to research_getTrackRewardAmount({_category}, {_track})
         set {_base} to research_getTrackBaseValue({_category}, {_track})
@@ -473,6 +480,12 @@ function research_getRewardDescription(category: text, track: text, tier: number
         if {_tierDesc} is set:
             return "&6%{_tierDesc}%"
         return "&6Pet Fusion Tier %{_tier}%"
+    else if {_reward} = "pet_egg":
+        # Use custom tier description from config
+        set {_tierDesc} to {-research::config::pets::pet_eggs::tierDesc::%{_tier}%}
+        if {_tierDesc} is set:
+            return "&d%{_tierDesc}%"
+        return "&dPet Egg Tier %{_tier}%"
     else if {_reward} = "gem_type":
         # Use custom tier description from config (gem names)
         set {_tierDesc} to {-research::config::gems::gem_types::tierDesc::%{_tier}%}
