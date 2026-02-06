@@ -78,6 +78,7 @@ function pet_openTierMenu(p: player):
         set slot 11 of {_menu} to {_normalEgg}
     else:
         set {_locked} to gray dye named "&8&l🔒 NORMAL EGG"
+        delete {_lockedLore::*}
         add menu_utils_getMenuItemFirstLoreLine() to {_lockedLore::*}
         add "" to {_lockedLore::*}
         add "&7This egg tier is locked." to {_lockedLore::*}
@@ -126,6 +127,7 @@ function pet_openTierMenu(p: player):
         set slot 13 of {_menu} to {_ultraEgg}
     else:
         set {_locked} to gray dye named "&8&l🔒 ULTRA EGG"
+        delete {_lockedLore::*}
         add menu_utils_getMenuItemFirstLoreLine() to {_lockedLore::*}
         add "" to {_lockedLore::*}
         add "&7This egg tier is locked." to {_lockedLore::*}
@@ -174,6 +176,7 @@ function pet_openTierMenu(p: player):
         set slot 15 of {_menu} to {_divineEgg}
     else:
         set {_locked} to gray dye named "&8&l🔒 DIVINE EGG"
+        delete {_lockedLore::*}
         add menu_utils_getMenuItemFirstLoreLine() to {_lockedLore::*}
         add "" to {_lockedLore::*}
         add "&7This egg tier is locked." to {_lockedLore::*}

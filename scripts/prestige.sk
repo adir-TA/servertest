@@ -264,7 +264,7 @@ function prestige_getMenuItem(p: player, archetype: text) :: item:
     set {_maxLevel} to prestige_getMaxLevel({_p}, {_archetype})
     set {_cost} to prestige_getCost({_p}, {_archetype})
     set {_balance} to economy_getMoney({_p})
-    set {_xpNeeded} to round(100 * {_level} ^ 1.2)
+    set {_xpNeeded} to mining_getXPRequired({_level})
     
     if {_archetype} = "demolition":
         set {_item} to tnt
@@ -488,7 +488,7 @@ function prestige_getStatLine(p: player, archetype: text) :: text:
     set {_xp} to {mining::%{_archetype}%::%{_uuid}%::xp} ? 0
     set {_prestige} to {mining::%{_archetype}%::%{_uuid}%::prestige} ? 0
     set {_maxLevel} to prestige_getMaxLevel({_p}, {_archetype})
-    set {_xpNeeded} to round(100 * {_level} ^ 1.2)
+    set {_xpNeeded} to mining_getXPRequired({_level})
 
     if {_archetype} = "demolition":
         set {_displayName} to "&c&lDemolition"

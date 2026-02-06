@@ -63,6 +63,14 @@
 # AVERAGE:
 #   %api_average_level%          - Average level across all 3 archetypes
 #
+# RESEARCH:
+#   %api_research_active%        - true/false if research is in progress
+#   %api_research_category%      - Current research category (e.g. "enchants")
+#   %api_research_track%         - Current research track display name
+#   %api_research_tier%          - Current research tier number
+#   %api_research_time%          - Remaining time formatted (e.g. "1h 30m 45s")
+#   %api_research_percent%       - Progress percentage (0-100)
+#
 # ============================================================
 
 placeholderapi placeholder with the prefix "api":
@@ -179,7 +187,7 @@ placeholderapi placeholder with the prefix "api":
 
     if the identifier is "demolition_xp_needed":
         set {_level} to {mining::demolition::%player's uuid%::level} ? 1
-        set {_val} to round(100 * {_level} ^ 1.2)
+        set {_val} to mining_getXPRequired({_level})
         set the result to "%{_val}%"
         stop
 
@@ -218,7 +226,7 @@ placeholderapi placeholder with the prefix "api":
 
     if the identifier is "precision_xp_needed":
         set {_level} to {mining::precision::%player's uuid%::level} ? 1
-        set {_val} to round(100 * {_level} ^ 1.2)
+        set {_val} to mining_getXPRequired({_level})
         set the result to "%{_val}%"
         stop
 
@@ -257,7 +265,7 @@ placeholderapi placeholder with the prefix "api":
 
     if the identifier is "arcane_xp_needed":
         set {_level} to {mining::arcane::%player's uuid%::level} ? 1
-        set {_val} to round(100 * {_level} ^ 1.2)
+        set {_val} to mining_getXPRequired({_level})
         set the result to "%{_val}%"
         stop
 
@@ -330,7 +338,7 @@ placeholderapi placeholder with the prefix "api":
             set the result to "100"
             stop
         set {_level} to {mining::%{_arch}%::%player's uuid%::level} ? 1
-        set {_val} to round(100 * {_level} ^ 1.2)
+        set {_val} to mining_getXPRequired({_level})
         set the result to "%{_val}%"
         stop
 
@@ -450,4 +458,53 @@ placeholderapi placeholder with the prefix "api":
         set {_arc} to {mining::arcane::%player's uuid%::level} ? 1
         set {_avg} to round((({_demo} + {_prec} + {_arc}) / 3) * 10) / 10
         set the result to "%{_avg}%"
+        stop
+
+    # ════════════════════════════════════════
+    # RESEARCH
+    # ════════════════════════════════════════
+
+    if the identifier is "research_active":
+        if research_hasActive(player) is true:
+            set the result to "true"
+        else:
+            set the result to "false"
+        stop
+
+    if the identifier is "research_category":
+        if research_hasActive(player) is false:
+            set the result to ""
+            stop
+        set the result to research_getActiveCategory(player)
+        stop
+
+    if the identifier is "research_track":
+        if research_hasActive(player) is false:
+            set the result to ""
+            stop
+        set {_category} to research_getActiveCategory(player)
+        set {_track} to research_getActiveTrack(player)
+        set the result to research_getTrackName({_category}, {_track})
+        stop
+
+    if the identifier is "research_tier":
+        if research_hasActive(player) is false:
+            set the result to "0"
+            stop
+        set the result to "%research_getActiveTier(player)%"
+        stop
+
+    if the identifier is "research_time":
+        if research_hasActive(player) is false:
+            set the result to ""
+            stop
+        set {_remaining} to research_getRemainingTime(player)
+        set the result to research_formatTime({_remaining})
+        stop
+
+    if the identifier is "research_percent":
+        if research_hasActive(player) is false:
+            set the result to "0"
+            stop
+        set the result to "%research_getProgressPercent(player)%"
         stop

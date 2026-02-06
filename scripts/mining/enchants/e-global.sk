@@ -15,7 +15,15 @@ function excavator_getBaseTokens(hardness: number) :: integer:
         return 20
     if {_hardness} <= 2.5:
         return 30
-    return 5
+    if {_hardness} <= 3.5:
+        return 45
+    if {_hardness} <= 5:
+        return 65
+    if {_hardness} <= 7:
+        return 90
+    if {_hardness} <= 9:
+        return 120
+    return 160
 
 
 function excavator_getBonusTokens(level: integer) :: integer:

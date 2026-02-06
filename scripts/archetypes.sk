@@ -224,4 +224,9 @@ function clickHandler_ArchetypeMenu(p: player, slot: slot, menu: inventory, inde
 
 command arc:
     trigger:
+        if tutorial_isComplete(player) is false:
+            if tutorial_getStep(player) < 14:
+                send "&c&lLOCKED &8| &7Complete more of the tutorial first!" to player
+                play sound "entity.villager.no" with volume 0.5 and pitch 1 to player
+                stop
         archetype_menu_selection(player)
