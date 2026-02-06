@@ -227,13 +227,18 @@ command /scrap [<text>] [<text>] [<text>] [<text>]:
             if {_target} is not set:
                 send "&cPlayer &7%{_targetName}% &cis not online."
                 stop
+            set {_sCommon} to scrap_get({_target}, "common")
+            set {_sUncommon} to scrap_get({_target}, "uncommon")
+            set {_sRare} to scrap_get({_target}, "rare")
+            set {_sEpic} to scrap_get({_target}, "epic")
+            set {_sLegendary} to scrap_get({_target}, "legendary")
             send ""
             send "&6&lScrap Balance: &f%{_target}%"
-            send " &7Common: &f%scrap_get({_target}, ""common"")%"
-            send " &aUncommon: &f%scrap_get({_target}, ""uncommon"")%"
-            send " &9Rare: &f%scrap_get({_target}, ""rare"")%"
-            send " &dEpic: &f%scrap_get({_target}, ""epic"")%"
-            send " &6Legendary: &f%scrap_get({_target}, ""legendary"")%"
+            send " &7Common: &f%{_sCommon}%"
+            send " &aUncommon: &f%{_sUncommon}%"
+            send " &9Rare: &f%{_sRare}%"
+            send " &dEpic: &f%{_sEpic}%"
+            send " &6Legendary: &f%{_sLegendary}%"
             send ""
             stop
 

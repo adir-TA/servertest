@@ -547,23 +547,28 @@ placeholderapi placeholder with the prefix "api":
     # ════════════════════════════════════════
 
     if the identifier is "scrap_common":
-        set the result to "%scrap_get(player, ""common"")%"
+        set {_val} to scrap_get(player, "common")
+        set the result to "%{_val}%"
         stop
 
     if the identifier is "scrap_uncommon":
-        set the result to "%scrap_get(player, ""uncommon"")%"
+        set {_val} to scrap_get(player, "uncommon")
+        set the result to "%{_val}%"
         stop
 
     if the identifier is "scrap_rare":
-        set the result to "%scrap_get(player, ""rare"")%"
+        set {_val} to scrap_get(player, "rare")
+        set the result to "%{_val}%"
         stop
 
     if the identifier is "scrap_epic":
-        set the result to "%scrap_get(player, ""epic"")%"
+        set {_val} to scrap_get(player, "epic")
+        set the result to "%{_val}%"
         stop
 
     if the identifier is "scrap_legendary":
-        set the result to "%scrap_get(player, ""legendary"")%"
+        set {_val} to scrap_get(player, "legendary")
+        set the result to "%{_val}%"
         stop
 
     if the identifier is "scrap_formatted":

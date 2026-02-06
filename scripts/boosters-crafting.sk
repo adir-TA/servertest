@@ -128,11 +128,16 @@ function craft_openMenu(p: player, page: number):
     delete {_balLore::*}
     add "&8ʙᴀʟᴀɴᴄᴇ" to {_balLore::*}
     add "" to {_balLore::*}
-    add " &7Common: &f%scrap_get({_p}, ""common"")%" to {_balLore::*}
-    add " &aUncommon: &f%scrap_get({_p}, ""uncommon"")%" to {_balLore::*}
-    add " &9Rare: &f%scrap_get({_p}, ""rare"")%" to {_balLore::*}
-    add " &dEpic: &f%scrap_get({_p}, ""epic"")%" to {_balLore::*}
-    add " &6Legendary: &f%scrap_get({_p}, ""legendary"")%" to {_balLore::*}
+    set {_sCommon} to scrap_get({_p}, "common")
+    set {_sUncommon} to scrap_get({_p}, "uncommon")
+    set {_sRare} to scrap_get({_p}, "rare")
+    set {_sEpic} to scrap_get({_p}, "epic")
+    set {_sLegendary} to scrap_get({_p}, "legendary")
+    add " &7Common: &f%{_sCommon}%" to {_balLore::*}
+    add " &aUncommon: &f%{_sUncommon}%" to {_balLore::*}
+    add " &9Rare: &f%{_sRare}%" to {_balLore::*}
+    add " &dEpic: &f%{_sEpic}%" to {_balLore::*}
+    add " &6Legendary: &f%{_sLegendary}%" to {_balLore::*}
     add "" to {_balLore::*}
     add "&7Tokens: &e%formatNum(economy_getTokens({_p}))%" to {_balLore::*}
     set lore of {_balanceItem} to {_balLore::*}
@@ -408,7 +413,7 @@ function craft_executeCraft(p: player, recipeId: number):
         play sound "entity.villager.no" with volume 0.5 and pitch 1 to {_p}
         set {_page} to {-craft::page::%{_uuid}%} ? 1
         craft_openMenu({_p}, {_page})
-        return
+        stop
 
     # Validate tokens
     if economy_hasTokens({_p}, {_tokenCost}) is false:
@@ -416,7 +421,7 @@ function craft_executeCraft(p: player, recipeId: number):
         play sound "entity.villager.no" with volume 0.5 and pitch 1 to {_p}
         set {_page} to {-craft::page::%{_uuid}%} ? 1
         craft_openMenu({_p}, {_page})
-        return
+        stop
 
     # Check booster storage space
     set {_storageSize} to booster_getStorageSize({_p})
@@ -426,7 +431,7 @@ function craft_executeCraft(p: player, recipeId: number):
         play sound "entity.villager.no" with volume 0.5 and pitch 1 to {_p}
         set {_page} to {-craft::page::%{_uuid}%} ? 1
         craft_openMenu({_p}, {_page})
-        return
+        stop
 
     # Deduct costs
     scrap_remove({_p}, {_scrapRarity}, {_scrapAmount})
