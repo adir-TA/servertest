@@ -70,6 +70,8 @@
 #   %api_research_tier%          - Current research tier number
 #   %api_research_time%          - Remaining time formatted (e.g. "1h 30m 45s")
 #   %api_research_percent%       - Progress percentage (0-100)
+#   %api_research_line1%         - TAB: "Researching: Category → Track (T#)" or "No active research"
+#   %api_research_line2%         - TAB: "Time left (Percent%)" or "Use /research to start!"
 #
 # ============================================================
 
@@ -507,4 +509,27 @@ placeholderapi placeholder with the prefix "api":
             set the result to "&7-"
             stop
         set the result to "%research_getProgressPercent(player)%"
+        stop
+
+    # Pre-formatted lines for TAB display
+    if the identifier is "research_line1":
+        if research_hasActive(player) is false:
+            set the result to "&7No active research"
+            stop
+        set {_category} to research_getActiveCategory(player)
+        set {_track} to research_getActiveTrack(player)
+        set {_tier} to research_getActiveTier(player)
+        set {_trackName} to research_getTrackName({_category}, {_track})
+        set {_catName} to {_category} in proper case
+        set the result to "&dResearching: &f%{_catName}% &7→ &f%{_trackName}% &7(T%{_tier}%)"
+        stop
+
+    if the identifier is "research_line2":
+        if research_hasActive(player) is false:
+            set the result to "&7Use &d/research &7to start!"
+            stop
+        set {_remaining} to research_getRemainingTime(player)
+        set {_time} to research_formatTime({_remaining})
+        set {_percent} to research_getProgressPercent(player)
+        set the result to "&e%{_time}% &7left &8(%{_percent}%%%)"
         stop
