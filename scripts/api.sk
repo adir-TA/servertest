@@ -473,14 +473,14 @@ placeholderapi placeholder with the prefix "api":
 
     if the identifier is "research_category":
         if research_hasActive(player) is false:
-            set the result to ""
+            set the result to "&7None"
             stop
         set the result to research_getActiveCategory(player)
         stop
 
     if the identifier is "research_track":
         if research_hasActive(player) is false:
-            set the result to ""
+            set the result to "&7None"
             stop
         set {_category} to research_getActiveCategory(player)
         set {_track} to research_getActiveTrack(player)
@@ -489,14 +489,14 @@ placeholderapi placeholder with the prefix "api":
 
     if the identifier is "research_tier":
         if research_hasActive(player) is false:
-            set the result to "0"
+            set the result to "&7-"
             stop
         set the result to "%research_getActiveTier(player)%"
         stop
 
     if the identifier is "research_time":
         if research_hasActive(player) is false:
-            set the result to ""
+            set the result to "&7-"
             stop
         set {_remaining} to research_getRemainingTime(player)
         set the result to research_formatTime({_remaining})
@@ -504,7 +504,7 @@ placeholderapi placeholder with the prefix "api":
 
     if the identifier is "research_percent":
         if research_hasActive(player) is false:
-            set the result to "0"
+            set the result to "&7-"
             stop
         set the result to "%research_getProgressPercent(player)%"
         stop
