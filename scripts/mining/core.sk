@@ -570,8 +570,11 @@ function mining_getMaxLevel(p: player, archetype: text) :: number:
     return 50 + ({_prestige} * 25)
 
 function mining_getXPRequired(level: number) :: number:
-    # Easy leveling - fast early, moderate scaling
-    return round(50 * {_level} ^ 1.03)
+    # Levels 1-15: easy (low exponent, fast progression)
+    if {_level} <= 15:
+        return round(40 * {_level} ^ 1.05)
+    # Levels 16+: steeper scaling
+    return round(40 * {_level} ^ 1.45)
 
 function mining_calculateXP(hardness: number) :: number:
     set {_base} to random integer between 5 and 15

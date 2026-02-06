@@ -8,32 +8,32 @@
 
 function excavator_getBaseTokens(hardness: number) :: integer:
     if {_hardness} <= 1:
-        return 5
+        return 3
     if {_hardness} <= 1.5:
-        return 10
+        return 7
     if {_hardness} <= 2:
-        return 20
+        return 14
     if {_hardness} <= 2.5:
-        return 30
+        return 20
     if {_hardness} <= 3.5:
-        return 45
+        return 30
     if {_hardness} <= 5:
-        return 65
+        return 45
     if {_hardness} <= 7:
-        return 90
+        return 60
     if {_hardness} <= 9:
-        return 120
-    return 160
+        return 80
+    return 110
 
 
 function excavator_getBonusTokens(level: integer) :: integer:
-    set {_maxBonus} to ceil({_level} / 5)
+    set {_maxBonus} to ceil({_level} / 7)
     if {_maxBonus} < 1:
-        set {_maxBonus} to 5
+        set {_maxBonus} to 3
     if {_maxBonus} > 5:
-        set {_maxBonus} to 15
-    
-    return random integer between 5 and {_maxBonus}
+        set {_maxBonus} to 10
+
+    return random integer between 3 and {_maxBonus}
 
 
 # Returns NEGATIVE if magnet procced, POSITIVE otherwise

@@ -355,7 +355,10 @@ function mining_giveDrops(p: player, block: item, fortuneLevel: integer = 0, mul
 
     set {_amount} to item amount of {_drop}
     if {_fortuneLevel} > 0:
-        set {_bonus} to random integer between 0 and {_fortuneLevel}
+        set {_fortuneCap} to floor({_fortuneLevel} * 0.5)
+        if {_fortuneCap} < 1:
+            set {_fortuneCap} to 1
+        set {_bonus} to random integer between 0 and {_fortuneCap}
         add {_bonus} to {_amount}
 
     set {_amount} to {_amount} * {_multiplier}
