@@ -583,18 +583,16 @@ function mining_addArchetypeXP(p: player, archetype: text, amount: number):
     set {_currentLevel} to {mining::%{_archetype}%::%{_uuid}%::level} ? 1
     set {_maxLevel} to mining_getMaxLevel({_p}, {_archetype})
 
-    # At max level - show prestige reminder periodically
+    # At max level - block XP gain and notify player
     if {_currentLevel} >= {_maxLevel}:
-        # Clear any excess XP
         set {mining::%{_archetype}%::%{_uuid}%::xp} to 0
-        # Track blocks mined at max level for periodic reminder
-        if {-maxLevelBlocks::%{_uuid}%} is not set:
-            set {-maxLevelBlocks::%{_uuid}%} to 0
-        add 1 to {-maxLevelBlocks::%{_uuid}%}
-        # Show reminder every 50 blocks
-        if mod({-maxLevelBlocks::%{_uuid}%}, 50) = 0:
-            send action bar "&c&lMAX LEVEL! &7Use &6/prestige &7to keep progressing!" to {_p}
-            play sound "block.note_block.bass" with volume 0.3 and pitch 0.5 to {_p}
+        # Throttled chat notification (like inventory full)
+        if {-prestigeReminder::%{_uuid}%::cooldown} is not set:
+            send "&d&l! &7You are max level! Use &6/prestige &7to keep progressing!" to {_p}
+            play sound "block.note_block.bass" with volume 0.5 and pitch 0.8 to {_p}
+            set {-prestigeReminder::%{_uuid}%::cooldown} to true
+            wait 10 seconds
+            delete {-prestigeReminder::%{_uuid}%::cooldown}
         stop
 
     add {_amount} to {_currentXP}

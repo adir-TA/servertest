@@ -147,12 +147,10 @@ function acc_openBagGui(p: player):
     delete {_chestsLore::*}
     add "&8ᴍᴇɴᴜ" to {_chestsLore::*}
     add "" to {_chestsLore::*}
-    add "&7Open treasure chests to" to {_chestsLore::*}
-    add "&7obtain new accessories!" to {_chestsLore::*}
+    add "&7Visit the &6Treasure Altar" to {_chestsLore::*}
+    add "&7to open chests with your keys!" to {_chestsLore::*}
     add "" to {_chestsLore::*}
     add "&7Your Keys: &e%{_totalKeys}%" to {_chestsLore::*}
-    add "" to {_chestsLore::*}
-    add "&eClick to open" to {_chestsLore::*}
     set lore of {_chests} to {_chestsLore::*}
     set string tag "acc;action" of custom nbt of {_chests} to "chests"
     set slot 32 of {_menu} to {_chests}
@@ -232,8 +230,8 @@ on inventory click:
             stop
         
         if {_action} is "chests":
-            play sound "ui.button.click" with volume 0.5 and pitch 1 to player
-            acc_openChestsGui(player)
+            send "&c&l! &7Visit the &6Treasure Altar &7to open chests with your keys!" to player
+            play sound "entity.villager.no" with volume 0.5 and pitch 1 to player
             stop
         
         if {_action} is "unlock_slot":
