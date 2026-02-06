@@ -246,30 +246,34 @@ function milestone_getPrestigeRewards(milestone: integer) :: texts:
 
     if {_isWall} is true:
         # WALL milestone - much better rewards
-        set {_tokens} to 15000 * {_milestone}
-        set {_prestigePoints} to 150 * ({_milestone} / 25)
+        set {_tokens} to 20000 * {_milestone}
+        set {_prestigePoints} to 200 * ({_milestone} / 25)
         add "tokens:%{_tokens}%" to {_rewards::*}
         add "prestige_points:%{_prestigePoints}%" to {_rewards::*}
 
-        # Scrap rewards for walls
+        # Scrap rewards for walls - significantly better
         if {_milestone} >= 100:
-            add "scrap:legendary:20" to {_rewards::*}
+            add "scrap:legendary:40" to {_rewards::*}
+            add "scrap:epic:20" to {_rewards::*}
         else if {_milestone} >= 75:
+            add "scrap:legendary:15" to {_rewards::*}
+            add "scrap:epic:35" to {_rewards::*}
+        else if {_milestone} >= 50:
             add "scrap:epic:25" to {_rewards::*}
-        else if {_milestone} >= 50:
-            add "scrap:rare:30" to {_rewards::*}
+            add "scrap:rare:40" to {_rewards::*}
         else:
-            add "scrap:uncommon:40" to {_rewards::*}
+            add "scrap:rare:30" to {_rewards::*}
+            add "scrap:uncommon:50" to {_rewards::*}
 
-        # Key rewards based on milestone tier
+        # Key rewards based on milestone tier - more keys
         if {_milestone} >= 100:
-            add "key:celestial:3" to {_rewards::*}
+            add "key:celestial:5" to {_rewards::*}
         else if {_milestone} >= 75:
-            add "key:mythic:4" to {_rewards::*}
+            add "key:mythic:6" to {_rewards::*}
         else if {_milestone} >= 50:
-            add "key:divine:6" to {_rewards::*}
+            add "key:divine:8" to {_rewards::*}
         else if {_milestone} >= 25:
-            add "key:ultra:12" to {_rewards::*}
+            add "key:ultra:15" to {_rewards::*}
 
         # Wall booster rewards (better than blocks walls)
         if {_milestone} >= 100:
@@ -281,28 +285,31 @@ function milestone_getPrestigeRewards(milestone: integer) :: texts:
         else:
             add "booster:ultra|epic|xp:60,token:40|2400" to {_rewards::*}
     else:
-        # Regular milestone - smaller rewards
-        set {_tokens} to 1500 * {_milestone}
+        # Regular milestone - decent rewards
+        set {_tokens} to 2500 * {_milestone}
         add "tokens:%{_tokens}%" to {_rewards::*}
 
-        # Scrap rewards every milestone
-        if {_milestone} >= 60:
-            add "scrap:epic:3" to {_rewards::*}
-        else if {_milestone} >= 30:
-            add "scrap:rare:4" to {_rewards::*}
+        # Scrap rewards every milestone - better tiers earlier
+        if {_milestone} >= 80:
+            add "scrap:legendary:3" to {_rewards::*}
+            add "scrap:epic:5" to {_rewards::*}
+        else if {_milestone} >= 50:
+            add "scrap:epic:6" to {_rewards::*}
+        else if {_milestone} >= 25:
+            add "scrap:rare:8" to {_rewards::*}
         else if {_milestone} >= 10:
-            add "scrap:uncommon:5" to {_rewards::*}
+            add "scrap:uncommon:10" to {_rewards::*}
         else:
-            add "scrap:common:6" to {_rewards::*}
+            add "scrap:common:12" to {_rewards::*}
 
-        # Key rewards for milestones divisible by 5
+        # Key rewards for milestones divisible by 5 - more keys
         if mod({_milestone}, 5) = 0:
             if {_milestone} >= 50:
-                add "key:divine:1" to {_rewards::*}
+                add "key:divine:2" to {_rewards::*}
             else if {_milestone} >= 20:
-                add "key:ultra:2" to {_rewards::*}
+                add "key:ultra:3" to {_rewards::*}
             else:
-                add "key:normal:3" to {_rewards::*}
+                add "key:normal:4" to {_rewards::*}
 
         # Booster rewards every 5th milestone (better than blocks)
         if mod({_milestone}, 5) = 0:

@@ -473,6 +473,11 @@ function pet_playOpeningSequence(p: player, tier: text, amount: number, altarLoc
     
     # Roll all pets and setup data
     set {_totalSalvageTokens} to 0
+    set {_totalSalvageScrap::common} to 0
+    set {_totalSalvageScrap::uncommon} to 0
+    set {_totalSalvageScrap::rare} to 0
+    set {_totalSalvageScrap::epic} to 0
+    set {_totalSalvageScrap::legendary} to 0
     set {_salvageCount} to 0
     set {_keptCount} to 0
     loop {_amount} times:
@@ -494,9 +499,11 @@ function pet_playOpeningSequence(p: player, tier: text, amount: number, altarLoc
             set {_results::%{_i}%::isNew} to false
 
         if {_shouldSalvage} is true:
-            # Auto-salvage: don't create pet, track tokens
+            # Auto-salvage: don't create pet, track tokens and scrap
             set {_salvageValue} to pet_getSalvageValue({_rarity})
             add {_salvageValue} to {_totalSalvageTokens}
+            set {_scrapAmt} to scrap_getSalvageAmount({_rarity})
+            add {_scrapAmt} to {_totalSalvageScrap::%{_rarity}%}
             add 1 to {_salvageCount}
             set {_results::%{_i}%::salvageValue} to {_salvageValue}
             # Still track discovery even if salvaged
@@ -547,6 +554,12 @@ function pet_playOpeningSequence(p: player, tier: text, amount: number, altarLoc
     if {_totalSalvageTokens} > 0:
         mining_giveTokens({_p}, {_totalSalvageTokens})
 
+    # Give salvage scrap per rarity
+    loop "common", "uncommon", "rare", "epic" and "legendary":
+        set {_scrapVal} to {_totalSalvageScrap::%loop-value%} ? 0
+        if {_scrapVal} > 0:
+            scrap_add({_p}, loop-value, {_scrapVal})
+
     # ════════════════════════════════════════
     # SKIP ANIMATION (if option enabled)
     # ════════════════════════════════════════
@@ -569,6 +582,12 @@ function pet_playOpeningSequence(p: player, tier: text, amount: number, altarLoc
             send "&7Use &e/pets &7to view and equip them!" to {_p}
         if {_salvageCount} > 0:
             send "&8Auto-salvaged %{_salvageCount}% pets: &6+%{_totalSalvageTokens}% tokens" to {_p}
+            # Show scrap from auto-salvage
+            loop "common", "uncommon", "rare", "epic" and "legendary":
+                set {_scrapVal} to {_totalSalvageScrap::%loop-value%} ? 0
+                if {_scrapVal} > 0:
+                    set {_scrapName} to scrap_getName(loop-value)
+                    send "&8 + &a%{_scrapVal}%x %{_scrapName}%" to {_p}
         send "" to {_p}
         delete {-pet::opening::%{_p}'s uuid%}
         stop
@@ -933,8 +952,14 @@ function pet_playOpeningSequence(p: player, tier: text, amount: number, altarLoc
         send "&7Use &e/pets &7to view and equip them!" to {_p}
     if {_salvageCount} > 0:
         send "&8Auto-salvaged %{_salvageCount}% pets: &6+%{_totalSalvageTokens}% tokens" to {_p}
+        # Show scrap from auto-salvage
+        loop "common", "uncommon", "rare", "epic" and "legendary":
+            set {_scrapVal} to {_totalSalvageScrap::%loop-value%} ? 0
+            if {_scrapVal} > 0:
+                set {_scrapName} to scrap_getName(loop-value)
+                send "&8 + &a%{_scrapVal}%x %{_scrapName}%" to {_p}
     send "" to {_p}
-    
+
     delete {-pet::opening::%{_p}'s uuid%}
 
 

@@ -24,30 +24,30 @@ on script load:
     delete {-craft::recipeCount}
 
     # ─── Basic Tier ───
-    craft_registerRecipe("basic|common|xp:25|600", "common", 10, 50)
-    craft_registerRecipe("basic|common|drops:20|600", "common", 10, 50)
-    craft_registerRecipe("basic|common|mining_speed:20|600", "common", 14, 75)
-    craft_registerRecipe("basic|uncommon|xp:30|900", "uncommon", 8, 150)
-    craft_registerRecipe("basic|uncommon|token:25|900", "uncommon", 8, 150)
+    craft_registerRecipe("basic|common|xp:25|600", "common", 12, 100)
+    craft_registerRecipe("basic|common|drops:20|600", "common", 12, 100)
+    craft_registerRecipe("basic|common|mining_speed:20|600", "common", 16, 150)
+    craft_registerRecipe("basic|uncommon|xp:30|900", "uncommon", 10, 300)
+    craft_registerRecipe("basic|uncommon|token:25|900", "uncommon", 10, 300)
 
     # ─── Advanced Tier ───
-    craft_registerRecipe("advanced|rare|xp:40,token:20|1200", "rare", 12, 500)
-    craft_registerRecipe("advanced|rare|mining_speed:30|1200", "rare", 15, 600)
-    craft_registerRecipe("advanced|rare|drops:30,money:15|1200", "rare", 12, 500)
+    craft_registerRecipe("advanced|rare|xp:40,token:20|1200", "rare", 14, 1000)
+    craft_registerRecipe("advanced|rare|mining_speed:30|1200", "rare", 18, 1200)
+    craft_registerRecipe("advanced|rare|drops:30,money:15|1200", "rare", 14, 1000)
 
     # ─── Ultra Tier ───
-    craft_registerRecipe("ultra|epic|xp:50,token:30|1800", "epic", 15, 2000)
-    craft_registerRecipe("ultra|epic|mining_speed:40,drops:25|1800", "epic", 20, 2500)
-    craft_registerRecipe("ultra|epic|enchant_proc:35,xp:30|1800", "epic", 20, 2800)
-    craft_registerRecipe("ultra|rare|damage:40,durability:20|1200", "rare", 15, 800)
+    craft_registerRecipe("ultra|epic|xp:50,token:30|1800", "epic", 18, 4000)
+    craft_registerRecipe("ultra|epic|mining_speed:40,drops:25|1800", "epic", 24, 5000)
+    craft_registerRecipe("ultra|epic|enchant_proc:35,xp:30|1800", "epic", 24, 5500)
+    craft_registerRecipe("ultra|rare|damage:40,durability:20|1200", "rare", 18, 1500)
 
     # ─── Divine Tier ───
-    craft_registerRecipe("divine|legendary|xp:70,token:50|3600", "legendary", 20, 5000)
-    craft_registerRecipe("divine|epic|xp:60,drops:40,money:30|2400", "epic", 20, 3500)
-    craft_registerRecipe("divine|legendary|mining_speed:50,enchant_proc:40|3600", "legendary", 25, 6500)
+    craft_registerRecipe("divine|legendary|xp:70,token:50|3600", "legendary", 25, 10000)
+    craft_registerRecipe("divine|epic|xp:60,drops:40,money:30|2400", "epic", 22, 7000)
+    craft_registerRecipe("divine|legendary|mining_speed:50,enchant_proc:40|3600", "legendary", 30, 13000)
 
     # ─── Mythic Tier ───
-    craft_registerRecipe("mythic|legendary|xp:100,token:80,drops:60|7200", "legendary", 25, 10000)
+    craft_registerRecipe("mythic|legendary|xp:100,token:80,drops:60|7200", "legendary", 30, 20000)
 
 
 function craft_registerRecipe(boosterEncoded: text, scrapRarity: text, scrapAmount: number, tokenCost: number):

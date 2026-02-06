@@ -5,12 +5,19 @@
 # Spawns fake item displays for each equipped pet that follow
 # the player around. All packet-based (client-side only).
 #
+# Also supports viewers (other players seeing your pets) via
+# the "see_other_pets" option.
+#
 # Variables:
 #   {-pet::follow::%uuid%::loop}            → Loop control flag
 #   {-guard::pet-follow::%uuid%}            → Prevents duplicate loops
 #   {-pet::follow::%uuid%::ids::%petId%}    → Display entity ID
 #   {-pet::follow::%uuid%::text::%petId%}   → Nametag text entity ID
 #   {-pet::follow::%uuid%::tick}            → Tick counter for bobbing
+#   {-pet::follow::%uuid%::v_id::%viewerUuid%::%petId%}  → Viewer display ID
+#   {-pet::follow::%uuid%::v_txt::%viewerUuid%::%petId%} → Viewer text ID
+#   {-pet::follow::%uuid%::v_out::%viewerUuid%::%petId%} → Viewer outer glow ID
+#   {-pet::follow::%uuid%::viewers::*}      → List of current viewer UUIDs
 #
 # ============================================================
 
@@ -24,7 +31,7 @@ function petFollow_spawn(p: player, petId: text):
     set {_uuid} to {_p}'s uuid
 
     # Check if player has pet displays disabled
-    if options_getBool({_p}, "see_other_pets", true) is false:
+    if options_getBool({_p}, "pet_displays", true) is false:
         stop
 
     # Don't double-spawn
@@ -133,6 +140,13 @@ function petFollow_despawn(p: player, petId: text):
         remove fake entity with id {_outerGlowId} for {_p}
         delete {-pet::follow::%{_uuid}%::outer::%{_petId}%}
 
+    # Also despawn for all viewers
+    loop {-pet::follow::%{_uuid}%::viewers::*}:
+        set {_viewerUuid} to loop-value
+        set {_viewer} to {_viewerUuid} parsed as offline player
+        if {_viewer} is online:
+            petFollow_despawnViewerPet({_p}, {_viewer}, {_petId})
+
 
 # Spawns displays for ALL currently equipped pets
 function petFollow_spawnAll(p: player):
@@ -144,8 +158,22 @@ function petFollow_spawnAll(p: player):
 # Despawns ALL pet follow displays for a player
 function petFollow_despawnAll(p: player):
     set {_uuid} to {_p}'s uuid
+
+    # Despawn for all viewers first
+    petFollow_despawnAllViewers({_p})
+
     loop {pet::equipped::%{_uuid}%::*}:
-        petFollow_despawn({_p}, loop-value)
+        set {_petId} to loop-value
+        set {_displayId} to {-pet::follow::%{_uuid}%::ids::%{_petId}%}
+        set {_textId} to {-pet::follow::%{_uuid}%::text::%{_petId}%}
+        set {_outerGlowId} to {-pet::follow::%{_uuid}%::outer::%{_petId}%}
+        if {_displayId} is set:
+            remove fake entity with id {_displayId} for {_p}
+        if {_textId} is set:
+            remove fake entity with id {_textId} for {_p}
+        if {_outerGlowId} is set:
+            remove fake entity with id {_outerGlowId} for {_p}
+
     # Cleanup any orphaned IDs
     delete {-pet::follow::%{_uuid}%::ids::*}
     delete {-pet::follow::%{_uuid}%::text::*}
@@ -157,7 +185,10 @@ function petFollow_despawnAll(p: player):
 function petFollow_refreshAll(p: player):
     set {_uuid} to {_p}'s uuid
 
-    # Remove all existing displays
+    # Remove all viewer entities first (they'll be re-spawned by the loop)
+    petFollow_despawnAllViewers({_p})
+
+    # Remove all existing owner displays
     loop {-pet::follow::%{_uuid}%::ids::*}:
         remove fake entity with id loop-value for {_p}
     loop {-pet::follow::%{_uuid}%::text::*}:
@@ -229,39 +260,54 @@ function petFollow_startLoop(p: player):
         set {_arcSpread} to min(150, 40 * {_count})
 
         set {_petIndex} to 0
+        delete {_petIds::*}
+        delete {_petTargetLocs::*}
+        delete {_petTextLocs::*}
+        delete {_petQy::*}
+        delete {_petQw::*}
+
         loop {pet::equipped::%{_uuid}%::*}:
             set {_petId} to loop-value
             set {_displayId} to {-pet::follow::%{_uuid}%::ids::%{_petId}%}
             set {_textId} to {-pet::follow::%{_uuid}%::text::%{_petId}%}
             set {_outerGlowId} to {-pet::follow::%{_uuid}%::outer::%{_petId}%}
 
-            # Skip if not spawned
+            # Calculate position in arc behind player
+            if {_count} = 1:
+                set {_angle} to {_pYaw}
+            else:
+                set {_halfArc} to {_arcSpread} / 2
+                set {_step} to {_arcSpread} / ({_count} - 1)
+                set {_angle} to {_pYaw} - {_halfArc} + ({_petIndex} * {_step})
+
+            # Convert to position (behind = +sin, -cos in MC yaw convention)
+            set {_targetX} to {_pX} + ({_radius} * sin({_angle}))
+            set {_targetZ} to {_pZ} - ({_radius} * cos({_angle}))
+
+            # Bobbing offset unique per pet
+            set {_bobPhase} to ({_tick} * 72) + ({_petIndex} * 60)
+            set {_bobY} to sin({_bobPhase}) * 0.1
+            set {_targetY} to {_pY} + 0.5 + {_bobY}
+
+            set {_targetLoc} to location({_targetX}, {_targetY}, {_targetZ}, {_world})
+            set {_textLoc} to location({_targetX}, {_targetY} + 0.4, {_targetZ}, {_world})
+
+            # Calculate facing toward player
+            set {_faceYaw} to petFollow_calcYaw({_targetX}, {_targetZ}, {_pX}, {_pZ})
+            set {_qy} to sin({_faceYaw} / 2)
+            set {_qw} to cos({_faceYaw} / 2)
+
+            # Store computed positions for viewer updates
+            add {_petId} to {_petIds::*}
+            set {_petTargetLocs::%{_petId}%} to {_targetLoc}
+            set {_petTextLocs::%{_petId}%} to {_textLoc}
+            set {_petQy::%{_petId}%} to {_qy}
+            set {_petQw::%{_petId}%} to {_qw}
+
+            # Update owner displays (skip if not spawned)
             if {_displayId} is set:
-                # Calculate position in arc behind player
-                if {_count} = 1:
-                    set {_angle} to {_pYaw}
-                else:
-                    set {_halfArc} to {_arcSpread} / 2
-                    set {_step} to {_arcSpread} / ({_count} - 1)
-                    set {_angle} to {_pYaw} - {_halfArc} + ({_petIndex} * {_step})
-
-                # Convert to position (behind = +sin, -cos in MC yaw convention)
-                set {_targetX} to {_pX} + ({_radius} * sin({_angle}))
-                set {_targetZ} to {_pZ} - ({_radius} * cos({_angle}))
-
-                # Bobbing offset unique per pet
-                set {_bobPhase} to ({_tick} * 72) + ({_petIndex} * 60)
-                set {_bobY} to sin({_bobPhase}) * 0.1
-                set {_targetY} to {_pY} + 0.5 + {_bobY}
-
                 # Teleport pet display (inner glow)
-                set {_targetLoc} to location({_targetX}, {_targetY}, {_targetZ}, {_world})
                 send teleport packet with id {_displayId} with location {_targetLoc} to {_p}
-
-                # Calculate facing toward player
-                set {_faceYaw} to petFollow_calcYaw({_targetX}, {_targetZ}, {_pX}, {_pZ})
-                set {_qy} to sin({_faceYaw} / 2)
-                set {_qw} to cos({_faceYaw} / 2)
 
                 set {_m} to new metadata packet with id {_displayId}:
                     display rotation left: 0, {_qy}, 0, {_qw}
@@ -276,11 +322,71 @@ function petFollow_startLoop(p: player):
 
                 # Teleport nametag above pet
                 if {_textId} is set:
-                    set {_textLoc} to location({_targetX}, {_targetY} + 0.4, {_targetZ}, {_world})
                     send teleport packet with id {_textId} with location {_textLoc} to {_p}
 
-                add 1 to {_petIndex}
+            add 1 to {_petIndex}
 
+        # ════════════════════════════════════════
+        # VIEWER UPDATES (other players seeing this player's pets)
+        # ════════════════════════════════════════
+
+        # Build set of current nearby viewers
+        delete {_currentViewers::*}
+        loop all players in radius 30 around {_p}:
+            set {_viewer} to loop-player
+            if {_viewer} is not {_p}:
+                if options_getBool({_viewer}, "see_other_pets", true) is true:
+                    set {_viewerUuid} to {_viewer}'s uuid
+                    add {_viewerUuid} to {_currentViewers::*}
+
+                    # Spawn viewer entities if not already spawned
+                    if {-pet::follow::%{_uuid}%::viewers::*} does not contain {_viewerUuid}:
+                        add {_viewerUuid} to {-pet::follow::%{_uuid}%::viewers::*}
+                        # Spawn all equipped pets for this viewer
+                        loop {_petIds::*}:
+                            petFollow_spawnViewerPet({_p}, {_viewer}, loop-value-2)
+
+        # Update existing viewer positions
+        loop {-pet::follow::%{_uuid}%::viewers::*}:
+            set {_viewerUuid} to loop-value
+            set {_viewer} to {_viewerUuid} parsed as offline player
+
+            # Check if viewer should be removed
+            if {_viewer} is not online:
+                petFollow_cleanupViewer({_p}, {_viewerUuid})
+            else if {_currentViewers::*} does not contain {_viewerUuid}:
+                # Viewer out of range or disabled option
+                petFollow_despawnViewerAllPets({_p}, {_viewer})
+            else:
+                # Update positions for all pets
+                loop {_petIds::*}:
+                    set {_pid} to loop-value-2
+                    set {_vDispId} to {-pet::follow::%{_uuid}%::v_id::%{_viewerUuid}%::%{_pid}%}
+                    set {_vTxtId} to {-pet::follow::%{_uuid}%::v_txt::%{_viewerUuid}%::%{_pid}%}
+                    set {_vOutId} to {-pet::follow::%{_uuid}%::v_out::%{_viewerUuid}%::%{_pid}%}
+
+                    if {_vDispId} is set:
+                        set {_tLoc} to {_petTargetLocs::%{_pid}%}
+                        set {_tTextLoc} to {_petTextLocs::%{_pid}%}
+                        set {_tQy} to {_petQy::%{_pid}%}
+                        set {_tQw} to {_petQw::%{_pid}%}
+
+                        send teleport packet with id {_vDispId} with location {_tLoc} to {_viewer}
+                        set {_m} to new metadata packet with id {_vDispId}:
+                            display rotation left: 0, {_tQy}, 0, {_tQw}
+                        send packet {_m} to {_viewer}
+
+                        if {_vOutId} is set:
+                            send teleport packet with id {_vOutId} with location {_tLoc} to {_viewer}
+                            set {_m} to new metadata packet with id {_vOutId}:
+                                display rotation left: 0, {_tQy}, 0, {_tQw}
+                            send packet {_m} to {_viewer}
+
+                        if {_vTxtId} is set:
+                            send teleport packet with id {_vTxtId} with location {_tTextLoc} to {_viewer}
+
+    # Cleanup viewers on loop exit
+    petFollow_despawnAllViewers({_p})
     delete {-guard::pet-follow::%{_uuid}%}
 
 
@@ -316,3 +422,189 @@ function petFollow_getFusionGlowColor(fusionTier: number) :: color:
         # Diamond - cyan/light blue
         return rgb(0, 255, 255)
     return rgb(255, 255, 255)
+
+
+# ============================================================
+# VIEWER SYSTEM (Other players seeing your pets)
+# ============================================================
+
+# Spawn a single pet display for a viewer (another player)
+function petFollow_spawnViewerPet(owner: player, viewer: player, petId: text):
+    set {_ownerUuid} to {_owner}'s uuid
+    set {_viewerUuid} to {_viewer}'s uuid
+
+    # Don't double-spawn
+    if {-pet::follow::%{_ownerUuid}%::v_id::%{_viewerUuid}%::%{_petId}%} is set:
+        stop
+
+    set {_type} to pet_getInstanceType({_owner}, {_petId})
+    set {_rarity} to pet_getInstanceRarity({_owner}, {_petId})
+    set {_fusionTier} to petFusion_getInstanceTier({_owner}, {_petId})
+    if {_type} is "":
+        stop
+
+    set {_icon} to pet_getTypeIcon({_type})
+    set {_name} to pet_getTypeName({_type})
+    set {_color} to pet_getRarityColor({_rarity})
+    set {_fusionName} to petFusion_getTierName({_fusionTier})
+    set {_rarityGlow} to petFollow_getGlowColor({_rarity})
+
+    # Generate unique entity IDs for this viewer
+    set {_displayId} to random integer between 100000 and 9999999
+    set {_textId} to {_displayId} + 1
+    set {_outerGlowId} to {_displayId} + 2
+
+    # Store IDs
+    set {-pet::follow::%{_ownerUuid}%::v_id::%{_viewerUuid}%::%{_petId}%} to {_displayId}
+    set {-pet::follow::%{_ownerUuid}%::v_txt::%{_viewerUuid}%::%{_petId}%} to {_textId}
+    if {_fusionTier} > 0:
+        set {-pet::follow::%{_ownerUuid}%::v_out::%{_viewerUuid}%::%{_petId}%} to {_outerGlowId}
+
+    # Spawn at owner's location initially
+    set {_loc} to {_owner}'s location
+    set {_spawnLoc} to location(x-coord of {_loc}, y-coord of {_loc} + 0.5, z-coord of {_loc}, world of {_loc})
+
+    # Spawn inner pet display
+    spawn fake item display at {_spawnLoc} for {_viewer} with id {_displayId}
+    set {_m} to new metadata packet with id {_displayId}:
+        display item: {_icon}
+        display scale: vector(0.55, 0.55, 0.55)
+        display brightness block: 15
+        display teleportduration: 20
+        glowing: true
+        display glow: {_rarityGlow}
+    send packet {_m} to {_viewer}
+
+    # Spawn outer glow if fused
+    if {_fusionTier} > 0:
+        set {_fusionGlow} to petFollow_getFusionGlowColor({_fusionTier})
+        set {_outerScale} to 0.55 * petFusion_getOuterGlowScale()
+
+        spawn fake item display at {_spawnLoc} for {_viewer} with id {_outerGlowId}
+        set {_m} to new metadata packet with id {_outerGlowId}:
+            display item: {_icon}
+            display scale: vector({_outerScale}, {_outerScale}, {_outerScale})
+            display brightness block: 15
+            display teleportduration: 20
+            glowing: true
+            display glow: {_fusionGlow}
+        send packet {_m} to {_viewer}
+
+    # Spawn nametag
+    set {_textLoc} to location(x-coord of {_loc}, y-coord of {_loc} + 0.9, z-coord of {_loc}, world of {_loc})
+    spawn fake text display at {_textLoc} for {_viewer} with id {_textId}
+    set {_m} to new metadata packet with id {_textId}:
+        display text: "%{_fusionName}%%{_color}%%{_name}%"
+        display billboard: center
+        display brightness block: 15
+        display shadow: true
+        display defaultbackground: false
+        display scale: vector(0.6, 0.6, 0.6)
+        display teleportduration: 20
+    send packet {_m} to {_viewer}
+
+
+# Despawn a single pet display for a viewer
+function petFollow_despawnViewerPet(owner: player, viewer: player, petId: text):
+    set {_ownerUuid} to {_owner}'s uuid
+    set {_viewerUuid} to {_viewer}'s uuid
+
+    set {_displayId} to {-pet::follow::%{_ownerUuid}%::v_id::%{_viewerUuid}%::%{_petId}%}
+    set {_textId} to {-pet::follow::%{_ownerUuid}%::v_txt::%{_viewerUuid}%::%{_petId}%}
+    set {_outerGlowId} to {-pet::follow::%{_ownerUuid}%::v_out::%{_viewerUuid}%::%{_petId}%}
+
+    if {_displayId} is set:
+        remove fake entity with id {_displayId} for {_viewer}
+        delete {-pet::follow::%{_ownerUuid}%::v_id::%{_viewerUuid}%::%{_petId}%}
+
+    if {_textId} is set:
+        remove fake entity with id {_textId} for {_viewer}
+        delete {-pet::follow::%{_ownerUuid}%::v_txt::%{_viewerUuid}%::%{_petId}%}
+
+    if {_outerGlowId} is set:
+        remove fake entity with id {_outerGlowId} for {_viewer}
+        delete {-pet::follow::%{_ownerUuid}%::v_out::%{_viewerUuid}%::%{_petId}%}
+
+
+# Despawn all of an owner's pets for a specific viewer
+function petFollow_despawnViewerAllPets(owner: player, viewer: player):
+    set {_ownerUuid} to {_owner}'s uuid
+    set {_viewerUuid} to {_viewer}'s uuid
+
+    loop {pet::equipped::%{_ownerUuid}%::*}:
+        petFollow_despawnViewerPet({_owner}, {_viewer}, loop-value)
+
+    remove {_viewerUuid} from {-pet::follow::%{_ownerUuid}%::viewers::*}
+
+
+# Cleanup a viewer by UUID (when they go offline)
+function petFollow_cleanupViewer(owner: player, viewerUuid: text):
+    set {_ownerUuid} to {_owner}'s uuid
+
+    # Delete all stored viewer entity IDs (entities auto-removed when player disconnects)
+    loop {pet::equipped::%{_ownerUuid}%::*}:
+        set {_petId} to loop-value
+        delete {-pet::follow::%{_ownerUuid}%::v_id::%{_viewerUuid}%::%{_petId}%}
+        delete {-pet::follow::%{_ownerUuid}%::v_txt::%{_viewerUuid}%::%{_petId}%}
+        delete {-pet::follow::%{_ownerUuid}%::v_out::%{_viewerUuid}%::%{_petId}%}
+
+    remove {_viewerUuid} from {-pet::follow::%{_ownerUuid}%::viewers::*}
+
+
+# Despawn all viewer entities for an owner (called on owner disconnect/despawn)
+function petFollow_despawnAllViewers(owner: player):
+    set {_ownerUuid} to {_owner}'s uuid
+
+    loop {-pet::follow::%{_ownerUuid}%::viewers::*}:
+        set {_viewerUuid} to loop-value
+        set {_viewer} to {_viewerUuid} parsed as offline player
+        if {_viewer} is online:
+            loop {pet::equipped::%{_ownerUuid}%::*}:
+                petFollow_despawnViewerPet({_owner}, {_viewer}, loop-value-2)
+
+    delete {-pet::follow::%{_ownerUuid}%::viewers::*}
+
+
+# Spawn all nearby players' pets for a specific viewer (when they enable the option)
+function petFollow_spawnAllViewerPets(viewer: player):
+    loop all players in radius 30 around {_viewer}:
+        set {_owner} to loop-player
+        if {_owner} is not {_viewer}:
+            set {_ownerUuid} to {_owner}'s uuid
+            # Only if owner has active pet displays
+            if size of {-pet::follow::%{_ownerUuid}%::ids::*} > 0:
+                set {_viewerUuid} to {_viewer}'s uuid
+                if {-pet::follow::%{_ownerUuid}%::viewers::*} does not contain {_viewerUuid}:
+                    add {_viewerUuid} to {-pet::follow::%{_ownerUuid}%::viewers::*}
+                loop {pet::equipped::%{_ownerUuid}%::*}:
+                    petFollow_spawnViewerPet({_owner}, {_viewer}, loop-value-2)
+
+
+# Despawn all other players' pets for a viewer (when they disable the option)
+function petFollow_despawnAllViewerPets(viewer: player):
+    set {_viewerUuid} to {_viewer}'s uuid
+    loop all players:
+        set {_owner} to loop-player
+        if {_owner} is not {_viewer}:
+            set {_ownerUuid} to {_owner}'s uuid
+            if {-pet::follow::%{_ownerUuid}%::viewers::*} contains {_viewerUuid}:
+                petFollow_despawnViewerAllPets({_owner}, {_viewer})
+
+
+# ============================================================
+# VIEWER CLEANUP ON QUIT
+# ============================================================
+
+on quit:
+    set {_uuid} to player's uuid
+
+    # Remove this player as a viewer from all owners
+    loop all players:
+        set {_owner} to loop-player
+        if {_owner} is not player:
+            set {_ownerUuid} to {_owner}'s uuid
+            if {-pet::follow::%{_ownerUuid}%::viewers::*} contains {_uuid}:
+                petFollow_cleanupViewer({_owner}, {_uuid})
+
+    # Cleanup this player's own viewer tracking
+    petFollow_despawnAllViewers(player)
