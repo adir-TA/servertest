@@ -1,0 +1,287 @@
+# ============================================================
+# SCRAP SYSTEM
+# ============================================================
+#
+# Physical item currency earned by salvaging pets & accessories.
+# Used to craft boosters via /craft.
+#
+# Rarities: common, uncommon, rare, epic, legendary
+# Item: Bone Meal with colored name per rarity
+# Conversion: 5 of a rarity → 1 of the next rarity
+#
+# Salvage yields: 1-5 scrap matching the item's rarity
+#   Pet:  common=1, uncommon=2, rare=3, epic=4, legendary=5
+#   Acc:  common=1, uncommon=2, rare=3, epic=4, legendary=5
+#
+# ============================================================
+
+# ============================================================
+# SCRAP CONFIG
+# ============================================================
+
+function scrap_getColor(rarity: text) :: text:
+    if {_rarity} is "common":
+        return "&7"
+    else if {_rarity} is "uncommon":
+        return "&a"
+    else if {_rarity} is "rare":
+        return "&9"
+    else if {_rarity} is "epic":
+        return "&d"
+    else if {_rarity} is "legendary":
+        return "&6"
+    return "&7"
+
+function scrap_getName(rarity: text) :: text:
+    if {_rarity} is "common":
+        return "&7Common Scrap"
+    else if {_rarity} is "uncommon":
+        return "&aUncommon Scrap"
+    else if {_rarity} is "rare":
+        return "&9Rare Scrap"
+    else if {_rarity} is "epic":
+        return "&dEpic Scrap"
+    else if {_rarity} is "legendary":
+        return "&6Legendary Scrap"
+    return "&7Scrap"
+
+function scrap_getRarityName(rarity: text) :: text:
+    if {_rarity} is "common":
+        return "&7Common"
+    else if {_rarity} is "uncommon":
+        return "&aUncommon"
+    else if {_rarity} is "rare":
+        return "&9Rare"
+    else if {_rarity} is "epic":
+        return "&dEpic"
+    else if {_rarity} is "legendary":
+        return "&6Legendary"
+    return "&7Unknown"
+
+function scrap_getSalvageAmount(rarity: text) :: number:
+    if {_rarity} is "common":
+        return 1
+    else if {_rarity} is "uncommon":
+        return 2
+    else if {_rarity} is "rare":
+        return 3
+    else if {_rarity} is "epic":
+        return 4
+    else if {_rarity} is "legendary":
+        return 5
+    return 0
+
+function scrap_getNextRarity(rarity: text) :: text:
+    if {_rarity} is "common":
+        return "uncommon"
+    else if {_rarity} is "uncommon":
+        return "rare"
+    else if {_rarity} is "rare":
+        return "epic"
+    else if {_rarity} is "epic":
+        return "legendary"
+    return ""
+
+function scrap_getPrevRarity(rarity: text) :: text:
+    if {_rarity} is "uncommon":
+        return "common"
+    else if {_rarity} is "rare":
+        return "uncommon"
+    else if {_rarity} is "epic":
+        return "rare"
+    else if {_rarity} is "legendary":
+        return "epic"
+    return ""
+
+function scrap_getRarityRank(rarity: text) :: number:
+    if {_rarity} is "common":
+        return 1
+    else if {_rarity} is "uncommon":
+        return 2
+    else if {_rarity} is "rare":
+        return 3
+    else if {_rarity} is "epic":
+        return 4
+    else if {_rarity} is "legendary":
+        return 5
+    return 0
+
+
+# ============================================================
+# ECONOMY FUNCTIONS
+# ============================================================
+
+function scrap_get(p: player, rarity: text) :: number:
+    return {data::scrap::%{_rarity}%::%{_p}'s uuid%} ? 0
+
+function scrap_set(p: player, rarity: text, amount: number):
+    set {data::scrap::%{_rarity}%::%{_p}'s uuid%} to {_amount}
+
+function scrap_add(p: player, rarity: text, amount: number):
+    add {_amount} to {data::scrap::%{_rarity}%::%{_p}'s uuid%}
+
+function scrap_remove(p: player, rarity: text, amount: number) :: boolean:
+    set {_current} to scrap_get({_p}, {_rarity})
+    if {_current} < {_amount}:
+        return false
+    subtract {_amount} from {data::scrap::%{_rarity}%::%{_p}'s uuid%}
+    return true
+
+function scrap_has(p: player, rarity: text, amount: number) :: boolean:
+    if scrap_get({_p}, {_rarity}) >= {_amount}:
+        return true
+    return false
+
+
+# ============================================================
+# ITEM CREATION (physical bone meal items)
+# ============================================================
+
+function scrap_createItem(rarity: text, amount: number) :: item:
+    set {_item} to {_amount} of bone meal
+    set name of {_item} to scrap_getName({_rarity})
+    set {_rarityDisplay} to scrap_getRarityName({_rarity})
+    delete {_lore::*}
+    add "&8sᴄʀᴀᴘ" to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Rarity: %{_rarityDisplay}%" to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Used to craft boosters" to {_lore::*}
+    add "&7at the &eBrewing Station&7." to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Convert 5 → 1 next rarity" to {_lore::*}
+    add "&7via &e/craft" to {_lore::*}
+    set lore of {_item} to {_lore::*}
+    set string tag "scrap;rarity" of custom nbt of {_item} to {_rarity}
+    return {_item}
+
+
+# ============================================================
+# CONVERSION (5 lower → 1 higher)
+# ============================================================
+
+function scrap_convert(p: player, fromRarity: text) :: boolean:
+    set {_nextRarity} to scrap_getNextRarity({_fromRarity})
+    if {_nextRarity} is "":
+        send "&c&l! &7Legendary scrap cannot be upgraded further!" to {_p}
+        return false
+
+    if scrap_has({_p}, {_fromRarity}, 5) is false:
+        set {_current} to scrap_get({_p}, {_fromRarity})
+        set {_fromName} to scrap_getName({_fromRarity})
+        send "&c&l! &7You need &c5 %{_fromName}% &7to convert! (Have: %{_current}%)" to {_p}
+        return false
+
+    scrap_remove({_p}, {_fromRarity}, 5)
+    scrap_add({_p}, {_nextRarity}, 1)
+
+    set {_fromName} to scrap_getName({_fromRarity})
+    set {_toName} to scrap_getName({_nextRarity})
+    send "" to {_p}
+    send "&a&l! &7Converted &c5x %{_fromName}% &7→ &a1x %{_toName}%" to {_p}
+    send "" to {_p}
+    play sound "block.anvil.use" with volume 0.5 and pitch 1.5 to {_p}
+    return true
+
+
+# ============================================================
+# FORMATTED DISPLAYS
+# ============================================================
+
+function scrap_getFormattedBalance(p: player) :: text:
+    set {_common} to scrap_get({_p}, "common")
+    set {_uncommon} to scrap_get({_p}, "uncommon")
+    set {_rare} to scrap_get({_p}, "rare")
+    set {_epic} to scrap_get({_p}, "epic")
+    set {_legendary} to scrap_get({_p}, "legendary")
+    return "&7%{_common}% &a%{_uncommon}% &9%{_rare}% &d%{_epic}% &6%{_legendary}%"
+
+
+# ============================================================
+# ADMIN COMMAND
+# ============================================================
+
+command /scrap [<text>] [<text>] [<text>] [<text>]:
+    permission: op
+    trigger:
+        set {_action} to arg-1
+
+        if {_action} is not set:
+            send ""
+            send "&6&lScrap Admin"
+            send "&7/scrap give &e<rarity> <player> <amount>"
+            send "&7/scrap take &e<rarity> <player> <amount>"
+            send "&7/scrap set &e<rarity> <player> <amount>"
+            send "&7/scrap check &e<player>"
+            send ""
+            send "&7Rarities: &7common&7, &auncommon&7, &9rare&7, &depic&7, &6legendary"
+            send ""
+            stop
+
+        if {_action} is "check":
+            set {_targetName} to arg-2
+            if {_targetName} is not set:
+                send "&cUsage: /scrap check <player>"
+                stop
+            set {_target} to {_targetName} parsed as player
+            if {_target} is not set:
+                send "&cPlayer &7%{_targetName}% &cis not online."
+                stop
+            send ""
+            send "&6&lScrap Balance: &f%{_target}%"
+            send " &7Common: &f%scrap_get({_target}, ""common"")%"
+            send " &aUncommon: &f%scrap_get({_target}, ""uncommon"")%"
+            send " &9Rare: &f%scrap_get({_target}, ""rare"")%"
+            send " &dEpic: &f%scrap_get({_target}, ""epic"")%"
+            send " &6Legendary: &f%scrap_get({_target}, ""legendary"")%"
+            send ""
+            stop
+
+        set {_rarity} to arg-2
+        set {_targetName} to arg-3
+        set {_amount} to arg-4 parsed as number
+
+        if {_rarity} is not "common", "uncommon", "rare", "epic" or "legendary":
+            send "&cInvalid rarity. Use: &7common, uncommon, rare, epic, legendary"
+            stop
+
+        if {_targetName} is not set:
+            send "&cUsage: /scrap %{_action}% %{_rarity}% <player> <amount>"
+            stop
+
+        set {_target} to {_targetName} parsed as player
+        if {_target} is not set:
+            send "&cPlayer &7%{_targetName}% &cis not online."
+            stop
+
+        if {_action} is "give":
+            if {_amount} is not set:
+                send "&cUsage: /scrap give %{_rarity}% <player> <amount>"
+                stop
+            scrap_add({_target}, {_rarity}, {_amount})
+            set {_name} to scrap_getName({_rarity})
+            send "&aGave &f%{_amount}%x %{_name}% &ato &7%{_target}%"
+            stop
+
+        if {_action} is "take":
+            if {_amount} is not set:
+                send "&cUsage: /scrap take %{_rarity}% <player> <amount>"
+                stop
+            set {_result} to scrap_remove({_target}, {_rarity}, {_amount})
+            if {_result} is false:
+                send "&cPlayer doesn't have enough scrap."
+                stop
+            set {_name} to scrap_getName({_rarity})
+            send "&cTook &f%{_amount}%x %{_name}% &cfrom &7%{_target}%"
+            stop
+
+        if {_action} is "set":
+            if {_amount} is not set:
+                send "&cUsage: /scrap set %{_rarity}% <player> <amount>"
+                stop
+            scrap_set({_target}, {_rarity}, {_amount})
+            set {_name} to scrap_getName({_rarity})
+            send "&aSet &7%{_target}%&a's %{_name}% &ato &f%{_amount}%"
+            stop
+
+        send "&cUnknown action. Use: &7give, take, set, check"

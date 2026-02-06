@@ -252,7 +252,9 @@ function acc_createItem(p: player, encoded: text) :: item:
     add "" to {_lore::*}
     
     set {_salvageValue} to acc_getSalvageValue({_rarity})
-    add "&7Salvage: &6%{_salvageValue}% tokens" to {_lore::*}
+    set {_salvageScrap} to scrap_getSalvageAmount({_rarity})
+    set {_scrapName} to scrap_getName({_rarity})
+    add "&7Salvage: &6%{_salvageValue}% tokens &8+ &a%{_salvageScrap}%x %{_scrapName}%" to {_lore::*}
     add "" to {_lore::*}
     add "&eClick to equip" to {_lore::*}
     add "&cPress Q to salvage" to {_lore::*}

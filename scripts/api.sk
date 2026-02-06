@@ -73,6 +73,14 @@
 #   %api_research_line1%         - TAB: "Researching: Category → Track (T#)" or "No active research"
 #   %api_research_line2%         - TAB: "Time left (Percent%)" or "Use /research to start!"
 #
+# SCRAP:
+#   %api_scrap_common%           - Common scrap count
+#   %api_scrap_uncommon%         - Uncommon scrap count
+#   %api_scrap_rare%             - Rare scrap count
+#   %api_scrap_epic%             - Epic scrap count
+#   %api_scrap_legendary%        - Legendary scrap count
+#   %api_scrap_formatted%        - All scrap on one line with colors
+#
 # ============================================================
 
 placeholderapi placeholder with the prefix "api":
@@ -532,4 +540,32 @@ placeholderapi placeholder with the prefix "api":
         set {_time} to research_formatTime({_remaining})
         set {_percent} to research_getProgressPercent(player)
         set the result to "&e%{_time}% &7left &8(%{_percent}%%%)"
+        stop
+
+    # ════════════════════════════════════════
+    # SCRAP
+    # ════════════════════════════════════════
+
+    if the identifier is "scrap_common":
+        set the result to "%scrap_get(player, ""common"")%"
+        stop
+
+    if the identifier is "scrap_uncommon":
+        set the result to "%scrap_get(player, ""uncommon"")%"
+        stop
+
+    if the identifier is "scrap_rare":
+        set the result to "%scrap_get(player, ""rare"")%"
+        stop
+
+    if the identifier is "scrap_epic":
+        set the result to "%scrap_get(player, ""epic"")%"
+        stop
+
+    if the identifier is "scrap_legendary":
+        set the result to "%scrap_get(player, ""legendary"")%"
+        stop
+
+    if the identifier is "scrap_formatted":
+        set the result to scrap_getFormattedBalance(player)
         stop

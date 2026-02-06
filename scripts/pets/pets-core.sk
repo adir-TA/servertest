@@ -284,6 +284,7 @@ function pet_salvage(p: player, petId: text) :: boolean:
     set {_baseSalvage} to pet_getSalvageValue({_rarity})
     # Apply fusion multiplier to salvage value
     set {_tokens} to petFusion_calculateSalvageValue({_p}, {_petId}, {_baseSalvage})
+    set {_scrapAmount} to scrap_getSalvageAmount({_rarity})
 
     # Delete pet
     pet_delete({_p}, {_petId})
@@ -291,10 +292,15 @@ function pet_salvage(p: player, petId: text) :: boolean:
     # Add tokens
     add {_tokens} to {data::tokens::%{_uuid}%}
 
+    # Add scrap
+    scrap_add({_p}, {_rarity}, {_scrapAmount})
+
+    set {_scrapName} to scrap_getName({_rarity})
     send "" to {_p}
     send "&6&l♻ PET SALVAGED!" to {_p}
     send "&7Salvaged: %{_color}%%{_name}%" to {_p}
     send "&7Tokens: &e+%formatNum({_tokens})%" to {_p}
+    send "&7Scrap: &a+%{_scrapAmount}%x %{_scrapName}%" to {_p}
     send "" to {_p}
 
     play sound "entity.item.break" with volume 0.8 and pitch 1 to {_p}
@@ -400,14 +406,21 @@ function pet_createItem(p: player, petId: text) :: item:
             add " &a+%{_bonusPercent}%%% &f%{_statFormatted}%" to {_lore::*}
 
     add "" to {_lore::*}
-    
+
+    # Salvage value preview
+    set {_salvageTokens} to pet_getSalvageValue({_rarity})
+    set {_salvageScrap} to scrap_getSalvageAmount({_rarity})
+    set {_scrapName} to scrap_getName({_rarity})
+    add "&7Salvage: &6%{_salvageTokens}% tokens &8+ &a%{_salvageScrap}%x %{_scrapName}%" to {_lore::*}
+    add "" to {_lore::*}
+
     if pet_isEquipped({_p}, {_petId}) = true:
         add "&d✔ Equipped" to {_lore::*}
         add "" to {_lore::*}
         add "&eClick to unequip" to {_lore::*}
     else:
         add "&eClick to equip" to {_lore::*}
-    
+
     add "&c&oPress Q to salvage" to {_lore::*}
     
     set lore of {_item} to {_lore::*}

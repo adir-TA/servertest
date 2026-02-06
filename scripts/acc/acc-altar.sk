@@ -581,6 +581,11 @@ function acc_playTreasureAnimation(p: player, treasureId: text, amount: integer)
 
     # Roll all rewards and setup positions (LINE UP like pet eggs)
     set {_totalSalvageTokens} to 0
+    set {_totalSalvageScrap::common} to 0
+    set {_totalSalvageScrap::uncommon} to 0
+    set {_totalSalvageScrap::rare} to 0
+    set {_totalSalvageScrap::epic} to 0
+    set {_totalSalvageScrap::legendary} to 0
     set {_salvageCount} to 0
     set {_keptCount} to 0
     loop {_amount} times:
@@ -607,6 +612,9 @@ function acc_playTreasureAnimation(p: player, treasureId: text, amount: integer)
             # Auto-salvage: track tokens
             set {_salvageValue::%{_i}%} to acc_getSalvageValue({_rarity::%{_i}%})
             add {_salvageValue::%{_i}%} to {_totalSalvageTokens}
+            # Track scrap per rarity
+            set {_scrapAmt} to scrap_getSalvageAmount({_rarity::%{_i}%})
+            add {_scrapAmt} to {_totalSalvageScrap::%{_rarity::%{_i}%}%}
             add 1 to {_salvageCount}
             # Still track discovery even if salvaged
             discovery_discoverAcc({_p}, {_type::%{_i}%})
@@ -1116,6 +1124,9 @@ function acc_playTreasureAnimation(p: player, treasureId: text, amount: integer)
                 # Storage full - auto-salvage overflow
                 set {_overflowValue} to acc_getSalvageValue({_rarity::%{_i}%})
                 add {_overflowValue} to {_overflowTokens}
+                # Track overflow scrap
+                set {_overflowScrap} to scrap_getSalvageAmount({_rarity::%{_i}%})
+                add {_overflowScrap} to {_totalSalvageScrap::%{_rarity::%{_i}%}%}
                 add 1 to {_overflowCount}
                 set {_salvaged::%{_i}%} to true
 
@@ -1123,6 +1134,12 @@ function acc_playTreasureAnimation(p: player, treasureId: text, amount: integer)
     set {_totalTokens} to {_totalSalvageTokens} + {_overflowTokens}
     if {_totalTokens} > 0:
         mining_giveTokens({_p}, {_totalTokens})
+
+    # Give salvage scrap per rarity
+    loop "common", "uncommon", "rare", "epic" and "legendary":
+        set {_scrapVal} to {_totalSalvageScrap::%loop-value%} ? 0
+        if {_scrapVal} > 0:
+            scrap_add({_p}, loop-value, {_scrapVal})
 
     # Send summary
     send "" to {_p}
@@ -1143,6 +1160,12 @@ function acc_playTreasureAnimation(p: player, treasureId: text, amount: integer)
 
     if {_salvageCount} > 0:
         send "&8Auto-salvaged %{_salvageCount}% accessories: &6+%{_totalSalvageTokens}% tokens" to {_p}
+        # Show scrap from auto-salvage
+        loop "common", "uncommon", "rare", "epic" and "legendary":
+            set {_scrapVal} to {_totalSalvageScrap::%loop-value%} ? 0
+            if {_scrapVal} > 0:
+                set {_scrapName} to scrap_getName(loop-value)
+                send "&8 + &a%{_scrapVal}%x %{_scrapName}%" to {_p}
 
     if {_overflowCount} > 0:
         send "&c⚠ Storage full! %{_overflowCount}% accessories converted to &6+%{_overflowTokens}% tokens" to {_p}

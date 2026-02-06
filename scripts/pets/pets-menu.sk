@@ -508,30 +508,45 @@ on inventory click:
             # Salvage all unequipped pets
             set {_totalTokens} to 0
             set {_count} to 0
-            
+
             # Collect pets to delete (can't modify list while looping)
             loop {pet::owned::%{_uuid}%::*}:
                 set {_petId} to loop-value
                 if pet_isEquipped(player, {_petId}) = false:
                     add {_petId} to {_toDelete::*}
-            
-            # Delete them
+
+            # Delete them and track scrap
             loop {_toDelete::*}:
                 set {_petId} to loop-value
                 set {_type} to pet_getInstanceType(player, {_petId})
                 set {_rarity} to pet_getInstanceRarity(player, {_petId})
                 set {_tokens} to pet_getSalvageValue({_rarity})
                 add {_tokens} to {_totalTokens}
+                # Track scrap per rarity
+                set {_scrapAmt} to scrap_getSalvageAmount({_rarity})
+                add {_scrapAmt} to {_scrapTotals::%{_rarity}%}
                 add 1 to {_count}
                 pet_delete(player, {_petId})
-            
+
             # Add tokens
             add {_totalTokens} to {data::tokens::%{_uuid}%}
-            
+
+            # Add scrap per rarity
+            loop "common", "uncommon", "rare", "epic" and "legendary":
+                set {_scrapVal} to {_scrapTotals::%loop-value%} ? 0
+                if {_scrapVal} > 0:
+                    scrap_add(player, loop-value, {_scrapVal})
+
             send "" to player
             send "&6Mass salvage complete!" to player
             send "&7Salvaged: &e%{_count}% &7pets" to player
             send "&7Tokens: &6+%formatNum({_totalTokens})%" to player
+            # Show scrap gained
+            loop "common", "uncommon", "rare", "epic" and "legendary":
+                set {_scrapVal} to {_scrapTotals::%loop-value%} ? 0
+                if {_scrapVal} > 0:
+                    set {_scrapName} to scrap_getName(loop-value)
+                    send "&7Scrap: &a+%{_scrapVal}%x %{_scrapName}%" to player
             send "" to player
             
             play sound "entity.item.break" with volume 1 and pitch 0.8 to player

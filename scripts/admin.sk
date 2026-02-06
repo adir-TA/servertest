@@ -27,7 +27,12 @@ command /reset <offlineplayer>:
         delete {data::balance::%{_uuid}%}
         delete {data::prestige::%{_uuid}%}
         delete {data::prestige::points::%{_uuid}%}
-        send "&7• &fEconomy &8- &aCleared"
+        delete {data::scrap::common::%{_uuid}%}
+        delete {data::scrap::uncommon::%{_uuid}%}
+        delete {data::scrap::rare::%{_uuid}%}
+        delete {data::scrap::epic::%{_uuid}%}
+        delete {data::scrap::legendary::%{_uuid}%}
+        send "&7• &fEconomy & Scrap &8- &aCleared"
 
         # ═══════════════════════════════════════
         # ARCHETYPE SELECTION
@@ -219,6 +224,8 @@ command /reset <offlineplayer>:
         delete {-guard::tutorial::%{_uuid}%}
         delete {-booster::loop::%{_uuid}%}
         delete {-guard::research::%{_uuid}%}
+        delete {-craft::menu::%{_uuid}%}
+        delete {-craft::page::%{_uuid}%}
         send "&7• &fRuntime Cache &8- &aCleared"
 
         send ""

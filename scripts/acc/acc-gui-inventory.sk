@@ -456,20 +456,35 @@ on inventory click:
             set {_inventory::*} to {data::accessories::%{_uuid}%::inventory::*}
             set {_count} to size of {_inventory::*}
             set {_totalTokens} to 0
-            
+
             loop {_inventory::*}:
                 set {_parts::*} to acc_parseAccessory(loop-value)
                 add acc_getSalvageValue({_parts::2}) to {_totalTokens}
-            
+                # Track scrap per rarity
+                set {_scrapAmt} to scrap_getSalvageAmount({_parts::2})
+                add {_scrapAmt} to {_scrapTotals::%{_parts::2}%}
+
             delete {data::accessories::%{_uuid}%::inventory::*}
             mining_giveTokens(player, {_totalTokens})
-            
+
+            # Give scrap per rarity
+            loop "common", "uncommon", "rare", "epic" and "legendary":
+                set {_scrapVal} to {_scrapTotals::%loop-value%} ? 0
+                if {_scrapVal} > 0:
+                    scrap_add(player, loop-value, {_scrapVal})
+
             play sound "entity.item.break" with volume 1 and pitch 0.8 to player
-            
+
             send "" to player
             send "&6Mass salvage complete!" to player
             send "&7Salvaged: &e%{_count}% &7accessories" to player
             send "&7Tokens: &6+%{_totalTokens}%" to player
+            # Show scrap gained
+            loop "common", "uncommon", "rare", "epic" and "legendary":
+                set {_scrapVal} to {_scrapTotals::%loop-value%} ? 0
+                if {_scrapVal} > 0:
+                    set {_scrapName} to scrap_getName(loop-value)
+                    send "&7Scrap: &a+%{_scrapVal}%x %{_scrapName}%" to player
             send "" to player
             
             set {_page} to {-acc::menu::%{_uuid}%::page} ? 1
@@ -499,13 +514,16 @@ on inventory click:
                 if {_existing} is set:
                     set {_parts::*} to acc_parseAccessory({_encoded})
                     set {_tokens} to acc_getSalvageValue({_parts::2})
+                    set {_scrapAmt} to scrap_getSalvageAmount({_parts::2})
 
                     # Delete by index instead of removing by value
                     delete {data::accessories::%{_uuid}%::inventory::%{_invIndex}%}
                     mining_giveTokens(player, {_tokens})
+                    scrap_add(player, {_parts::2}, {_scrapAmt})
 
+                    set {_scrapName} to scrap_getName({_parts::2})
                     play sound "entity.item.break" with volume 0.8 and pitch 1 to player
-                    send "&cSalvaged for &6+%{_tokens}% tokens" to player
+                    send "&cSalvaged for &6+%{_tokens}% tokens &8+ &a%{_scrapAmt}%x %{_scrapName}%" to player
 
             set {_page} to {-acc::menu::%{_uuid}%::page} ? 1
             set {_sort} to {-acc::menu::%{_uuid}%::sort} ? "tier"
