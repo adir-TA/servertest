@@ -7,6 +7,10 @@
 # ============================================================
 
 function acc_playKeyDropAnimation(p: player, loc: location, tier: text):
+    # Check mining animations option
+    if options_getBool({_p}, "mining_animations", true) is false:
+        stop
+
     # Get tier info
     set {_color} to acc_getTierColor({_tier})
     set {_name} to acc_getTierName({_tier})

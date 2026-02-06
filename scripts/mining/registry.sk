@@ -383,12 +383,13 @@ function mining_giveDrops(p: player, block: item, fortuneLevel: integer = 0, mul
     # Check if inventory is full
     if {_p} cannot hold 1 of type of {_drop}:
         # Show inventory full message (throttled)
-        if {-invFull::%{_p}'s uuid%::cooldown} is not set:
-            send "&cInventory full! Use /sell or enable Autosell enchant." to {_p}
-            play sound "entity.villager.no" with volume 0.5 and pitch 1.2 to {_p}
-            set {-invFull::%{_p}'s uuid%::cooldown} to true
-            wait 3 seconds
-            delete {-invFull::%{_p}'s uuid%::cooldown}
+        if options_getBool({_p}, "inv_full_notify", true) is true:
+            if {-invFull::%{_p}'s uuid%::cooldown} is not set:
+                send "&cInventory full! Use /sell or enable Autosell enchant." to {_p}
+                play sound "entity.villager.no" with volume 0.5 and pitch 1.2 to {_p}
+                set {-invFull::%{_p}'s uuid%::cooldown} to true
+                wait 3 seconds
+                delete {-invFull::%{_p}'s uuid%::cooldown}
         stop
 
     set {_finalDrop} to {_amount} of type of {_drop}

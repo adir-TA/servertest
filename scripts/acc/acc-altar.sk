@@ -666,6 +666,65 @@ function acc_playTreasureAnimation(p: player, treasureId: text, amount: integer)
             set {_itemGlow::%{_i}%} to rgb(170, 170, 170)
 
     # ════════════════════════════════════════
+    # SKIP ANIMATION (if option enabled)
+    # ════════════════════════════════════════
+    if options_getBool({_p}, "skip_treasure_anim", false) is true:
+        # Remove altar entities and restore block
+        remove fake entity with id {_altarChestId} for {_p}
+        make {_p} see block at {_altarLoc} as {_originalBlock}
+        play sound "entity.item.pickup" with volume 0.6 and pitch 1.2 to {_p}
+
+        # Give rewards (non-salvaged)
+        set {_overflowTokens} to 0
+        set {_overflowCount} to 0
+        loop {_amount} times:
+            set {_i} to loop-number
+            if {_salvaged::%{_i}%} is not true:
+                set {_added} to acc_addToInventory({_p}, {_encoded::%{_i}%})
+                if {_added} is false:
+                    set {_overflowValue} to acc_getSalvageValue({_rarity::%{_i}%})
+                    add {_overflowValue} to {_overflowTokens}
+                    set {_overflowScrap} to scrap_getSalvageAmount({_rarity::%{_i}%})
+                    add {_overflowScrap} to {_totalSalvageScrap::%{_rarity::%{_i}%}%}
+                    add 1 to {_overflowCount}
+                    set {_salvaged::%{_i}%} to true
+
+        set {_totalTokens} to {_totalSalvageTokens} + {_overflowTokens}
+        if {_totalTokens} > 0:
+            mining_giveTokens({_p}, {_totalTokens})
+
+        loop "common", "uncommon", "rare", "epic" and "legendary":
+            set {_scrapVal} to {_totalSalvageScrap::%loop-value%} ? 0
+            if {_scrapVal} > 0:
+                scrap_add({_p}, loop-value, {_scrapVal})
+
+        # Summary
+        send "" to {_p}
+        send "&6&lTREASURES OPENED" to {_p}
+        send "%{_color}%%{_treasureName}% &7x%{_amount}%" to {_p}
+        send "" to {_p}
+        set {_actualKept} to {_keptCount} - {_overflowCount}
+        if {_actualKept} > 0:
+            send "&7You obtained:" to {_p}
+            loop {_amount} times:
+                set {_i} to loop-number
+                if {_salvaged::%{_i}%} is not true:
+                    set {_rarityColor} to acc_getRarityColor({_rarity::%{_i}%})
+                    set {_rarityName} to acc_getRarityName({_rarity::%{_i}%})
+                    set {_typeName} to acc_getTypeName({_type::%{_i}%})
+                    if {_isNew::%{_i}%} is true:
+                        send " &b[NEW] %{_rarityColor}%%{_rarityName}% %{_typeName}%" to {_p}
+                    else:
+                        send " %{_rarityColor}%%{_rarityName}% %{_typeName}%" to {_p}
+        if {_salvageCount} > 0:
+            send "&8Auto-salvaged %{_salvageCount}% accessories: &6+%{_totalSalvageTokens}% tokens" to {_p}
+        if {_overflowCount} > 0:
+            send "&c⚠ Storage full! %{_overflowCount}% accessories converted to &6+%{_overflowTokens}% tokens" to {_p}
+        send "" to {_p}
+        delete {-acc::opening::%{_p}'s uuid%}
+        stop
+
+    # ════════════════════════════════════════
     # PHASE 1: Chests appear and grow (lined up)
     # ════════════════════════════════════════
 

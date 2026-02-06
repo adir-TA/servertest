@@ -1,0 +1,418 @@
+# ============================================================
+# PLAYER OPTIONS SYSTEM (/options, /preferences)
+# ============================================================
+#
+# 10 toggleable options with persistent storage
+# Storage: {data::options::%uuid%::key}
+#
+# Options:
+#   see_other_pets     - Show pet follow displays (default: true)
+#   speed_level        - Speed enchant level, 0=max (default: 0)
+#   mining_animations  - Show mining display entities (default: true)
+#   mining_sounds      - Play mining hit/break sounds (default: true)
+#   milestone_notify   - Unclaimed milestone reminders (default: true)
+#   prestige_notify    - Max level prestige reminders (default: true)
+#   inv_full_notify    - Inventory full warnings (default: true)
+#   allow_drops        - Allow dropping items (default: false)
+#   skip_egg_anim      - Skip pet egg animations (default: false)
+#   skip_treasure_anim - Skip treasure animations (default: false)
+#
+# ============================================================
+
+
+# ============================================================
+# HELPER FUNCTIONS
+# ============================================================
+
+function options_getBool(p: player, key: text, default: boolean) :: boolean:
+    set {_uuid} to {_p}'s uuid
+    set {_val} to {data::options::%{_uuid}%::%{_key}%}
+    if {_val} is not set:
+        return {_default}
+    return {_val}
+
+
+function options_setBool(p: player, key: text, value: boolean):
+    set {_uuid} to {_p}'s uuid
+    set {data::options::%{_uuid}%::%{_key}%} to {_value}
+
+
+function options_toggleBool(p: player, key: text, default: boolean) :: boolean:
+    set {_current} to options_getBool({_p}, {_key}, {_default})
+    if {_current} is true:
+        options_setBool({_p}, {_key}, false)
+        return false
+    else:
+        options_setBool({_p}, {_key}, true)
+        return true
+
+
+function options_getInt(p: player, key: text, default: number) :: number:
+    set {_uuid} to {_p}'s uuid
+    set {_val} to {data::options::%{_uuid}%::%{_key}%}
+    if {_val} is not set:
+        return {_default}
+    return {_val}
+
+
+function options_setInt(p: player, key: text, value: number):
+    set {_uuid} to {_p}'s uuid
+    set {data::options::%{_uuid}%::%{_key}%} to {_value}
+
+
+# ============================================================
+# COMMAND
+# ============================================================
+
+command /options:
+    aliases: /preferences
+    trigger:
+        options_openMenu(player)
+
+
+# ============================================================
+# MENU
+# ============================================================
+
+function options_openMenu(p: player):
+    set {_uuid} to {_p}'s uuid
+    set {_menu} to chest inventory with 4 rows named "&e&lOptions"
+
+    # Fill with glass
+    set {_filler} to black stained glass pane named "&1"
+    loop 36 times:
+        set slot loop-number - 1 of {_menu} to {_filler}
+
+    # ════════════════════════════════════════
+    # ROW 2 (slots 9-17): Options 1-5
+    # ════════════════════════════════════════
+
+    # Option 1: Pet Displays (slot 10)
+    set {_val1} to options_getBool({_p}, "see_other_pets", true)
+    if {_val1} is true:
+        set {_item1} to name tag named "&a&lPet Displays"
+        set {_status1} to "&aEnabled"
+    else:
+        set {_item1} to name tag named "&c&lPet Displays"
+        set {_status1} to "&cDisabled"
+    delete {_lore1::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_lore1::*}
+    add "" to {_lore1::*}
+    add "&7Show pet display entities" to {_lore1::*}
+    add "&7following you around." to {_lore1::*}
+    add "" to {_lore1::*}
+    add "&7Status: %{_status1}%" to {_lore1::*}
+    add "" to {_lore1::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴛᴏɢɢʟᴇ" to {_lore1::*}
+    set lore of {_item1} to {_lore1::*}
+    set string tag "opt;key" of custom nbt of {_item1} to "see_other_pets"
+    set slot 10 of {_menu} to {_item1}
+
+    # Option 2: Speed Level (slot 11)
+    set {_speedLvl} to options_getInt({_p}, "speed_level", 0)
+    set {_maxSpeed} to enchant_getPlayerLevelByString({_p}, "Speed")
+    if {_speedLvl} <= 0:
+        set {_speedDisplay} to "Max (%{_maxSpeed}%)"
+    else:
+        if {_speedLvl} > {_maxSpeed}:
+            set {_speedLvl} to {_maxSpeed}
+        set {_speedDisplay} to "%{_speedLvl}%"
+    set {_item2} to feather named "&b&lSpeed Level"
+    delete {_lore2::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_lore2::*}
+    add "" to {_lore2::*}
+    add "&7Set your Speed enchant level." to {_lore2::*}
+    add "&70 = use max unlocked level." to {_lore2::*}
+    add "" to {_lore2::*}
+    add "&7Current: &b%{_speedDisplay}%" to {_lore2::*}
+    add "&7Max Unlocked: &e%{_maxSpeed}%" to {_lore2::*}
+    add "" to {_lore2::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴄʏᴄʟᴇ" to {_lore2::*}
+    set lore of {_item2} to {_lore2::*}
+    set string tag "opt;key" of custom nbt of {_item2} to "speed_level"
+    set slot 11 of {_menu} to {_item2}
+
+    # Option 3: Mining Animations (slot 12)
+    set {_val3} to options_getBool({_p}, "mining_animations", true)
+    if {_val3} is true:
+        set {_item3} to blaze powder named "&a&lMining Animations"
+        set {_status3} to "&aEnabled"
+    else:
+        set {_item3} to blaze powder named "&c&lMining Animations"
+        set {_status3} to "&cDisabled"
+    delete {_lore3::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_lore3::*}
+    add "" to {_lore3::*}
+    add "&7Toggle display entities and" to {_lore3::*}
+    add "&7particles while mining." to {_lore3::*}
+    add "" to {_lore3::*}
+    add "&7Status: %{_status3}%" to {_lore3::*}
+    add "" to {_lore3::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴛᴏɢɢʟᴇ" to {_lore3::*}
+    set lore of {_item3} to {_lore3::*}
+    set string tag "opt;key" of custom nbt of {_item3} to "mining_animations"
+    set slot 12 of {_menu} to {_item3}
+
+    # Option 4: Mining Sounds (slot 13)
+    set {_val4} to options_getBool({_p}, "mining_sounds", true)
+    if {_val4} is true:
+        set {_item4} to note block named "&a&lMining Sounds"
+        set {_status4} to "&aEnabled"
+    else:
+        set {_item4} to note block named "&c&lMining Sounds"
+        set {_status4} to "&cDisabled"
+    delete {_lore4::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_lore4::*}
+    add "" to {_lore4::*}
+    add "&7Toggle mining hit and" to {_lore4::*}
+    add "&7break sound effects." to {_lore4::*}
+    add "" to {_lore4::*}
+    add "&7Status: %{_status4}%" to {_lore4::*}
+    add "" to {_lore4::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴛᴏɢɢʟᴇ" to {_lore4::*}
+    set lore of {_item4} to {_lore4::*}
+    set string tag "opt;key" of custom nbt of {_item4} to "mining_sounds"
+    set slot 13 of {_menu} to {_item4}
+
+    # Option 5: Milestone Notifications (slot 14)
+    set {_val5} to options_getBool({_p}, "milestone_notify", true)
+    if {_val5} is true:
+        set {_item5} to bell named "&a&lMilestone Notifications"
+        set {_status5} to "&aEnabled"
+    else:
+        set {_item5} to bell named "&c&lMilestone Notifications"
+        set {_status5} to "&cDisabled"
+    delete {_lore5::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_lore5::*}
+    add "" to {_lore5::*}
+    add "&7Get notified when you have" to {_lore5::*}
+    add "&7unclaimed milestone rewards." to {_lore5::*}
+    add "" to {_lore5::*}
+    add "&7Status: %{_status5}%" to {_lore5::*}
+    add "" to {_lore5::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴛᴏɢɢʟᴇ" to {_lore5::*}
+    set lore of {_item5} to {_lore5::*}
+    set string tag "opt;key" of custom nbt of {_item5} to "milestone_notify"
+    set slot 14 of {_menu} to {_item5}
+
+    # ════════════════════════════════════════
+    # ROW 3 (slots 18-26): Options 6-10
+    # ════════════════════════════════════════
+
+    # Option 6: Prestige Notifications (slot 19)
+    set {_val6} to options_getBool({_p}, "prestige_notify", true)
+    if {_val6} is true:
+        set {_item6} to nether star named "&a&lPrestige Notifications"
+        set {_status6} to "&aEnabled"
+    else:
+        set {_item6} to nether star named "&c&lPrestige Notifications"
+        set {_status6} to "&cDisabled"
+    delete {_lore6::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_lore6::*}
+    add "" to {_lore6::*}
+    add "&7Get notified when you can" to {_lore6::*}
+    add "&7prestige your archetype." to {_lore6::*}
+    add "" to {_lore6::*}
+    add "&7Status: %{_status6}%" to {_lore6::*}
+    add "" to {_lore6::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴛᴏɢɢʟᴇ" to {_lore6::*}
+    set lore of {_item6} to {_lore6::*}
+    set string tag "opt;key" of custom nbt of {_item6} to "prestige_notify"
+    set slot 19 of {_menu} to {_item6}
+
+    # Option 7: Inventory Full Notifications (slot 20)
+    set {_val7} to options_getBool({_p}, "inv_full_notify", true)
+    if {_val7} is true:
+        set {_item7} to chest named "&a&lInventory Full Alerts"
+        set {_status7} to "&aEnabled"
+    else:
+        set {_item7} to chest named "&c&lInventory Full Alerts"
+        set {_status7} to "&cDisabled"
+    delete {_lore7::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_lore7::*}
+    add "" to {_lore7::*}
+    add "&7Get warned when your" to {_lore7::*}
+    add "&7inventory is full." to {_lore7::*}
+    add "" to {_lore7::*}
+    add "&7Status: %{_status7}%" to {_lore7::*}
+    add "" to {_lore7::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴛᴏɢɢʟᴇ" to {_lore7::*}
+    set lore of {_item7} to {_lore7::*}
+    set string tag "opt;key" of custom nbt of {_item7} to "inv_full_notify"
+    set slot 20 of {_menu} to {_item7}
+
+    # Option 8: Allow Item Drops (slot 21)
+    set {_val8} to options_getBool({_p}, "allow_drops", false)
+    if {_val8} is true:
+        set {_item8} to dropper named "&a&lAllow Item Drops"
+        set {_status8} to "&aAllowed"
+    else:
+        set {_item8} to dropper named "&c&lAllow Item Drops"
+        set {_status8} to "&cBlocked"
+    delete {_lore8::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_lore8::*}
+    add "" to {_lore8::*}
+    add "&7Allow or block dropping" to {_lore8::*}
+    add "&7items from your inventory." to {_lore8::*}
+    add "" to {_lore8::*}
+    add "&7Status: %{_status8}%" to {_lore8::*}
+    add "" to {_lore8::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴛᴏɢɢʟᴇ" to {_lore8::*}
+    set lore of {_item8} to {_lore8::*}
+    set string tag "opt;key" of custom nbt of {_item8} to "allow_drops"
+    set slot 21 of {_menu} to {_item8}
+
+    # Option 9: Skip Egg Animations (slot 22)
+    set {_val9} to options_getBool({_p}, "skip_egg_anim", false)
+    if {_val9} is true:
+        set {_item9} to turtle egg named "&a&lSkip Egg Animations"
+        set {_status9} to "&aSkipping"
+    else:
+        set {_item9} to turtle egg named "&c&lSkip Egg Animations"
+        set {_status9} to "&ePlaying"
+    delete {_lore9::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_lore9::*}
+    add "" to {_lore9::*}
+    add "&7Skip the opening animation" to {_lore9::*}
+    add "&7when hatching pet eggs." to {_lore9::*}
+    add "" to {_lore9::*}
+    add "&7Status: %{_status9}%" to {_lore9::*}
+    add "" to {_lore9::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴛᴏɢɢʟᴇ" to {_lore9::*}
+    set lore of {_item9} to {_lore9::*}
+    set string tag "opt;key" of custom nbt of {_item9} to "skip_egg_anim"
+    set slot 22 of {_menu} to {_item9}
+
+    # Option 10: Skip Treasure Animations (slot 23)
+    set {_val10} to options_getBool({_p}, "skip_treasure_anim", false)
+    if {_val10} is true:
+        set {_item10} to ender chest named "&a&lSkip Treasure Animations"
+        set {_status10} to "&aSkipping"
+    else:
+        set {_item10} to ender chest named "&c&lSkip Treasure Animations"
+        set {_status10} to "&ePlaying"
+    delete {_lore10::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_lore10::*}
+    add "" to {_lore10::*}
+    add "&7Skip the opening animation" to {_lore10::*}
+    add "&7when opening treasure chests." to {_lore10::*}
+    add "" to {_lore10::*}
+    add "&7Status: %{_status10}%" to {_lore10::*}
+    add "" to {_lore10::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴛᴏɢɢʟᴇ" to {_lore10::*}
+    set lore of {_item10} to {_lore10::*}
+    set string tag "opt;key" of custom nbt of {_item10} to "skip_treasure_anim"
+    set slot 23 of {_menu} to {_item10}
+
+    # ════════════════════════════════════════
+    # ROW 4: Close button (slot 31)
+    # ════════════════════════════════════════
+
+    set {_close} to barrier named "&c&lCLOSE"
+    delete {_closeLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_closeLore::*}
+    add "" to {_closeLore::*}
+    add "&7Close this menu" to {_closeLore::*}
+    add "" to {_closeLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴄʟᴏsᴇ" to {_closeLore::*}
+    set lore of {_close} to {_closeLore::*}
+    set string tag "opt;key" of custom nbt of {_close} to "close"
+    set slot 31 of {_menu} to {_close}
+
+    open {_menu} to {_p}
+    set {-options::menu::%{_uuid}%} to "OPTIONS"
+
+
+# ============================================================
+# CLICK HANDLER
+# ============================================================
+
+on inventory click:
+    set {_uuid} to player's uuid
+    if {-options::menu::%{_uuid}%} is "OPTIONS":
+        cancel event
+
+        set {_nbt} to custom nbt of clicked slot
+        set {_key} to string tag "opt;key" of {_nbt}
+
+        if {_key} is not set:
+            stop
+
+        if {_key} is "close":
+            close inventory of player
+            stop
+
+        play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+
+        # Speed level cycling (special case)
+        if {_key} is "speed_level":
+            set {_current} to options_getInt(player, "speed_level", 0)
+            set {_maxSpeed} to enchant_getPlayerLevelByString(player, "Speed")
+            if {_maxSpeed} <= 0:
+                send "&cYou don't have Speed enchant equipped!" to player
+                play sound "entity.villager.no" with volume 0.5 and pitch 1 to player
+                stop
+            add 1 to {_current}
+            if {_current} > {_maxSpeed}:
+                set {_current} to 0
+            options_setInt(player, "speed_level", {_current})
+            enchant_applySpeed(player)
+            options_openMenu(player)
+            stop
+
+        # Toggle: Pet Displays (default: true)
+        if {_key} is "see_other_pets":
+            set {_new} to options_toggleBool(player, "see_other_pets", true)
+            if {_new} is true:
+                petFollow_refreshAll(player)
+            else:
+                petFollow_despawnAll(player)
+
+        # Toggle: Mining Animations (default: true)
+        else if {_key} is "mining_animations":
+            options_toggleBool(player, "mining_animations", true)
+
+        # Toggle: Mining Sounds (default: true)
+        else if {_key} is "mining_sounds":
+            options_toggleBool(player, "mining_sounds", true)
+
+        # Toggle: Milestone Notifications (default: true)
+        else if {_key} is "milestone_notify":
+            options_toggleBool(player, "milestone_notify", true)
+
+        # Toggle: Prestige Notifications (default: true)
+        else if {_key} is "prestige_notify":
+            options_toggleBool(player, "prestige_notify", true)
+
+        # Toggle: Inventory Full Notifications (default: true)
+        else if {_key} is "inv_full_notify":
+            options_toggleBool(player, "inv_full_notify", true)
+
+        # Toggle: Allow Item Drops (default: false)
+        else if {_key} is "allow_drops":
+            options_toggleBool(player, "allow_drops", false)
+
+        # Toggle: Skip Egg Animations (default: false)
+        else if {_key} is "skip_egg_anim":
+            options_toggleBool(player, "skip_egg_anim", false)
+
+        # Toggle: Skip Treasure Animations (default: false)
+        else if {_key} is "skip_treasure_anim":
+            options_toggleBool(player, "skip_treasure_anim", false)
+
+        # Refresh menu
+        options_openMenu(player)
+
+
+on inventory close:
+    if {-options::menu::%player's uuid%} is "OPTIONS":
+        delete {-options::menu::%player's uuid%}
+
+
+# ============================================================
+# ITEM DROP BLOCKER
+# ============================================================
+
+on drop:
+    if options_getBool(player, "allow_drops", false) is false:
+        cancel event

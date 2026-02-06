@@ -85,9 +85,11 @@ function mining_applyVisualUpdate(p: player, l: location):
         set {-miningData::%{_p}'s uuid%::lastStage::%{_key}%} to {_newStage}
 
         if {_newStage} = 5:
-            play sound "block.stone.hit" with volume 0.6 and pitch 0.8 at {_l} for {_p}
+            if options_getBool({_p}, "mining_sounds", true) is true:
+                play sound "block.stone.hit" with volume 0.6 and pitch 0.8 at {_l} for {_p}
         if {_newStage} = 8:
-            play sound "block.stone.hit" with volume 0.8 and pitch 0.6 at {_l} for {_p}
+            if options_getBool({_p}, "mining_sounds", true) is true:
+                play sound "block.stone.hit" with volume 0.8 and pitch 0.6 at {_l} for {_p}
 
 
 function mining_applyInstantStage(p: player, l: location, stage: integer):
@@ -258,7 +260,8 @@ function mining_finishBlock(p: player, l: location):
     else:
         set {_multiplier} to 1
 
-    play sound "block.stone.break" with volume 1 and pitch 0.8 at {_l} for {_p}
+    if options_getBool({_p}, "mining_sounds", true) is true:
+        play sound "block.stone.break" with volume 1 and pitch 0.8 at {_l} for {_p}
 
     # ═══ NEW PROSPECTING SYSTEM ═══
     # Uses prestige-based gems, can drop multiple tiers
@@ -475,8 +478,9 @@ function miningHandler_main(p: player, l: location):
 
     mining_setProgress({_p}, {_l}, {_progress})
 
-    set {_pitch} to random number between 0.8 and 1.2
-    play sound "block.stone.hit" with volume 0.4 and pitch {_pitch} at {_l} for {_p}
+    if options_getBool({_p}, "mining_sounds", true) is true:
+        set {_pitch} to random number between 0.8 and 1.2
+        play sound "block.stone.hit" with volume 0.4 and pitch {_pitch} at {_l} for {_p}
 
     # ═══ ACTION BAR ═══
     set {_progressPercent} to floor({_progress} * 100)
@@ -590,12 +594,13 @@ function mining_addArchetypeXP(p: player, archetype: text, amount: number):
     if {_currentLevel} >= {_maxLevel}:
         set {mining::%{_archetype}%::%{_uuid}%::xp} to 0
         # Throttled chat notification (like inventory full)
-        if {-prestigeReminder::%{_uuid}%::cooldown} is not set:
-            send "&d&l! &7You are max level! Use &6/prestige &7to keep progressing!" to {_p}
-            play sound "block.note_block.bass" with volume 0.5 and pitch 0.8 to {_p}
-            set {-prestigeReminder::%{_uuid}%::cooldown} to true
-            wait 10 seconds
-            delete {-prestigeReminder::%{_uuid}%::cooldown}
+        if options_getBool({_p}, "prestige_notify", true) is true:
+            if {-prestigeReminder::%{_uuid}%::cooldown} is not set:
+                send "&d&l! &7You are max level! Use &6/prestige &7to keep progressing!" to {_p}
+                play sound "block.note_block.bass" with volume 0.5 and pitch 0.8 to {_p}
+                set {-prestigeReminder::%{_uuid}%::cooldown} to true
+                wait 10 seconds
+                delete {-prestigeReminder::%{_uuid}%::cooldown}
         stop
 
     add {_amount} to {_currentXP}

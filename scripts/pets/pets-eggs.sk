@@ -546,7 +546,33 @@ function pet_playOpeningSequence(p: player, tier: text, amount: number, altarLoc
     # Give salvage tokens if any
     if {_totalSalvageTokens} > 0:
         mining_giveTokens({_p}, {_totalSalvageTokens})
-    
+
+    # ════════════════════════════════════════
+    # SKIP ANIMATION (if option enabled)
+    # ════════════════════════════════════════
+    if options_getBool({_p}, "skip_egg_anim", false) is true:
+        make {_p} see block at {_blockLoc} as beacon
+        play sound "entity.item.pickup" with volume 0.6 and pitch 1.2 to {_p}
+        send "" to {_p}
+        if {_keptCount} > 0:
+            send "&aReceived %{_keptCount}% pets!" to {_p}
+            loop {_amount} times:
+                set {_i} to loop-number
+                if {_results::%{_i}%::salvaged} is not true:
+                    set {_typeName} to pet_getTypeName({_results::%{_i}%::type})
+                    set {_rarColor} to pet_getRarityColor({_results::%{_i}%::rarity})
+                    set {_rarName} to {_results::%{_i}%::rarity}
+                    if {_results::%{_i}%::isNew} is true:
+                        send " &b[NEW] %{_rarColor}%%{_rarName}% %{_typeName}%" to {_p}
+                    else:
+                        send " %{_rarColor}%%{_rarName}% %{_typeName}%" to {_p}
+            send "&7Use &e/pets &7to view and equip them!" to {_p}
+        if {_salvageCount} > 0:
+            send "&8Auto-salvaged %{_salvageCount}% pets: &6+%{_totalSalvageTokens}% tokens" to {_p}
+        send "" to {_p}
+        delete {-pet::opening::%{_p}'s uuid%}
+        stop
+
     # ════════════════════════════════════════
     # PHASE 1: All eggs appear and grow
     # ════════════════════════════════════════

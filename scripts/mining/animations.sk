@@ -7,6 +7,10 @@
 # ============================================================
 
 function packetBlockLoot(p: player, loc: location, block: item):
+    # Check mining animations option
+    if options_getBool({_p}, "mining_animations", true) is false:
+        stop
+
     set {_baseId} to random integer between 100000 and 9999999
     
     set {_bx} to floor(x-coord of {_loc}) + 0.5

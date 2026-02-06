@@ -23,6 +23,10 @@
 function petFollow_spawn(p: player, petId: text):
     set {_uuid} to {_p}'s uuid
 
+    # Check if player has pet displays disabled
+    if options_getBool({_p}, "see_other_pets", true) is false:
+        stop
+
     # Don't double-spawn
     if {-pet::follow::%{_uuid}%::ids::%{_petId}%} is set:
         stop

@@ -184,6 +184,12 @@ command /reset <offlineplayer>:
         delete {data::team::blockProgress::%{_uuid}%}
 
         # ═══════════════════════════════════════
+        # PLAYER OPTIONS
+        # ═══════════════════════════════════════
+        delete {data::options::%{_uuid}%::*}
+        send "&7• &fPlayer Options &8- &aReset"
+
+        # ═══════════════════════════════════════
         # RUNTIME CACHES (if player is online)
         # ═══════════════════════════════════════
         delete {-miningData::%{_uuid}%::*}
@@ -227,6 +233,9 @@ command /reset <offlineplayer>:
         delete {-craft::menu::%{_uuid}%}
         delete {-craft::page::%{_uuid}%}
         delete {-multiplier::menu::%{_uuid}%}
+        delete {-options::menu::%{_uuid}%}
+        delete {-milestone::notify::%{_uuid}%}
+        delete {-prestigeReminder::%{_uuid}%::cooldown}
         send "&7• &fRuntime Cache &8- &aCleared"
 
         send ""

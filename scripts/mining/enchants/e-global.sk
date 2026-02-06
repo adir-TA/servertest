@@ -135,6 +135,10 @@ function excavator_flushTokens(p: player):
 
 
 function excavator_playEffect(p: player, loc: location, tokens: integer, magnetProc: boolean):
+    # Check mining animations option
+    if options_getBool({_p}, "mining_animations", true) is false:
+        stop
+
     set {_id} to random integer between 100000 and 9999999
     
     set {_bx} to floor(x-coord of {_loc}) + 0.5
@@ -295,9 +299,13 @@ function prospecting_process(p: player, loc: location, amplifyMultiplier: intege
 
 # Async animation player - handles delay without blocking return
 function prospecting_playDelayedAnimation(p: player, loc: location, tier: integer, amount: integer, luckyProc: boolean, delayTicks: integer):
+    # Check mining animations option
+    if options_getBool({_p}, "mining_animations", true) is false:
+        stop
+
     if {_delayTicks} > 0:
         wait "%{_delayTicks}% ticks" parsed as timespan
-    
+
     # Use the existing pouch animation
     packetPouchGems({_p}, {_loc}, {_tier}, {_amount}, {_luckyProc})
 
@@ -511,6 +519,12 @@ function enchant_applySpeed(p: player):
     if {_level} < 1:
         remove speed from {_p}
         stop
+
+    # Check player's preferred speed level from /options
+    set {_preferred} to options_getInt({_p}, "speed_level", 0)
+    if {_preferred} > 0:
+        if {_preferred} < {_level}:
+            set {_level} to {_preferred}
 
     # Apply speed effect (level 1-5)
     remove speed from {_p}
