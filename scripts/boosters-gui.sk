@@ -152,11 +152,7 @@ function booster_openMainMenu(p: player, page: number, sortBy: text):
     add "&7Your max boost per type:" to {_capLore::*}
     add "&a%{_capPct}%%%" to {_capLore::*}
     add "" to {_capLore::*}
-    add "&7Upgrade via &d/research" to {_capLore::*}
-    add "&7to increase your cap!" to {_capLore::*}
-    add "" to {_capLore::*}
-    add "&8Base: 300%%" to {_capLore::*}
-    add "&8Max: 500%%" to {_capLore::*}
+    add "&8Max: 250%%" to {_capLore::*}
     set lore of {_capItem} to {_capLore::*}
     set slot 46 of {_menu} to {_capItem}
 

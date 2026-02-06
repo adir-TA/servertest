@@ -130,38 +130,50 @@ function acc_openAltarTierMenu(p: player):
     set lore of {_titleItem} to {_titleLore::*}
     set slot 4 of {_menu} to {_titleItem}
 
+    # Get key research tier for gating
+    set {_keyResearch} to research_getCompletedTier({_p}, "accessories", "keys")
+
     # Normal Chest - Slot 10
     set {_normalKeys} to acc_getKeyCount({_p}, "normal")
-    set {_normalItem} to acc_getTreasureChestIcon("normal") named "&a&lNORMAL CHEST"
-    delete {_normalLore::*}
-    add "&8ᴛʀᴇᴀsᴜʀᴇ ᴄʜᴇsᴛ" to {_normalLore::*}
-    add "" to {_normalLore::*}
-    add "&7Your Keys: &e%{_normalKeys}%" to {_normalLore::*}
-    add "" to {_normalLore::*}
-    add "&7Drop Rates:" to {_normalLore::*}
-    add "  &fCommon: &760%%" to {_normalLore::*}
-    add "  &aUncommon: &728%%" to {_normalLore::*}
-    add "  &9Rare: &79%%" to {_normalLore::*}
-    add "  &5Epic: &72.5%%" to {_normalLore::*}
-    add "  &6Legendary: &70.5%%" to {_normalLore::*}
-    add "" to {_normalLore::*}
-    if {_normalKeys} > 0:
-        add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ sᴇʟᴇᴄᴛ" to {_normalLore::*}
-        set string tag "altar;treasure" of custom nbt of {_normalItem} to "normal"
+    if {_keyResearch} < 1:
+        set {_normalItem} to gray dye named "&c&l🔒 NORMAL CHEST"
+        delete {_normalLore::*}
+        add "&8ᴛʀᴇᴀsᴜʀᴇ ᴄʜᴇsᴛ" to {_normalLore::*}
+        add "" to {_normalLore::*}
+        add "&cRequires: &eKey Research Tier 1" to {_normalLore::*}
+        add "" to {_normalLore::*}
+        add "&7Your Keys: &e%{_normalKeys}%" to {_normalLore::*}
+        set lore of {_normalItem} to {_normalLore::*}
     else:
-        add "&cɴᴏ ᴋᴇʏs ᴀᴠᴀɪʟᴀʙʟᴇ" to {_normalLore::*}
-    set lore of {_normalItem} to {_normalLore::*}
+        set {_normalItem} to acc_getTreasureChestIcon("normal") named "&a&lNORMAL CHEST"
+        delete {_normalLore::*}
+        add "&8ᴛʀᴇᴀsᴜʀᴇ ᴄʜᴇsᴛ" to {_normalLore::*}
+        add "" to {_normalLore::*}
+        add "&7Your Keys: &e%{_normalKeys}%" to {_normalLore::*}
+        add "" to {_normalLore::*}
+        add "&7Drop Rates:" to {_normalLore::*}
+        add "  &fCommon: &760%%" to {_normalLore::*}
+        add "  &aUncommon: &728%%" to {_normalLore::*}
+        add "  &9Rare: &79%%" to {_normalLore::*}
+        add "  &5Epic: &72.5%%" to {_normalLore::*}
+        add "  &6Legendary: &70.5%%" to {_normalLore::*}
+        add "" to {_normalLore::*}
+        if {_normalKeys} > 0:
+            add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ sᴇʟᴇᴄᴛ" to {_normalLore::*}
+            set string tag "altar;treasure" of custom nbt of {_normalItem} to "normal"
+        else:
+            add "&cɴᴏ ᴋᴇʏs ᴀᴠᴀɪʟᴀʙʟᴇ" to {_normalLore::*}
+        set lore of {_normalItem} to {_normalLore::*}
     set slot 10 of {_menu} to {_normalItem}
 
     # Ultra Chest - Slot 11
     set {_ultraKeys} to acc_getKeyCount({_p}, "ultra")
-    # Check progression lock
-    if progression_canOpenTreasure({_p}, "ultra") = false:
+    if {_keyResearch} < 2:
         set {_ultraItem} to gray dye named "&c&l🔒 ULTRA CHEST"
         delete {_ultraLore::*}
         add "&8ᴛʀᴇᴀsᴜʀᴇ ᴄʜᴇsᴛ" to {_ultraLore::*}
         add "" to {_ultraLore::*}
-        add "&cRequires: &6Prestige I" to {_ultraLore::*}
+        add "&cRequires: &eKey Research Tier 2" to {_ultraLore::*}
         add "" to {_ultraLore::*}
         add "&7Your Keys: &e%{_ultraKeys}%" to {_ultraLore::*}
         set lore of {_ultraItem} to {_ultraLore::*}
@@ -189,12 +201,12 @@ function acc_openAltarTierMenu(p: player):
 
     # Divine Chest - Slot 13
     set {_divineKeys} to acc_getKeyCount({_p}, "divine")
-    if progression_canOpenTreasure({_p}, "divine") = false:
+    if {_keyResearch} < 3:
         set {_divineItem} to gray dye named "&c&l🔒 DIVINE CHEST"
         delete {_divineLore::*}
         add "&8ᴛʀᴇᴀsᴜʀᴇ ᴄʜᴇsᴛ" to {_divineLore::*}
         add "" to {_divineLore::*}
-        add "&cRequires: &6Prestige III" to {_divineLore::*}
+        add "&cRequires: &eKey Research Tier 3" to {_divineLore::*}
         add "" to {_divineLore::*}
         add "&7Your Keys: &e%{_divineKeys}%" to {_divineLore::*}
         set lore of {_divineItem} to {_divineLore::*}
@@ -222,12 +234,12 @@ function acc_openAltarTierMenu(p: player):
 
     # Mythic Chest - Slot 15
     set {_mythicKeys} to acc_getKeyCount({_p}, "mythic")
-    if progression_canOpenTreasure({_p}, "mythic") = false:
+    if {_keyResearch} < 4:
         set {_mythicItem} to gray dye named "&c&l🔒 MYTHIC CHEST"
         delete {_mythicLore::*}
         add "&8ᴛʀᴇᴀsᴜʀᴇ ᴄʜᴇsᴛ" to {_mythicLore::*}
         add "" to {_mythicLore::*}
-        add "&cRequires: &6Prestige V" to {_mythicLore::*}
+        add "&cRequires: &eKey Research Tier 4" to {_mythicLore::*}
         add "" to {_mythicLore::*}
         add "&7Your Keys: &e%{_mythicKeys}%" to {_mythicLore::*}
         set lore of {_mythicItem} to {_mythicLore::*}
@@ -255,12 +267,12 @@ function acc_openAltarTierMenu(p: player):
 
     # Celestial Chest - Slot 16
     set {_celestialKeys} to acc_getKeyCount({_p}, "celestial")
-    if progression_canOpenTreasure({_p}, "celestial") = false:
+    if {_keyResearch} < 5:
         set {_celestialItem} to gray dye named "&c&l🔒 CELESTIAL CHEST"
         delete {_celestialLore::*}
         add "&8ᴛʀᴇᴀsᴜʀᴇ ᴄʜᴇsᴛ" to {_celestialLore::*}
         add "" to {_celestialLore::*}
-        add "&cRequires: &6Prestige X" to {_celestialLore::*}
+        add "&cRequires: &eKey Research Tier 5" to {_celestialLore::*}
         add "" to {_celestialLore::*}
         add "&7Your Keys: &e%{_celestialKeys}%" to {_celestialLore::*}
         set lore of {_celestialItem} to {_celestialLore::*}

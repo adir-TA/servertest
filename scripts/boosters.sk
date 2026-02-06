@@ -424,7 +424,7 @@ function booster_expireSlot(p: player, slot: number):
 # ============================================================
 
 function booster_getCap(p: player) :: number:
-    return 5.0
+    return 2.5
 
 function booster_getMaxEffects(p: player) :: integer:
     return 6

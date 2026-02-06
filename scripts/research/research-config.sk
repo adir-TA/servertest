@@ -160,7 +160,7 @@ function research_loadConfig():
     set {-research::config::accessories::description} to "Unlock accessory slots and|increase storage capacity."
 
     # Tracks in accessories
-    set {-research::tracks::accessories::*} to "slots" and "storage"
+    set {-research::tracks::accessories::*} to "slots", "storage" and "keys"
 
     # Accessory Slots Track
     set {-research::config::accessories::slots::name} to "&eAccessory Slots"
@@ -221,6 +221,32 @@ function research_loadConfig():
     set {-research::config::accessories::storage::moneyCost::3} to 800000
     set {-research::config::accessories::storage::moneyCost::4} to 3000000
     set {-research::config::accessories::storage::moneyCost::5} to 12000000
+
+    # Key Types Track (5 tiers: Normal, Ultra, Divine, Mythic, Celestial)
+    set {-research::config::accessories::keys::name} to "&eKey Types"
+    set {-research::config::accessories::keys::icon} to tripwire hook
+    set {-research::config::accessories::keys::maxTier} to 5
+    set {-research::config::accessories::keys::baseTime} to 20
+    set {-research::config::accessories::keys::timeMultiplier} to 2.0
+    set {-research::config::accessories::keys::reward} to "key_type"
+    set {-research::config::accessories::keys::description} to "Unlock higher tier keys."
+    # Prestige requirements: P0, P5, P10, P15, P20
+    set {-research::config::accessories::keys::prestigeReq::2} to 5
+    set {-research::config::accessories::keys::prestigeReq::3} to 10
+    set {-research::config::accessories::keys::prestigeReq::4} to 15
+    set {-research::config::accessories::keys::prestigeReq::5} to 20
+    # Money costs
+    set {-research::config::accessories::keys::moneyCost::1} to 10000
+    set {-research::config::accessories::keys::moneyCost::2} to 50000
+    set {-research::config::accessories::keys::moneyCost::3} to 200000
+    set {-research::config::accessories::keys::moneyCost::4} to 750000
+    set {-research::config::accessories::keys::moneyCost::5} to 3000000
+    # Tier descriptions
+    set {-research::config::accessories::keys::tierDesc::1} to "Normal Keys"
+    set {-research::config::accessories::keys::tierDesc::2} to "Ultra Keys"
+    set {-research::config::accessories::keys::tierDesc::3} to "Divine Keys"
+    set {-research::config::accessories::keys::tierDesc::4} to "Mythic Keys"
+    set {-research::config::accessories::keys::tierDesc::5} to "Celestial Keys"
 
     # ════════════════════════════════════════
     # BOOSTERS CATEGORY

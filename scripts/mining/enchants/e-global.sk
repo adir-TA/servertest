@@ -382,33 +382,39 @@ function prospecting_giveGems(p: player, hardness: number, amount: integer):
 # Gives a chance to find treasure keys while mining.
 # Keys are used to open treasure chests for accessories.
 #
-# Proc Chance: 0.05% per level (Level 50 = 2.5%)
-# Key tier based on player's total prestige (all archetypes)
+# Proc Chance: 0.025% per level (Level 50 = 1.25%)
+# Key tier based on player's key research level (accessories category)
+# Requires at least tier 1 key research to proc at all.
 #
 # ============================================================
 
 function enchant_checkTreasureHunterProc(p: player) :: boolean:
     set {_id} to enchant_getIdByString("Treasure Hunter")
-    
+
     if enchant_checkIfEquipped({_p}, {_id}) = false:
         return false
-    
+
     set {_level} to enchant_getPlayerLevelByString({_p}, "Treasure Hunter")
-    
+
     if {_level} < 1:
         return false
-    
+
+    # Requires at least tier 1 key research
+    set {_keyResearch} to research_getCompletedTier({_p}, "accessories", "keys")
+    if {_keyResearch} <= 0:
+        return false
+
     # 0.025% per level (Level 50 = 1.25%)
     set {_baseChance} to {_level} * 0.025
-    
+
     # Apply enchant proc multiplier
     set {_procMultiplier} to multiplier_getEnchantProc({_p})
     set {_chance} to {_baseChance} * {_procMultiplier}
-    
+
     # Apply treasure_find bonus from accessories (if equipped)
     set {_treasureFindBonus} to acc_getTreasureFindBonus({_p})
     set {_chance} to {_chance} * (1 + {_treasureFindBonus})
-    
+
     # Roll for proc
     set {_roll} to random number between 0 and 100
     if {_roll} <= {_chance}:
@@ -419,23 +425,68 @@ function enchant_checkTreasureHunterProc(p: player) :: boolean:
 function enchant_procTreasureHunter(p: player, loc: location) :: boolean:
     if enchant_checkTreasureHunterProc({_p}) = false:
         return false
-    
-    # Get total prestige for key tier
-    set {_totalPrestige} to acc_getTotalPrestige({_p})
-    
-    # Roll which treasure key tier
-    set {_treasureId} to acc_getTreasureForPrestige({_totalPrestige})
-    
+
+    # Key tier based on key research level
+    set {_keyResearch} to research_getCompletedTier({_p}, "accessories", "keys")
+
+    # Roll which treasure key tier (research-based)
+    set {_treasureId} to treasureHunter_rollKeyTier({_keyResearch})
+
     # Give physical key item
     acc_giveKey({_p}, {_treasureId})
-    
+
     # Play animation
     acc_playKeyDropAnimation({_p}, {_loc}, {_treasureId})
-    
+
     # Chat notification
     acc_sendKeyFoundMessage({_p}, {_treasureId})
 
     return true
+
+
+# Roll key tier based on player's key research level
+# Always can drop max unlocked tier, with chances for lower tiers
+function treasureHunter_rollKeyTier(researchTier: number) :: text:
+    set {_roll} to random number between 0 and 100
+
+    if {_researchTier} >= 5:
+        # Celestial unlocked: 20% Normal, 25% Ultra, 25% Divine, 20% Mythic, 10% Celestial
+        if {_roll} < 20:
+            return "normal"
+        if {_roll} < 45:
+            return "ultra"
+        if {_roll} < 70:
+            return "divine"
+        if {_roll} < 90:
+            return "mythic"
+        return "celestial"
+
+    if {_researchTier} >= 4:
+        # Mythic unlocked: 25% Normal, 30% Ultra, 25% Divine, 20% Mythic
+        if {_roll} < 25:
+            return "normal"
+        if {_roll} < 55:
+            return "ultra"
+        if {_roll} < 80:
+            return "divine"
+        return "mythic"
+
+    if {_researchTier} >= 3:
+        # Divine unlocked: 35% Normal, 35% Ultra, 30% Divine
+        if {_roll} < 35:
+            return "normal"
+        if {_roll} < 70:
+            return "ultra"
+        return "divine"
+
+    if {_researchTier} >= 2:
+        # Ultra unlocked: 60% Normal, 40% Ultra
+        if {_roll} < 60:
+            return "normal"
+        return "ultra"
+
+    # Tier 1: Normal only
+    return "normal"
 
 
 # ============================================================
