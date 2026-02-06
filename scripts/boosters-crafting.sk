@@ -11,7 +11,7 @@
 # Layout (6 rows):
 #   Row 0: Equipped scrap balance display (slots 2-6)
 #   Rows 1-4: Recipe grid (7x4 = 28 slots, paginated)
-#   Row 5: [Info] [Conversions] [Prev] [Page] [Next] [Close]
+#   Row 5: [Info] [Conv x4] [Prev] [Page] [Next] [Close]
 #
 # ============================================================
 
@@ -185,7 +185,7 @@ function craft_openMenu(p: player, page: number):
     set lore of {_info} to {_infoLore::*}
     set slot 45 of {_menu} to {_info}
 
-    # Conversion buttons - Slots 46-47
+    # Conversion buttons - Slots 46-49
     # Common→Uncommon - Slot 46
     set {_have46} to scrap_get({_p}, "common")
     set {_conv46} to hopper named "&7&lConvert Common"
@@ -224,7 +224,45 @@ function craft_openMenu(p: player, page: number):
     set string tag "craft;rarity" of custom nbt of {_conv47} to "uncommon"
     set slot 47 of {_menu} to {_conv47}
 
-    # Previous page - Slot 48
+    # Rare→Epic - Slot 48
+    set {_have48} to scrap_get({_p}, "rare")
+    set {_conv48} to hopper named "&9&lConvert Rare"
+    delete {_conv48Lore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_conv48Lore::*}
+    add "" to {_conv48Lore::*}
+    add "&75x &9Rare Scrap &7→ 1x &dEpic Scrap" to {_conv48Lore::*}
+    add "" to {_conv48Lore::*}
+    add "&7You have: &f%{_have48}%" to {_conv48Lore::*}
+    add "" to {_conv48Lore::*}
+    if {_have48} >= 5:
+        add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴄᴏɴᴠᴇʀᴛ" to {_conv48Lore::*}
+    else:
+        add "&cNot enough scrap" to {_conv48Lore::*}
+    set lore of {_conv48} to {_conv48Lore::*}
+    set string tag "craft;action" of custom nbt of {_conv48} to "convert"
+    set string tag "craft;rarity" of custom nbt of {_conv48} to "rare"
+    set slot 48 of {_menu} to {_conv48}
+
+    # Epic→Legendary - Slot 49
+    set {_have49} to scrap_get({_p}, "epic")
+    set {_conv49} to hopper named "&d&lConvert Epic"
+    delete {_conv49Lore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_conv49Lore::*}
+    add "" to {_conv49Lore::*}
+    add "&75x &dEpic Scrap &7→ 1x &6Legendary Scrap" to {_conv49Lore::*}
+    add "" to {_conv49Lore::*}
+    add "&7You have: &f%{_have49}%" to {_conv49Lore::*}
+    add "" to {_conv49Lore::*}
+    if {_have49} >= 5:
+        add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴄᴏɴᴠᴇʀᴛ" to {_conv49Lore::*}
+    else:
+        add "&cNot enough scrap" to {_conv49Lore::*}
+    set lore of {_conv49} to {_conv49Lore::*}
+    set string tag "craft;action" of custom nbt of {_conv49} to "convert"
+    set string tag "craft;rarity" of custom nbt of {_conv49} to "epic"
+    set slot 49 of {_menu} to {_conv49}
+
+    # Previous page - Slot 50
     if {_page} > 1:
         set {_prev} to arrow named "&c&lBACK"
         delete {_prevLore::*}
@@ -236,13 +274,13 @@ function craft_openMenu(p: player, page: number):
         set lore of {_prev} to {_prevLore::*}
         set string tag "craft;action" of custom nbt of {_prev} to "page"
         set int tag "craft;page" of custom nbt of {_prev} to {_page} - 1
-        set slot 48 of {_menu} to {_prev}
+        set slot 50 of {_menu} to {_prev}
 
-    # Page indicator - Slot 49
+    # Page indicator - Slot 51
     set {_pageItem} to paper named "&7Page: &8[&a%{_page}%&8/&c%{_totalPages}%&8]"
-    set slot 49 of {_menu} to {_pageItem}
+    set slot 51 of {_menu} to {_pageItem}
 
-    # Next page - Slot 50
+    # Next page - Slot 52
     if {_page} < {_totalPages}:
         set {_next} to arrow named "&a&lNEXT"
         delete {_nextLore::*}
@@ -254,7 +292,7 @@ function craft_openMenu(p: player, page: number):
         set lore of {_next} to {_nextLore::*}
         set string tag "craft;action" of custom nbt of {_next} to "page"
         set int tag "craft;page" of custom nbt of {_next} to {_page} + 1
-        set slot 50 of {_menu} to {_next}
+        set slot 52 of {_menu} to {_next}
 
     # Close - Slot 53
     set {_close} to barrier named "&c&lCLOSE"

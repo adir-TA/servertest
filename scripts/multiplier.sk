@@ -474,3 +474,13 @@ command /multipliers:
             delete {_itemLore::*}
 
         open {_menu} to player
+        set {-multiplier::menu::%{_uuid}%} to true
+
+
+on inventory click:
+    if {-multiplier::menu::%player's uuid%} is true:
+        cancel event
+
+on inventory close:
+    if {-multiplier::menu::%player's uuid%} is true:
+        delete {-multiplier::menu::%player's uuid%}

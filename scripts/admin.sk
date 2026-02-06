@@ -226,6 +226,7 @@ command /reset <offlineplayer>:
         delete {-guard::research::%{_uuid}%}
         delete {-craft::menu::%{_uuid}%}
         delete {-craft::page::%{_uuid}%}
+        delete {-multiplier::menu::%{_uuid}%}
         send "&7• &fRuntime Cache &8- &aCleared"
 
         send ""
