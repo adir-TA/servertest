@@ -10,7 +10,6 @@
 #   - Level 25: Archetype, Rare Pets
 #   - Level 27: Accessories
 #   - Level 35: Skill Tree
-#   - Level 100: Milestones
 #
 # Prestige Unlocks:
 #   - P1: Teams, Ultra Treasure, Deep Mines, Pet Slot 4
@@ -136,12 +135,6 @@ function milestone_getCurrentText(p: player) :: text:
         if {_maxLevel} >= 35:
             set {_remaining} to 35 - {_level}
             return "&a&lLevel %{_level}%&7/&a35%nl%&aSkill Tree &7in &e%{_remaining}% &7levels"
-
-    # Level 100: Milestones system
-    if {_level} < 100:
-        if {_maxLevel} >= 100:
-            set {_remaining} to 100 - {_level}
-            return "&e&lLevel %{_level}%&7/&e100%nl%&eMilestones &7in &e%{_remaining}% &7levels"
 
     # ========================================
     # PRESTIGE-BASED UNLOCKS

@@ -6,7 +6,6 @@
 #   - Blocks Mined (lifetime total, never resets)
 #   - Prestiges (lifetime total, never resets)
 #
-# Level Lock: All milestones locked until player reaches level 100
 # Milestone Structure: Infinite, scalable
 #   - Early milestones are fast
 #   - Later milestones scale harder
@@ -54,41 +53,11 @@ function milestone_setPrestigeClaimed(p: player, milestone: integer):
 
 
 # ============================================================
-# LEVEL 100 LOCK
+# UNLOCK CHECK (always unlocked)
 # ============================================================
 
-# Check if player has reached level 100 on any archetype
 function milestone_isUnlocked(p: player) :: boolean:
-    set {_uuid} to {_p}'s uuid
-
-    # Check all archetypes for level 100+
-    set {_precisionLevel} to {mining::precision::%{_uuid}%::level} ? 1
-    set {_demolitionLevel} to {mining::demolition::%{_uuid}%::level} ? 1
-    set {_arcaneLevel} to {mining::arcane::%{_uuid}%::level} ? 1
-
-    if {_precisionLevel} >= 100:
-        return true
-    if {_demolitionLevel} >= 100:
-        return true
-    if {_arcaneLevel} >= 100:
-        return true
-
-    return false
-
-# Get the highest level across all archetypes
-function milestone_getHighestLevel(p: player) :: integer:
-    set {_uuid} to {_p}'s uuid
-    set {_precisionLevel} to {mining::precision::%{_uuid}%::level} ? 1
-    set {_demolitionLevel} to {mining::demolition::%{_uuid}%::level} ? 1
-    set {_arcaneLevel} to {mining::arcane::%{_uuid}%::level} ? 1
-
-    set {_highest} to {_precisionLevel}
-    if {_demolitionLevel} > {_highest}:
-        set {_highest} to {_demolitionLevel}
-    if {_arcaneLevel} > {_highest}:
-        set {_highest} to {_arcaneLevel}
-
-    return {_highest}
+    return true
 
 
 # ============================================================
@@ -212,6 +181,16 @@ function milestone_getBlocksRewards(milestone: integer) :: texts:
         # Prestige points for walls
         set {_prestigePoints} to 50 * ({_milestone} / 25)
         add "prestige_points:%{_prestigePoints}%" to {_rewards::*}
+
+        # Wall booster rewards (scaling)
+        if {_milestone} >= 100:
+            add "booster:mythic|legendary|xp:100,token:80,drops:50|7200" to {_rewards::*}
+        else if {_milestone} >= 75:
+            add "booster:divine|legendary|xp:80,token:60,money:40|5400" to {_rewards::*}
+        else if {_milestone} >= 50:
+            add "booster:ultra|legendary|xp:60,token:40,money:30|3600" to {_rewards::*}
+        else:
+            add "booster:advanced|epic|xp:50,token:30|1800" to {_rewards::*}
     else:
         # Regular milestone - smaller rewards
         set {_tokens} to 500 * {_milestone}
@@ -227,6 +206,21 @@ function milestone_getBlocksRewards(milestone: integer) :: texts:
                 add "key:ultra:1" to {_rewards::*}
             else:
                 add "key:normal:1" to {_rewards::*}
+
+        # Booster rewards every 5th milestone (scaling)
+        if mod({_milestone}, 5) = 0:
+            if {_milestone} >= 100:
+                add "booster:divine|epic|xp:70,token:50|3600" to {_rewards::*}
+            else if {_milestone} >= 76:
+                add "booster:ultra|epic|xp:60,token:40|2400" to {_rewards::*}
+            else if {_milestone} >= 51:
+                add "booster:ultra|rare|xp:50,token:30|1800" to {_rewards::*}
+            else if {_milestone} >= 26:
+                add "booster:advanced|rare|xp:40,token:20|1200" to {_rewards::*}
+            else if {_milestone} >= 11:
+                add "booster:basic|uncommon|xp:30|900" to {_rewards::*}
+            else:
+                add "booster:basic|common|xp:25|600" to {_rewards::*}
 
     return {_rewards::*}
 
@@ -254,6 +248,16 @@ function milestone_getPrestigeRewards(milestone: integer) :: texts:
             add "key:divine:5" to {_rewards::*}
         else if {_milestone} >= 25:
             add "key:ultra:10" to {_rewards::*}
+
+        # Wall booster rewards (better than blocks walls)
+        if {_milestone} >= 100:
+            add "booster:mythic|legendary|xp:100,token:100,drops:60|7200" to {_rewards::*}
+        else if {_milestone} >= 75:
+            add "booster:divine|legendary|xp:90,token:70,money:50|5400" to {_rewards::*}
+        else if {_milestone} >= 50:
+            add "booster:divine|legendary|xp:70,token:50,money:40|3600" to {_rewards::*}
+        else:
+            add "booster:ultra|epic|xp:60,token:40|2400" to {_rewards::*}
     else:
         # Regular milestone - smaller rewards
         set {_tokens} to 1000 * {_milestone}
@@ -269,6 +273,21 @@ function milestone_getPrestigeRewards(milestone: integer) :: texts:
                 add "key:ultra:1" to {_rewards::*}
             else:
                 add "key:normal:2" to {_rewards::*}
+
+        # Booster rewards every 5th milestone (better than blocks)
+        if mod({_milestone}, 5) = 0:
+            if {_milestone} >= 100:
+                add "booster:divine|legendary|xp:80,token:60|3600" to {_rewards::*}
+            else if {_milestone} >= 76:
+                add "booster:divine|epic|xp:70,token:50|2400" to {_rewards::*}
+            else if {_milestone} >= 51:
+                add "booster:ultra|epic|xp:60,token:40|1800" to {_rewards::*}
+            else if {_milestone} >= 26:
+                add "booster:ultra|rare|xp:50,token:25|1200" to {_rewards::*}
+            else if {_milestone} >= 11:
+                add "booster:advanced|uncommon|xp:40|900" to {_rewards::*}
+            else:
+                add "booster:basic|uncommon|xp:30|600" to {_rewards::*}
 
     return {_rewards::*}
 
@@ -295,6 +314,12 @@ function milestone_giveRewards(p: player, rewards: texts):
             set {_amount} to {_parts::3} parsed as number
             loop {_amount} times:
                 acc_giveKey({_p}, {_keyType})
+
+        else if {_type} is "booster":
+            # Encoded string contains colons, so extract everything after "booster:"
+            set {_raw} to loop-value
+            set {_encoded} to subtext of {_raw} from character 9 to length of {_raw}
+            booster_addToStorage({_p}, {_encoded})
 
 # Format rewards for display
 function milestone_formatRewards(rewards: texts) :: texts:
@@ -323,6 +348,15 @@ function milestone_formatRewards(rewards: texts) :: texts:
             set {_keyName} to {_keyType} in proper case
             add "%{_keyColor}%🔑 %{_amount}%x %{_keyName}% Key" to {_formatted::*}
 
+        else if {_type} is "booster":
+            set {_raw} to loop-value
+            set {_encoded} to subtext of {_raw} from character 9 to length of {_raw}
+            set {_bTier} to booster_getTier({_encoded})
+            set {_bRarity} to booster_getRarity({_encoded})
+            set {_tierName} to booster_getTierName({_bTier})
+            set {_rarityName} to booster_getRarityName({_bRarity})
+            add "%{_tierName}% %{_rarityName}% &fBooster" to {_formatted::*}
+
     return {_formatted::*}
 
 function milestone_getKeyColor(keyType: text) :: text:
@@ -345,12 +379,6 @@ function milestone_getKeyColor(keyType: text) :: text:
 
 # Claim next blocks milestone
 function milestone_claimBlocks(p: player) :: boolean:
-    # Check if unlocked
-    if milestone_isUnlocked({_p}) is false:
-        send "&cYou need to reach level 100 first to claim milestones!" to {_p}
-        play sound "entity.villager.no" with volume 0.5 and pitch 1 to {_p}
-        return false
-
     set {_current} to milestone_getCurrentBlocksMilestone({_p})
     set {_claimed} to milestone_getBlocksClaimed({_p})
     set {_next} to {_claimed} + 1
@@ -396,12 +424,6 @@ function milestone_claimBlocks(p: player) :: boolean:
 
 # Claim next prestige milestone
 function milestone_claimPrestige(p: player) :: boolean:
-    # Check if unlocked
-    if milestone_isUnlocked({_p}) is false:
-        send "&cYou need to reach level 100 first to claim milestones!" to {_p}
-        play sound "entity.villager.no" with volume 0.5 and pitch 1 to {_p}
-        return false
-
     set {_current} to milestone_getCurrentPrestigeMilestone({_p})
     set {_claimed} to milestone_getPrestigeClaimed({_p})
     set {_next} to {_claimed} + 1
@@ -498,9 +520,6 @@ function milestone_openMenu(p: player):
     set {_menu} to menu_create("&e⭐ Milestones", 6)
     menu_fill({_menu}, 6, black stained glass pane)
 
-    set {_unlocked} to milestone_isUnlocked({_p})
-    set {_highestLevel} to milestone_getHighestLevel({_p})
-
     # Info item (slot 4)
     set {_infoItem} to nether star named "&e&lMILESTONES"
     delete {_infoLore::*}
@@ -508,13 +527,6 @@ function milestone_openMenu(p: player):
     add "" to {_infoLore::*}
     add "&7Track your lifetime progress" to {_infoLore::*}
     add "&7and earn rewards!" to {_infoLore::*}
-    add "" to {_infoLore::*}
-    if {_unlocked} is true:
-        add "&aStatus: &2UNLOCKED" to {_infoLore::*}
-    else:
-        add "&cStatus: &4LOCKED" to {_infoLore::*}
-        add "&7Reach level &e100 &7to unlock!" to {_infoLore::*}
-        add "&7Highest Level: &e%{_highestLevel}%&7/100" to {_infoLore::*}
     set lore of {_infoItem} to {_infoLore::*}
     set slot 4 of {_menu} to {_infoItem}
 
@@ -543,9 +555,7 @@ function milestone_openMenu(p: player):
     add "&8[%milestone_getProgressBar({_blocksProgress})%&8] &f%{_blocksPercent}%%%" to {_blocksLore::*}
     add "" to {_blocksLore::*}
 
-    if {_unlocked} is false:
-        add "&c&lLOCKED - Reach level 100" to {_blocksLore::*}
-    else if {_unclaimedBlocks} > 0:
+    if {_unclaimedBlocks} > 0:
         add "&a&l%{_unclaimedBlocks}% UNCLAIMED!" to {_blocksLore::*}
         add "" to {_blocksLore::*}
         add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴠɪᴇᴡ" to {_blocksLore::*}
@@ -582,9 +592,7 @@ function milestone_openMenu(p: player):
     add "&8[%milestone_getProgressBar({_prestigeProgress})%&8] &f%{_prestigePercent}%%%" to {_prestigeLore::*}
     add "" to {_prestigeLore::*}
 
-    if {_unlocked} is false:
-        add "&c&lLOCKED - Reach level 100" to {_prestigeLore::*}
-    else if {_unclaimedPrestiges} > 0:
+    if {_unclaimedPrestiges} > 0:
         add "&a&l%{_unclaimedPrestiges}% UNCLAIMED!" to {_prestigeLore::*}
         add "" to {_prestigeLore::*}
         add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴠɪᴇᴡ" to {_prestigeLore::*}
@@ -617,7 +625,6 @@ function milestone_openBlocksMenu(p: player):
     set {_menu} to menu_create("&6⭐ Blocks Milestones", 6)
     menu_fill({_menu}, 6, black stained glass pane)
 
-    set {_unlocked} to milestone_isUnlocked({_p})
     set {_totalBlocks} to milestone_getBlocksMined({_p})
     set {_currentMilestone} to milestone_getCurrentBlocksMilestone({_p})
     set {_claimedMilestone} to milestone_getBlocksClaimed({_p})
@@ -687,12 +694,9 @@ function milestone_openBlocksMenu(p: player):
 
         if {_reached} is true:
             if {_claimed} is false:
-                if {_unlocked} is true:
-                    add "" to {_lore::*}
-                    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴄʟᴀɪᴍ" to {_lore::*}
-                    set string tag "milestone;claim" of custom nbt of {_item} to "blocks"
-                else:
-                    add "&c&lReach level 100 first!" to {_lore::*}
+                add "" to {_lore::*}
+                add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴄʟᴀɪᴍ" to {_lore::*}
+                set string tag "milestone;claim" of custom nbt of {_item} to "blocks"
 
         set lore of {_item} to {_lore::*}
         set slot {_slot} of {_menu} to {_item}
@@ -701,7 +705,6 @@ function milestone_openBlocksMenu(p: player):
     # Claim all button (slot 40)
     set {_unclaimed} to milestone_getUnclaimedBlocksCount({_p})
     if {_unclaimed} > 0:
-        if {_unlocked} is true:
             set {_claimAllItem} to emerald block named "&a&lCLAIM ALL"
             delete {_claimAllLore::*}
             add menu_utils_getMenuItemFirstLoreLine() to {_claimAllLore::*}
@@ -747,7 +750,6 @@ function milestone_openPrestigeMenu(p: player):
     set {_menu} to menu_create("&d⭐ Prestige Milestones", 6)
     menu_fill({_menu}, 6, black stained glass pane)
 
-    set {_unlocked} to milestone_isUnlocked({_p})
     set {_totalPrestiges} to milestone_getPrestiges({_p})
     set {_currentMilestone} to milestone_getCurrentPrestigeMilestone({_p})
     set {_claimedMilestone} to milestone_getPrestigeClaimed({_p})
@@ -817,12 +819,9 @@ function milestone_openPrestigeMenu(p: player):
 
         if {_reached} is true:
             if {_claimed} is false:
-                if {_unlocked} is true:
-                    add "" to {_lore::*}
-                    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴄʟᴀɪᴍ" to {_lore::*}
-                    set string tag "milestone;claim" of custom nbt of {_item} to "prestiges"
-                else:
-                    add "&c&lReach level 100 first!" to {_lore::*}
+                add "" to {_lore::*}
+                add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴄʟᴀɪᴍ" to {_lore::*}
+                set string tag "milestone;claim" of custom nbt of {_item} to "prestiges"
 
         set lore of {_item} to {_lore::*}
         set slot {_slot} of {_menu} to {_item}
@@ -831,7 +830,6 @@ function milestone_openPrestigeMenu(p: player):
     # Claim all button (slot 40)
     set {_unclaimed} to milestone_getUnclaimedPrestigeCount({_p})
     if {_unclaimed} > 0:
-        if {_unlocked} is true:
             set {_claimAllItem} to emerald block named "&a&lCLAIM ALL"
             delete {_claimAllLore::*}
             add menu_utils_getMenuItemFirstLoreLine() to {_claimAllLore::*}
