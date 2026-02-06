@@ -9,10 +9,9 @@
 # Crafted boosters go into booster storage.
 #
 # Layout (6 rows):
-#   Row 0: Header
-#   Row 1-3: Recipe grid (21 slots, paginated)
-#   Row 4: Scrap balance display + conversion buttons
-#   Row 5: Navigation + close
+#   Row 0: Equipped scrap balance display (slots 2-6)
+#   Rows 1-4: Recipe grid (7x4 = 28 slots, paginated)
+#   Row 5: [Info] [Conversions] [Prev] [Page] [Next] [Close]
 #
 # ============================================================
 
@@ -25,39 +24,33 @@ on script load:
     delete {-craft::recipeCount}
 
     # ─── Basic Tier ───
-    craft_registerRecipe("basic|common|xp:25|600", "common", 10, 0, 50)
-    craft_registerRecipe("basic|common|drops:20|600", "common", 10, 0, 50)
-    craft_registerRecipe("basic|common|mining_speed:20|600", "common", 10, 0, 50)
-    craft_registerRecipe("basic|uncommon|xp:30|900", "uncommon", 8, 0, 150)
-    craft_registerRecipe("basic|uncommon|token:25|900", "uncommon", 8, 0, 150)
+    craft_registerRecipe("basic|common|xp:25|600", "common", 10, 50)
+    craft_registerRecipe("basic|common|drops:20|600", "common", 10, 50)
+    craft_registerRecipe("basic|common|mining_speed:20|600", "common", 10, 50)
+    craft_registerRecipe("basic|uncommon|xp:30|900", "uncommon", 8, 150)
+    craft_registerRecipe("basic|uncommon|token:25|900", "uncommon", 8, 150)
 
     # ─── Advanced Tier ───
-    craft_registerRecipe("advanced|rare|xp:40,token:20|1200", "rare", 12, 0, 500)
-    craft_registerRecipe("advanced|rare|mining_speed:30|1200", "rare", 10, 0, 400)
-    craft_registerRecipe("advanced|rare|drops:30,money:15|1200", "rare", 12, 0, 500)
+    craft_registerRecipe("advanced|rare|xp:40,token:20|1200", "rare", 12, 500)
+    craft_registerRecipe("advanced|rare|mining_speed:30|1200", "rare", 10, 400)
+    craft_registerRecipe("advanced|rare|drops:30,money:15|1200", "rare", 12, 500)
 
     # ─── Ultra Tier ───
-    craft_registerRecipe("ultra|epic|xp:50,token:30|1800", "epic", 15, 0, 2000)
-    craft_registerRecipe("ultra|epic|mining_speed:40,drops:25|1800", "epic", 14, 0, 1800)
-    craft_registerRecipe("ultra|epic|enchant_proc:35,xp:30|1800", "epic", 15, 0, 2000)
-    craft_registerRecipe("ultra|rare|damage:40,durability:20|1200", "rare", 15, 0, 800)
+    craft_registerRecipe("ultra|epic|xp:50,token:30|1800", "epic", 15, 2000)
+    craft_registerRecipe("ultra|epic|mining_speed:40,drops:25|1800", "epic", 14, 1800)
+    craft_registerRecipe("ultra|epic|enchant_proc:35,xp:30|1800", "epic", 15, 2000)
+    craft_registerRecipe("ultra|rare|damage:40,durability:20|1200", "rare", 15, 800)
 
     # ─── Divine Tier ───
-    craft_registerRecipe("divine|legendary|xp:70,token:50|3600", "legendary", 20, 0, 5000)
-    craft_registerRecipe("divine|epic|xp:60,drops:40,money:30|2400", "epic", 20, 0, 3500)
-    craft_registerRecipe("divine|legendary|mining_speed:50,enchant_proc:40|3600", "legendary", 18, 0, 4500)
+    craft_registerRecipe("divine|legendary|xp:70,token:50|3600", "legendary", 20, 5000)
+    craft_registerRecipe("divine|epic|xp:60,drops:40,money:30|2400", "epic", 20, 3500)
+    craft_registerRecipe("divine|legendary|mining_speed:50,enchant_proc:40|3600", "legendary", 18, 4500)
 
     # ─── Mythic Tier ───
-    craft_registerRecipe("mythic|legendary|xp:100,token:80,drops:60|7200", "legendary", 25, 0, 10000)
+    craft_registerRecipe("mythic|legendary|xp:100,token:80,drops:60|7200", "legendary", 25, 10000)
 
 
-# Registers a recipe
-# boosterEncoded: the output booster
-# scrapRarity: which rarity of scrap is needed
-# scrapAmount: how many of that scrap
-# scrapRarity2Amount: secondary scrap (0 = none, for future use)
-# tokenCost: tokens required
-function craft_registerRecipe(boosterEncoded: text, scrapRarity: text, scrapAmount: number, scrapRarity2Amount: number, tokenCost: number):
+function craft_registerRecipe(boosterEncoded: text, scrapRarity: text, scrapAmount: number, tokenCost: number):
     set {_id} to ({-craft::recipeCount} ? 0) + 1
     set {-craft::recipeCount} to {_id}
     add {_id} to {-craft::recipes::*}
@@ -82,23 +75,74 @@ command /craft:
 
 function craft_openMenu(p: player, page: number):
     set {_uuid} to {_p}'s uuid
-    set {_menu} to chest inventory with 6 rows named "&2&lBooster Brewery"
+    set {_menu} to chest inventory with 6 rows named "&6&lBooster Brewery"
 
     # Fill with glass
-    set {_filler} to green stained glass pane named "&8"
+    set {_filler} to black stained glass pane named "&1"
     loop 54 times:
         set slot loop-number - 1 of {_menu} to {_filler}
 
-    # Header row
-    set {_header} to lime stained glass pane named "&a&lCraft Boosters"
-    set slot 0,1,2,3,4,5,6,7,8 of {_menu} to {_header}
-
     # ════════════════════════════════════════
-    # RECIPE GRID (rows 1-3, slots 10-16, 19-25, 28-34 = 21 slots)
+    # ROW 0: SCRAP BALANCE DISPLAY
     # ════════════════════════════════════════
 
-    set {_displaySlots::*} to 10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 31, 32, 33 and 34
-    set {_perPage} to 21
+    set {_sCommon} to scrap_get({_p}, "common")
+    set {_sUncommon} to scrap_get({_p}, "uncommon")
+    set {_sRare} to scrap_get({_p}, "rare")
+    set {_sEpic} to scrap_get({_p}, "epic")
+    set {_sLegendary} to scrap_get({_p}, "legendary")
+
+    # Common - Slot 2
+    set {_cItem} to bone meal named "&7Common Scrap"
+    delete {_cLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_cLore::*}
+    add "" to {_cLore::*}
+    add "&7Owned: &f%{_sCommon}%" to {_cLore::*}
+    set lore of {_cItem} to {_cLore::*}
+    set slot 2 of {_menu} to {_cItem}
+
+    # Uncommon - Slot 3
+    set {_uItem} to bone meal named "&aUncommon Scrap"
+    delete {_uLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_uLore::*}
+    add "" to {_uLore::*}
+    add "&7Owned: &f%{_sUncommon}%" to {_uLore::*}
+    set lore of {_uItem} to {_uLore::*}
+    set slot 3 of {_menu} to {_uItem}
+
+    # Rare - Slot 4
+    set {_rItem} to bone meal named "&9Rare Scrap"
+    delete {_rLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_rLore::*}
+    add "" to {_rLore::*}
+    add "&7Owned: &f%{_sRare}%" to {_rLore::*}
+    set lore of {_rItem} to {_rLore::*}
+    set slot 4 of {_menu} to {_rItem}
+
+    # Epic - Slot 5
+    set {_eItem} to bone meal named "&dEpic Scrap"
+    delete {_eLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_eLore::*}
+    add "" to {_eLore::*}
+    add "&7Owned: &f%{_sEpic}%" to {_eLore::*}
+    set lore of {_eItem} to {_eLore::*}
+    set slot 5 of {_menu} to {_eItem}
+
+    # Legendary - Slot 6
+    set {_lItem} to bone meal named "&6Legendary Scrap"
+    delete {_lLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_lLore::*}
+    add "" to {_lLore::*}
+    add "&7Owned: &f%{_sLegendary}%" to {_lLore::*}
+    set lore of {_lItem} to {_lLore::*}
+    set slot 6 of {_menu} to {_lItem}
+
+    # ════════════════════════════════════════
+    # ROWS 1-4: RECIPE GRID (28 slots)
+    # ════════════════════════════════════════
+
+    set {_displaySlots::*} to 10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 31, 32, 33, 34, 37, 38, 39, 40, 41, 42 and 43
+    set {_perPage} to 28
     set {_total} to size of {-craft::recipes::*}
     set {_totalPages} to max(1, ceiling({_total} / {_perPage}))
 
@@ -120,72 +164,75 @@ function craft_openMenu(p: player, page: number):
         add 1 to {_displayIndex}
 
     # ════════════════════════════════════════
-    # ROW 4: SCRAP BALANCE + CONVERSION
+    # ROW 5: CONTROLS
     # ════════════════════════════════════════
 
-    # Scrap balance display - Slot 38
-    set {_balanceItem} to bone meal named "&e&lYour Scrap"
-    delete {_balLore::*}
-    add "&8ʙᴀʟᴀɴᴄᴇ" to {_balLore::*}
-    add "" to {_balLore::*}
-    set {_sCommon} to scrap_get({_p}, "common")
-    set {_sUncommon} to scrap_get({_p}, "uncommon")
-    set {_sRare} to scrap_get({_p}, "rare")
-    set {_sEpic} to scrap_get({_p}, "epic")
-    set {_sLegendary} to scrap_get({_p}, "legendary")
-    add " &7Common: &f%{_sCommon}%" to {_balLore::*}
-    add " &aUncommon: &f%{_sUncommon}%" to {_balLore::*}
-    add " &9Rare: &f%{_sRare}%" to {_balLore::*}
-    add " &dEpic: &f%{_sEpic}%" to {_balLore::*}
-    add " &6Legendary: &f%{_sLegendary}%" to {_balLore::*}
-    add "" to {_balLore::*}
-    add "&7Tokens: &e%formatNum(economy_getTokens({_p}))%" to {_balLore::*}
-    set lore of {_balanceItem} to {_balLore::*}
-    set slot 38 of {_menu} to {_balanceItem}
+    # Info book - Slot 45
+    set {_info} to book named "&eBrewing Guide"
+    delete {_infoLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_infoLore::*}
+    add "" to {_infoLore::*}
+    add "&6What is this?" to {_infoLore::*}
+    add "&7Spend scrap and tokens" to {_infoLore::*}
+    add "&7to brew custom boosters." to {_infoLore::*}
+    add "" to {_infoLore::*}
+    add "&6How to get scrap?" to {_infoLore::*}
+    add "&7Salvage pets or accessories" to {_infoLore::*}
+    add "&7to earn scrap of their rarity." to {_infoLore::*}
+    add "" to {_infoLore::*}
+    set {_tokenBal} to economy_getTokens({_p})
+    add "&7Tokens: &e%formatNum({_tokenBal})%" to {_infoLore::*}
+    set lore of {_info} to {_infoLore::*}
+    set slot 45 of {_menu} to {_info}
 
-    # Conversion buttons - Slots 40-43
-    set {_convRarities::*} to "common", "uncommon", "rare" and "epic"
-    set {_convSlots::*} to 40, 41, 42 and 43
+    # Conversion buttons - Slots 46-47
+    # Common→Uncommon - Slot 46
+    set {_have46} to scrap_get({_p}, "common")
+    set {_conv46} to hopper named "&7&lConvert Common"
+    delete {_conv46Lore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_conv46Lore::*}
+    add "" to {_conv46Lore::*}
+    add "&75x &7Common Scrap &7→ 1x &aUncommon Scrap" to {_conv46Lore::*}
+    add "" to {_conv46Lore::*}
+    add "&7You have: &f%{_have46}%" to {_conv46Lore::*}
+    add "" to {_conv46Lore::*}
+    if {_have46} >= 5:
+        add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴄᴏɴᴠᴇʀᴛ" to {_conv46Lore::*}
+    else:
+        add "&cNot enough scrap" to {_conv46Lore::*}
+    set lore of {_conv46} to {_conv46Lore::*}
+    set string tag "craft;action" of custom nbt of {_conv46} to "convert"
+    set string tag "craft;rarity" of custom nbt of {_conv46} to "common"
+    set slot 46 of {_menu} to {_conv46}
 
-    loop {_convRarities::*}:
-        set {_r} to loop-value
-        set {_idx} to loop-index parsed as number
-        set {_slot} to {_convSlots::%{_idx}%}
-        set {_nextR} to scrap_getNextRarity({_r})
-        set {_fromName} to scrap_getName({_r})
-        set {_toName} to scrap_getName({_nextR})
-        set {_have} to scrap_get({_p}, {_r})
-        set {_color} to scrap_getColor({_r})
-
-        set {_convItem} to hopper named "%{_color}%&lConvert %{_r} in proper case%"
-        delete {_convLore::*}
-        add "&8ᴄᴏɴᴠᴇʀᴛ" to {_convLore::*}
-        add "" to {_convLore::*}
-        add "&75x %{_fromName}% &7→ 1x %{_toName}%" to {_convLore::*}
-        add "" to {_convLore::*}
-        add "&7You have: %{_color}%%{_have}%" to {_convLore::*}
-        add "" to {_convLore::*}
-        if {_have} >= 5:
-            add "&eClick to convert" to {_convLore::*}
-        else:
-            add "&cNot enough scrap" to {_convLore::*}
-        set lore of {_convItem} to {_convLore::*}
-        set string tag "craft;action" of custom nbt of {_convItem} to "convert"
-        set string tag "craft;rarity" of custom nbt of {_convItem} to {_r}
-        set slot {_slot} of {_menu} to {_convItem}
-
-    # ════════════════════════════════════════
-    # ROW 5: NAVIGATION + CLOSE
-    # ════════════════════════════════════════
+    # Uncommon→Rare - Slot 47
+    set {_have47} to scrap_get({_p}, "uncommon")
+    set {_conv47} to hopper named "&a&lConvert Uncommon"
+    delete {_conv47Lore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_conv47Lore::*}
+    add "" to {_conv47Lore::*}
+    add "&75x &aUncommon Scrap &7→ 1x &9Rare Scrap" to {_conv47Lore::*}
+    add "" to {_conv47Lore::*}
+    add "&7You have: &f%{_have47}%" to {_conv47Lore::*}
+    add "" to {_conv47Lore::*}
+    if {_have47} >= 5:
+        add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴄᴏɴᴠᴇʀᴛ" to {_conv47Lore::*}
+    else:
+        add "&cNot enough scrap" to {_conv47Lore::*}
+    set lore of {_conv47} to {_conv47Lore::*}
+    set string tag "craft;action" of custom nbt of {_conv47} to "convert"
+    set string tag "craft;rarity" of custom nbt of {_conv47} to "uncommon"
+    set slot 47 of {_menu} to {_conv47}
 
     # Previous page - Slot 48
     if {_page} > 1:
-        set {_prev} to arrow named "&c&lPREVIOUS"
+        set {_prev} to arrow named "&c&lBACK"
         delete {_prevLore::*}
+        add menu_utils_getMenuItemFirstLoreLine() to {_prevLore::*}
         add "" to {_prevLore::*}
         add "&7Page: &8[&a%{_page} - 1%&8/&c%{_totalPages}%&8]" to {_prevLore::*}
         add "" to {_prevLore::*}
-        add "&eClick to go back" to {_prevLore::*}
+        add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ɢᴏ ʙᴀᴄᴋ" to {_prevLore::*}
         set lore of {_prev} to {_prevLore::*}
         set string tag "craft;action" of custom nbt of {_prev} to "page"
         set int tag "craft;page" of custom nbt of {_prev} to {_page} - 1
@@ -199,10 +246,11 @@ function craft_openMenu(p: player, page: number):
     if {_page} < {_totalPages}:
         set {_next} to arrow named "&a&lNEXT"
         delete {_nextLore::*}
+        add menu_utils_getMenuItemFirstLoreLine() to {_nextLore::*}
         add "" to {_nextLore::*}
         add "&7Page: &8[&a%{_page} + 1%&8/&c%{_totalPages}%&8]" to {_nextLore::*}
         add "" to {_nextLore::*}
-        add "&eClick to continue" to {_nextLore::*}
+        add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ɢᴏ ɴᴇxᴛ" to {_nextLore::*}
         set lore of {_next} to {_nextLore::*}
         set string tag "craft;action" of custom nbt of {_next} to "page"
         set int tag "craft;page" of custom nbt of {_next} to {_page} + 1
@@ -211,16 +259,17 @@ function craft_openMenu(p: player, page: number):
     # Close - Slot 53
     set {_close} to barrier named "&c&lCLOSE"
     delete {_closeLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_closeLore::*}
     add "" to {_closeLore::*}
     add "&7Close this menu" to {_closeLore::*}
     add "" to {_closeLore::*}
-    add "&eClick to close" to {_closeLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴄʟᴏsᴇ" to {_closeLore::*}
     set lore of {_close} to {_closeLore::*}
     set string tag "craft;action" of custom nbt of {_close} to "close"
     set slot 53 of {_menu} to {_close}
 
     open {_menu} to {_p}
-    set {-craft::menu::%{_uuid}%} to "RECIPES"
+    set {-craft::menu::%{_uuid}%} to "CRAFT_MAIN"
     set {-craft::page::%{_uuid}%} to {_page}
 
 
@@ -243,7 +292,7 @@ function craft_createRecipeItem(p: player, recipeId: number) :: item:
     set {_item} to {_icon} named "%{_tierName}% %{_rarityName}% &fBooster"
 
     delete {_lore::*}
-    add "&8ʀᴇᴄɪᴘᴇ" to {_lore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_lore::*}
     add "" to {_lore::*}
     add "&8%{_tier}% | %{_rarity}%" to {_lore::*}
     add "" to {_lore::*}
@@ -282,7 +331,7 @@ function craft_createRecipeItem(p: player, recipeId: number) :: item:
 
     if {_hasScrap} is true:
         if {_hasTokens} is true:
-            add "&a▶ Click to craft" to {_lore::*}
+            add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴄʀᴀꜰᴛ" to {_lore::*}
         else:
             add "&cNot enough tokens" to {_lore::*}
     else:
@@ -301,10 +350,10 @@ function craft_createRecipeItem(p: player, recipeId: number) :: item:
 
 function craft_openConfirm(p: player, recipeId: number):
     set {_uuid} to {_p}'s uuid
-    set {_menu} to chest inventory with 3 rows named "&2&lConfirm Craft"
+    set {_menu} to chest inventory with 3 rows named "&c&lConfirm Craft"
 
     # Fill with glass
-    set {_filler} to green stained glass pane named "&8"
+    set {_filler} to black stained glass pane named "&1"
     loop 27 times:
         set slot loop-number - 1 of {_menu} to {_filler}
 
@@ -313,30 +362,32 @@ function craft_openConfirm(p: player, recipeId: number):
     set slot 13 of {_menu} to {_preview}
 
     # Confirm - Slot 11
-    set {_confirm} to emerald block named "&a&lCONFIRM CRAFT"
+    set {_confirm} to lime dye named "&a&lCONFIRM"
     delete {_confirmLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_confirmLore::*}
     add "" to {_confirmLore::*}
     add "&7Craft this booster?" to {_confirmLore::*}
     add "" to {_confirmLore::*}
-    add "&a▶ Click to confirm" to {_confirmLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴄᴏɴꜰɪʀᴍ" to {_confirmLore::*}
     set lore of {_confirm} to {_confirmLore::*}
     set string tag "craft;action" of custom nbt of {_confirm} to "confirm_craft"
     set int tag "craft;recipeId" of custom nbt of {_confirm} to {_recipeId}
     set slot 11 of {_menu} to {_confirm}
 
     # Cancel - Slot 15
-    set {_cancel} to redstone block named "&c&lCANCEL"
+    set {_cancel} to red dye named "&c&lCANCEL"
     delete {_cancelLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_cancelLore::*}
     add "" to {_cancelLore::*}
     add "&7Go back to recipes" to {_cancelLore::*}
     add "" to {_cancelLore::*}
-    add "&eClick to cancel" to {_cancelLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ɢᴏ ʙᴀᴄᴋ" to {_cancelLore::*}
     set lore of {_cancel} to {_cancelLore::*}
     set string tag "craft;action" of custom nbt of {_cancel} to "cancel_craft"
     set slot 15 of {_menu} to {_cancel}
 
     open {_menu} to {_p}
-    set {-craft::menu::%{_uuid}%} to "CONFIRM"
+    set {-craft::menu::%{_uuid}%} to "CRAFT_CONFIRM"
 
 
 # ============================================================
@@ -347,7 +398,7 @@ on inventory click:
     set {_uuid} to player's uuid
     set {_menuType} to {-craft::menu::%{_uuid}%}
 
-    if {_menuType} is "RECIPES":
+    if {_menuType} is "CRAFT_MAIN":
         cancel event
 
         set {_nbt} to custom nbt of clicked slot
@@ -378,7 +429,7 @@ on inventory click:
         else if {_action} is "close":
             close player's inventory
 
-    else if {_menuType} is "CONFIRM":
+    else if {_menuType} is "CRAFT_CONFIRM":
         cancel event
 
         set {_nbt} to custom nbt of clicked slot
@@ -427,7 +478,7 @@ function craft_executeCraft(p: player, recipeId: number):
     set {_storageSize} to booster_getStorageSize({_p})
     set {_storageMax} to booster_getStorageMax({_p})
     if {_storageSize} >= {_storageMax}:
-        send "&c&l! &7Your booster storage is full! (%{_storageSize}%/%{_storageMax}%)" to {_p}
+        send "&c&l! &7Your booster storage is full! &8[&c%{_storageSize}%&8/&c%{_storageMax}%&8]" to {_p}
         play sound "entity.villager.no" with volume 0.5 and pitch 1 to {_p}
         set {_page} to {-craft::page::%{_uuid}%} ? 1
         craft_openMenu({_p}, {_page})
@@ -466,10 +517,10 @@ on inventory close:
     set {_uuid} to player's uuid
     set {_menu} to {-craft::menu::%{_uuid}%}
 
-    if {_menu} is "RECIPES":
+    if {_menu} is "CRAFT_MAIN":
         delete {-craft::menu::%{_uuid}%}
         delete {-craft::page::%{_uuid}%}
 
-    else if {_menu} is "CONFIRM":
+    else if {_menu} is "CRAFT_CONFIRM":
         delete {-craft::menu::%{_uuid}%}
         delete {-craft::page::%{_uuid}%}
