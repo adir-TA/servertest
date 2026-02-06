@@ -705,17 +705,17 @@ function milestone_openBlocksMenu(p: player):
     # Claim all button (slot 40)
     set {_unclaimed} to milestone_getUnclaimedBlocksCount({_p})
     if {_unclaimed} > 0:
-            set {_claimAllItem} to emerald block named "&a&lCLAIM ALL"
-            delete {_claimAllLore::*}
-            add menu_utils_getMenuItemFirstLoreLine() to {_claimAllLore::*}
-            add "" to {_claimAllLore::*}
-            add "&7Claim all &e%{_unclaimed}% &7available" to {_claimAllLore::*}
-            add "&7milestones at once!" to {_claimAllLore::*}
-            add "" to {_claimAllLore::*}
-            add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴄʟᴀɪᴍ ᴀʟʟ" to {_claimAllLore::*}
-            set lore of {_claimAllItem} to {_claimAllLore::*}
-            set string tag "milestone;action" of custom nbt of {_claimAllItem} to "claim_all_blocks"
-            set slot 40 of {_menu} to {_claimAllItem}
+        set {_claimAllItem} to emerald block named "&a&lCLAIM ALL"
+        delete {_claimAllLore::*}
+        add menu_utils_getMenuItemFirstLoreLine() to {_claimAllLore::*}
+        add "" to {_claimAllLore::*}
+        add "&7Claim all &e%{_unclaimed}% &7available" to {_claimAllLore::*}
+        add "&7milestones at once!" to {_claimAllLore::*}
+        add "" to {_claimAllLore::*}
+        add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴄʟᴀɪᴍ ᴀʟʟ" to {_claimAllLore::*}
+        set lore of {_claimAllItem} to {_claimAllLore::*}
+        set string tag "milestone;action" of custom nbt of {_claimAllItem} to "claim_all_blocks"
+        set slot 40 of {_menu} to {_claimAllItem}
 
     # Back button (slot 45)
     set {_back} to arrow named "&7&lBACK"
@@ -830,17 +830,17 @@ function milestone_openPrestigeMenu(p: player):
     # Claim all button (slot 40)
     set {_unclaimed} to milestone_getUnclaimedPrestigeCount({_p})
     if {_unclaimed} > 0:
-            set {_claimAllItem} to emerald block named "&a&lCLAIM ALL"
-            delete {_claimAllLore::*}
-            add menu_utils_getMenuItemFirstLoreLine() to {_claimAllLore::*}
-            add "" to {_claimAllLore::*}
-            add "&7Claim all &d%{_unclaimed}% &7available" to {_claimAllLore::*}
-            add "&7milestones at once!" to {_claimAllLore::*}
-            add "" to {_claimAllLore::*}
-            add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴄʟᴀɪᴍ ᴀʟʟ" to {_claimAllLore::*}
-            set lore of {_claimAllItem} to {_claimAllLore::*}
-            set string tag "milestone;action" of custom nbt of {_claimAllItem} to "claim_all_prestiges"
-            set slot 40 of {_menu} to {_claimAllItem}
+        set {_claimAllItem} to emerald block named "&a&lCLAIM ALL"
+        delete {_claimAllLore::*}
+        add menu_utils_getMenuItemFirstLoreLine() to {_claimAllLore::*}
+        add "" to {_claimAllLore::*}
+        add "&7Claim all &d%{_unclaimed}% &7available" to {_claimAllLore::*}
+        add "&7milestones at once!" to {_claimAllLore::*}
+        add "" to {_claimAllLore::*}
+        add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴄʟᴀɪᴍ ᴀʟʟ" to {_claimAllLore::*}
+        set lore of {_claimAllItem} to {_claimAllLore::*}
+        set string tag "milestone;action" of custom nbt of {_claimAllItem} to "claim_all_prestiges"
+        set slot 40 of {_menu} to {_claimAllItem}
 
     # Back button (slot 45)
     set {_back} to arrow named "&7&lBACK"
@@ -1015,8 +1015,6 @@ command /milestone-admin <text> [<player>] [<number>]:
             send "&7Lifetime Prestiges: &d%formatNum(milestone_getPrestiges(arg-2))%"
             send "&7Blocks Claimed: &a#%milestone_getBlocksClaimed(arg-2)%"
             send "&7Prestige Claimed: &a#%milestone_getPrestigeClaimed(arg-2)%"
-            send "&7Unlocked: %milestone_isUnlocked(arg-2)%"
-            send "&7Highest Level: &e%milestone_getHighestLevel(arg-2)%"
 
         else:
             send "&e/milestone-admin setblocks <player> <amount>"
