@@ -37,9 +37,9 @@ function lb_update():
 
 function lb_updateBlocksMined():
     # Header (lines 1-4)
-    execute console command "hologram edit leaderboard_blocks_mined setline 1  "
-    execute console command "hologram edit leaderboard_blocks_mined setline 2 <#00BCD4><b>BLOCKS MINED"
-    execute console command "hologram edit leaderboard_blocks_mined setline 3 <GRAY><i>Who mines the most?"
+    execute console command "hologram edit leaderboard_blocks_mined setline 1 <#00BCD4><b>BLOCKS MINED"
+    execute console command "hologram edit leaderboard_blocks_mined setline 2 <#005F6A>━━━━━━━━━━━━━━━━━━━━"
+    execute console command "hologram edit leaderboard_blocks_mined setline 3 <#00BCD4>⬥ <#4DD0E1>Top Miners <#00BCD4>⬥"
     execute console command "hologram edit leaderboard_blocks_mined setline 4  "
 
     # Top 10 (lines 5-14)
@@ -71,9 +71,9 @@ function lb_updateBlocksMined():
 
 function lb_updateMoney():
     # Header (lines 1-4)
-    execute console command "hologram edit leaderboard_money setline 1  "
-    execute console command "hologram edit leaderboard_money setline 2 <#2ECC71><b>RICHEST PLAYERS"
-    execute console command "hologram edit leaderboard_money setline 3 <GRAY><i>Who has the deepest pockets?"
+    execute console command "hologram edit leaderboard_money setline 1 <#2ECC71><b>RICHEST PLAYERS"
+    execute console command "hologram edit leaderboard_money setline 2 <#1A7A42>━━━━━━━━━━━━━━━━━━━━"
+    execute console command "hologram edit leaderboard_money setline 3 <#2ECC71>⬥ <#58D68D>Top Earners <#2ECC71>⬥"
     execute console command "hologram edit leaderboard_money setline 4  "
 
     # Top 10 (lines 5-14)
@@ -113,9 +113,9 @@ function lb_updatePrestiges():
             set {-lb::prestiges::%{_uuid}%} to {_total}
 
     # Header (lines 1-4)
-    execute console command "hologram edit leaderboard_total_prestiges setline 1  "
-    execute console command "hologram edit leaderboard_total_prestiges setline 2 <#AB47BC><b>TOTAL PRESTIGES"
-    execute console command "hologram edit leaderboard_total_prestiges setline 3 <GRAY><i>Who has prestiged the most?"
+    execute console command "hologram edit leaderboard_total_prestiges setline 1 <#AB47BC><b>TOTAL PRESTIGES"
+    execute console command "hologram edit leaderboard_total_prestiges setline 2 <#6A2D75>━━━━━━━━━━━━━━━━━━━━"
+    execute console command "hologram edit leaderboard_total_prestiges setline 3 <#AB47BC>⬥ <#CE93D8>Top Prestige <#AB47BC>⬥"
     execute console command "hologram edit leaderboard_total_prestiges setline 4  "
 
     # Top 10 (lines 5-14)
