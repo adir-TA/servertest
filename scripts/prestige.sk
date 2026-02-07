@@ -230,7 +230,7 @@ function prestige_getMaxLevel(p: player, archetype: text) :: number:
 
 function prestige_getCost(p: player, archetype: text) :: number:
     set {_prestige} to {mining::%{_archetype}%::%{_p}'s uuid%::prestige} ? 0
-    return 60000 * (({_prestige} + 1) ^ 1.35)
+    return 20000 * (({_prestige} + 1) ^ 1.65)
 
 function prestige_canPrestige(p: player, archetype: text) :: boolean:
     set {_uuid} to {_p}'s uuid
