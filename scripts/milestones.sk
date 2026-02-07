@@ -979,6 +979,7 @@ on inventory click:
 
             else if {_claim} is "blocks":
                 milestone_claimBlocks(player)
+                wait 1 tick
                 milestone_openBlocksMenu(player)
 
     else if menu_getCurrentMenu(player) is "MILESTONES_PRESTIGES":
@@ -1003,6 +1004,7 @@ on inventory click:
 
             else if {_claim} is "prestiges":
                 milestone_claimPrestige(player)
+                wait 1 tick
                 milestone_openPrestigeMenu(player)
 
 on inventory close:

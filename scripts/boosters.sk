@@ -358,12 +358,15 @@ function booster_unequip(p: player, slot: number) :: boolean:
     set {_data} to {data::boosters::%{_uuid}%::equipped::%{_slot}%::data}
     set {_remaining} to {data::boosters::%{_uuid}%::equipped::%{_slot}%::remaining}
 
-    # Re-encode with remaining time (store remaining, not original)
+    # Re-encode with remaining time converted back to base duration
+    # Remaining already has tier multiplier baked in from equip, so divide it out
     set {_tier} to booster_getTier({_data})
     set {_rarity} to booster_getRarity({_data})
+    set {_mult} to booster_getTierDurationMult({_tier})
+    set {_baseDuration} to floor({_remaining} / {_mult})
     set {_split::*} to {_data} split by "|"
     set {_effects} to {_split::3}
-    set {_newEncoded} to "%{_tier}%|%{_rarity}%|%{_effects}%|%{_remaining}%"
+    set {_newEncoded} to "%{_tier}%|%{_rarity}%|%{_effects}%|%{_baseDuration}%"
 
     # Check storage space
     if booster_getStorageSize({_p}) >= booster_getStorageMax({_p}):
