@@ -193,6 +193,10 @@ function petFollow_startLoop(p: player):
     set {-guard::pet-follow::%{_uuid}%} to a random uuid
 
     set {-pet::follow::%{_uuid}%::tick} to 0
+    set {_lastX} to 0
+    set {_lastY} to 0
+    set {_lastZ} to 0
+    set {_lastYaw} to 0
 
     while {-pet::follow::%{_uuid}%::loop} is true:
         wait 1 second
@@ -221,6 +225,17 @@ function petFollow_startLoop(p: player):
         set {_pY} to y-coord of {_pLoc}
         set {_pZ} to z-coord of {_pLoc}
         set {_world} to world of {_pLoc}
+
+        # Skip all packet sends if player hasn't moved or turned
+        if {_pX} = {_lastX}:
+            if {_pY} = {_lastY}:
+                if {_pZ} = {_lastZ}:
+                    if {_pYaw} = {_lastYaw}:
+                        continue
+        set {_lastX} to {_pX}
+        set {_lastY} to {_pY}
+        set {_lastZ} to {_pZ}
+        set {_lastYaw} to {_pYaw}
 
         # Calculate positions for all pets
         set {_count} to {_equippedCount}
