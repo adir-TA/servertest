@@ -77,7 +77,7 @@ function petFollow_spawn(p: player, petId: text):
         display item: {_icon}
         display scale: vector(0.55, 0.55, 0.55)
         display brightness block: 15
-        display teleportduration: 20
+        display teleportduration: 60
         display rotation left: 0, {_qy}, 0, {_qw}
         glowing: true
         display glow: {_rarityGlow}
@@ -93,7 +93,7 @@ function petFollow_spawn(p: player, petId: text):
             display item: {_icon}
             display scale: vector({_outerScale}, {_outerScale}, {_outerScale})
             display brightness block: 15
-            display teleportduration: 20
+            display teleportduration: 60
             display rotation left: 0, {_qy}, 0, {_qw}
             glowing: true
             display glow: {_fusionGlow}
@@ -110,7 +110,7 @@ function petFollow_spawn(p: player, petId: text):
         display shadow: true
         display defaultbackground: false
         display scale: vector(0.6, 0.6, 0.6)
-        display teleportduration: 20
+        display teleportduration: 60
     send packet {_m} to {_p}
 
 
@@ -199,7 +199,7 @@ function petFollow_startLoop(p: player):
     set {_lastYaw} to 0
 
     while {-pet::follow::%{_uuid}%::loop} is true:
-        wait 1 second
+        wait 3 seconds
 
         if {_p} is not online:
             delete {-pet::follow::%{_uuid}%::loop}
