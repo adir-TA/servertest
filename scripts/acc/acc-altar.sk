@@ -1252,6 +1252,7 @@ function acc_playTreasureAnimation(p: player, treasureId: text, amount: integer)
 
 command /openchest [<text>] [<number=1>]:
     aliases: /opentreasure
+    permission: op
     trigger:
         if arg-1 is not set:
             acc_openAltarTierMenu(player)
