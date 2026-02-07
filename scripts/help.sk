@@ -812,7 +812,7 @@ function help_populateResearch(menu: inventory):
     add "" to {_lore::*}
     add " &7• Only one research at a time" to {_lore::*}
     add " &7• Progress continues offline" to {_lore::*}
-    add "   &8(at 30% speed)" to {_lore::*}
+    add "   &8(at 30%% speed)" to {_lore::*}
     add " &7• Earlier tiers are faster" to {_lore::*}
     add " &7• Later tiers cost money" to {_lore::*}
     add " &7• Some tiers need prestige" to {_lore::*}
