@@ -1,0 +1,1101 @@
+# ============================================================
+# HELP MENU SYSTEM
+# ============================================================
+#
+# Interactive GUI help system covering all game features.
+#
+# Two-screen system:
+#   1. Main Menu - Category selection (5 rows)
+#   2. Category View - Detailed help topics (6 rows)
+#
+# Layout (Main Menu - 5 rows):
+#   Row 1: Header
+#   Row 2: 7 Category buttons centered
+#   Row 3: Spacer
+#   Row 4: Spacer
+#   Row 5: Close
+#
+# Layout (Category View - 6 rows):
+#   Row 1: Back + Title + Info
+#   Rows 2-5: Help topic items (grid)
+#   Row 6: Close
+#
+# ============================================================
+
+
+# ============================================================
+# COMMAND
+# ============================================================
+
+command /help:
+    trigger:
+        help_openMainMenu(player)
+
+
+# ============================================================
+# MAIN MENU (Category Selection)
+# ============================================================
+
+function help_openMainMenu(p: player):
+    set {_uuid} to {_p}'s uuid
+    set {_menu} to menu_create("&e&lHelp", 5)
+    menu_fill({_menu}, 5, black stained glass pane)
+
+    # ════════════════════════════════════════
+    # ROW 1: HEADER (slots 0-8)
+    # ════════════════════════════════════════
+    set {_header} to gray stained glass pane named "&7"
+    set slot 0, 1, 2, 3, 4, 5, 6, 7 and 8 of {_menu} to {_header}
+
+    # Title - slot 4
+    set {_title} to nether star named "&e&lHelp Guide"
+    delete {_titleLore::*}
+    add "&8ᴍᴇɴᴜ" to {_titleLore::*}
+    add "" to {_titleLore::*}
+    add "&7Welcome to the help guide!" to {_titleLore::*}
+    add "&7Select a category below to" to {_titleLore::*}
+    add "&7learn about game features." to {_titleLore::*}
+    add "" to {_titleLore::*}
+    add "&6Tip:" to {_titleLore::*}
+    add "&7Click any category for more" to {_titleLore::*}
+    add "&7details and command info." to {_titleLore::*}
+    set lore of {_title} to {_titleLore::*}
+    set slot 4 of {_menu} to {_title}
+
+    # ════════════════════════════════════════
+    # ROW 2: CATEGORIES (slots 9-17)
+    # 7 categories centered: slots 10, 11, 12, 13, 14, 15, 16
+    # ════════════════════════════════════════
+
+    # Mining
+    set {_mining} to iron pickaxe named "&6&lMINING"
+    delete {_miningLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_miningLore::*}
+    add "" to {_miningLore::*}
+    add "&7Learn about mining, selling," to {_miningLore::*}
+    add "&7repairing, and block rotation." to {_miningLore::*}
+    add "" to {_miningLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴠɪᴇᴡ" to {_miningLore::*}
+    set lore of {_mining} to {_miningLore::*}
+    set string tag "help;action" of custom nbt of {_mining} to "open_category"
+    set string tag "help;category" of custom nbt of {_mining} to "mining"
+    set slot 10 of {_menu} to {_mining}
+
+    # Pets
+    set {_pets} to turtle egg named "&d&lPETS"
+    delete {_petsLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_petsLore::*}
+    add "" to {_petsLore::*}
+    add "&7Learn about pets, equipping," to {_petsLore::*}
+    add "&7fusion, and salvaging." to {_petsLore::*}
+    add "" to {_petsLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴠɪᴇᴡ" to {_petsLore::*}
+    set lore of {_pets} to {_petsLore::*}
+    set string tag "help;action" of custom nbt of {_pets} to "open_category"
+    set string tag "help;category" of custom nbt of {_pets} to "pets"
+    set slot 11 of {_menu} to {_pets}
+
+    # Equipment
+    set {_equip} to diamond chestplate named "&b&lEQUIPMENT"
+    delete {_equipLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_equipLore::*}
+    add "" to {_equipLore::*}
+    add "&7Learn about armor, accessories," to {_equipLore::*}
+    add "&7boosters, and crafting." to {_equipLore::*}
+    add "" to {_equipLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴠɪᴇᴡ" to {_equipLore::*}
+    set lore of {_equip} to {_equipLore::*}
+    set string tag "help;action" of custom nbt of {_equip} to "open_category"
+    set string tag "help;category" of custom nbt of {_equip} to "equipment"
+    set slot 12 of {_menu} to {_equip}
+
+    # Progression
+    set {_prog} to experience bottle named "&a&lPROGRESSION"
+    delete {_progLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_progLore::*}
+    add "" to {_progLore::*}
+    add "&7Learn about leveling, prestige," to {_progLore::*}
+    add "&7archetypes, and milestones." to {_progLore::*}
+    add "" to {_progLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴠɪᴇᴡ" to {_progLore::*}
+    set lore of {_prog} to {_progLore::*}
+    set string tag "help;action" of custom nbt of {_prog} to "open_category"
+    set string tag "help;category" of custom nbt of {_prog} to "progression"
+    set slot 13 of {_menu} to {_prog}
+
+    # Research
+    set {_res} to brewing stand named "&5&lRESEARCH"
+    delete {_resLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_resLore::*}
+    add "" to {_resLore::*}
+    add "&7Learn about the research lab," to {_resLore::*}
+    add "&7categories, and upgrades." to {_resLore::*}
+    add "" to {_resLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴠɪᴇᴡ" to {_resLore::*}
+    set lore of {_res} to {_resLore::*}
+    set string tag "help;action" of custom nbt of {_res} to "open_category"
+    set string tag "help;category" of custom nbt of {_res} to "research"
+    set slot 14 of {_menu} to {_res}
+
+    # Skills & Enchants
+    set {_skills} to enchanted book named "&c&lSKILLS & ENCHANTS"
+    delete {_skillsLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_skillsLore::*}
+    add "" to {_skillsLore::*}
+    add "&7Learn about the skill tree," to {_skillsLore::*}
+    add "&7enchants, and pickaxe upgrades." to {_skillsLore::*}
+    add "" to {_skillsLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴠɪᴇᴡ" to {_skillsLore::*}
+    set lore of {_skills} to {_skillsLore::*}
+    set string tag "help;action" of custom nbt of {_skills} to "open_category"
+    set string tag "help;category" of custom nbt of {_skills} to "skills"
+    set slot 15 of {_menu} to {_skills}
+
+    # Social & Misc
+    set {_social} to oak sign named "&3&lSOCIAL & MISC"
+    delete {_socialLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_socialLore::*}
+    add "" to {_socialLore::*}
+    add "&7Learn about teams, options," to {_socialLore::*}
+    add "&7economy, and other features." to {_socialLore::*}
+    add "" to {_socialLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴠɪᴇᴡ" to {_socialLore::*}
+    set lore of {_social} to {_socialLore::*}
+    set string tag "help;action" of custom nbt of {_social} to "open_category"
+    set string tag "help;category" of custom nbt of {_social} to "social"
+    set slot 16 of {_menu} to {_social}
+
+    # ════════════════════════════════════════
+    # ROW 5: CONTROLS (slots 36-44)
+    # ════════════════════════════════════════
+
+    # Close - slot 44
+    set {_close} to barrier named "&c&lCLOSE"
+    delete {_closeLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_closeLore::*}
+    add "" to {_closeLore::*}
+    add "&7Close this menu." to {_closeLore::*}
+    add "" to {_closeLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴄʟᴏsᴇ" to {_closeLore::*}
+    set lore of {_close} to {_closeLore::*}
+    set string tag "help;action" of custom nbt of {_close} to "close"
+    set slot 44 of {_menu} to {_close}
+
+    open {_menu} to {_p}
+    menu_setCurrentMenu({_p}, "HELP_MAIN")
+    set {-help::menu::%{_uuid}%} to "HELP_MAIN"
+
+
+# ============================================================
+# CATEGORY VIEW (Shows Help Topics)
+# ============================================================
+
+function help_openCategory(p: player, category: text):
+    set {_uuid} to {_p}'s uuid
+
+    # Get category display info
+    if {_category} = "mining":
+        set {_catTitle} to "&6&lMining"
+        set {_catIcon} to iron pickaxe
+    else if {_category} = "pets":
+        set {_catTitle} to "&d&lPets"
+        set {_catIcon} to turtle egg
+    else if {_category} = "equipment":
+        set {_catTitle} to "&b&lEquipment"
+        set {_catIcon} to diamond chestplate
+    else if {_category} = "progression":
+        set {_catTitle} to "&a&lProgression"
+        set {_catIcon} to experience bottle
+    else if {_category} = "research":
+        set {_catTitle} to "&5&lResearch"
+        set {_catIcon} to brewing stand
+    else if {_category} = "skills":
+        set {_catTitle} to "&c&lSkills & Enchants"
+        set {_catIcon} to enchanted book
+    else if {_category} = "social":
+        set {_catTitle} to "&3&lSocial & Misc"
+        set {_catIcon} to oak sign
+
+    set {_menu} to chest inventory with 6 rows named "&8Help"
+
+    # Fill with black glass
+    set {_filler} to black stained glass pane named "&7"
+    loop 54 times:
+        set slot loop-number - 1 of {_menu} to {_filler}
+
+    # ════════════════════════════════════════
+    # ROW 1: HEADER (slots 0-8)
+    # ════════════════════════════════════════
+    set {_headerGlass} to gray stained glass pane named "&7"
+    loop integers from 0 to 8:
+        set slot loop-number of {_menu} to {_headerGlass}
+
+    # Back - slot 0
+    set {_back} to arrow named "&c&lBACK"
+    delete {_backLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_backLore::*}
+    add "" to {_backLore::*}
+    add "&7Return to help menu." to {_backLore::*}
+    add "" to {_backLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ɢᴏ ʙᴀᴄᴋ" to {_backLore::*}
+    set lore of {_back} to {_backLore::*}
+    set string tag "help;action" of custom nbt of {_back} to "back"
+    set slot 0 of {_menu} to {_back}
+
+    # Title - slot 4
+    set {_title} to {_catIcon} named {_catTitle}
+    delete {_titleLore::*}
+    add "&8ᴄᴀᴛᴇɢᴏʀʏ" to {_titleLore::*}
+    add "" to {_titleLore::*}
+    add "&7Browse help topics below." to {_titleLore::*}
+    set lore of {_title} to {_titleLore::*}
+    set slot 4 of {_menu} to {_title}
+
+    # ════════════════════════════════════════
+    # ROWS 2-5: HELP TOPICS (grid layout)
+    # Slots: 10-16, 19-25, 28-34, 37-43
+    # ════════════════════════════════════════
+
+    # Build items list based on category
+    if {_category} = "mining":
+        help_populateMining({_menu})
+    else if {_category} = "pets":
+        help_populatePets({_menu})
+    else if {_category} = "equipment":
+        help_populateEquipment({_menu})
+    else if {_category} = "progression":
+        help_populateProgression({_menu})
+    else if {_category} = "research":
+        help_populateResearch({_menu})
+    else if {_category} = "skills":
+        help_populateSkills({_menu})
+    else if {_category} = "social":
+        help_populateSocial({_menu})
+
+    # ════════════════════════════════════════
+    # ROW 6: CONTROLS (slots 45-53)
+    # ════════════════════════════════════════
+
+    # Close - slot 53
+    set {_close} to barrier named "&c&lCLOSE"
+    delete {_closeLore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_closeLore::*}
+    add "" to {_closeLore::*}
+    add "&7Close this menu." to {_closeLore::*}
+    add "" to {_closeLore::*}
+    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴄʟᴏsᴇ" to {_closeLore::*}
+    set lore of {_close} to {_closeLore::*}
+    set string tag "help;action" of custom nbt of {_close} to "close"
+    set slot 53 of {_menu} to {_close}
+
+    open {_menu} to {_p}
+    menu_setCurrentMenu({_p}, "HELP_CATEGORY")
+    set {-help::menu::%{_uuid}%} to "HELP_CATEGORY"
+    set {-help::menu::%{_uuid}%::category} to {_category}
+
+
+# ============================================================
+# CATEGORY CONTENT FUNCTIONS
+# ============================================================
+
+# ────────────────────────────────
+# MINING
+# ────────────────────────────────
+
+function help_populateMining(menu: inventory):
+    # Mining Basics - slot 10
+    set {_item} to cobblestone named "&6&lMining Basics"
+    delete {_lore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Mining is the core mechanic!" to {_lore::*}
+    add "&7Break blocks in the mine to" to {_lore::*}
+    add "&7earn money and gain XP." to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Your pickaxe has durability" to {_lore::*}
+    add "&7that depletes as you mine." to {_lore::*}
+    add "&7When it breaks, use &e/repair&7." to {_lore::*}
+    set lore of {_item} to {_lore::*}
+    set slot 10 of {_menu} to {_item}
+
+    # /sell - slot 11
+    set {_item} to gold ingot named "&6&l/sell"
+    delete {_lore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_lore::*}
+    add "" to {_lore::*}
+    add "&eSells all mined blocks" to {_lore::*}
+    add "&ein your inventory." to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Your earnings depend on the" to {_lore::*}
+    add "&7blocks you mined and your" to {_lore::*}
+    add "&7active multipliers." to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Command: &e/sell" to {_lore::*}
+    set lore of {_item} to {_lore::*}
+    set slot 11 of {_menu} to {_item}
+
+    # /price - slot 12
+    set {_item} to sunflower named "&6&l/price"
+    delete {_lore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_lore::*}
+    add "" to {_lore::*}
+    add "&eCheck the current sell value" to {_lore::*}
+    add "&eof your mined blocks." to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Shows what you would earn" to {_lore::*}
+    add "&7if you sold right now." to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Command: &e/price" to {_lore::*}
+    set lore of {_item} to {_lore::*}
+    set slot 12 of {_menu} to {_item}
+
+    # /repair - slot 13
+    set {_item} to anvil named "&6&l/repair"
+    delete {_lore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_lore::*}
+    add "" to {_lore::*}
+    add "&eRepair your pickaxe" to {_lore::*}
+    add "&edurability." to {_lore::*}
+    add "" to {_lore::*}
+    add "&7When your pickaxe breaks you" to {_lore::*}
+    add "&7can no longer mine. Use this" to {_lore::*}
+    add "&7command to fix it." to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Command: &e/repair" to {_lore::*}
+    set lore of {_item} to {_lore::*}
+    set slot 13 of {_menu} to {_item}
+
+    # /rotation - slot 14
+    set {_item} to compass named "&6&l/rotation"
+    delete {_lore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_lore::*}
+    add "" to {_lore::*}
+    add "&eCheck the current mine" to {_lore::*}
+    add "&eblock rotation." to {_lore::*}
+    add "" to {_lore::*}
+    add "&7The mine rotates which blocks" to {_lore::*}
+    add "&7appear periodically. Different" to {_lore::*}
+    add "&7blocks have different values." to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Command: &e/rotation" to {_lore::*}
+    set lore of {_item} to {_lore::*}
+    set slot 14 of {_menu} to {_item}
+
+    # Durability - slot 15
+    set {_item} to wooden pickaxe named "&6&lDurability"
+    delete {_lore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Your pickaxe has a durability" to {_lore::*}
+    add "&7bar that depletes as you mine." to {_lore::*}
+    add "" to {_lore::*}
+    add "&7When it hits zero, you can't" to {_lore::*}
+    add "&7mine until you &e/repair&7." to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Durability bonuses from pets," to {_lore::*}
+    add "&7enchants, and boosters reduce" to {_lore::*}
+    add "&7the rate of durability loss." to {_lore::*}
+    set lore of {_item} to {_lore::*}
+    set slot 15 of {_menu} to {_item}
+
+
+# ────────────────────────────────
+# PETS
+# ────────────────────────────────
+
+function help_populatePets(menu: inventory):
+    # Pet Basics - slot 10
+    set {_item} to turtle egg named "&d&lPet Basics"
+    delete {_lore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Pets provide passive bonuses" to {_lore::*}
+    add "&7to your mining stats like" to {_lore::*}
+    add "&7speed, drops, XP, and more." to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Equip pets in your pet menu" to {_lore::*}
+    add "&7to activate their bonuses." to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Unlocks at &eLevel 5" to {_lore::*}
+    set lore of {_item} to {_lore::*}
+    set slot 10 of {_menu} to {_item}
+
+    # /pets - slot 11
+    set {_item} to chest named "&d&l/pets"
+    delete {_lore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_lore::*}
+    add "" to {_lore::*}
+    add "&eOpen the pet management" to {_lore::*}
+    add "&emenu." to {_lore::*}
+    add "" to {_lore::*}
+    add "&7View owned pets, equip and" to {_lore::*}
+    add "&7unequip pets, sort your" to {_lore::*}
+    add "&7collection, and more." to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Command: &e/pets" to {_lore::*}
+    set lore of {_item} to {_lore::*}
+    set slot 11 of {_menu} to {_item}
+
+    # Pet Tiers - slot 12
+    set {_item} to gold block named "&d&lPet Tiers"
+    delete {_lore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Pets come in three tiers:" to {_lore::*}
+    add "" to {_lore::*}
+    add " &f• &7Normal &8- Base pets" to {_lore::*}
+    add " &6• &6Ultra &8- Stronger bonuses" to {_lore::*}
+    add " &b• &bDivine &8- Best bonuses" to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Higher tiers are obtained" to {_lore::*}
+    add "&7from special eggs unlocked" to {_lore::*}
+    add "&7through &e/research&7." to {_lore::*}
+    set lore of {_item} to {_lore::*}
+    set slot 12 of {_menu} to {_item}
+
+    # Pet Rarities - slot 13
+    set {_item} to diamond named "&d&lPet Rarities"
+    delete {_lore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Each pet has a rarity that" to {_lore::*}
+    add "&7determines bonus strength:" to {_lore::*}
+    add "" to {_lore::*}
+    add " &7• Common" to {_lore::*}
+    add " &a• Uncommon" to {_lore::*}
+    add " &b• Rare" to {_lore::*}
+    add " &5• Epic" to {_lore::*}
+    add " &6• Legendary" to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Higher rarity = stronger bonus." to {_lore::*}
+    set lore of {_item} to {_lore::*}
+    set slot 13 of {_menu} to {_item}
+
+    # Pet Fusion - slot 14
+    set {_item} to magma cream named "&d&lPet Fusion"
+    delete {_lore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Combine duplicate pets to" to {_lore::*}
+    add "&7create stronger versions." to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Fusing pets has a chance" to {_lore::*}
+    add "&7to upgrade their rarity." to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Access fusion from the" to {_lore::*}
+    add "&7pet eggs menu." to {_lore::*}
+    set lore of {_item} to {_lore::*}
+    set slot 14 of {_menu} to {_item}
+
+    # Salvage & Filtering - slot 15
+    set {_item} to tnt named "&d&lSalvage & Filtering"
+    delete {_lore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Salvage unwanted pets for" to {_lore::*}
+    add "&6Tokens &7and &aScrap&7." to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Press &eQ &7on a pet to salvage." to {_lore::*}
+    add "&7Use &eSalvage All &7to mass" to {_lore::*}
+    add "&7salvage unequipped pets." to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Set up &eAuto-Salvage Filters" to {_lore::*}
+    add "&7to auto-salvage duplicates." to {_lore::*}
+    set lore of {_item} to {_lore::*}
+    set slot 15 of {_menu} to {_item}
+
+    # Pet Slots - slot 16
+    set {_item} to item frame named "&d&lPet Slots & Storage"
+    delete {_lore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_lore::*}
+    add "" to {_lore::*}
+    add "&7You start with &e1 &7pet slot" to {_lore::*}
+    add "&7and can unlock up to &e5&7." to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Pet storage has a max capacity." to {_lore::*}
+    add "&7Upgrade both via &e/research&7." to {_lore::*}
+    set lore of {_item} to {_lore::*}
+    set slot 16 of {_menu} to {_item}
+
+
+# ────────────────────────────────
+# EQUIPMENT
+# ────────────────────────────────
+
+function help_populateEquipment(menu: inventory):
+    # /armor - slot 10
+    set {_item} to diamond chestplate named "&b&l/armor"
+    delete {_lore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_lore::*}
+    add "" to {_lore::*}
+    add "&eOpen the armor crafting" to {_lore::*}
+    add "&emenu." to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Craft mining armor from gems." to {_lore::*}
+    add "&78 gem types: Jade, Citrine," to {_lore::*}
+    add "&7Aquamarine, Garnet, Moonstone," to {_lore::*}
+    add "&7Obsidian, Tanzanite, Amethyst." to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Equip full sets for bonus XP." to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Requires: &eGem Research T1" to {_lore::*}
+    add "&7Command: &e/armor" to {_lore::*}
+    set lore of {_item} to {_lore::*}
+    set slot 10 of {_menu} to {_item}
+
+    # /accessories - slot 11
+    set {_item} to emerald named "&e&l/accessories"
+    delete {_lore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_lore::*}
+    add "" to {_lore::*}
+    add "&eOpen the accessories menu." to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Accessories provide passive" to {_lore::*}
+    add "&7stat bonuses. Equip up to" to {_lore::*}
+    add "&e14 &7accessories at once." to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Unlock slots via &e/research&7." to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Unlocks at &eLevel 10" to {_lore::*}
+    add "&7Command: &e/accessories" to {_lore::*}
+    add "&7Aliases: &e/acc&7, &e/accessory" to {_lore::*}
+    set lore of {_item} to {_lore::*}
+    set slot 11 of {_menu} to {_item}
+
+    # /boosters - slot 12
+    set {_item} to potion named "&6&l/boosters"
+    delete {_lore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_lore::*}
+    add "" to {_lore::*}
+    add "&eOpen the booster management" to {_lore::*}
+    add "&emenu." to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Boosters are temporary stat" to {_lore::*}
+    add "&7multipliers with a duration." to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Tiers: Basic, Advanced, Ultra," to {_lore::*}
+    add "&7Divine, Mythic." to {_lore::*}
+    add "&7Rarities: Common to Legendary." to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Unlocks at &eLevel 10" to {_lore::*}
+    add "&7Command: &e/boosters" to {_lore::*}
+    set lore of {_item} to {_lore::*}
+    set slot 12 of {_menu} to {_item}
+
+    # /craft - slot 13
+    set {_item} to crafting table named "&e&l/craft"
+    delete {_lore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_lore::*}
+    add "" to {_lore::*}
+    add "&eOpen the booster crafting" to {_lore::*}
+    add "&eworkstation." to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Combine scrap from salvaged" to {_lore::*}
+    add "&7pets to craft new boosters." to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Higher rarity scrap creates" to {_lore::*}
+    add "&7stronger boosters." to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Command: &e/craft" to {_lore::*}
+    set lore of {_item} to {_lore::*}
+    set slot 13 of {_menu} to {_item}
+
+    # Gems - slot 14
+    set {_item} to prismarine shard named "&a&lGems"
+    delete {_lore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Gems drop while mining and" to {_lore::*}
+    add "&7are used to craft armor." to {_lore::*}
+    add "" to {_lore::*}
+    add "&78 types: Jade, Citrine," to {_lore::*}
+    add "&7Aquamarine, Garnet, Moonstone," to {_lore::*}
+    add "&7Obsidian, Tanzanite, Amethyst." to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Unlock gem types through" to {_lore::*}
+    add "&7the &e/research &7lab." to {_lore::*}
+    set lore of {_item} to {_lore::*}
+    set slot 14 of {_menu} to {_item}
+
+    # Treasure Chests - slot 15
+    set {_item} to ender chest named "&e&lTreasure Chests"
+    delete {_lore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Treasure chests can contain" to {_lore::*}
+    add "&7rare accessories and other" to {_lore::*}
+    add "&7valuable rewards." to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Access treasure chests from" to {_lore::*}
+    add "&7the &e/accessories &7menu." to {_lore::*}
+    set lore of {_item} to {_lore::*}
+    set slot 15 of {_menu} to {_item}
+
+
+# ────────────────────────────────
+# PROGRESSION
+# ────────────────────────────────
+
+function help_populateProgression(menu: inventory):
+    # Leveling - slot 10
+    set {_item} to experience bottle named "&a&lLeveling"
+    delete {_lore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Earn XP by mining blocks." to {_lore::*}
+    add "&7Level up to unlock new" to {_lore::*}
+    add "&7features and content." to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Each archetype has its own" to {_lore::*}
+    add "&7level and XP that progress" to {_lore::*}
+    add "&7independently." to {_lore::*}
+    add "" to {_lore::*}
+    add "&6Key Unlocks:" to {_lore::*}
+    add " &7Level 5: &ePets" to {_lore::*}
+    add " &7Level 10: &eAccessories, Boosters" to {_lore::*}
+    add " &7Level 15: &ePrestige" to {_lore::*}
+    set lore of {_item} to {_lore::*}
+    set slot 10 of {_menu} to {_item}
+
+    # /prestige - slot 11
+    set {_item} to nether star named "&e&l/prestige"
+    delete {_lore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_lore::*}
+    add "" to {_lore::*}
+    add "&eOpen the prestige menu." to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Prestige resets your level" to {_lore::*}
+    add "&7but grants permanent bonuses" to {_lore::*}
+    add "&7and prestige points." to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Requires &eLevel 15 &7to prestige." to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Command: &e/prestige" to {_lore::*}
+    set lore of {_item} to {_lore::*}
+    set slot 11 of {_menu} to {_item}
+
+    # /arc - slot 12
+    set {_item} to clock named "&e&l/arc"
+    delete {_lore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_lore::*}
+    add "" to {_lore::*}
+    add "&eOpen the archetype selection" to {_lore::*}
+    add "&emenu." to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Choose your specialization:" to {_lore::*}
+    add " <#F621FF>• Precision &8- Crit & accuracy" to {_lore::*}
+    add " <#FF1F1F>• Demolition &8- AoE & damage" to {_lore::*}
+    add " <#0E61C2>• Arcane &8- Magic & enchants" to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Each archetype has unique" to {_lore::*}
+    add "&7enchants and stat bonuses." to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Command: &e/arc" to {_lore::*}
+    set lore of {_item} to {_lore::*}
+    set slot 12 of {_menu} to {_item}
+
+    # /milestones - slot 13
+    set {_item} to gold ingot named "&e&l/milestones"
+    delete {_lore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_lore::*}
+    add "" to {_lore::*}
+    add "&eOpen the milestones menu." to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Track your lifetime progress" to {_lore::*}
+    add "&7and claim milestone rewards." to {_lore::*}
+    add "" to {_lore::*}
+    add "&6Milestone Types:" to {_lore::*}
+    add " &7• Blocks Mined (lifetime)" to {_lore::*}
+    add " &7• Prestiges (lifetime)" to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Every 25th is a &eWall Milestone" to {_lore::*}
+    add "&7with special rewards." to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Command: &e/milestones" to {_lore::*}
+    set lore of {_item} to {_lore::*}
+    set slot 13 of {_menu} to {_item}
+
+    # /stats - slot 14
+    set {_item} to paper named "&a&l/stats"
+    delete {_lore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_lore::*}
+    add "" to {_lore::*}
+    add "&eView your current statistics." to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Shows your archetype levels," to {_lore::*}
+    add "&7prestige count, XP progress," to {_lore::*}
+    add "&7and more." to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Command: &e/stats" to {_lore::*}
+    set lore of {_item} to {_lore::*}
+    set slot 14 of {_menu} to {_item}
+
+    # /multipliers - slot 15
+    set {_item} to blaze powder named "&a&l/multipliers"
+    delete {_lore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_lore::*}
+    add "" to {_lore::*}
+    add "&eView all active multipliers." to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Shows a breakdown of all" to {_lore::*}
+    add "&7bonuses from pets, enchants," to {_lore::*}
+    add "&7boosters, armor, accessories," to {_lore::*}
+    add "&7prestige, and team upgrades." to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Command: &e/multipliers" to {_lore::*}
+    set lore of {_item} to {_lore::*}
+    set slot 15 of {_menu} to {_item}
+
+    # Discovery - slot 16
+    set {_item} to spyglass named "&a&lDiscovery"
+    delete {_lore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_lore::*}
+    add "" to {_lore::*}
+    add "&7As you progress, new content" to {_lore::*}
+    add "&7unlocks automatically." to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Higher levels, prestiges, and" to {_lore::*}
+    add "&7research unlock new blocks," to {_lore::*}
+    add "&7enchants, pets, and more." to {_lore::*}
+    set lore of {_item} to {_lore::*}
+    set slot 16 of {_menu} to {_item}
+
+
+# ────────────────────────────────
+# RESEARCH
+# ────────────────────────────────
+
+function help_populateResearch(menu: inventory):
+    # Research Basics - slot 10
+    set {_item} to brewing stand named "&5&lResearch Lab"
+    delete {_lore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_lore::*}
+    add "" to {_lore::*}
+    add "&eOpen with &d/research" to {_lore::*}
+    add "" to {_lore::*}
+    add "&7The Research Lab lets you" to {_lore::*}
+    add "&7unlock new slots, storage," to {_lore::*}
+    add "&7and features over time." to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Select a category, pick a" to {_lore::*}
+    add "&7track, and start researching!" to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Command: &e/research" to {_lore::*}
+    add "&7Alias: &e/res" to {_lore::*}
+    set lore of {_item} to {_lore::*}
+    set slot 10 of {_menu} to {_item}
+
+    # Categories - slot 11
+    set {_item} to book named "&5&lResearch Categories"
+    delete {_lore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_lore::*}
+    add "" to {_lore::*}
+    add "&65 Categories:" to {_lore::*}
+    add "" to {_lore::*}
+    add " &5• Enchants &8- Unlock enchant slots" to {_lore::*}
+    add " &d• Pets &8- Slots, storage, eggs" to {_lore::*}
+    add " &a• Gems &8- Unlock gem types" to {_lore::*}
+    add " &e• Accessories &8- Slots + storage" to {_lore::*}
+    add " &b• Boosters &8- Slots + storage" to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Each category has multiple" to {_lore::*}
+    add "&7tracks with tiered upgrades." to {_lore::*}
+    set lore of {_item} to {_lore::*}
+    set slot 11 of {_menu} to {_item}
+
+    # Tips - slot 12
+    set {_item} to lantern named "&5&lResearch Tips"
+    delete {_lore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_lore::*}
+    add "" to {_lore::*}
+    add "&6Useful Tips:" to {_lore::*}
+    add "" to {_lore::*}
+    add " &7• Only one research at a time" to {_lore::*}
+    add " &7• Progress continues offline" to {_lore::*}
+    add "   &8(at 30% speed)" to {_lore::*}
+    add " &7• Earlier tiers are faster" to {_lore::*}
+    add " &7• Later tiers cost money" to {_lore::*}
+    add " &7• Some tiers need prestige" to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Cancel anytime with shift-click" to {_lore::*}
+    add "&7but you'll lose all progress." to {_lore::*}
+    set lore of {_item} to {_lore::*}
+    set slot 12 of {_menu} to {_item}
+
+    # What to Research First - slot 13
+    set {_item} to torch named "&5&lWhat to Research First"
+    delete {_lore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_lore::*}
+    add "" to {_lore::*}
+    add "&6Recommended Priority:" to {_lore::*}
+    add "" to {_lore::*}
+    add " &e1. &7Enchant Slots &8- More DPS" to {_lore::*}
+    add " &e2. &7Pet Slots &8- More bonuses" to {_lore::*}
+    add " &e3. &7Accessory Slots &8- More stats" to {_lore::*}
+    add " &e4. &7Booster Slots &8- Temp buffs" to {_lore::*}
+    add " &e5. &7Storage &8- Hold more items" to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Follow the tutorial for a" to {_lore::*}
+    add "&7guided research order!" to {_lore::*}
+    set lore of {_item} to {_lore::*}
+    set slot 13 of {_menu} to {_item}
+
+
+# ────────────────────────────────
+# SKILLS & ENCHANTS
+# ────────────────────────────────
+
+function help_populateSkills(menu: inventory):
+    # /skilltree - slot 10
+    set {_item} to oak sapling named "&c&l/skilltree"
+    delete {_lore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_lore::*}
+    add "" to {_lore::*}
+    add "&eOpen the skill tree menu." to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Spend skill points on passive" to {_lore::*}
+    add "&7upgrades that permanently" to {_lore::*}
+    add "&7boost your stats." to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Command: &e/skilltree" to {_lore::*}
+    add "&7Aliases: &e/st&7, &e/skills" to {_lore::*}
+    set lore of {_item} to {_lore::*}
+    set slot 10 of {_menu} to {_item}
+
+    # /pickaxe - slot 11
+    set {_item} to diamond pickaxe named "&c&l/pickaxe"
+    delete {_lore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_lore::*}
+    add "" to {_lore::*}
+    add "&eOpen the pickaxe menu." to {_lore::*}
+    add "" to {_lore::*}
+    add "&7View your pickaxe stats," to {_lore::*}
+    add "&7manage enchant slots, and" to {_lore::*}
+    add "&7equip or upgrade enchants." to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Command: &e/pickaxe" to {_lore::*}
+    set lore of {_item} to {_lore::*}
+    set slot 11 of {_menu} to {_item}
+
+    # Enchants - slot 12
+    set {_item} to enchanted book named "&c&lEnchants"
+    delete {_lore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Enchants upgrade your pickaxe" to {_lore::*}
+    add "&7with powerful effects." to {_lore::*}
+    add "" to {_lore::*}
+    add "&6Two types:" to {_lore::*}
+    add " &7• &fGlobal &8- Available to all" to {_lore::*}
+    add " &7• &fArchetype &8- Specific to your" to {_lore::*}
+    add "   &8chosen archetype" to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Level up enchants to increase" to {_lore::*}
+    add "&7their effectiveness." to {_lore::*}
+    set lore of {_item} to {_lore::*}
+    set slot 12 of {_menu} to {_item}
+
+    # Enchant Slots - slot 13
+    set {_item} to ender eye named "&c&lEnchant Slots"
+    delete {_lore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Your pickaxe has limited" to {_lore::*}
+    add "&7slots for enchants." to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Unlock more enchant slots" to {_lore::*}
+    add "&7through &e/research &7in the" to {_lore::*}
+    add "&7Enchants category." to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Choose your loadout wisely" to {_lore::*}
+    add "&7based on your archetype!" to {_lore::*}
+    set lore of {_item} to {_lore::*}
+    set slot 13 of {_menu} to {_item}
+
+
+# ────────────────────────────────
+# SOCIAL & MISC
+# ────────────────────────────────
+
+function help_populateSocial(menu: inventory):
+    # /team - slot 10
+    set {_item} to oak sign named "&3&l/team"
+    delete {_lore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_lore::*}
+    add "" to {_lore::*}
+    add "&eOpen the team menu." to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Create or join a team!" to {_lore::*}
+    add "&7Teams provide shared bonuses" to {_lore::*}
+    add "&7and upgradeable perks." to {_lore::*}
+    add "" to {_lore::*}
+    add "&6Team Upgrades:" to {_lore::*}
+    add " &7• Max Members" to {_lore::*}
+    add " &7• Token Bonus" to {_lore::*}
+    add " &7• Drop Bonus" to {_lore::*}
+    add " &7• Speed Bonus" to {_lore::*}
+    add " &7• Damage Bonus" to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Command: &e/team" to {_lore::*}
+    set lore of {_item} to {_lore::*}
+    set slot 10 of {_menu} to {_item}
+
+    # /options - slot 11
+    set {_item} to comparator named "&3&l/options"
+    delete {_lore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_lore::*}
+    add "" to {_lore::*}
+    add "&eOpen player preferences." to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Customize your gameplay" to {_lore::*}
+    add "&7experience with toggleable" to {_lore::*}
+    add "&7settings and preferences." to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Command: &e/options" to {_lore::*}
+    add "&7Alias: &e/preferences" to {_lore::*}
+    set lore of {_item} to {_lore::*}
+    set slot 11 of {_menu} to {_item}
+
+    # /tutorial - slot 12
+    set {_item} to written book named "&3&l/tutorial"
+    delete {_lore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_lore::*}
+    add "" to {_lore::*}
+    add "&eThe guided tutorial system." to {_lore::*}
+    add "" to {_lore::*}
+    add "&716 steps that teach you" to {_lore::*}
+    add "&7all the game basics from" to {_lore::*}
+    add "&7mining to prestige." to {_lore::*}
+    add "" to {_lore::*}
+    add "&7The tutorial starts when" to {_lore::*}
+    add "&7you first join the server." to {_lore::*}
+    set lore of {_item} to {_lore::*}
+    set slot 12 of {_menu} to {_item}
+
+    # Economy - slot 13
+    set {_item} to gold nugget named "&3&lEconomy"
+    delete {_lore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_lore::*}
+    add "" to {_lore::*}
+    add "&6Two currencies:" to {_lore::*}
+    add "" to {_lore::*}
+    add " &6• Money &8- Earned from &e/sell" to {_lore::*}
+    add "   &8Used for research, upgrades" to {_lore::*}
+    add "" to {_lore::*}
+    add " &e• Tokens &8- Earned from salvage" to {_lore::*}
+    add "   &8Used for pet eggs, specials" to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Both can be boosted with" to {_lore::*}
+    add "&7multipliers and team bonuses." to {_lore::*}
+    set lore of {_item} to {_lore::*}
+    set slot 13 of {_menu} to {_item}
+
+    # World Events - slot 14
+    set {_item} to beacon named "&3&lWorld Events"
+    delete {_lore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Server-wide events that" to {_lore::*}
+    add "&7provide temporary bonuses" to {_lore::*}
+    add "&7to all players." to {_lore::*}
+    add "" to {_lore::*}
+    add "&7Events activate periodically" to {_lore::*}
+    add "&7and offer unique rewards." to {_lore::*}
+    set lore of {_item} to {_lore::*}
+    set slot 14 of {_menu} to {_item}
+
+    # All Commands - slot 15
+    set {_item} to command block named "&3&lAll Commands"
+    delete {_lore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_lore::*}
+    add "" to {_lore::*}
+    add "&6Core Commands:" to {_lore::*}
+    add " &e/sell &8- Sell mined blocks" to {_lore::*}
+    add " &e/price &8- Check sell value" to {_lore::*}
+    add " &e/repair &8- Fix pickaxe" to {_lore::*}
+    add " &e/pickaxe &8- Pickaxe menu" to {_lore::*}
+    add "" to {_lore::*}
+    add "&6Feature Commands:" to {_lore::*}
+    add " &e/pets &8- Pet menu" to {_lore::*}
+    add " &e/armor &8- Armor crafting" to {_lore::*}
+    add " &e/acc &8- Accessories" to {_lore::*}
+    add " &e/boosters &8- Booster menu" to {_lore::*}
+    add " &e/craft &8- Booster crafting" to {_lore::*}
+    add " &e/research &8- Research lab" to {_lore::*}
+    add " &e/skilltree &8- Skill tree" to {_lore::*}
+    add " &e/arc &8- Archetypes" to {_lore::*}
+    set lore of {_item} to {_lore::*}
+    set slot 15 of {_menu} to {_item}
+
+    # All Commands page 2 - slot 16
+    set {_item} to command block named "&3&lAll Commands &7(cont.)"
+    delete {_lore::*}
+    add menu_utils_getMenuItemFirstLoreLine() to {_lore::*}
+    add "" to {_lore::*}
+    add "&6Progression Commands:" to {_lore::*}
+    add " &e/prestige &8- Prestige menu" to {_lore::*}
+    add " &e/stats &8- View your stats" to {_lore::*}
+    add " &e/milestones &8- Milestone rewards" to {_lore::*}
+    add " &e/multipliers &8- Active bonuses" to {_lore::*}
+    add " &e/rotation &8- Mine rotation" to {_lore::*}
+    add "" to {_lore::*}
+    add "&6Social Commands:" to {_lore::*}
+    add " &e/team &8- Team menu" to {_lore::*}
+    add " &e/options &8- Preferences" to {_lore::*}
+    add " &e/help &8- This menu!" to {_lore::*}
+    set lore of {_item} to {_lore::*}
+    set slot 16 of {_menu} to {_item}
+
+
+# ============================================================
+# CLICK HANDLER
+# ============================================================
+
+on inventory click:
+    set {_uuid} to player's uuid
+    set {_menuType} to {-help::menu::%{_uuid}%}
+
+    if {_menuType} is not set:
+        stop
+
+    if {_menuType} does not contain "HELP":
+        stop
+
+    cancel event
+
+    set {_nbt} to custom nbt of clicked slot
+    set {_action} to string tag "help;action" of {_nbt}
+
+    if {_action} is not set:
+        stop
+
+    if {_action} = "close":
+        play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+        close inventory of player
+        stop
+
+    if {_action} = "back":
+        play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+        help_openMainMenu(player)
+        stop
+
+    if {_action} = "open_category":
+        set {_category} to string tag "help;category" of {_nbt}
+        play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+        help_openCategory(player, {_category})
+        stop
+
+
+# ============================================================
+# INVENTORY CLOSE HANDLER
+# ============================================================
+
+on inventory close:
+    set {_uuid} to player's uuid
+    set {_menu} to {-help::menu::%{_uuid}%}
+
+    if {_menu} is set:
+        if {_menu} contains "HELP":
+            delete {-help::menu::%{_uuid}%}
+            delete {-help::menu::%{_uuid}%::category}
+            menu_deleteSession(player)

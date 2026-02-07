@@ -581,9 +581,10 @@ function research_syncOfflineProgress(p: player):
     if {_elapsed} > 86400:
         set {_elapsed} to 86400
 
-    # Add offline progress
+    # Add offline progress (30% speed - offline gains are slower)
     if {_elapsed} > 0:
-        add {_elapsed} to {data::research::%{_uuid}%::active::progress}
+        set {_offlineProgress} to floor({_elapsed} * 0.3)
+        add {_offlineProgress} to {data::research::%{_uuid}%::active::progress}
         set {data::research::%{_uuid}%::active::lastUpdate} to {_nowUnix}
 
         # Check if completed while offline
