@@ -7,7 +7,6 @@
 #
 # Options:
 #   pet_displays       - Show your own pet follow displays (default: true)
-#   see_other_pets     - See other players' pet displays (default: true)
 #   speed_level        - Speed enchant level, 0=max (default: 0)
 #   mining_animations  - Show mining display entities (default: true)
 #   mining_sounds      - Play mining hit/break sounds (default: true)
@@ -196,32 +195,11 @@ function options_openMenu(p: player):
     set string tag "opt;key" of custom nbt of {_item5} to "milestone_notify"
     set slot 14 of {_menu} to {_item5}
 
-    # Option 6: See Others' Pets (slot 16)
-    set {_val6b} to options_getBool({_p}, "see_other_pets", true)
-    if {_val6b} is true:
-        set {_item6b} to player head named "&a&lSee Others' Pets"
-        set {_status6b} to "&aEnabled"
-    else:
-        set {_item6b} to player head named "&c&lSee Others' Pets"
-        set {_status6b} to "&cDisabled"
-    delete {_lore6b::*}
-    add menu_utils_getMenuItemFirstLoreLine() to {_lore6b::*}
-    add "" to {_lore6b::*}
-    add "&7See other players' pets" to {_lore6b::*}
-    add "&7following them around." to {_lore6b::*}
-    add "" to {_lore6b::*}
-    add "&7Status: %{_status6b}%" to {_lore6b::*}
-    add "" to {_lore6b::*}
-    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴛᴏɢɢʟᴇ" to {_lore6b::*}
-    set lore of {_item6b} to {_lore6b::*}
-    set string tag "opt;key" of custom nbt of {_item6b} to "see_other_pets"
-    set slot 16 of {_menu} to {_item6b}
-
     # ════════════════════════════════════════
-    # ROW 3 (slots 18-26): Options 7-11
+    # ROW 3 (slots 18-26): Options 6-10
     # ════════════════════════════════════════
 
-    # Option 7: Prestige Notifications (slot 19)
+    # Option 6: Prestige Notifications (slot 19)
     set {_val6} to options_getBool({_p}, "prestige_notify", true)
     if {_val6} is true:
         set {_item6} to nether star named "&a&lPrestige Notifications"
@@ -389,16 +367,6 @@ on inventory click:
                 petFollow_refreshAll(player)
             else:
                 petFollow_despawnAll(player)
-
-        # Toggle: See Others' Pets (default: true)
-        else if {_key} is "see_other_pets":
-            set {_new} to options_toggleBool(player, "see_other_pets", true)
-            if {_new} is true:
-                # Spawn all nearby players' pets for this viewer
-                petFollow_spawnAllViewerPets(player)
-            else:
-                # Despawn all other players' pets for this viewer
-                petFollow_despawnAllViewerPets(player)
 
         # Toggle: Mining Animations (default: true)
         else if {_key} is "mining_animations":
