@@ -42,8 +42,16 @@ function lb_updateBlocksMined():
     execute console command "hologram edit leaderboard_blocks_mined setline 3 <#00BCD4>⬥ <#4DD0E1>Top Miners <#00BCD4>⬥"
     execute console command "hologram edit leaderboard_blocks_mined setline 4  "
 
+    # Build blocks cache (avoids claimed:: sub-entries polluting the sort)
+    delete {-lb::blocks::*}
+    loop indices of {data::balance::*}:
+        set {_uuid} to loop-value
+        set {_blocks} to {data::milestones::blocks::%{_uuid}%} ? 0
+        if {_blocks} > 0:
+            set {-lb::blocks::%{_uuid}%} to {_blocks}
+
     # Top 10 (lines 5-14)
-    set {_sorted::*} to sorted indices of {data::milestones::blocks::*} in descending order
+    set {_sorted::*} to sorted indices of {-lb::blocks::*} in descending order
     loop 10 times:
         set {_i} to loop-value
         set {_line} to {_i} + 4
@@ -51,7 +59,7 @@ function lb_updateBlocksMined():
         if {_uuid} is set:
             set {_op} to {_uuid} parsed as offline player
             set {_name} to name of {_op} ? "???"
-            set {_val} to {data::milestones::blocks::%{_uuid}%} ? 0
+            set {_val} to {-lb::blocks::%{_uuid}%} ? 0
             set {_formatted} to formatNum({_val})
             if {_i} = 1:
                 execute console command "hologram edit leaderboard_blocks_mined setline %{_line}% <#FFD700><b>#1 <WHITE>%{_name}% <GRAY>- <#00BCD4>%{_formatted}%"
@@ -62,7 +70,10 @@ function lb_updateBlocksMined():
             else:
                 execute console command "hologram edit leaderboard_blocks_mined setline %{_line}% <GRAY>#%{_i}% <WHITE>%{_name}% <GRAY>- <#00BCD4>%{_formatted}%"
         else:
-            execute console command "hologram edit leaderboard_blocks_mined setline %{_line}% <DARK_GRAY>#%{_i}% ---"
+            execute console command "hologram edit leaderboard_blocks_mined setline %{_line}% <DARK_GRAY>#%{_i}% Nobody"
+
+    # Clean up cache
+    delete {-lb::blocks::*}
 
 
 # ════════════════════════════════════════
@@ -96,7 +107,7 @@ function lb_updateMoney():
             else:
                 execute console command "hologram edit leaderboard_money setline %{_line}% <GRAY>#%{_i}% <WHITE>%{_name}% <GRAY>- <#2ECC71>$%{_formatted}%"
         else:
-            execute console command "hologram edit leaderboard_money setline %{_line}% <DARK_GRAY>#%{_i}% ---"
+            execute console command "hologram edit leaderboard_money setline %{_line}% <DARK_GRAY>#%{_i}% Nobody"
 
 
 # ════════════════════════════════════════
@@ -137,7 +148,7 @@ function lb_updatePrestiges():
             else:
                 execute console command "hologram edit leaderboard_total_prestiges setline %{_line}% <GRAY>#%{_i}% <WHITE>%{_name}% <GRAY>- <#AB47BC>P%{_val}%"
         else:
-            execute console command "hologram edit leaderboard_total_prestiges setline %{_line}% <DARK_GRAY>#%{_i}% ---"
+            execute console command "hologram edit leaderboard_total_prestiges setline %{_line}% <DARK_GRAY>#%{_i}% Nobody"
 
     # Clean up cache
     delete {-lb::prestiges::*}
