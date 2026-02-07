@@ -40,7 +40,7 @@ function lb_updateBlocksMined():
     execute console command "hologram edit leaderboard_blocks_mined setline 1 <#00BCD4><b>BLOCKS MINED"
     execute console command "hologram edit leaderboard_blocks_mined setline 2 <#005F6A>━━━━━━━━━━━━━━━━━━━━"
     execute console command "hologram edit leaderboard_blocks_mined setline 3 <#00BCD4>⬥ <#4DD0E1>Top Miners <#00BCD4>⬥"
-    execute console command "hologram edit leaderboard_blocks_mined setline 4  "
+    execute console command "hologram edit leaderboard_blocks_mined setline 4 &8ʟᴇᴀᴅᴇʀʙᴏᴀʀᴅ ʜᴏʟᴏɢʀᴀᴍ"
 
     # Build blocks cache (avoids claimed:: sub-entries polluting the sort)
     delete {-lb::blocks::*}
@@ -85,7 +85,7 @@ function lb_updateMoney():
     execute console command "hologram edit leaderboard_money setline 1 <#2ECC71><b>RICHEST PLAYERS"
     execute console command "hologram edit leaderboard_money setline 2 <#1A7A42>━━━━━━━━━━━━━━━━━━━━"
     execute console command "hologram edit leaderboard_money setline 3 <#2ECC71>⬥ <#58D68D>Top Earners <#2ECC71>⬥"
-    execute console command "hologram edit leaderboard_money setline 4  "
+    execute console command "hologram edit leaderboard_money setline 4 &8ʟᴇᴀᴅᴇʀʙᴏᴀʀᴅ ʜᴏʟᴏɢʀᴀᴍ"
 
     # Top 10 (lines 5-14)
     set {_sorted::*} to sorted indices of {data::balance::*} in descending order
@@ -127,7 +127,7 @@ function lb_updatePrestiges():
     execute console command "hologram edit leaderboard_total_prestiges setline 1 <#AB47BC><b>TOTAL PRESTIGES"
     execute console command "hologram edit leaderboard_total_prestiges setline 2 <#6A2D75>━━━━━━━━━━━━━━━━━━━━"
     execute console command "hologram edit leaderboard_total_prestiges setline 3 <#AB47BC>⬥ <#CE93D8>Top Prestige <#AB47BC>⬥"
-    execute console command "hologram edit leaderboard_total_prestiges setline 4  "
+    execute console command "hologram edit leaderboard_total_prestiges setline 4 &8ʟᴇᴀᴅᴇʀʙᴏᴀʀᴅ ʜᴏʟᴏɢʀᴀᴍ"
 
     # Top 10 (lines 5-14)
     set {_sorted::*} to sorted indices of {-lb::prestiges::*} in descending order
