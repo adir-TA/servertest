@@ -1,0 +1,143 @@
+# ============================================================
+# LEADERBOARD SYSTEM
+# ============================================================
+# Updates 3 holograms every 15 minutes:
+#   - leaderboard_blocks_mined  (teal theme)
+#   - leaderboard_money         (green theme)
+#   - leaderboard_total_prestiges (purple theme)
+#
+# Lines 1-4: Header (permanent design per board)
+# Lines 5-14: Top 10 players
+# ============================================================
+
+every 15 minutes:
+    lb_update()
+
+command /lb-update:
+    permission: op
+    trigger:
+        lb_update()
+        send "&aLeaderboards updated."
+
+function lb_update():
+    lb_updateBlocksMined()
+    lb_updateMoney()
+    lb_updatePrestiges()
+
+    broadcast ""
+    broadcast "<gradient:##9BE8FF:##00BCD4><b><st>                                                          "
+    broadcast "&7&o   Leaderboards &f&oupdated&7&o, next update in &f&o15m"
+    broadcast "<gradient:##9BE8FF:##00BCD4><b><st>                                                          "
+    broadcast ""
+
+
+# ════════════════════════════════════════
+# BLOCKS MINED — Teal theme
+# ════════════════════════════════════════
+
+function lb_updateBlocksMined():
+    # Header (lines 1-4)
+    execute console command "hologram edit leaderboard_blocks_mined setline 1  "
+    execute console command "hologram edit leaderboard_blocks_mined setline 2 <#00BCD4><b>BLOCKS MINED"
+    execute console command "hologram edit leaderboard_blocks_mined setline 3 <GRAY><i>Who mines the most?"
+    execute console command "hologram edit leaderboard_blocks_mined setline 4  "
+
+    # Top 10 (lines 5-14)
+    set {_sorted::*} to sorted indices of {data::milestones::blocks::*} in descending order
+    loop 10 times:
+        set {_i} to loop-value
+        set {_line} to {_i} + 4
+        set {_uuid} to {_sorted::%{_i}%}
+        if {_uuid} is set:
+            set {_op} to {_uuid} parsed as offline player
+            set {_name} to name of {_op} ? "???"
+            set {_val} to {data::milestones::blocks::%{_uuid}%} ? 0
+            set {_formatted} to formatNum({_val})
+            if {_i} = 1:
+                execute console command "hologram edit leaderboard_blocks_mined setline %{_line}% <#FFD700><b>#1 <WHITE>%{_name}% <GRAY>- <#00BCD4>%{_formatted}%"
+            else if {_i} = 2:
+                execute console command "hologram edit leaderboard_blocks_mined setline %{_line}% <#C0C0C0><b>#2 <WHITE>%{_name}% <GRAY>- <#00BCD4>%{_formatted}%"
+            else if {_i} = 3:
+                execute console command "hologram edit leaderboard_blocks_mined setline %{_line}% <#CD7F32><b>#3 <WHITE>%{_name}% <GRAY>- <#00BCD4>%{_formatted}%"
+            else:
+                execute console command "hologram edit leaderboard_blocks_mined setline %{_line}% <GRAY>#%{_i}% <WHITE>%{_name}% <GRAY>- <#00BCD4>%{_formatted}%"
+        else:
+            execute console command "hologram edit leaderboard_blocks_mined setline %{_line}% <DARK_GRAY>#%{_i}% ---"
+
+
+# ════════════════════════════════════════
+# MONEY — Green theme
+# ════════════════════════════════════════
+
+function lb_updateMoney():
+    # Header (lines 1-4)
+    execute console command "hologram edit leaderboard_money setline 1  "
+    execute console command "hologram edit leaderboard_money setline 2 <#2ECC71><b>RICHEST PLAYERS"
+    execute console command "hologram edit leaderboard_money setline 3 <GRAY><i>Who has the deepest pockets?"
+    execute console command "hologram edit leaderboard_money setline 4  "
+
+    # Top 10 (lines 5-14)
+    set {_sorted::*} to sorted indices of {data::balance::*} in descending order
+    loop 10 times:
+        set {_i} to loop-value
+        set {_line} to {_i} + 4
+        set {_uuid} to {_sorted::%{_i}%}
+        if {_uuid} is set:
+            set {_op} to {_uuid} parsed as offline player
+            set {_name} to name of {_op} ? "???"
+            set {_val} to {data::balance::%{_uuid}%} ? 0
+            set {_formatted} to formatNum({_val})
+            if {_i} = 1:
+                execute console command "hologram edit leaderboard_money setline %{_line}% <#FFD700><b>#1 <WHITE>%{_name}% <GRAY>- <#2ECC71>$%{_formatted}%"
+            else if {_i} = 2:
+                execute console command "hologram edit leaderboard_money setline %{_line}% <#C0C0C0><b>#2 <WHITE>%{_name}% <GRAY>- <#2ECC71>$%{_formatted}%"
+            else if {_i} = 3:
+                execute console command "hologram edit leaderboard_money setline %{_line}% <#CD7F32><b>#3 <WHITE>%{_name}% <GRAY>- <#2ECC71>$%{_formatted}%"
+            else:
+                execute console command "hologram edit leaderboard_money setline %{_line}% <GRAY>#%{_i}% <WHITE>%{_name}% <GRAY>- <#2ECC71>$%{_formatted}%"
+        else:
+            execute console command "hologram edit leaderboard_money setline %{_line}% <DARK_GRAY>#%{_i}% ---"
+
+
+# ════════════════════════════════════════
+# TOTAL PRESTIGES — Purple theme
+# ════════════════════════════════════════
+
+function lb_updatePrestiges():
+    # Build prestige totals cache for sorting
+    delete {-lb::prestiges::*}
+    loop indices of {data::balance::*}:
+        set {_uuid} to loop-value
+        set {_total} to ({mining::precision::%{_uuid}%::prestige} ? 0) + ({mining::demolition::%{_uuid}%::prestige} ? 0) + ({mining::arcane::%{_uuid}%::prestige} ? 0)
+        if {_total} > 0:
+            set {-lb::prestiges::%{_uuid}%} to {_total}
+
+    # Header (lines 1-4)
+    execute console command "hologram edit leaderboard_total_prestiges setline 1  "
+    execute console command "hologram edit leaderboard_total_prestiges setline 2 <#AB47BC><b>TOTAL PRESTIGES"
+    execute console command "hologram edit leaderboard_total_prestiges setline 3 <GRAY><i>Who has prestiged the most?"
+    execute console command "hologram edit leaderboard_total_prestiges setline 4  "
+
+    # Top 10 (lines 5-14)
+    set {_sorted::*} to sorted indices of {-lb::prestiges::*} in descending order
+    loop 10 times:
+        set {_i} to loop-value
+        set {_line} to {_i} + 4
+        set {_uuid} to {_sorted::%{_i}%}
+        if {_uuid} is set:
+            set {_op} to {_uuid} parsed as offline player
+            set {_name} to name of {_op} ? "???"
+            set {_val} to {-lb::prestiges::%{_uuid}%} ? 0
+            if {_i} = 1:
+                execute console command "hologram edit leaderboard_total_prestiges setline %{_line}% <#FFD700><b>#1 <WHITE>%{_name}% <GRAY>- <#AB47BC>P%{_val}%"
+            else if {_i} = 2:
+                execute console command "hologram edit leaderboard_total_prestiges setline %{_line}% <#C0C0C0><b>#2 <WHITE>%{_name}% <GRAY>- <#AB47BC>P%{_val}%"
+            else if {_i} = 3:
+                execute console command "hologram edit leaderboard_total_prestiges setline %{_line}% <#CD7F32><b>#3 <WHITE>%{_name}% <GRAY>- <#AB47BC>P%{_val}%"
+            else:
+                execute console command "hologram edit leaderboard_total_prestiges setline %{_line}% <GRAY>#%{_i}% <WHITE>%{_name}% <GRAY>- <#AB47BC>P%{_val}%"
+        else:
+            execute console command "hologram edit leaderboard_total_prestiges setline %{_line}% <DARK_GRAY>#%{_i}% ---"
+
+    # Clean up cache
+    delete {-lb::prestiges::*}

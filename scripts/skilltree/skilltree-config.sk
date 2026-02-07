@@ -46,7 +46,7 @@ function skilltree_initConfig():
     set {-skilltree::node::power_1::stat} to "damage"
     set {-skilltree::node::power_1::bonus} to 0.03
     set {-skilltree::node::power_1::maxRank} to 5
-    set {-skilltree::node::power_1::costs::*} to 50, 50, 75, 75 and 100
+    set {-skilltree::node::power_1::costs::*} to 25, 35, 50, 75 and 100
     set {-skilltree::node::power_1::requires} to ""
     set {-skilltree::node::power_1::icon} to iron sword
     set {-skilltree::node::power_1::desc} to "+3%% Damage per rank"
@@ -57,7 +57,7 @@ function skilltree_initConfig():
     set {-skilltree::node::power_2::stat} to "mining_speed"
     set {-skilltree::node::power_2::bonus} to 0.02
     set {-skilltree::node::power_2::maxRank} to 5
-    set {-skilltree::node::power_2::costs::*} to 75, 100, 100, 125 and 150
+    set {-skilltree::node::power_2::costs::*} to 100, 150, 225, 300 and 400
     set {-skilltree::node::power_2::requires} to "power_1"
     set {-skilltree::node::power_2::icon} to golden pickaxe
     set {-skilltree::node::power_2::desc} to "+2%% Mining Speed per rank"
@@ -68,7 +68,7 @@ function skilltree_initConfig():
     set {-skilltree::node::power_3::stat} to "durability"
     set {-skilltree::node::power_3::bonus} to 0.04
     set {-skilltree::node::power_3::maxRank} to 5
-    set {-skilltree::node::power_3::costs::*} to 100, 125, 150, 175 and 200
+    set {-skilltree::node::power_3::costs::*} to 250, 375, 500, 650 and 800
     set {-skilltree::node::power_3::requires} to "power_2"
     set {-skilltree::node::power_3::icon} to iron chestplate
     set {-skilltree::node::power_3::desc} to "+4%% Durability per rank"
@@ -79,7 +79,7 @@ function skilltree_initConfig():
     set {-skilltree::node::power_4::stat} to "damage"
     set {-skilltree::node::power_4::bonus} to 0.05
     set {-skilltree::node::power_4::maxRank} to 3
-    set {-skilltree::node::power_4::costs::*} to 150, 200 and 250
+    set {-skilltree::node::power_4::costs::*} to 600, 900 and 1250
     set {-skilltree::node::power_4::requires} to "power_3"
     set {-skilltree::node::power_4::icon} to blaze powder
     set {-skilltree::node::power_4::desc} to "+5%% Damage per rank"
@@ -92,7 +92,7 @@ function skilltree_initConfig():
     set {-skilltree::node::power_5::bonusStat2} to "durability"
     set {-skilltree::node::power_5::bonus2} to 0.03
     set {-skilltree::node::power_5::maxRank} to 3
-    set {-skilltree::node::power_5::costs::*} to 200, 275 and 350
+    set {-skilltree::node::power_5::costs::*} to 1000, 1500 and 2200
     set {-skilltree::node::power_5::requires} to "power_4"
     set {-skilltree::node::power_5::icon} to diamond
     set {-skilltree::node::power_5::desc} to "+3%% Mining Speed & Durability per rank"
@@ -103,7 +103,7 @@ function skilltree_initConfig():
     set {-skilltree::node::power_6::stat} to "mechanic"
     set {-skilltree::node::power_6::bonus} to 0
     set {-skilltree::node::power_6::maxRank} to 1
-    set {-skilltree::node::power_6::costs::*} to 275
+    set {-skilltree::node::power_6::costs::*} to 3500
     set {-skilltree::node::power_6::requires} to "power_5"
     set {-skilltree::node::power_6::icon} to nether star
     set {-skilltree::node::power_6::desc} to "Mining has a 10%% chance to deal 3x damage"
@@ -116,7 +116,7 @@ function skilltree_initConfig():
     set {-skilltree::node::fortune_1::stat} to "drops"
     set {-skilltree::node::fortune_1::bonus} to 0.03
     set {-skilltree::node::fortune_1::maxRank} to 5
-    set {-skilltree::node::fortune_1::costs::*} to 50, 50, 75, 75 and 100
+    set {-skilltree::node::fortune_1::costs::*} to 25, 35, 50, 75 and 100
     set {-skilltree::node::fortune_1::requires} to ""
     set {-skilltree::node::fortune_1::icon} to gold nugget
     set {-skilltree::node::fortune_1::desc} to "+3%% Drops per rank"
@@ -127,7 +127,7 @@ function skilltree_initConfig():
     set {-skilltree::node::fortune_2::stat} to "drops"
     set {-skilltree::node::fortune_2::bonus} to 0.04
     set {-skilltree::node::fortune_2::maxRank} to 5
-    set {-skilltree::node::fortune_2::costs::*} to 75, 100, 100, 125 and 150
+    set {-skilltree::node::fortune_2::costs::*} to 100, 150, 225, 300 and 400
     set {-skilltree::node::fortune_2::requires} to "fortune_1"
     set {-skilltree::node::fortune_2::icon} to emerald
     set {-skilltree::node::fortune_2::desc} to "+4%% Drops per rank"
@@ -138,7 +138,7 @@ function skilltree_initConfig():
     set {-skilltree::node::fortune_3::stat} to "enchant_proc"
     set {-skilltree::node::fortune_3::bonus} to 0.03
     set {-skilltree::node::fortune_3::maxRank} to 5
-    set {-skilltree::node::fortune_3::costs::*} to 100, 125, 150, 175 and 200
+    set {-skilltree::node::fortune_3::costs::*} to 250, 375, 500, 650 and 800
     set {-skilltree::node::fortune_3::requires} to "fortune_2"
     set {-skilltree::node::fortune_3::icon} to tripwire hook
     set {-skilltree::node::fortune_3::desc} to "+3%% Enchant Proc per rank"
@@ -151,7 +151,7 @@ function skilltree_initConfig():
     set {-skilltree::node::fortune_4::bonusStat2} to "enchant_proc"
     set {-skilltree::node::fortune_4::bonus2} to 0.03
     set {-skilltree::node::fortune_4::maxRank} to 3
-    set {-skilltree::node::fortune_4::costs::*} to 150, 200 and 250
+    set {-skilltree::node::fortune_4::costs::*} to 600, 900 and 1250
     set {-skilltree::node::fortune_4::requires} to "fortune_3"
     set {-skilltree::node::fortune_4::icon} to compass
     set {-skilltree::node::fortune_4::desc} to "+4%% Drops & +3%% Enchant Proc per rank"
@@ -162,7 +162,7 @@ function skilltree_initConfig():
     set {-skilltree::node::fortune_5::stat} to "token"
     set {-skilltree::node::fortune_5::bonus} to 0.05
     set {-skilltree::node::fortune_5::maxRank} to 3
-    set {-skilltree::node::fortune_5::costs::*} to 200, 275 and 350
+    set {-skilltree::node::fortune_5::costs::*} to 1000, 1500 and 2200
     set {-skilltree::node::fortune_5::requires} to "fortune_4"
     set {-skilltree::node::fortune_5::icon} to gold block
     set {-skilltree::node::fortune_5::desc} to "+5%% Tokens per rank"
@@ -173,7 +173,7 @@ function skilltree_initConfig():
     set {-skilltree::node::fortune_6::stat} to "mechanic"
     set {-skilltree::node::fortune_6::bonus} to 0
     set {-skilltree::node::fortune_6::maxRank} to 1
-    set {-skilltree::node::fortune_6::costs::*} to 275
+    set {-skilltree::node::fortune_6::costs::*} to 3500
     set {-skilltree::node::fortune_6::requires} to "fortune_5"
     set {-skilltree::node::fortune_6::icon} to nether star
     set {-skilltree::node::fortune_6::desc} to "Mining has a 10%% chance to double all drops"
@@ -186,7 +186,7 @@ function skilltree_initConfig():
     set {-skilltree::node::efficiency_1::stat} to "xp"
     set {-skilltree::node::efficiency_1::bonus} to 0.03
     set {-skilltree::node::efficiency_1::maxRank} to 5
-    set {-skilltree::node::efficiency_1::costs::*} to 50, 50, 75, 75 and 100
+    set {-skilltree::node::efficiency_1::costs::*} to 25, 35, 50, 75 and 100
     set {-skilltree::node::efficiency_1::requires} to ""
     set {-skilltree::node::efficiency_1::icon} to experience bottle
     set {-skilltree::node::efficiency_1::desc} to "+3%% XP per rank"
@@ -197,7 +197,7 @@ function skilltree_initConfig():
     set {-skilltree::node::efficiency_2::stat} to "token"
     set {-skilltree::node::efficiency_2::bonus} to 0.03
     set {-skilltree::node::efficiency_2::maxRank} to 5
-    set {-skilltree::node::efficiency_2::costs::*} to 75, 100, 100, 125 and 150
+    set {-skilltree::node::efficiency_2::costs::*} to 100, 150, 225, 300 and 400
     set {-skilltree::node::efficiency_2::requires} to "efficiency_1"
     set {-skilltree::node::efficiency_2::icon} to sunflower
     set {-skilltree::node::efficiency_2::desc} to "+3%% Tokens per rank"
@@ -208,7 +208,7 @@ function skilltree_initConfig():
     set {-skilltree::node::efficiency_3::stat} to "enchant_proc"
     set {-skilltree::node::efficiency_3::bonus} to 0.03
     set {-skilltree::node::efficiency_3::maxRank} to 5
-    set {-skilltree::node::efficiency_3::costs::*} to 100, 125, 150, 175 and 200
+    set {-skilltree::node::efficiency_3::costs::*} to 250, 375, 500, 650 and 800
     set {-skilltree::node::efficiency_3::requires} to "efficiency_2"
     set {-skilltree::node::efficiency_3::icon} to brewing stand
     set {-skilltree::node::efficiency_3::desc} to "+3%% Enchant Proc per rank"
@@ -221,7 +221,7 @@ function skilltree_initConfig():
     set {-skilltree::node::efficiency_4::bonusStat2} to "token"
     set {-skilltree::node::efficiency_4::bonus2} to 0.04
     set {-skilltree::node::efficiency_4::maxRank} to 3
-    set {-skilltree::node::efficiency_4::costs::*} to 150, 200 and 250
+    set {-skilltree::node::efficiency_4::costs::*} to 600, 900 and 1250
     set {-skilltree::node::efficiency_4::requires} to "efficiency_3"
     set {-skilltree::node::efficiency_4::icon} to enchanted book
     set {-skilltree::node::efficiency_4::desc} to "+4%% XP & Tokens per rank"
@@ -232,7 +232,7 @@ function skilltree_initConfig():
     set {-skilltree::node::efficiency_5::stat} to "enchant_proc"
     set {-skilltree::node::efficiency_5::bonus} to 0.05
     set {-skilltree::node::efficiency_5::maxRank} to 3
-    set {-skilltree::node::efficiency_5::costs::*} to 200, 275 and 350
+    set {-skilltree::node::efficiency_5::costs::*} to 1000, 1500 and 2200
     set {-skilltree::node::efficiency_5::requires} to "efficiency_4"
     set {-skilltree::node::efficiency_5::icon} to redstone block
     set {-skilltree::node::efficiency_5::desc} to "+5%% Enchant Proc per rank"
@@ -243,7 +243,7 @@ function skilltree_initConfig():
     set {-skilltree::node::efficiency_6::stat} to "mechanic"
     set {-skilltree::node::efficiency_6::bonus} to 0
     set {-skilltree::node::efficiency_6::maxRank} to 1
-    set {-skilltree::node::efficiency_6::costs::*} to 275
+    set {-skilltree::node::efficiency_6::costs::*} to 3500
     set {-skilltree::node::efficiency_6::requires} to "efficiency_5"
     set {-skilltree::node::efficiency_6::icon} to nether star
     set {-skilltree::node::efficiency_6::desc} to "Mining has a 10%% chance to double XP & Tokens"
