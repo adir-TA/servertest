@@ -30,10 +30,11 @@ function mining_registerBlocks():
     # ============================================================
     # BLOCK REGISTRY WITH PRESTIGE REQUIREMENTS
     # ============================================================
-    # Each block = unique prestige. Scales +1 at start, bigger jumps later
+    # Gaps increase per tier: +1 -> +2 -> +3 -> +4 -> +5 -> +6
+    # Last block (netherite) at P90 out of P96 max total prestige
     # ============================================================
 
-    # ═══ EARLY GAME (+1 per block) ═══
+    # ═══ EARLY GAME (+1 per block, P0-P9) ═══
     mining_registerBlock(cobblestone, 0.6, (1 of cobblestone), 35, 0)
     mining_registerBlock(stone, 0.9, (1 of stone), 36.05, 1)
     mining_registerBlock(sandstone, 1.2, (1 of sandstone), 37.1, 2)
@@ -45,7 +46,7 @@ function mining_registerBlocks():
     mining_registerBlock(bricks, 3.0, (1 of bricks), 43.4, 8)
     mining_registerBlock(stone bricks, 3.3, (1 of stone bricks), 44.45, 9)
 
-    # ═══ EARLY-MID (+2 per block) ═══
+    # ═══ EARLY-MID (+2 per block, P11-P25) ═══
     mining_registerBlock(mossy stone bricks, 3.6, (1 of mossy stone bricks), 45.5, 11)
     mining_registerBlock(basalt, 3.9, (1 of basalt), 46.55, 13)
     mining_registerBlock(prismarine, 4.2, (1 of prismarine), 47.6, 15)
@@ -53,33 +54,31 @@ function mining_registerBlocks():
     mining_registerBlock(purpur block, 4.8, (1 of purpur block), 49.7, 19)
     mining_registerBlock(end stone, 5.1, (1 of end stone), 50.75, 21)
     mining_registerBlock(calcite, 5.4, (1 of calcite), 51.8, 23)
+    mining_registerBlock(tuff, 5.7, (1 of tuff), 52.85, 25)
 
-    # ═══ MID GAME (+3 per block) ═══
-    mining_registerBlock(tuff, 5.7, (1 of tuff), 52.85, 26)
-    mining_registerBlock(dripstone block, 6.0, (1 of dripstone block), 53.9, 29)
-    mining_registerBlock(packed mud, 6.3, (1 of packed mud), 54.95, 32)
-    mining_registerBlock(mud bricks, 6.6, (1 of mud bricks), 56, 35)
-    mining_registerBlock(hay block, 6.9, (1 of hay block), 57.05, 38)
+    # ═══ MID GAME (+3 per block, P28-P43) ═══
+    mining_registerBlock(dripstone block, 6.0, (1 of dripstone block), 53.9, 28)
+    mining_registerBlock(packed mud, 6.3, (1 of packed mud), 54.95, 31)
+    mining_registerBlock(mud bricks, 6.6, (1 of mud bricks), 56, 34)
+    mining_registerBlock(hay block, 6.9, (1 of hay block), 57.05, 37)
+    mining_registerBlock(packed ice, 7.2, (1 of packed ice), 58.1, 40)
+    mining_registerBlock(blue ice, 7.5, (1 of blue ice), 59.15, 43)
 
-    # ═══ MID-LATE (+4 per block) ═══
-    mining_registerBlock(packed ice, 7.2, (1 of packed ice), 58.1, 42)
-    mining_registerBlock(blue ice, 7.5, (1 of blue ice), 59.15, 46)
-    mining_registerBlock(magma block, 7.8, (1 of magma block), 60.2, 50)
-    mining_registerBlock(glowstone, 8.1, (1 of glowstone), 61.25, 54)
+    # ═══ MID-LATE (+4 per block, P47-P59) ═══
+    mining_registerBlock(magma block, 7.8, (1 of magma block), 60.2, 47)
+    mining_registerBlock(glowstone, 8.1, (1 of glowstone), 61.25, 51)
+    mining_registerBlock(sea lantern, 8.4, (1 of sea lantern), 62.3, 55)
+    mining_registerBlock(obsidian, 8.7, (1 of obsidian), 63.35, 59)
 
-    # ═══ LATE GAME (+5 per block) ═══
-    mining_registerBlock(sea lantern, 8.4, (1 of sea lantern), 62.3, 59)
-    mining_registerBlock(obsidian, 8.7, (1 of obsidian), 63.35, 64)
-    mining_registerBlock(crying obsidian, 9.0, (1 of crying obsidian), 64.4, 69)
+    # ═══ LATE GAME (+5 per block, P64-P84) ═══
+    mining_registerBlock(crying obsidian, 9.0, (1 of crying obsidian), 64.4, 64)
+    mining_registerBlock(amethyst block, 9.3, (1 of amethyst block), 65.45, 69)
+    mining_registerBlock(copper block, 9.6, (1 of copper block), 66.5, 74)
+    mining_registerBlock(cut copper, 9.8, (1 of cut copper), 67.55, 79)
+    mining_registerBlock(ancient debris, 10.0, (1 of ancient debris), 68.95, 84)
 
-    # ═══ ELITE (+6 per block) ═══
-    mining_registerBlock(amethyst block, 9.3, (1 of amethyst block), 65.45, 75)
-    mining_registerBlock(copper block, 9.6, (1 of copper block), 66.5, 81)
-
-    # ═══ ENDGAME (+7 per block) ═══
-    mining_registerBlock(cut copper, 9.8, (1 of cut copper), 67.55, 88)
-    mining_registerBlock(ancient debris, 10.0, (1 of ancient debris), 68.95, 95)
-    mining_registerBlock(netherite block, 10.2, (1 of netherite block), 70, 102)
+    # ═══ ENDGAME (+6, P90) ═══
+    mining_registerBlock(netherite block, 10.2, (1 of netherite block), 70, 90)
     
     # Build sellable items list for quick lookup
     delete {mining.sellable::*}

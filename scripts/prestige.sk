@@ -15,49 +15,48 @@
 # ============================================================
 
 # Get colored prestige with roman numeral
-# Colors scale with prestige level
+# Colors scale with prestige level, brackets escalate with tier
 function prestige_getFormattedPrestige(p: player, archetype: text) :: text:
     set {_prestige} to {mining::%{_archetype}%::%{_p}'s uuid%::prestige} ? 0
-    
+
     if {_prestige} = 0:
         return ""
-    
+
     set {_roman} to {_prestige} as roman numeral
-    
-    # Color based on prestige tier
-    if {_prestige} <= 1:
-        return "&7&l(%{_roman}%) "
-    else if {_prestige} <= 2:
-        return "&f&l(%{_roman}%) "
-    else if {_prestige} <= 3:
-        return "&a&l(%{_roman}%) "
+
+    # Color + bracket progression (hex colors, escalating brackets)
+    if {_prestige} <= 2:
+        return "<#8C8C8C>&l(%{_roman}%) "
     else if {_prestige} <= 4:
-        return "&2&l(%{_roman}%) "
-    else if {_prestige} <= 5:
-        return "&b&l(%{_roman}%) "
+        return "<#B8B8B8>&l(%{_roman}%) "
     else if {_prestige} <= 6:
-        return "&3&l(%{_roman}%) "
-    else if {_prestige} <= 7:
-        return "&9&l(%{_roman}%) "
+        return "<#7CB342>&l(%{_roman}%) "
     else if {_prestige} <= 8:
-        return "&5&l(%{_roman}%) "
-    else if {_prestige} <= 9:
-        return "&d&l(%{_roman}%) "
+        return "<#4CAF50>&l(%{_roman}%) "
     else if {_prestige} <= 10:
-        return "&6&l(%{_roman}%) "
+        return "<#26A69A>&l[%{_roman}%] "
     else if {_prestige} <= 12:
-        return "<#FF6B00>&l(%{_roman}%) "
+        return "<#42A5F5>&l[%{_roman}%] "
     else if {_prestige} <= 14:
-        return "&c&l(%{_roman}%) "
+        return "<#1976D2>&l[%{_roman}%] "
     else if {_prestige} <= 16:
-        return "<#FF3366>&l(%{_roman}%) "
+        return "<#5C6BC0>&l[%{_roman}%] "
     else if {_prestige} <= 18:
-        return "<#AA00FF>&l(%{_roman}%) "
+        return "<#AB47BC>&l«%{_roman}%» "
     else if {_prestige} <= 20:
-        return "<#00FFAA>&l(%{_roman}%) "
+        return "<#7B1FA2>&l«%{_roman}%» "
+    else if {_prestige} <= 22:
+        return "<#E53935>&l«%{_roman}%» "
+    else if {_prestige} <= 24:
+        return "<#EC407A>&l«%{_roman}%» "
+    else if {_prestige} <= 26:
+        return "<#FB8C00>&l「%{_roman}%」 "
+    else if {_prestige} <= 28:
+        return "<#FFB300>&l「%{_roman}%」 "
+    else if {_prestige} <= 30:
+        return "<#FDD835>&l『%{_roman}%』 "
     else:
-        # 21+ rainbow/special
-        return "<#FFD700>&l(✦%{_roman}%✦) "
+        return "<#FFD700>&l『%{_roman}%』 "
 
 # Get colored level
 # Colors scale with level (different from prestige colors)
@@ -119,7 +118,7 @@ function prestige_getCurrentFormattedLevel(p: player) :: text:
     return "&70"
 
 # Get formatted total prestige (across all archetypes)
-# Uses same color system as individual prestige display
+# Wider color ranges than per-archetype, same bracket progression
 function prestige_getFormattedTotalPrestige(p: player) :: text:
     set {_totalPrestige} to economy_getTotalPrestiges({_p})
 
@@ -128,40 +127,27 @@ function prestige_getFormattedTotalPrestige(p: player) :: text:
 
     set {_roman} to {_totalPrestige} as roman numeral
 
-    # Color based on total prestige tier (same colors as prestige_getFormattedPrestige)
-    if {_totalPrestige} <= 1:
-        return "&7&l(%{_roman}%) "
-    else if {_totalPrestige} <= 2:
-        return "&f&l(%{_roman}%) "
-    else if {_totalPrestige} <= 3:
-        return "&a&l(%{_roman}%) "
-    else if {_totalPrestige} <= 4:
-        return "&2&l(%{_roman}%) "
-    else if {_totalPrestige} <= 5:
-        return "&b&l(%{_roman}%) "
-    else if {_totalPrestige} <= 6:
-        return "&3&l(%{_roman}%) "
-    else if {_totalPrestige} <= 7:
-        return "&9&l(%{_roman}%) "
-    else if {_totalPrestige} <= 8:
-        return "&5&l(%{_roman}%) "
-    else if {_totalPrestige} <= 9:
-        return "&d&l(%{_roman}%) "
-    else if {_totalPrestige} <= 10:
-        return "&6&l(%{_roman}%) "
+    # Color + bracket progression for total prestige (P1-P96)
+    if {_totalPrestige} <= 6:
+        return "<#8C8C8C>&l(%{_roman}%) "
     else if {_totalPrestige} <= 12:
-        return "<#FF6B00>&l(%{_roman}%) "
-    else if {_totalPrestige} <= 14:
-        return "&c&l(%{_roman}%) "
-    else if {_totalPrestige} <= 16:
-        return "<#FF3366>&l(%{_roman}%) "
+        return "<#B8B8B8>&l(%{_roman}%) "
     else if {_totalPrestige} <= 18:
-        return "<#AA00FF>&l(%{_roman}%) "
-    else if {_totalPrestige} <= 20:
-        return "<#00FFAA>&l(%{_roman}%) "
+        return "<#4CAF50>&l(%{_roman}%) "
+    else if {_totalPrestige} <= 24:
+        return "<#26A69A>&l[%{_roman}%] "
+    else if {_totalPrestige} <= 36:
+        return "<#42A5F5>&l[%{_roman}%] "
+    else if {_totalPrestige} <= 48:
+        return "<#AB47BC>&l«%{_roman}%» "
+    else if {_totalPrestige} <= 60:
+        return "<#E53935>&l«%{_roman}%» "
+    else if {_totalPrestige} <= 72:
+        return "<#FB8C00>&l「%{_roman}%」 "
+    else if {_totalPrestige} <= 84:
+        return "<#FDD835>&l『%{_roman}%』 "
     else:
-        # 21+ rainbow/special
-        return "<#FFD700>&l(✦%{_roman}%✦) "
+        return "<#FFD700>&l『%{_roman}%』 "
 
 
 # ============================================================
