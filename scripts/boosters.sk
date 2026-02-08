@@ -281,7 +281,7 @@ function booster_hasAnyEquipped(p: player) :: boolean:
 # EQUIP / UNEQUIP
 # ============================================================
 
-function booster_equip(p: player, storageIndex: number, slot: number) :: boolean:
+function booster_equip(p: player, encoded: text, slot: number) :: boolean:
     set {_uuid} to {_p}'s uuid
 
     # Check slot is unlocked
@@ -294,13 +294,9 @@ function booster_equip(p: player, storageIndex: number, slot: number) :: boolean
         send "&c&l! &7That slot already has an active booster!" to {_p}
         return false
 
-    # Get booster from storage
-    set {_encoded} to {data::boosters::%{_uuid}%::storage::%{_storageIndex}%}
-    if {_encoded} is not set:
+    # Remove from storage by value
+    if booster_removeFromStorageByEncoded({_p}, {_encoded}) is false:
         return false
-
-    # Remove from storage
-    booster_removeFromStorage({_p}, {_storageIndex})
 
     # Get effective duration (with tier multiplier)
     set {_duration} to booster_getEffectiveDuration({_encoded})

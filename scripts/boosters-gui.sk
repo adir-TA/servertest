@@ -540,15 +540,7 @@ on inventory click:
                 play sound "entity.villager.no" with volume 0.5 and pitch 1 to player
                 stop
 
-            # Find actual index in storage (may have shifted due to sorting)
-            set {_storage::*} to booster_getStorage(player)
-            set {_realIndex} to 0
-            loop {_storage::*}:
-                add 1 to {_realIndex}
-                if loop-value is {_encoded}:
-                    exit loop
-
-            booster_equip(player, {_realIndex}, {_emptySlot})
+            booster_equip(player, {_encoded}, {_emptySlot})
 
             # Refresh menu
             set {_page} to {-booster::menu::%{_uuid}%::page} ? 1
@@ -599,14 +591,8 @@ on inventory click:
         if {_action} is "confirm_delete":
             set {_encoded} to string tag "booster;encoded" of {_nbt}
 
-            # Find and remove from storage
-            set {_storage::*} to booster_getStorage(player)
-            set {_realIndex} to 0
-            loop {_storage::*}:
-                add 1 to {_realIndex}
-                if loop-value is {_encoded}:
-                    booster_removeFromStorage(player, {_realIndex})
-                    exit loop
+            # Remove from storage by value
+            booster_removeFromStorageByEncoded(player, {_encoded})
 
             send "&c&l! &7Booster deleted." to player
             play sound "entity.item.break" with volume 0.5 and pitch 0.8 to player
