@@ -360,7 +360,8 @@ function milestone_giveRewards(p: player, rewards: texts):
         else if {_type} is "booster":
             # Encoded string contains colons, so extract everything after "booster:"
             set {_raw} to loop-value
-            set {_encoded} to subtext of {_raw} from character 9 to length of {_raw}
+            set {_encoded} to {_raw}
+            replace first "booster:" in {_encoded} with ""
             booster_addToStorage({_p}, {_encoded})
 
 # Format rewards for display
@@ -398,7 +399,8 @@ function milestone_formatRewards(rewards: texts) :: texts:
 
         else if {_type} is "booster":
             set {_raw} to loop-value
-            set {_encoded} to subtext of {_raw} from character 9 to length of {_raw}
+            set {_encoded} to {_raw}
+            replace first "booster:" in {_encoded} with ""
             set {_bTier} to booster_getTier({_encoded})
             set {_bRarity} to booster_getRarity({_encoded})
             set {_tierName} to booster_getTierName({_bTier})

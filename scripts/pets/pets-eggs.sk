@@ -198,7 +198,8 @@ function pet_openTierMenu(p: player):
 function pet_openAmountMenu(p: player, tier: text):
     set {_cost} to pet_getTierCost({_tier})
     set {_displayCost} to pet_getTierDisplayCost({_tier})
-    
+    set {_uuid} to {_p}'s uuid
+
     if {_tier} = "normal":
         set {_tierColor} to "&a"
         set {_tierName} to "NORMAL"
@@ -208,18 +209,19 @@ function pet_openAmountMenu(p: player, tier: text):
     else:
         set {_tierColor} to "&d"
         set {_tierName} to "DIVINE"
-    
-    set {_menu} to chest inventory with 3 rows named "%{_tierColor}%&l%{_tierName}% EGGS"
-    
+
+    set {_menu} to chest inventory with 4 rows named "%{_tierColor}%&l%{_tierName}% EGGS"
+
     # Fill with glass
     set {_filler} to black stained glass pane named "&1"
-    loop 27 times:
+    loop 36 times:
         set slot loop-number - 1 of {_menu} to {_filler}
-    
-    set {_balance} to {data::balance::%{_p}'s uuid%} ? 0
-    set {_currentPets} to size of {pet::owned::%{_p}'s uuid%::*}
+
+    set {_balance} to {data::balance::%{_uuid}%} ? 0
+    set {_currentPets} to size of {pet::owned::%{_uuid}%::*}
     set {_petStorageMax} to research_getPetStorageMax({_p})
     set {_spaceAvailable} to {_petStorageMax} - {_currentPets}
+    set {_isAutoOpening} to {-pet::autoopen::%{_uuid}%} ? false
 
     # Storage info - Slot 4
     set {_storageItem} to chest named "&ePet Storage"
@@ -229,7 +231,7 @@ function pet_openAmountMenu(p: player, tier: text):
     add "&7Available: &a%{_spaceAvailable}% slots" to {_storageLore::*}
     set lore of {_storageItem} to {_storageLore::*}
     set slot 4 of {_menu} to {_storageItem}
-    
+
     # Open 1 - Slot 11
     set {_cost1} to {_cost}
     set {_item1} to turtle egg named "%{_tierColor}%&lOPEN 1 EGG"
@@ -237,7 +239,9 @@ function pet_openAmountMenu(p: player, tier: text):
     add "" to {_lore1::*}
     add "&7Cost: %{_tierColor}%$%formatNum({_cost1})%" to {_lore1::*}
     add "" to {_lore1::*}
-    if {_spaceAvailable} < 1:
+    if {_isAutoOpening} is true:
+        add "&c✖ ᴀᴜᴛᴏ-ᴏᴘᴇɴ ɪɴ ᴘʀᴏɢʀᴇss" to {_lore1::*}
+    else if {_spaceAvailable} < 1:
         add "&c✖ ɴᴏᴛ ᴇɴᴏᴜɢʜ sᴛᴏʀᴀɢᴇ!" to {_lore1::*}
     else if {_balance} >= {_cost1}:
         add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴘᴜʀᴄʜᴀsᴇ" to {_lore1::*}
@@ -248,7 +252,7 @@ function pet_openAmountMenu(p: player, tier: text):
         add "&7Balance: &c$%formatNum({_balance})%" to {_lore1::*}
     set lore of {_item1} to {_lore1::*}
     set slot 11 of {_menu} to {_item1}
-    
+
     # Open 3 - Slot 13
     set {_cost3} to {_cost} * 3
     set {_item3} to 3 of turtle egg named "%{_tierColor}%&lOPEN 3 EGGS"
@@ -256,7 +260,9 @@ function pet_openAmountMenu(p: player, tier: text):
     add "" to {_lore3::*}
     add "&7Cost: %{_tierColor}%$%formatNum({_cost3})%" to {_lore3::*}
     add "" to {_lore3::*}
-    if {_spaceAvailable} < 3:
+    if {_isAutoOpening} is true:
+        add "&c✖ ᴀᴜᴛᴏ-ᴏᴘᴇɴ ɪɴ ᴘʀᴏɢʀᴇss" to {_lore3::*}
+    else if {_spaceAvailable} < 3:
         add "&c✖ ɴᴏᴛ ᴇɴᴏᴜɢʜ sᴛᴏʀᴀɢᴇ!" to {_lore3::*}
     else if {_balance} >= {_cost3}:
         add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴘᴜʀᴄʜᴀsᴇ" to {_lore3::*}
@@ -267,7 +273,7 @@ function pet_openAmountMenu(p: player, tier: text):
         add "&7Balance: &c$%formatNum({_balance})%" to {_lore3::*}
     set lore of {_item3} to {_lore3::*}
     set slot 13 of {_menu} to {_item3}
-    
+
     # Open 5 - Slot 15
     set {_cost5} to {_cost} * 5
     set {_item5} to 5 of turtle egg named "%{_tierColor}%&lOPEN 5 EGGS"
@@ -275,7 +281,9 @@ function pet_openAmountMenu(p: player, tier: text):
     add "" to {_lore5::*}
     add "&7Cost: %{_tierColor}%$%formatNum({_cost5})%" to {_lore5::*}
     add "" to {_lore5::*}
-    if {_spaceAvailable} < 5:
+    if {_isAutoOpening} is true:
+        add "&c✖ ᴀᴜᴛᴏ-ᴏᴘᴇɴ ɪɴ ᴘʀᴏɢʀᴇss" to {_lore5::*}
+    else if {_spaceAvailable} < 5:
         add "&c✖ ɴᴏᴛ ᴇɴᴏᴜɢʜ sᴛᴏʀᴀɢᴇ!" to {_lore5::*}
     else if {_balance} >= {_cost5}:
         add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴘᴜʀᴄʜᴀsᴇ" to {_lore5::*}
@@ -286,8 +294,43 @@ function pet_openAmountMenu(p: player, tier: text):
         add "&7Balance: &c$%formatNum({_balance})%" to {_lore5::*}
     set lore of {_item5} to {_lore5::*}
     set slot 15 of {_menu} to {_item5}
-    
-    # Back button - Slot 22
+
+    # Auto-Open toggle - Slot 22
+    if {_isAutoOpening} is true:
+        set {_autoItem} to redstone block named "&c&lSTOP AUTO-OPEN"
+        add menu_utils_getMenuItemFirstLoreLine() to {_autoLore::*}
+        add "" to {_autoLore::*}
+        set {_autoCount} to {-pet::autoopen::%{_uuid}%::count} ? 0
+        add "&7Opened so far: &a%{_autoCount}%" to {_autoLore::*}
+        add "" to {_autoLore::*}
+        add "&c⚠ Auto-open is running!" to {_autoLore::*}
+        add "" to {_autoLore::*}
+        add "&cᴄʟɪᴄᴋ ᴛᴏ sᴛᴏᴘ" to {_autoLore::*}
+        set lore of {_autoItem} to {_autoLore::*}
+        set string tag "egg;action" of custom nbt of {_autoItem} to "stop_auto_open"
+    else:
+        set {_autoItem} to dropper named "&a&lAUTO-OPEN"
+        add menu_utils_getMenuItemFirstLoreLine() to {_autoLore::*}
+        add "" to {_autoLore::*}
+        add "&7Automatically opens eggs" to {_autoLore::*}
+        add "&7until you run out of money" to {_autoLore::*}
+        add "&7or storage fills up." to {_autoLore::*}
+        add "" to {_autoLore::*}
+        add "&7Cost per egg: %{_tierColor}%$%formatNum({_cost})%" to {_autoLore::*}
+        add "&7Balance: %{_tierColor}%$%formatNum({_balance})%" to {_autoLore::*}
+        add "" to {_autoLore::*}
+        if {_spaceAvailable} < 1:
+            add "&c✖ ɴᴏᴛ ᴇɴᴏᴜɢʜ sᴛᴏʀᴀɢᴇ!" to {_autoLore::*}
+        else if {_balance} >= {_cost}:
+            add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ sᴛᴀʀᴛ" to {_autoLore::*}
+            set string tag "egg;action" of custom nbt of {_autoItem} to "auto_open"
+            set string tag "egg;tier" of custom nbt of {_autoItem} to {_tier}
+        else:
+            add "&c✖ ɴᴏᴛ ᴇɴᴏᴜɢʜ ᴍᴏɴᴇʏ!" to {_autoLore::*}
+        set lore of {_autoItem} to {_autoLore::*}
+    set slot 22 of {_menu} to {_autoItem}
+
+    # Back button - Slot 31
     set {_back} to arrow named "&c&lBACK"
     add menu_utils_getMenuItemFirstLoreLine() to {_backLore::*}
     add "" to {_backLore::*}
@@ -296,10 +339,10 @@ function pet_openAmountMenu(p: player, tier: text):
     add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ɢᴏ ʙᴀᴄᴋ" to {_backLore::*}
     set lore of {_back} to {_backLore::*}
     set string tag "egg;action" of custom nbt of {_back} to "back"
-    set slot 22 of {_menu} to {_back}
-    
+    set slot 31 of {_menu} to {_back}
+
     open {_menu} to {_p}
-    set {-pet::menu::%{_p}'s uuid%} to "AMOUNT_SELECT"
+    set {-pet::menu::%{_uuid}%} to "AMOUNT_SELECT"
 
 
 # ============================================================
@@ -321,20 +364,35 @@ on inventory click:
     
     else if {_menu} = "AMOUNT_SELECT":
         cancel event
-        
+
         set {_nbt} to custom nbt of clicked slot
-        
-        # Check for back button
+
+        # Check for actions
         set {_action} to string tag "egg;action" of {_nbt}
         if {_action} = "back":
             play sound "ui.button.click" with volume 0.5 and pitch 1 to player
             pet_openTierMenu(player)
             stop
-        
+
+        if {_action} = "auto_open":
+            set {_tier} to string tag "egg;tier" of {_nbt}
+            if {_tier} is set:
+                play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+                close inventory of player
+                pet_autoOpen(player, {_tier})
+            stop
+
+        if {_action} = "stop_auto_open":
+            play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+            set {_tier} to {-pet::autoopen::%player's uuid%::tier} ? "normal"
+            pet_stopAutoOpen(player)
+            pet_openAmountMenu(player, {_tier})
+            stop
+
         # Check for purchase
         set {_tier} to string tag "egg;tier" of {_nbt}
         set {_amount} to int tag "egg;amount" of {_nbt}
-        
+
         if {_tier} is set:
             if {_amount} is set:
                 close inventory of player
@@ -345,6 +403,95 @@ on inventory close:
         delete {-pet::menu::%player's uuid%}
     else if {-pet::menu::%player's uuid%} = "AMOUNT_SELECT":
         delete {-pet::menu::%player's uuid%}
+        pet_stopAutoOpen(player)
+
+
+# ============================================================
+# AUTO-OPEN
+# ============================================================
+
+function pet_autoOpen(p: player, tier: text):
+    set {_uuid} to {_p}'s uuid
+
+    # Prevent duplicate
+    if {-pet::autoopen::%{_uuid}%} is set:
+        send "&c&l! &7Auto-open is already running!" to {_p}
+        stop
+
+    set {-pet::autoopen::%{_uuid}%} to true
+    set {-pet::autoopen::%{_uuid}%::tier} to {_tier}
+    set {-pet::autoopen::%{_uuid}%::count} to 0
+    set {_cost} to pet_getTierCost({_tier})
+
+    send "&a&l! &7Auto-open started! Re-open the egg menu to stop." to {_p}
+    play sound "ui.button.click" with volume 0.5 and pitch 1 to {_p}
+
+    while {-pet::autoopen::%{_uuid}%} is true:
+        # Check player online
+        if {_p} is not online:
+            pet_stopAutoOpen({_p})
+            stop
+
+        # Check money
+        set {_balance} to {data::balance::%{_uuid}%} ? 0
+        if {_balance} < {_cost}:
+            send "&c&l! &7Not enough money! Auto-open stopped." to {_p}
+            play sound "entity.villager.no" with volume 0.5 and pitch 1 to {_p}
+            pet_stopAutoOpen({_p})
+            stop
+
+        # Check storage
+        set {_currentPets} to size of {pet::owned::%{_uuid}%::*}
+        set {_petStorageMax} to research_getPetStorageMax({_p})
+        set {_space} to {_petStorageMax} - {_currentPets}
+        if {_space} < 1:
+            send "&c&l! &7Pet storage full! Auto-open stopped." to {_p}
+            play sound "entity.villager.no" with volume 0.5 and pitch 1 to {_p}
+            pet_stopAutoOpen({_p})
+            stop
+
+        # Determine batch size
+        set {_maxAffordable} to floor({_balance} / {_cost})
+        set {_batch} to {_maxAffordable}
+        if {_batch} > {_space}:
+            set {_batch} to {_space}
+        if {_batch} > 5:
+            set {_batch} to 5
+
+        # Deduct money
+        set {_totalCost} to {_cost} * {_batch}
+        remove {_totalCost} from {data::balance::%{_uuid}%}
+
+        # Roll and create pets
+        loop {_batch} times:
+            set {_rarity} to pet_rollRarity({_tier})
+            set {_rarity} to progression_capPetRarity({_p}, {_rarity})
+            set {_type} to pet_rollType({_tier})
+            pet_create({_p}, {_type}, {_rarity})
+
+        add {_batch} to {-pet::autoopen::%{_uuid}%::count}
+        set {_total} to {-pet::autoopen::%{_uuid}%::count}
+
+        # Show progress via action bar
+        set {_newBalance} to {data::balance::%{_uuid}%} ? 0
+        send action bar "&aAuto-Opening... &f%{_total}% eggs &7| &f$%formatNum({_newBalance})% left" to {_p}
+        play sound "entity.item.pickup" with volume 0.3 and pitch 1.2 to {_p}
+
+        wait 3 seconds
+
+    # Loop ended (cancelled by player)
+    set {_total} to {-pet::autoopen::%{_uuid}%::count} ? 0
+    if {_total} > 0:
+        send "" to {_p}
+        send "&a&l! &7Auto-open complete: &f%{_total}% &7eggs opened." to {_p}
+        send "" to {_p}
+    pet_stopAutoOpen({_p})
+
+function pet_stopAutoOpen(p: player):
+    set {_uuid} to {_p}'s uuid
+    delete {-pet::autoopen::%{_uuid}%}
+    delete {-pet::autoopen::%{_uuid}%::tier}
+    delete {-pet::autoopen::%{_uuid}%::count}
 
 
 # ============================================================

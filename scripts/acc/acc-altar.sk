@@ -327,12 +327,13 @@ function acc_openAltarAmountMenu(p: player, treasureId: text):
 
     set {_color} to acc_getTreasureColor({_treasureId})
     set {_name} to acc_getTreasureName({_treasureId})
+    set {_isAutoOpening} to {-acc::autoopen::%{_uuid}%} ? false
 
-    set {_menu} to chest inventory with 3 rows named "%{_color}%&l%{_name} in uppercase%"
+    set {_menu} to chest inventory with 4 rows named "%{_color}%&l%{_name} in uppercase%"
 
     # Fill with glass
     set {_filler} to black stained glass pane named "&1"
-    loop 27 times:
+    loop 36 times:
         set slot loop-number - 1 of {_menu} to {_filler}
 
     # Title - Slot 4
@@ -353,7 +354,9 @@ function acc_openAltarAmountMenu(p: player, treasureId: text):
     add "" to {_lore1::*}
     add "&7Cost: &e1 Key" to {_lore1::*}
     add "" to {_lore1::*}
-    if {_keys} >= 1:
+    if {_isAutoOpening} is true:
+        add "&c✖ ᴀᴜᴛᴏ-ᴏᴘᴇɴ ɪɴ ᴘʀᴏɢʀᴇss" to {_lore1::*}
+    else if {_keys} >= 1:
         add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴏᴘᴇɴ" to {_lore1::*}
         set string tag "altar;treasure" of custom nbt of {_item1} to {_treasureId}
         set int tag "altar;amount" of custom nbt of {_item1} to 1
@@ -369,7 +372,9 @@ function acc_openAltarAmountMenu(p: player, treasureId: text):
     add "" to {_lore3::*}
     add "&7Cost: &e3 Keys" to {_lore3::*}
     add "" to {_lore3::*}
-    if {_keys} >= 3:
+    if {_isAutoOpening} is true:
+        add "&c✖ ᴀᴜᴛᴏ-ᴏᴘᴇɴ ɪɴ ᴘʀᴏɢʀᴇss" to {_lore3::*}
+    else if {_keys} >= 3:
         add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴏᴘᴇɴ" to {_lore3::*}
         set string tag "altar;treasure" of custom nbt of {_item3} to {_treasureId}
         set int tag "altar;amount" of custom nbt of {_item3} to 3
@@ -386,7 +391,9 @@ function acc_openAltarAmountMenu(p: player, treasureId: text):
     add "" to {_lore5::*}
     add "&7Cost: &e5 Keys" to {_lore5::*}
     add "" to {_lore5::*}
-    if {_keys} >= 5:
+    if {_isAutoOpening} is true:
+        add "&c✖ ᴀᴜᴛᴏ-ᴏᴘᴇɴ ɪɴ ᴘʀᴏɢʀᴇss" to {_lore5::*}
+    else if {_keys} >= 5:
         add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴏᴘᴇɴ" to {_lore5::*}
         set string tag "altar;treasure" of custom nbt of {_item5} to {_treasureId}
         set int tag "altar;amount" of custom nbt of {_item5} to 5
@@ -396,7 +403,46 @@ function acc_openAltarAmountMenu(p: player, treasureId: text):
     set lore of {_item5} to {_lore5::*}
     set slot 15 of {_menu} to {_item5}
 
-    # Back button - Slot 22
+    # Auto-Open toggle - Slot 22
+    if {_isAutoOpening} is true:
+        set {_autoItem} to redstone block named "&c&lSTOP AUTO-OPEN"
+        delete {_autoLore::*}
+        add "&8ᴍᴇɴᴜ ɪᴛᴇᴍ" to {_autoLore::*}
+        add "" to {_autoLore::*}
+        set {_autoCount} to {-acc::autoopen::%{_uuid}%::count} ? 0
+        add "&7Opened so far: &a%{_autoCount}%" to {_autoLore::*}
+        add "" to {_autoLore::*}
+        add "&c⚠ Auto-open is running!" to {_autoLore::*}
+        add "" to {_autoLore::*}
+        add "&cᴄʟɪᴄᴋ ᴛᴏ sᴛᴏᴘ" to {_autoLore::*}
+        set lore of {_autoItem} to {_autoLore::*}
+        set string tag "altar;action" of custom nbt of {_autoItem} to "stop_auto_open"
+    else:
+        set {_autoItem} to dropper named "&a&lAUTO-OPEN"
+        delete {_autoLore::*}
+        add "&8ᴍᴇɴᴜ ɪᴛᴇᴍ" to {_autoLore::*}
+        add "" to {_autoLore::*}
+        add "&7Automatically opens chests" to {_autoLore::*}
+        add "&7until you run out of keys" to {_autoLore::*}
+        add "&7or storage fills up." to {_autoLore::*}
+        add "" to {_autoLore::*}
+        add "&7Your Keys: &e%{_keys}%" to {_autoLore::*}
+        add "" to {_autoLore::*}
+        set {_currentStorage} to acc_getInventorySize({_p})
+        set {_maxStorage} to acc_getStorageMax({_p})
+        set {_spaceAvailable} to {_maxStorage} - {_currentStorage}
+        if {_spaceAvailable} < 1:
+            add "&c✖ ɴᴏᴛ ᴇɴᴏᴜɢʜ sᴛᴏʀᴀɢᴇ!" to {_autoLore::*}
+        else if {_keys} >= 1:
+            add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ sᴛᴀʀᴛ" to {_autoLore::*}
+            set string tag "altar;action" of custom nbt of {_autoItem} to "auto_open"
+            set string tag "altar;treasure" of custom nbt of {_autoItem} to {_treasureId}
+        else:
+            add "&cɴᴏᴛ ᴇɴᴏᴜɢʜ ᴋᴇʏs!" to {_autoLore::*}
+        set lore of {_autoItem} to {_autoLore::*}
+    set slot 22 of {_menu} to {_autoItem}
+
+    # Back button - Slot 31
     set {_back} to arrow named "&c&lBACK"
     delete {_backLore::*}
     add "&8ᴍᴇɴᴜ ɪᴛᴇᴍ" to {_backLore::*}
@@ -406,7 +452,7 @@ function acc_openAltarAmountMenu(p: player, treasureId: text):
     add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ɢᴏ ʙᴀᴄᴋ" to {_backLore::*}
     set lore of {_back} to {_backLore::*}
     set string tag "altar;action" of custom nbt of {_back} to "back"
-    set slot 22 of {_menu} to {_back}
+    set slot 31 of {_menu} to {_back}
 
     open {_menu} to {_p}
     set {-acc::altar::menu::%{_uuid}%} to "AMOUNT_SELECT"
@@ -436,12 +482,28 @@ on inventory click:
 
         set {_nbt} to custom nbt of clicked slot
 
-        # Check for back button
+        # Check for actions
         set {_action} to string tag "altar;action" of {_nbt}
         if {_action} is "back":
             play sound "ui.button.click" with volume 0.5 and pitch 1 to player
             delete {-acc::altar::selected::%{_uuid}%}
             acc_openAltarTierMenu(player)
+            stop
+
+        if {_action} is "auto_open":
+            set {_treasureId} to string tag "altar;treasure" of {_nbt}
+            if {_treasureId} is set:
+                play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+                close inventory of player
+                delete {-acc::altar::selected::%{_uuid}%}
+                acc_autoOpen(player, {_treasureId})
+            stop
+
+        if {_action} is "stop_auto_open":
+            play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+            set {_treasureId} to {-acc::autoopen::%{_uuid}%::treasure} ? "normal"
+            acc_stopAutoOpen(player)
+            acc_openAltarAmountMenu(player, {_treasureId})
             stop
 
         # Check for opening
@@ -475,6 +537,94 @@ on inventory close:
     else if {_menu} is "AMOUNT_SELECT":
         delete {-acc::altar::menu::%player's uuid%}
         delete {-acc::altar::selected::%player's uuid%}
+        acc_stopAutoOpen(player)
+
+
+# ============================================================
+# AUTO-OPEN
+# ============================================================
+
+function acc_autoOpen(p: player, treasureId: text):
+    set {_uuid} to {_p}'s uuid
+
+    # Prevent duplicate
+    if {-acc::autoopen::%{_uuid}%} is set:
+        send "&c&l! &7Auto-open is already running!" to {_p}
+        stop
+
+    set {-acc::autoopen::%{_uuid}%} to true
+    set {-acc::autoopen::%{_uuid}%::treasure} to {_treasureId}
+    set {-acc::autoopen::%{_uuid}%::count} to 0
+
+    send "&a&l! &7Auto-open started! Re-open the chest menu to stop." to {_p}
+    play sound "ui.button.click" with volume 0.5 and pitch 1 to {_p}
+
+    while {-acc::autoopen::%{_uuid}%} is true:
+        # Check player online
+        if {_p} is not online:
+            acc_stopAutoOpen({_p})
+            stop
+
+        # Check keys
+        set {_keys} to acc_getKeyCount({_p}, {_treasureId})
+        if {_keys} < 1:
+            send "&c&l! &7No more keys! Auto-open stopped." to {_p}
+            play sound "entity.villager.no" with volume 0.5 and pitch 1 to {_p}
+            acc_stopAutoOpen({_p})
+            stop
+
+        # Check storage
+        set {_currentStorage} to acc_getInventorySize({_p})
+        set {_maxStorage} to acc_getStorageMax({_p})
+        set {_space} to {_maxStorage} - {_currentStorage}
+        if {_space} < 1:
+            send "&c&l! &7Accessory storage full! Auto-open stopped." to {_p}
+            play sound "entity.villager.no" with volume 0.5 and pitch 1 to {_p}
+            acc_stopAutoOpen({_p})
+            stop
+
+        # Determine batch size
+        set {_batch} to {_keys}
+        if {_batch} > {_space}:
+            set {_batch} to {_space}
+        if {_batch} > 5:
+            set {_batch} to 5
+
+        # Consume keys
+        loop {_batch} times:
+            acc_useKey({_p}, {_treasureId})
+
+        # Roll and create accessories
+        loop {_batch} times:
+            set {_rarity} to acc_rollRarity({_treasureId})
+            set {_rarity} to progression_capAccessoryRarity({_p}, {_rarity})
+            set {_type} to acc_rollType({_treasureId})
+            set {_encoded} to acc_encodeAccessory({_type}, {_rarity})
+            acc_addToInventory({_p}, {_encoded})
+
+        add {_batch} to {-acc::autoopen::%{_uuid}%::count}
+        set {_total} to {-acc::autoopen::%{_uuid}%::count}
+
+        # Show progress via action bar
+        set {_keysLeft} to acc_getKeyCount({_p}, {_treasureId})
+        send action bar "&aAuto-Opening... &f%{_total}% chests &7| &f%{_keysLeft}% keys left" to {_p}
+        play sound "entity.item.pickup" with volume 0.3 and pitch 1.2 to {_p}
+
+        wait 3 seconds
+
+    # Loop ended (cancelled by player)
+    set {_total} to {-acc::autoopen::%{_uuid}%::count} ? 0
+    if {_total} > 0:
+        send "" to {_p}
+        send "&a&l! &7Auto-open complete: &f%{_total}% &7chests opened." to {_p}
+        send "" to {_p}
+    acc_stopAutoOpen({_p})
+
+function acc_stopAutoOpen(p: player):
+    set {_uuid} to {_p}'s uuid
+    delete {-acc::autoopen::%{_uuid}%}
+    delete {-acc::autoopen::%{_uuid}%::treasure}
+    delete {-acc::autoopen::%{_uuid}%::count}
 
 
 # ============================================================
