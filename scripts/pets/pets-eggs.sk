@@ -315,13 +315,12 @@ function pet_openAmountMenu(p: player, tier: text):
         add "&7Automatically opens eggs" to {_autoLore::*}
         add "&7until you run out of money" to {_autoLore::*}
         add "&7or storage fills up." to {_autoLore::*}
+        add "&7Filtered pets are auto-salvaged." to {_autoLore::*}
         add "" to {_autoLore::*}
         add "&7Cost per egg: %{_tierColor}%$%formatNum({_cost})%" to {_autoLore::*}
         add "&7Balance: %{_tierColor}%$%formatNum({_balance})%" to {_autoLore::*}
         add "" to {_autoLore::*}
-        if {_spaceAvailable} < 1:
-            add "&c✖ ɴᴏᴛ ᴇɴᴏᴜɢʜ sᴛᴏʀᴀɢᴇ!" to {_autoLore::*}
-        else if {_balance} >= {_cost}:
+        if {_balance} >= {_cost}:
             add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ sᴛᴀʀᴛ" to {_autoLore::*}
             set string tag "egg;action" of custom nbt of {_autoItem} to "auto_open"
             set string tag "egg;tier" of custom nbt of {_autoItem} to {_tier}
@@ -421,6 +420,7 @@ function pet_autoOpen(p: player, tier: text):
     set {-pet::autoopen::%{_uuid}%} to true
     set {-pet::autoopen::%{_uuid}%::tier} to {_tier}
     set {-pet::autoopen::%{_uuid}%::count} to 0
+    set {-pet::autoopen::%{_uuid}%::tokens} to 0
     set {_cost} to pet_getTierCost({_tier})
 
     send "&a&l! &7Auto-open started! Re-open the egg menu to stop." to {_p}
@@ -440,21 +440,9 @@ function pet_autoOpen(p: player, tier: text):
             pet_stopAutoOpen({_p})
             stop
 
-        # Check storage
-        set {_currentPets} to size of {pet::owned::%{_uuid}%::*}
-        set {_petStorageMax} to research_getPetStorageMax({_p})
-        set {_space} to {_petStorageMax} - {_currentPets}
-        if {_space} < 1:
-            send "&c&l! &7Pet storage full! Auto-open stopped." to {_p}
-            play sound "entity.villager.no" with volume 0.5 and pitch 1 to {_p}
-            pet_stopAutoOpen({_p})
-            stop
-
         # Determine batch size
         set {_maxAffordable} to floor({_balance} / {_cost})
         set {_batch} to {_maxAffordable}
-        if {_batch} > {_space}:
-            set {_batch} to {_space}
         if {_batch} > 5:
             set {_batch} to 5
 
@@ -462,28 +450,67 @@ function pet_autoOpen(p: player, tier: text):
         set {_totalCost} to {_cost} * {_batch}
         remove {_totalCost} from {data::balance::%{_uuid}%}
 
-        # Roll and create pets
+        # Roll and create pets (with auto-salvage filtering)
+        set {_batchTokens} to 0
+        set {_storageBlocked} to false
         loop {_batch} times:
             set {_rarity} to pet_rollRarity({_tier})
             set {_rarity} to progression_capPetRarity({_p}, {_rarity})
             set {_type} to pet_rollType({_tier})
-            pet_create({_p}, {_type}, {_rarity})
 
+            # Check auto-salvage filter
+            if filter_shouldSalvagePet({_p}, {_type}, {_rarity}) is true:
+                set {_salvageValue} to pet_getSalvageValue({_rarity})
+                mining_giveTokens({_p}, {_salvageValue})
+                add {_salvageValue} to {_batchTokens}
+                set {_scrapAmt} to scrap_getSalvageAmount({_rarity})
+                scrap_add({_p}, {_rarity}, {_scrapAmt})
+                discovery_discoverPet({_p}, {_type})
+            else:
+                # Check storage space before creating
+                set {_currentPets} to size of {pet::owned::%{_uuid}%::*}
+                set {_petStorageMax} to research_getPetStorageMax({_p})
+                if {_currentPets} < {_petStorageMax}:
+                    pet_create({_p}, {_type}, {_rarity})
+                else:
+                    # Storage full - salvage as overflow
+                    set {_salvageValue} to pet_getSalvageValue({_rarity})
+                    mining_giveTokens({_p}, {_salvageValue})
+                    add {_salvageValue} to {_batchTokens}
+                    set {_scrapAmt} to scrap_getSalvageAmount({_rarity})
+                    scrap_add({_p}, {_rarity}, {_scrapAmt})
+                    discovery_discoverPet({_p}, {_type})
+                    set {_storageBlocked} to true
+
+        add {_batchTokens} to {-pet::autoopen::%{_uuid}%::tokens}
         add {_batch} to {-pet::autoopen::%{_uuid}%::count}
         set {_total} to {-pet::autoopen::%{_uuid}%::count}
 
         # Show progress via action bar
         set {_newBalance} to {data::balance::%{_uuid}%} ? 0
-        send action bar "&aAuto-Opening... &f%{_total}% eggs &7| &f$%formatNum({_newBalance})% left" to {_p}
+        if {_batchTokens} > 0:
+            send action bar "&aAuto-Opening... &f%{_total}% eggs &7| &f$%formatNum({_newBalance})% left &7| &6+%{_batchTokens}% tokens" to {_p}
+        else:
+            send action bar "&aAuto-Opening... &f%{_total}% eggs &7| &f$%formatNum({_newBalance})% left" to {_p}
         play sound "entity.item.pickup" with volume 0.3 and pitch 1.2 to {_p}
+
+        # Stop if storage full and a non-filtered item couldn't be stored
+        if {_storageBlocked} is true:
+            send "&c&l! &7Pet storage full! Auto-open stopped." to {_p}
+            play sound "entity.villager.no" with volume 0.5 and pitch 1 to {_p}
+            pet_stopAutoOpen({_p})
+            stop
 
         wait 3 seconds
 
     # Loop ended (cancelled by player)
     set {_total} to {-pet::autoopen::%{_uuid}%::count} ? 0
+    set {_totalTokens} to {-pet::autoopen::%{_uuid}%::tokens} ? 0
     if {_total} > 0:
         send "" to {_p}
         send "&a&l! &7Auto-open complete: &f%{_total}% &7eggs opened." to {_p}
+        if {_totalTokens} > 0:
+            send "&7Auto-salvaged: &6+%{_totalTokens}% tokens" to {_p}
         send "" to {_p}
     pet_stopAutoOpen({_p})
 
@@ -492,6 +519,7 @@ function pet_stopAutoOpen(p: player):
     delete {-pet::autoopen::%{_uuid}%}
     delete {-pet::autoopen::%{_uuid}%::tier}
     delete {-pet::autoopen::%{_uuid}%::count}
+    delete {-pet::autoopen::%{_uuid}%::tokens}
 
 
 # ============================================================
