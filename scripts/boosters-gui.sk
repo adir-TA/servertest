@@ -57,36 +57,6 @@ function booster_openMainMenu(p: player, page: number, sortBy: text):
             set slot {_guiSlot} of {_menu} to {_locked}
 
     # ════════════════════════════════════════
-    # DELETE MODE TOGGLE - Slot 8
-    # ════════════════════════════════════════
-    set {_deleteMode} to {-booster::menu::%{_uuid}%::deleteMode} ? false
-
-    if {_deleteMode} is true:
-        set {_deleteBtn} to tnt named "&c&lDelete Mode &a(ON)"
-        add "" to {_deleteLore::*}
-        add "&7Click boosters in storage" to {_deleteLore::*}
-        add "&7to delete them." to {_deleteLore::*}
-        add "" to {_deleteLore::*}
-        add "&c⚠ Only unequipped boosters" to {_deleteLore::*}
-        add "&c  can be deleted." to {_deleteLore::*}
-        add "" to {_deleteLore::*}
-        add "&eClick to disable" to {_deleteLore::*}
-        set lore of {_deleteBtn} to {_deleteLore::*}
-    else:
-        set {_deleteBtn} to tnt named "&c&lDelete Mode"
-        add "" to {_deleteLore::*}
-        add "&7Enable to delete boosters" to {_deleteLore::*}
-        add "&7from your storage." to {_deleteLore::*}
-        add "" to {_deleteLore::*}
-        add "&c⚠ Only unequipped boosters" to {_deleteLore::*}
-        add "&c  can be deleted." to {_deleteLore::*}
-        add "" to {_deleteLore::*}
-        add "&eClick to enable" to {_deleteLore::*}
-        set lore of {_deleteBtn} to {_deleteLore::*}
-    set string tag "booster;action" of custom nbt of {_deleteBtn} to "toggle_delete"
-    set slot 8 of {_menu} to {_deleteBtn}
-
-    # ════════════════════════════════════════
     # ROWS 1-4: STORAGE GRID (slots 10-16, 19-25, 28-34, 37-43)
     # ════════════════════════════════════════
 
@@ -116,7 +86,7 @@ function booster_openMainMenu(p: player, page: number, sortBy: text):
         set {_encoded} to {_sorted::%{_storageIndex}%}
 
         if {_encoded} is set:
-            set {_boosterItem} to booster_createStorageItem({_encoded}, {_storageIndex}, {_deleteMode})
+            set {_boosterItem} to booster_createStorageItem({_encoded}, {_storageIndex})
             set {_guiSlot} to {_displaySlots::%{_displayIndex}%}
             set slot {_guiSlot} of {_menu} to {_boosterItem}
 
@@ -303,7 +273,7 @@ function booster_openMainMenu(p: player, page: number, sortBy: text):
 # ITEM CREATION
 # ============================================================
 
-function booster_createStorageItem(encoded: text, index: number, deleteMode: boolean) :: item:
+function booster_createStorageItem(encoded: text, index: number) :: item:
     set {_tier} to booster_getTier({_encoded})
     set {_rarity} to booster_getRarity({_encoded})
     set {_tierName} to booster_getTierName({_tier})
@@ -344,11 +314,8 @@ function booster_createStorageItem(encoded: text, index: number, deleteMode: boo
         set {_baseDurStr} to booster_formatTime({_duration})
         add "&7Duration: &f%booster_formatTime({_effectiveDuration})% &8[%{_baseDurStr}% base]" to {_lore::*}
     add "" to {_lore::*}
-    if {_deleteMode} is true:
-        add "&cClick to delete" to {_lore::*}
-    else:
-        add "&eClick to equip" to {_lore::*}
-        add "&cShift-Click to delete" to {_lore::*}
+    add "&eClick to equip" to {_lore::*}
+    add "&cShift-Click to delete" to {_lore::*}
 
     set lore of {_item} to {_lore::*}
     set string tag "booster;action" of custom nbt of {_item} to "storage_click"
@@ -561,14 +528,8 @@ on inventory click:
             set {_index} to int tag "booster;index" of {_nbt}
             set {_encoded} to string tag "booster;encoded" of {_nbt}
 
-            # Shift-click to delete (always works)
+            # Shift-click to delete
             if player is sneaking:
-                booster_openDeleteConfirm(player, {_index}, {_encoded})
-                stop
-
-            # Delete mode: regular click to delete
-            set {_deleteMode} to {-booster::menu::%{_uuid}%::deleteMode} ? false
-            if {_deleteMode} is true:
                 booster_openDeleteConfirm(player, {_index}, {_encoded})
                 stop
 
@@ -625,18 +586,6 @@ on inventory click:
             set {_sort} to string tag "booster;sortBy" of {_nbt}
             booster_openMainMenu(player, {_newPage}, {_sort})
 
-        # Toggle delete mode
-        else if {_action} is "toggle_delete":
-            play sound "ui.button.click" with volume 0.5 and pitch 1 to player
-            set {_deleteMode} to {-booster::menu::%{_uuid}%::deleteMode} ? false
-            if {_deleteMode} is true:
-                set {-booster::menu::%{_uuid}%::deleteMode} to false
-            else:
-                set {-booster::menu::%{_uuid}%::deleteMode} to true
-            set {_page} to {-booster::menu::%{_uuid}%::page} ? 1
-            set {_sort} to {-booster::menu::%{_uuid}%::sort} ? "tier"
-            booster_openMainMenu(player, {_page}, {_sort})
-
         # Close
         else if {_action} is "close":
             close player's inventory
@@ -691,7 +640,7 @@ function booster_openDeleteConfirm(p: player, index: number, encoded: text):
     set slot 3,4,5,12,14,21,22,23 of {_menu} to {_warning}
 
     # Booster preview - Slot 13
-    set {_preview} to booster_createStorageItem({_encoded}, {_index}, false)
+    set {_preview} to booster_createStorageItem({_encoded}, {_index})
     set slot 13 of {_menu} to {_preview}
 
     # Confirm - Slot 11
@@ -734,4 +683,3 @@ on inventory close:
             delete {-booster::menu::%{_uuid}%}
             delete {-booster::menu::%{_uuid}%::page}
             delete {-booster::menu::%{_uuid}%::sort}
-            delete {-booster::menu::%{_uuid}%::deleteMode}

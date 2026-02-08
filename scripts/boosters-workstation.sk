@@ -72,7 +72,7 @@ function workstation_openMenu(p: player):
     # Input slot 1 - Slot 11
     set {_input1Encoded} to {-workstation::%{_uuid}%::input1}
     if {_input1Encoded} is set:
-        set {_input1} to booster_createStorageItem({_input1Encoded}, 1, false)
+        set {_input1} to booster_createStorageItem({_input1Encoded}, 1)
         set lore of {_input1} to lore of {_input1}
         # Replace lore to show remove option
         set {_tier1} to booster_getTier({_input1Encoded})
