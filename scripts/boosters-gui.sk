@@ -529,7 +529,7 @@ on inventory click:
             set {_encoded} to string tag "booster;encoded" of {_nbt}
 
             # Shift-click to delete
-            if player is sneaking:
+            if click type is left mouse button with shift:
                 booster_openDeleteConfirm(player, {_index}, {_encoded})
                 stop
 

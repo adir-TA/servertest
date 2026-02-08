@@ -56,11 +56,7 @@ on script load:
     booster_registerRarity("epic", "&5Epic", 2.0)
     booster_registerRarity("legendary", "&6Legendary", 2.5)
 
-    # Clear guards on reload
-    delete {-guard::booster-global-loop}
-    delete {-booster::global::loop}
-
-    # Start global loop
+    # Start global loop (token-based, safe across reloads)
     booster_startGlobalLoop()
 
 function booster_registerTier(id: text, name: text, durationMult: number):
@@ -541,21 +537,18 @@ function booster_getActiveGlobals() :: texts:
 function booster_startLoop(p: player):
     set {_uuid} to {_p}'s uuid
 
-    # Guard check
-    {-guard::booster-loop::%{_uuid}%} is not set
-    set {-guard::booster-loop::%{_uuid}%} to true
-    set {-booster::loop::%{_uuid}%} to true
+    # Token-based loop: each call gets a unique token
+    # If a previous loop exists, it will exit when it sees a different token
+    set {_token} to random integer between 100000 and 9999999
+    set {-booster::loop::%{_uuid}%} to {_token}
 
-    while {-booster::loop::%{_uuid}%} is true:
+    while {-booster::loop::%{_uuid}%} is {_token}:
         wait 30 seconds
         if {_p} is online:
             booster_tick({_p}, 30)
         else:
             delete {-booster::loop::%{_uuid}%}
-            delete {-guard::booster-loop::%{_uuid}%}
             stop
-
-    delete {-guard::booster-loop::%{_uuid}%}
 
 function booster_tick(p: player, seconds: number):
     set {_uuid} to {_p}'s uuid
@@ -588,19 +581,16 @@ function booster_deductQuitPenalty(p: player, seconds: number):
 function booster_stopLoop(p: player):
     set {_uuid} to {_p}'s uuid
     delete {-booster::loop::%{_uuid}%}
-    delete {-guard::booster-loop::%{_uuid}%}
 
 # Global loop
 function booster_startGlobalLoop():
-    {-guard::booster-global-loop} is not set
-    set {-guard::booster-global-loop} to true
-    set {-booster::global::loop} to true
+    # Token-based loop: safe across script reloads
+    set {_token} to random integer between 100000 and 9999999
+    set {-booster::global::loop} to {_token}
 
-    while {-booster::global::loop} is true:
+    while {-booster::global::loop} is {_token}:
         wait 30 seconds
         booster_tickGlobal(30)
-
-    delete {-guard::booster-global-loop}
 
 function booster_tickGlobal(seconds: number):
     loop "mining_speed", "drops", "xp", "token", "money", "enchant_proc", "damage" and "durability":
