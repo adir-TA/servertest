@@ -1,0 +1,114 @@
+# ============================================================
+# BOSS REGISTRY
+# ============================================================
+#
+# Registers boss definitions, phase thresholds, and loot tables.
+# Each boss is defined by an ID string (e.g., "poseidon").
+#
+# Registry Variables:
+#   {-boss::registry::%id%::name}                    → Display name
+#   {-boss::registry::%id%::entityType}              → Entity type string
+#   {-boss::registry::%id%::maxHp}                   → Max HP
+#   {-boss::registry::%id%::damage}                  → Base damage (% of max health)
+#   {-boss::registry::%id%::phases::%threshold%}     → Ability name at that HP %
+#   {-boss::registry::%id%::loot::%item%::chance}    → Drop chance (0-100)
+#   {-boss::registry::%id%::loot::%item%::name}      → Display name
+#   {-boss::registry::%id%::loot::%item%::icon}      → Item icon
+#   {-boss::registry::ids::*}                        → List of all registered boss IDs
+#
+# Persistent Variables:
+#   {boss::spawnLoc::%id%}                           → Spawn location set by admin
+#
+# ============================================================
+
+# Register a boss definition
+function boss_register(id: text, name: text, entityType: text, maxHp: number, damage: number):
+    set {-boss::registry::%{_id}%::name} to {_name}
+    set {-boss::registry::%{_id}%::entityType} to {_entityType}
+    set {-boss::registry::%{_id}%::maxHp} to {_maxHp}
+    set {-boss::registry::%{_id}%::damage} to {_damage}
+    if {-boss::registry::ids::*} doesn't contain {_id}:
+        add {_id} to {-boss::registry::ids::*}
+
+# Register a phase ability for a boss
+function boss_registerPhase(id: text, threshold: number, ability: text):
+    set {-boss::registry::%{_id}%::phases::%{_threshold}%} to {_ability}
+    if {-boss::registry::%{_id}%::phaseList::*} doesn't contain {_threshold}:
+        add {_threshold} to {-boss::registry::%{_id}%::phaseList::*}
+
+# Register a loot entry for a boss
+function boss_registerLoot(id: text, itemId: text, name: text, icon: itemtype, chance: number):
+    set {-boss::registry::%{_id}%::loot::%{_itemId}%::name} to {_name}
+    set {-boss::registry::%{_id}%::loot::%{_itemId}%::icon} to {_icon}
+    set {-boss::registry::%{_id}%::loot::%{_itemId}%::chance} to {_chance}
+    if {-boss::registry::%{_id}%::lootIds::*} doesn't contain {_itemId}:
+        add {_itemId} to {-boss::registry::%{_id}%::lootIds::*}
+
+# ============================================================
+# GETTERS
+# ============================================================
+
+function boss_getName(id: text) :: text:
+    return {-boss::registry::%{_id}%::name} ? {_id}
+
+function boss_getEntityType(id: text) :: text:
+    return {-boss::registry::%{_id}%::entityType} ? "zombie"
+
+function boss_getMaxHp(id: text) :: number:
+    return {-boss::registry::%{_id}%::maxHp} ? 1000
+
+function boss_getBaseDamage(id: text) :: number:
+    return {-boss::registry::%{_id}%::damage} ? 10
+
+function boss_getSpawnLoc(id: text) :: location:
+    return {boss::spawnLoc::%{_id}%}
+
+function boss_isRegistered(id: text) :: boolean:
+    if {-boss::registry::%{_id}%::name} is set:
+        return true
+    return false
+
+function boss_getAllIds() :: objects:
+    return {-boss::registry::ids::*}
+
+function boss_getPhaseThresholds(id: text) :: objects:
+    return {-boss::registry::%{_id}%::phaseList::*}
+
+function boss_getPhaseAbility(id: text, threshold: number) :: text:
+    return {-boss::registry::%{_id}%::phases::%{_threshold}%} ? ""
+
+function boss_getLootIds(id: text) :: objects:
+    return {-boss::registry::%{_id}%::lootIds::*}
+
+function boss_getLootChance(id: text, itemId: text) :: number:
+    return {-boss::registry::%{_id}%::loot::%{_itemId}%::chance} ? 0
+
+function boss_getLootName(id: text, itemId: text) :: text:
+    return {-boss::registry::%{_id}%::loot::%{_itemId}%::name} ? {_itemId}
+
+function boss_getLootIcon(id: text, itemId: text) :: itemtype:
+    return {-boss::registry::%{_id}%::loot::%{_itemId}%::icon} ? stone
+
+
+# ============================================================
+# REGISTRATION ON LOAD
+# ============================================================
+
+on script load:
+    delete {-boss::registry::*}
+
+    # ════════════════════════════════════════════════════════════
+    # POSEIDON
+    # ════════════════════════════════════════════════════════════
+    # Entity: Elder Guardian | HP: 50,000 | Base Damage: 10% of player max health
+    boss_register("poseidon", "&b&lPoseidon", "elder guardian", 50000, 10)
+
+    # Phases (trigger when HP drops to or below this %)
+    boss_registerPhase("poseidon", 75, "summon_guardians")
+    boss_registerPhase("poseidon", 50, "rain_buff")
+    boss_registerPhase("poseidon", 15, "rampage")
+
+    # Loot Table
+    boss_registerLoot("poseidon", "water_fragment", "&b&lWater Fragment", prismarine shard, 100)
+    boss_registerLoot("poseidon", "poseidons_trail", "&3&lPoseidon's Trail", heart of the sea, 50)
+    boss_registerLoot("poseidon", "poseidons_heart", "&d&lPoseidon's Heart", nether star, 10)

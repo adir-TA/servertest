@@ -1,0 +1,54 @@
+# ============================================================
+# BOSS LOOT SYSTEM
+# ============================================================
+#
+# Rolls loot table for the last hitter on boss death.
+# Each loot entry rolls independently (not mutually exclusive).
+# Rare drops are announced to the server.
+#
+# ============================================================
+
+function boss_rollLoot(p: player, bossId: text):
+    set {_bossName} to boss_getName({_bossId})
+
+    send "" to {_p}
+    send "&6&l★ BOSS LOOT ★" to {_p}
+    send "&7Rewards from %{_bossName}%&7:" to {_p}
+    send "" to {_p}
+
+    set {_gotSomething} to false
+
+    loop boss_getLootIds({_bossId}):
+        set {_itemId} to loop-value
+        set {_chance} to boss_getLootChance({_bossId}, {_itemId})
+        set {_name} to boss_getLootName({_bossId}, {_itemId})
+        set {_icon} to boss_getLootIcon({_bossId}, {_itemId})
+
+        # Roll
+        set {_roll} to random number between 0 and 100
+        if {_roll} <= {_chance}:
+            # Won this drop
+            set {_gotSomething} to true
+
+            # Create the item
+            set {_item} to {_icon}
+            set name of {_item} to {_name}
+            set lore of {_item} to "&7Boss Drop", "" and "&8From %{_bossName}%"
+
+            # Give to player
+            give {_item} to {_p}
+            send " &a✓ %{_name}%" to {_p}
+            play sound "entity.player.levelup" with volume 0.6 and pitch 1.5 to {_p}
+
+            # Announce rare drops (<=25% chance) to server
+            if {_chance} <= 25:
+                broadcast ""
+                broadcast "&6&l★ &e%{_p}% &6obtained %{_name}% &6from %{_bossName}%&6! &6&l★"
+                broadcast ""
+                loop all players:
+                    play sound "ui.toast.challenge_complete" with volume 0.5 and pitch 1.2 to loop-player
+
+    if {_gotSomething} is false:
+        send " &7No drops this time..." to {_p}
+
+    send "" to {_p}

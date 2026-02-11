@@ -1,0 +1,170 @@
+# ============================================================
+# BOSS ADMIN COMMANDS
+# ============================================================
+#
+# /boss set <name>       — Save current location as spawn point
+# /boss spawn <name>     — Manually spawn the boss
+# /boss kill <name>      — Force kill + cleanup (no loot)
+# /boss list             — Show registered bosses + status
+# /boss info <name>      — Show detailed boss info
+#
+# ============================================================
+
+command /boss [<text>] [<text>]:
+    permission: op
+    trigger:
+        set {_action} to arg-1
+        set {_bossId} to arg-2
+
+        # No args — show help
+        if {_action} is not set:
+            send ""
+            send "&b&lBoss Admin"
+            send "&7/boss set &e<name> &8— &7Set spawn location"
+            send "&7/boss spawn &e<name> &8— &7Spawn a boss"
+            send "&7/boss kill &e<name> &8— &7Force kill a boss"
+            send "&7/boss list &8— &7List all bosses"
+            send "&7/boss info &e<name> &8— &7Show boss details"
+            send ""
+            stop
+
+        # ════════════════════════════════════════════════════
+        # LIST
+        # ════════════════════════════════════════════════════
+        if {_action} is "list":
+            send ""
+            send "&b&lRegistered Bosses"
+            send ""
+            loop {-boss::registry::ids::*}:
+                set {_id} to loop-value
+                set {_name} to boss_getName({_id})
+                set {_alive} to boss_isAlive({_id})
+                set {_locSet} to boss_getSpawnLoc({_id}) is set
+
+                if {_alive} is true:
+                    set {_status} to "&a● ALIVE"
+                else:
+                    set {_status} to "&7○ Dead"
+
+                if {_locSet} is true:
+                    set {_locStatus} to "&a✓"
+                else:
+                    set {_locStatus} to "&c✗"
+
+                send " &f%{_id}% &8— %{_name}% &8| %{_status}% &8| Loc: %{_locStatus}%"
+            send ""
+            stop
+
+        # All other actions require a boss ID
+        if {_bossId} is not set:
+            send "&cUsage: /boss %{_action}% <name>"
+            stop
+
+        # ════════════════════════════════════════════════════
+        # SET SPAWN LOCATION
+        # ════════════════════════════════════════════════════
+        if {_action} is "set":
+            if boss_isRegistered({_bossId}) is false:
+                send "&cBoss &7%{_bossId}% &cis not registered."
+                send "&7Available: &e%{-boss::registry::ids::*}%"
+                stop
+
+            set {boss::spawnLoc::%{_bossId}%} to player's location
+            set {_name} to boss_getName({_bossId})
+            send "&aSpawn location for %{_name}% &aset to your position!"
+            send "&7Location: &e%player's location%"
+            stop
+
+        # ════════════════════════════════════════════════════
+        # SPAWN
+        # ════════════════════════════════════════════════════
+        if {_action} is "spawn":
+            if boss_isRegistered({_bossId}) is false:
+                send "&cBoss &7%{_bossId}% &cis not registered."
+                stop
+
+            if boss_isAlive({_bossId}) is true:
+                send "&c%boss_getName({_bossId})% &cis already alive!"
+                stop
+
+            if boss_getSpawnLoc({_bossId}) is not set:
+                send "&cNo spawn location set! Use &7/boss set %{_bossId}% &cfirst."
+                stop
+
+            boss_spawn({_bossId})
+            send "&aSpawning %boss_getName({_bossId})%&a..."
+            stop
+
+        # ════════════════════════════════════════════════════
+        # KILL
+        # ════════════════════════════════════════════════════
+        if {_action} is "kill":
+            if boss_isRegistered({_bossId}) is false:
+                send "&cBoss &7%{_bossId}% &cis not registered."
+                stop
+
+            if boss_isAlive({_bossId}) is false:
+                send "&c%boss_getName({_bossId})% &cis not alive."
+                stop
+
+            boss_forceKill({_bossId})
+            send "&cForce killed %boss_getName({_bossId})%&c. No loot dropped."
+            stop
+
+        # ════════════════════════════════════════════════════
+        # INFO
+        # ════════════════════════════════════════════════════
+        if {_action} is "info":
+            if boss_isRegistered({_bossId}) is false:
+                send "&cBoss &7%{_bossId}% &cis not registered."
+                stop
+
+            set {_name} to boss_getName({_bossId})
+            set {_maxHp} to boss_getMaxHp({_bossId})
+            set {_baseDmg} to boss_getBaseDamage({_bossId})
+            set {_entityType} to boss_getEntityType({_bossId})
+
+            send ""
+            send "&b&l═══════════════════════════════════════"
+            send "&b&l%{_name}%"
+            send "&b&l═══════════════════════════════════════"
+            send ""
+            send "&7Entity: &f%{_entityType}%"
+            send "&7Max HP: &c%formatNum({_maxHp})%"
+            send "&7Base Damage: &e%{_baseDmg}%%% &7of player max HP"
+            send ""
+
+            # Phases
+            send "&e&lPhases:"
+            loop boss_getPhaseThresholds({_bossId}):
+                set {_threshold} to loop-value
+                set {_ability} to boss_getPhaseAbility({_bossId}, {_threshold})
+                send " &7%{_threshold}%%% HP → &f%{_ability}%"
+            send ""
+
+            # Loot
+            send "&6&lLoot Table:"
+            loop boss_getLootIds({_bossId}):
+                set {_itemId} to loop-value
+                set {_lootName} to boss_getLootName({_bossId}, {_itemId})
+                set {_chance} to boss_getLootChance({_bossId}, {_itemId})
+                send " &7%{_chance}%%% → %{_lootName}%"
+            send ""
+
+            # Status
+            if boss_isAlive({_bossId}) is true:
+                set {_hp} to boss_getHp({_bossId})
+                set {_percent} to boss_getHpPercent({_bossId})
+                send "&7Status: &a● ALIVE &7(%round({_percent})%%% HP)"
+            else:
+                send "&7Status: &7○ Dead"
+
+            set {_loc} to boss_getSpawnLoc({_bossId})
+            if {_loc} is set:
+                send "&7Spawn Location: &e%{_loc}%"
+            else:
+                send "&7Spawn Location: &cNot set"
+            send ""
+            stop
+
+        send "&cUnknown action. Use: &7set, spawn, kill, list, info"

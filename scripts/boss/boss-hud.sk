@@ -1,0 +1,110 @@
+# ============================================================
+# BOSS HUD SYSTEM
+# ============================================================
+#
+# Displays a floating health bar above the boss entity
+# using packet-based text displays (same pattern as npc-holograms).
+# Updates on every damage tick.
+#
+# Variables:
+#   {-boss::hud::%id%::entityId}    → fake text display entity ID
+#
+# ============================================================
+
+# Create HUD above boss entity
+function boss_hud_create(id: text, entity: entity):
+    set {_displayId} to random integer between 100000 and 9999999
+    set {-boss::hud::%{_id}%::entityId} to {_displayId}
+
+    set {_loc} to location of {_entity}
+    add 2.5 to y-coord of {_loc}
+
+    set {_name} to boss_getName({_id})
+    set {_maxHp} to boss_getMaxHp({_id})
+    set {_bar} to boss_hud_generateBar(100)
+
+    loop all players:
+        spawn fake text display at {_loc} for loop-player with id {_displayId}
+        set {_m} to new metadata packet with id {_displayId}:
+            display text: "%{_name}%%nl%&c%{_bar}%%nl%&c❤ %formatNum({_maxHp})% &7/ &c%formatNum({_maxHp})% &7(100%%)"
+            display scale: vector(1.5, 1.5, 1.5)
+            display billboard: center
+            display brightness block: 15
+            display shadow: true
+            display defaultbackground: false
+            display background alpha: 100
+        send packet {_m} to loop-player
+
+# Update HUD with current HP
+function boss_hud_update(id: text):
+    set {_displayId} to {-boss::hud::%{_id}%::entityId}
+    if {_displayId} is not set:
+        return
+
+    set {_name} to boss_getName({_id})
+    set {_hp} to boss_getHp({_id})
+    set {_maxHp} to boss_getMaxHp({_id})
+    set {_percent} to boss_getHpPercent({_id})
+    set {_bar} to boss_hud_generateBar({_percent})
+
+    # Color based on HP %
+    if {_percent} > 50:
+        set {_hpColor} to "&a"
+    else if {_percent} > 25:
+        set {_hpColor} to "&e"
+    else:
+        set {_hpColor} to "&c"
+
+    # Move to follow boss
+    set {_entity} to boss_getEntity({_id})
+    if {_entity} is set:
+        set {_loc} to location of {_entity}
+        add 2.5 to y-coord of {_loc}
+
+        loop all players:
+            send teleport packet with id {_displayId} with location {_loc} to loop-player
+
+    # Update text
+    loop all players:
+        set {_m} to new metadata packet with id {_displayId}:
+            display text: "%{_name}%%nl%%{_bar}%%nl%%{_hpColor}%❤ %formatNum({_hp})% &7/ &c%formatNum({_maxHp})% &7(%round({_percent})%%%)"
+            display scale: vector(1.5, 1.5, 1.5)
+            display billboard: center
+            display brightness block: 15
+            display shadow: true
+            display defaultbackground: false
+            display background alpha: 100
+        send packet {_m} to loop-player
+
+# Remove HUD
+function boss_hud_remove(id: text):
+    set {_displayId} to {-boss::hud::%{_id}%::entityId}
+    if {_displayId} is not set:
+        return
+
+    loop all players:
+        remove fake entity with id {_displayId} for loop-player
+
+    delete {-boss::hud::%{_id}%::entityId}
+
+# Generate a health bar string
+function boss_hud_generateBar(percent: number) :: text:
+    set {_filled} to round({_percent} / 5)
+    set {_empty} to 20 - {_filled}
+
+    # Color based on percent
+    if {_percent} > 50:
+        set {_filledColor} to "&a"
+    else if {_percent} > 25:
+        set {_filledColor} to "&e"
+    else:
+        set {_filledColor} to "&c"
+
+    set {_bar} to "%{_filledColor}%"
+    loop {_filled} times:
+        set {_bar} to "%{_bar}%█"
+    set {_bar} to "%{_bar}%&7"
+    loop {_empty} times:
+        set {_bar} to "%{_bar}%░"
+
+    return {_bar}

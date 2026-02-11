@@ -1,0 +1,222 @@
+# ============================================================
+# BOSS CORE SYSTEM
+# ============================================================
+#
+# Handles spawning, despawning, damage tracking, and death.
+# Bosses are world entities — anyone can hit them.
+# Last hitter receives loot.
+#
+# Active Instance Variables:
+#   {boss::active::%id%::alive}               → boolean
+#   {boss::active::%id%::entity}              → the entity reference
+#   {boss::active::%id%::hp}                  → current HP
+#   {boss::active::%id%::lastHitter}          → last player who dealt damage
+#   {boss::active::%id%::phasesTriggered::*}  → which thresholds already fired
+#   {boss::active::%id%::minions::*}          → list of minion entity UUIDs
+#   {boss::active::%id%::buffRain}            → rain buff active
+#   {boss::active::%id%::buffRampage}         → rampage buff active
+#
+# ============================================================
+
+# ============================================================
+# SPAWN
+# ============================================================
+
+function boss_spawn(id: text):
+    # Check if already alive
+    if {boss::active::%{_id}%::alive} is true:
+        return
+
+    # Check if registered
+    if boss_isRegistered({_id}) is false:
+        return
+
+    # Check if spawn location is set
+    set {_loc} to boss_getSpawnLoc({_id})
+    if {_loc} is not set:
+        return
+
+    set {_name} to boss_getName({_id})
+    set {_maxHp} to boss_getMaxHp({_id})
+    set {_entityType} to boss_getEntityType({_id})
+
+    # Spawn the entity
+    spawn 1 of {_entityType} parsed as entity type at {_loc}
+    set {_entity} to last spawned entity
+
+    # Configure entity
+    set custom name of {_entity} to {_name}
+    set {_entity} to be visible
+    set maximum health of {_entity} to 2048
+    set health of {_entity} to 2048
+    set {_entity}'s ai to true
+
+    # Store active data
+    set {boss::active::%{_id}%::alive} to true
+    set {boss::active::%{_id}%::entity} to {_entity}
+    set {boss::active::%{_id}%::hp} to {_maxHp}
+    set {boss::active::%{_id}%::lastHitter} to "none"
+    delete {boss::active::%{_id}%::phasesTriggered::*}
+    delete {boss::active::%{_id}%::minions::*}
+    delete {boss::active::%{_id}%::buffRain}
+    delete {boss::active::%{_id}%::buffRampage}
+
+    # Spawn HUD
+    boss_hud_create({_id}, {_entity})
+
+    # Broadcast spawn
+    broadcast ""
+    broadcast "&b&l⚔ BOSS SPAWNED ⚔"
+    broadcast "&7%{_name}% &7has appeared!"
+    broadcast ""
+
+    # Play sound to all
+    loop all players:
+        play sound "entity.wither.spawn" with volume 0.8 and pitch 0.6 to loop-player
+
+# ============================================================
+# DESPAWN / FORCE KILL
+# ============================================================
+
+function boss_forceKill(id: text):
+    if {boss::active::%{_id}%::alive} is not true:
+        return
+
+    # Kill entity
+    set {_entity} to {boss::active::%{_id}%::entity}
+    if {_entity} is set:
+        kill {_entity}
+
+    # Clear minions
+    boss_clearMinions({_id})
+
+    # Remove HUD
+    boss_hud_remove({_id})
+
+    # Clean up data
+    boss_cleanup({_id})
+
+# ============================================================
+# DAMAGE HANDLING
+# ============================================================
+
+function boss_dealDamage(p: player, id: text, amount: number):
+    if {boss::active::%{_id}%::alive} is not true:
+        return
+
+    # Subtract HP
+    subtract {_amount} from {boss::active::%{_id}%::hp}
+    set {boss::active::%{_id}%::lastHitter} to {_p}
+
+    # Clamp to 0
+    if {boss::active::%{_id}%::hp} <= 0:
+        set {boss::active::%{_id}%::hp} to 0
+
+    # Update HUD
+    boss_hud_update({_id})
+
+    # Check phases
+    boss_checkPhases({_id})
+
+    # Check death
+    if {boss::active::%{_id}%::hp} <= 0:
+        boss_die({_id})
+
+# ============================================================
+# DEATH
+# ============================================================
+
+function boss_die(id: text):
+    set {_name} to boss_getName({_id})
+    set {_lastHitter} to {boss::active::%{_id}%::lastHitter}
+
+    # Kill entity
+    set {_entity} to {boss::active::%{_id}%::entity}
+    if {_entity} is set:
+        kill {_entity}
+
+    # Clear minions
+    boss_clearMinions({_id})
+
+    # Remove HUD
+    boss_hud_remove({_id})
+
+    # Broadcast death
+    broadcast ""
+    broadcast "&c&l☠ BOSS DEFEATED ☠"
+    if {_lastHitter} is a player:
+        broadcast "&7%{_name}% &7was slain by &e%{_lastHitter}%&7!"
+        # Roll loot for last hitter
+        boss_rollLoot({_lastHitter}, {_id})
+    else:
+        broadcast "&7%{_name}% &7has been defeated!"
+    broadcast ""
+
+    # Death effects
+    loop all players:
+        play sound "entity.ender_dragon.death" with volume 0.8 and pitch 1.2 to loop-player
+
+    # Clean up
+    boss_cleanup({_id})
+
+# ============================================================
+# CLEANUP
+# ============================================================
+
+function boss_cleanup(id: text):
+    delete {boss::active::%{_id}%::alive}
+    delete {boss::active::%{_id}%::entity}
+    delete {boss::active::%{_id}%::hp}
+    delete {boss::active::%{_id}%::lastHitter}
+    delete {boss::active::%{_id}%::phasesTriggered::*}
+    delete {boss::active::%{_id}%::minions::*}
+    delete {boss::active::%{_id}%::buffRain}
+    delete {boss::active::%{_id}%::buffRampage}
+
+# ============================================================
+# STATUS HELPERS
+# ============================================================
+
+function boss_isAlive(id: text) :: boolean:
+    if {boss::active::%{_id}%::alive} is true:
+        return true
+    return false
+
+function boss_getHp(id: text) :: number:
+    return {boss::active::%{_id}%::hp} ? 0
+
+function boss_getHpPercent(id: text) :: number:
+    set {_hp} to {boss::active::%{_id}%::hp} ? 0
+    set {_maxHp} to boss_getMaxHp({_id})
+    if {_maxHp} <= 0:
+        return 0
+    return ({_hp} / {_maxHp}) * 100
+
+function boss_getEntity(id: text) :: entity:
+    return {boss::active::%{_id}%::entity}
+
+function boss_getLastHitter(id: text) :: player:
+    return {boss::active::%{_id}%::lastHitter}
+
+# Find boss ID from entity
+function boss_getIdFromEntity(e: entity) :: text:
+    loop {-boss::registry::ids::*}:
+        if {boss::active::%loop-value%::alive} is true:
+            if {boss::active::%loop-value%::entity} is {_e}:
+                return loop-value
+    return ""
+
+# ============================================================
+# DAMAGE EVENT
+# ============================================================
+
+on damage of elder guardian:
+    set {_bossId} to boss_getIdFromEntity(victim)
+    if {_bossId} != "":
+        cancel event
+        # Heal entity back to full (we track HP ourselves)
+        set health of victim to maximum health of victim
+        if attacker is a player:
+            # Calculate damage (player deals flat damage for now)
+            set {_damage} to 100
+            boss_dealDamage(attacker, {_bossId}, {_damage})

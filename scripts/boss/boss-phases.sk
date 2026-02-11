@@ -1,0 +1,53 @@
+# ============================================================
+# BOSS PHASE ENGINE
+# ============================================================
+#
+# Checks HP thresholds and triggers abilities when crossed.
+# Dispatches to boss-specific ability functions.
+#
+# ============================================================
+
+function boss_checkPhases(id: text):
+    set {_hpPercent} to boss_getHpPercent({_id})
+
+    loop boss_getPhaseThresholds({_id}):
+        set {_threshold} to loop-value
+        # Skip if already triggered
+        if {boss::active::%{_id}%::phasesTriggered::*} contains {_threshold}:
+            continue
+
+        # Check if HP dropped to or below this threshold
+        if {_hpPercent} <= {_threshold}:
+            # Mark as triggered
+            add {_threshold} to {boss::active::%{_id}%::phasesTriggered::*}
+
+            # Get ability name
+            set {_ability} to boss_getPhaseAbility({_id}, {_threshold})
+            if {_ability} != "":
+                boss_triggerAbility({_id}, {_ability}, {_threshold})
+
+
+# ============================================================
+# ABILITY DISPATCHER
+# ============================================================
+# Routes to boss-specific ability functions.
+# To add a new boss, add an else-if here.
+# ============================================================
+
+function boss_triggerAbility(id: text, ability: text, threshold: number):
+    set {_name} to boss_getName({_id})
+
+    # Announce phase change
+    broadcast ""
+    broadcast "&e&l⚠ %{_name}% &e&l— Phase %{_threshold}%%%!"
+    broadcast ""
+
+    loop all players:
+        play sound "entity.wither.ambient" with volume 0.6 and pitch 1.5 to loop-player
+
+    # Dispatch to boss-specific handler
+    if {_id} is "poseidon":
+        poseidon_ability({_id}, {_ability})
+    # Future bosses:
+    # else if {_id} is "hades":
+    #     hades_ability({_id}, {_ability})

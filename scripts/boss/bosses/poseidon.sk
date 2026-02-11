@@ -1,0 +1,142 @@
+# ============================================================
+# POSEIDON — Boss Abilities
+# ============================================================
+#
+# Abilities:
+#   75% HP → summon_guardians: Spawns 3 Water Guardians
+#            that deal 10% of player's max health on hit.
+#
+#   50% HP → rain_buff: Summons rain, boss gets strength buff
+#            (1.5x damage multiplier).
+#
+#   15% HP → rampage: Boss deals 75% of player's max health
+#            on direct hit. Red warning effects.
+#
+# ============================================================
+
+function poseidon_ability(bossId: text, ability: text):
+
+    # ════════════════════════════════════════════════════════════
+    # 75% — SUMMON WATER GUARDIANS
+    # ════════════════════════════════════════════════════════════
+    if {_ability} is "summon_guardians":
+        set {_entity} to boss_getEntity({_bossId})
+        if {_entity} is not set:
+            return
+
+        set {_bossLoc} to location of {_entity}
+
+        broadcast "&b&lPoseidon &7summons &bWater Guardians&7!"
+
+        # Spawn 3 guardians around the boss
+        loop 3 times:
+            set {_spawnLoc} to {_bossLoc}
+            add (random number between -3 and 3) to x-coord of {_spawnLoc}
+            add (random number between -3 and 3) to z-coord of {_spawnLoc}
+            boss_spawnMinion({_bossId}, "guardian", {_spawnLoc}, "&3&lWater Guardian", 10)
+
+        # Effects
+        loop all players in radius 50 around {_bossLoc}:
+            play sound "entity.elder_guardian.curse" with volume 0.8 and pitch 0.8 to loop-player
+
+    # ════════════════════════════════════════════════════════════
+    # 50% — RAIN BUFF (STRENGTH)
+    # ════════════════════════════════════════════════════════════
+    else if {_ability} is "rain_buff":
+        set {boss::active::%{_bossId}%::buffRain} to true
+
+        set {_entity} to boss_getEntity({_bossId})
+
+        broadcast "&b&lPoseidon &7calls upon the &3&lseas&7!"
+        broadcast "&7His attacks grow &c&lstronger&7..."
+
+        # Visual: apply glowing effect to boss
+        if {_entity} is set:
+            apply strength 2 to {_entity} for 999 days
+
+            set {_bossLoc} to location of {_entity}
+            loop all players in radius 50 around {_bossLoc}:
+                play sound "weather.rain.above" with volume 1 and pitch 0.5 to loop-player
+                play sound "entity.elder_guardian.ambient" with volume 0.8 and pitch 0.6 to loop-player
+
+        # Start rain particle loop
+        poseidon_rainLoop({_bossId})
+
+    # ════════════════════════════════════════════════════════════
+    # 15% — RAMPAGE
+    # ════════════════════════════════════════════════════════════
+    else if {_ability} is "rampage":
+        set {boss::active::%{_bossId}%::buffRampage} to true
+
+        set {_entity} to boss_getEntity({_bossId})
+
+        broadcast "&c&l⚠ Poseidon enters RAMPAGE! ⚠"
+        broadcast "&7Direct hits now deal &c&l75%% &7of your max health!"
+
+        # Visual effects
+        if {_entity} is set:
+            apply speed 2 to {_entity} for 999 days
+            apply strength 4 to {_entity} for 999 days
+
+            set {_bossLoc} to location of {_entity}
+            loop all players in radius 50 around {_bossLoc}:
+                play sound "entity.wither.spawn" with volume 0.6 and pitch 1.8 to loop-player
+                play sound "entity.ender_dragon.growl" with volume 0.6 and pitch 0.5 to loop-player
+
+
+# ============================================================
+# RAIN PARTICLE LOOP
+# ============================================================
+
+function poseidon_rainLoop(bossId: text):
+    while {boss::active::%{_bossId}%::alive} is true:
+        set {_entity} to boss_getEntity({_bossId})
+        if {_entity} is not set:
+            stop
+
+        set {_loc} to location of {_entity}
+
+        # Spawn water drip particles around boss
+        loop 15 times:
+            set {_particleLoc} to {_loc}
+            add (random number between -5 and 5) to x-coord of {_particleLoc}
+            add (random number between 1 and 6) to y-coord of {_particleLoc}
+            add (random number between -5 and 5) to z-coord of {_particleLoc}
+
+            loop all players in radius 50 around {_loc}:
+                show 3 of rain at {_particleLoc} to loop-player
+
+        wait 5 ticks
+
+
+# ============================================================
+# POSEIDON DAMAGE MODIFIER
+# ============================================================
+# Overrides damage when rain buff or rampage is active.
+# Called from the main damage event for boss attacks.
+# ============================================================
+
+on damage of player:
+    attacker is set
+    # Check if attacker is a boss entity
+    set {_bossId} to boss_getIdFromEntity(attacker)
+    if {_bossId} is "poseidon":
+        cancel event
+        set {_maxHp} to max health of victim
+        set {_baseDmg} to boss_getBaseDamage({_bossId})
+
+        # Rampage: 75% of max HP
+        if {boss::active::%{_bossId}%::buffRampage} is true:
+            set {_damage} to {_maxHp} * 0.75
+            damage victim by {_damage} hearts
+            send action bar "&c&l⚠ RAMPAGE HIT! -%round({_damage})% HP ⚠" to victim
+            play sound "entity.generic.explode" with volume 0.5 and pitch 1.5 to victim
+            stop
+
+        # Rain buff: 1.5x base damage
+        if {boss::active::%{_bossId}%::buffRain} is true:
+            set {_damage} to {_maxHp} * ({_baseDmg} / 100) * 1.5
+        else:
+            set {_damage} to {_maxHp} * ({_baseDmg} / 100)
+
+        damage victim by {_damage} hearts

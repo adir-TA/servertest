@@ -1,0 +1,85 @@
+# ============================================================
+# BOSS MINION SYSTEM
+# ============================================================
+#
+# Generic minion spawning for any boss.
+# Minions deal % of player's max health on hit.
+# Tracked per boss and cleaned up on boss death.
+#
+# Variables:
+#   {boss::active::%bossId%::minions::*}     → list of minion UUIDs
+#   {-boss::minion::%entityUUID%::bossId}    → which boss owns this minion
+#   {-boss::minion::%entityUUID%::dmgPercent} → damage as % of player max HP
+#   {-boss::minion::%entityUUID%::name}      → custom name tag
+#
+# ============================================================
+
+# Spawn a minion for a boss
+function boss_spawnMinion(bossId: text, entityType: text, loc: location, name: text, dmgPercent: number):
+    spawn 1 of {_entityType} parsed as entity type at {_loc}
+    set {_minion} to last spawned entity
+
+    set custom name of {_minion} to {_name}
+    set {_minion} to be visible
+    set maximum health of {_minion} to 100
+    set health of {_minion} to 100
+
+    set {_uuid} to uuid of {_minion}
+
+    # Track minion
+    add {_uuid} to {boss::active::%{_bossId}%::minions::*}
+    set {-boss::minion::%{_uuid}%::bossId} to {_bossId}
+    set {-boss::minion::%{_uuid}%::dmgPercent} to {_dmgPercent}
+
+# Clear all minions for a boss
+function boss_clearMinions(bossId: text):
+    loop {boss::active::%{_bossId}%::minions::*}:
+        set {_minionUuid} to loop-value
+        # Clean up minion data
+        delete {-boss::minion::%{_minionUuid}%::bossId}
+        delete {-boss::minion::%{_minionUuid}%::dmgPercent}
+        # Kill the entity
+        loop all entities:
+            if uuid of loop-entity = {_minionUuid}:
+                kill loop-entity
+    delete {boss::active::%{_bossId}%::minions::*}
+
+# Check if an entity is a boss minion
+function boss_isMinion(e: entity) :: boolean:
+    set {_uuid} to uuid of {_e}
+    if {-boss::minion::%{_uuid}%::bossId} is set:
+        return true
+    return false
+
+# Get minion damage percent
+function boss_getMinionDmgPercent(e: entity) :: number:
+    set {_uuid} to uuid of {_e}
+    return {-boss::minion::%{_uuid}%::dmgPercent} ? 10
+
+# ============================================================
+# MINION DAMAGE EVENT
+# ============================================================
+
+on damage of player:
+    attacker is set
+    attacker is not a player
+    if boss_isMinion(attacker) is true:
+        cancel event
+        set {_dmgPercent} to boss_getMinionDmgPercent(attacker)
+        set {_maxHp} to max health of victim
+        set {_damage} to {_maxHp} * ({_dmgPercent} / 100)
+        damage victim by {_damage} hearts
+
+# ============================================================
+# PREVENT MINION DROPS
+# ============================================================
+
+on death of entity:
+    if boss_isMinion(victim) is true:
+        clear drops
+        set {_uuid} to uuid of victim
+        set {_bossId} to {-boss::minion::%{_uuid}%::bossId}
+        # Remove from tracking
+        remove {_uuid} from {boss::active::%{_bossId}%::minions::*}
+        delete {-boss::minion::%{_uuid}%::bossId}
+        delete {-boss::minion::%{_uuid}%::dmgPercent}
