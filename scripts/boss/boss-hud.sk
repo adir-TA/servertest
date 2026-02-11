@@ -23,7 +23,7 @@ function boss_hud_create(id: text, entity: entity):
     set {_maxHp} to boss_getMaxHp({_id})
     set {_bar} to boss_hud_generateBar(100)
 
-    loop all players:
+    loop all players in world of {_loc}:
         spawn fake text display at {_loc} for loop-player with id {_displayId}
         set {_m} to new metadata packet with id {_displayId}:
             display text: "%{_name}%%nl%&c%{_bar}%%nl%&c❤ %formatNum({_maxHp})% &7/ &c%formatNum({_maxHp})% &7(100%%)"
@@ -57,15 +57,16 @@ function boss_hud_update(id: text):
 
     # Move to follow boss
     set {_entity} to boss_getEntity({_id})
-    if {_entity} is set:
-        set {_loc} to location of {_entity}
-        add 2.5 to y-coord of {_loc}
+    if {_entity} is not set:
+        return
 
-        loop all players:
-            send teleport packet with id {_displayId} with location {_loc} to loop-player
+    set {_loc} to location of {_entity}
+    add 2.5 to y-coord of {_loc}
 
-    # Update text
-    loop all players:
+    loop all players in world of {_loc}:
+        # Teleport display to follow boss
+        send teleport packet with id {_displayId} with location {_loc} to loop-player
+        # Update text
         set {_m} to new metadata packet with id {_displayId}:
             display text: "%{_name}%%nl%%{_bar}%%nl%%{_hpColor}%❤ %formatNum({_hp})% &7/ &c%formatNum({_maxHp})% &7(%round({_percent})%%%)"
             display scale: vector(1.5, 1.5, 1.5)
@@ -82,8 +83,10 @@ function boss_hud_remove(id: text):
     if {_displayId} is not set:
         return
 
-    loop all players:
-        remove fake entity with id {_displayId} for loop-player
+    set {_loc} to boss_getSpawnLoc({_id})
+    if {_loc} is set:
+        loop all players in world of {_loc}:
+            remove fake entity with id {_displayId} for loop-player
 
     delete {-boss::hud::%{_id}%::entityId}
 

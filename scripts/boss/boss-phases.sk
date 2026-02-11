@@ -42,8 +42,10 @@ function boss_triggerAbility(id: text, ability: text, threshold: number):
     broadcast "&e&l⚠ %{_name}% &e&l— Phase %{_threshold}%%%!"
     broadcast ""
 
-    loop all players:
-        play sound "entity.wither.ambient" with volume 0.6 and pitch 1.5 to loop-player
+    set {_loc} to boss_getSpawnLoc({_id})
+    if {_loc} is set:
+        loop all players in world of {_loc}:
+            play sound "entity.wither.ambient" with volume 0.6 and pitch 1.5 to loop-player
 
     # Dispatch to boss-specific handler
     if {_id} is "poseidon":

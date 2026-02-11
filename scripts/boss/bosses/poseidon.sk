@@ -35,8 +35,8 @@ function poseidon_ability(bossId: text, ability: text):
             add (random number between -3 and 3) to z-coord of {_spawnLoc}
             boss_spawnMinion({_bossId}, "guardian", {_spawnLoc}, "&3&lWater Guardian", 10)
 
-        # Effects
-        loop all players in radius 50 around {_bossLoc}:
+        # Sound to players in same world
+        loop all players in world of {_bossLoc}:
             play sound "entity.elder_guardian.curse" with volume 0.8 and pitch 0.8 to loop-player
 
     # ════════════════════════════════════════════════════════════
@@ -50,12 +50,12 @@ function poseidon_ability(bossId: text, ability: text):
         broadcast "&b&lPoseidon &7calls upon the &3&lseas&7!"
         broadcast "&7His attacks grow &c&lstronger&7..."
 
-        # Visual: apply glowing effect to boss
+        # Visual: apply strength to boss
         if {_entity} is set:
             apply strength 2 to {_entity} for 999 days
 
             set {_bossLoc} to location of {_entity}
-            loop all players in radius 50 around {_bossLoc}:
+            loop all players in world of {_bossLoc}:
                 play sound "weather.rain.above" with volume 1 and pitch 0.5 to loop-player
                 play sound "entity.elder_guardian.ambient" with volume 0.8 and pitch 0.6 to loop-player
 
@@ -79,7 +79,7 @@ function poseidon_ability(bossId: text, ability: text):
             apply strength 4 to {_entity} for 999 days
 
             set {_bossLoc} to location of {_entity}
-            loop all players in radius 50 around {_bossLoc}:
+            loop all players in world of {_bossLoc}:
                 play sound "entity.wither.spawn" with volume 0.6 and pitch 1.8 to loop-player
                 play sound "entity.ender_dragon.growl" with volume 0.6 and pitch 0.5 to loop-player
 
@@ -96,15 +96,13 @@ function poseidon_rainLoop(bossId: text):
 
         set {_loc} to location of {_entity}
 
-        # Spawn water drip particles around boss
-        loop 15 times:
+        # Spawn rain particles at boss location (visible to nearby players automatically)
+        loop 10 times:
             set {_particleLoc} to {_loc}
             add (random number between -5 and 5) to x-coord of {_particleLoc}
             add (random number between 1 and 6) to y-coord of {_particleLoc}
             add (random number between -5 and 5) to z-coord of {_particleLoc}
-
-            loop all players in radius 50 around {_loc}:
-                show 3 of rain at {_particleLoc} to loop-player
+            show 3 of rain at {_particleLoc}
 
         wait 5 ticks
 

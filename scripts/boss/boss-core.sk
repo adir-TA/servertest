@@ -70,8 +70,8 @@ function boss_spawn(id: text):
     broadcast "&7%{_name}% &7has appeared!"
     broadcast ""
 
-    # Play sound to all
-    loop all players:
+    # Play sound to online players in same world
+    loop all players in world of {_loc}:
         play sound "entity.wither.spawn" with volume 0.8 and pitch 0.6 to loop-player
 
 # ============================================================
@@ -153,8 +153,10 @@ function boss_die(id: text):
     broadcast ""
 
     # Death effects
-    loop all players:
-        play sound "entity.ender_dragon.death" with volume 0.8 and pitch 1.2 to loop-player
+    set {_loc} to boss_getSpawnLoc({_id})
+    if {_loc} is set:
+        loop all players in world of {_loc}:
+            play sound "entity.ender_dragon.death" with volume 0.8 and pitch 1.2 to loop-player
 
     # Clean up
     boss_cleanup({_id})

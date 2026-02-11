@@ -7,10 +7,10 @@
 # Tracked per boss and cleaned up on boss death.
 #
 # Variables:
-#   {boss::active::%bossId%::minions::*}     → list of minion UUIDs
-#   {-boss::minion::%entityUUID%::bossId}    → which boss owns this minion
-#   {-boss::minion::%entityUUID%::dmgPercent} → damage as % of player max HP
-#   {-boss::minion::%entityUUID%::name}      → custom name tag
+#   {boss::active::%bossId%::minions::*}       → list of minion UUIDs
+#   {-boss::minion::%entityUUID%::bossId}      → which boss owns this minion
+#   {-boss::minion::%entityUUID%::dmgPercent}   → damage as % of player max HP
+#   {-boss::minion::%entityUUID%::entity}       → entity reference (no loop needed)
 #
 # ============================================================
 
@@ -30,18 +30,20 @@ function boss_spawnMinion(bossId: text, entityType: text, loc: location, name: t
     add {_uuid} to {boss::active::%{_bossId}%::minions::*}
     set {-boss::minion::%{_uuid}%::bossId} to {_bossId}
     set {-boss::minion::%{_uuid}%::dmgPercent} to {_dmgPercent}
+    set {-boss::minion::%{_uuid}%::entity} to {_minion}
 
 # Clear all minions for a boss
 function boss_clearMinions(bossId: text):
     loop {boss::active::%{_bossId}%::minions::*}:
         set {_minionUuid} to loop-value
+        # Kill via stored entity ref — no loop needed
+        set {_minion} to {-boss::minion::%{_minionUuid}%::entity}
+        if {_minion} is set:
+            kill {_minion}
         # Clean up minion data
         delete {-boss::minion::%{_minionUuid}%::bossId}
         delete {-boss::minion::%{_minionUuid}%::dmgPercent}
-        # Kill the entity
-        loop all entities:
-            if uuid of loop-entity = {_minionUuid}:
-                kill loop-entity
+        delete {-boss::minion::%{_minionUuid}%::entity}
     delete {boss::active::%{_bossId}%::minions::*}
 
 # Check if an entity is a boss minion
@@ -83,3 +85,4 @@ on death of entity:
         remove {_uuid} from {boss::active::%{_bossId}%::minions::*}
         delete {-boss::minion::%{_uuid}%::bossId}
         delete {-boss::minion::%{_uuid}%::dmgPercent}
+        delete {-boss::minion::%{_uuid}%::entity}

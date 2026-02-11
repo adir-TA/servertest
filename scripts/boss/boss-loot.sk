@@ -45,7 +45,7 @@ function boss_rollLoot(p: player, bossId: text):
                 broadcast ""
                 broadcast "&6&l★ &e%{_p}% &6obtained %{_name}% &6from %{_bossName}%&6! &6&l★"
                 broadcast ""
-                loop all players:
+                loop all players in world of {_p}:
                     play sound "ui.toast.challenge_complete" with volume 0.5 and pitch 1.2 to loop-player
 
     if {_gotSomething} is false:
