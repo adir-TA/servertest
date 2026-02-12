@@ -228,11 +228,26 @@ function research_setActiveResearchItem(menu: inventory, p: player, slot: number
 # CATEGORY VIEW (Shows Tracks)
 # ============================================================
 
-function research_openCategoryMenu(p: player, category: text):
+function research_openCategoryMenu(p: player, category: text, page: number = 1):
     set {_uuid} to {_p}'s uuid
     set {_catName} to research_getCategoryName({_category})
     set {_color} to research_getCategoryColor({_category})
     set {_tracks::*} to research_getTracks({_category})
+
+    # Calculate max page based on max tiers across all tracks
+    set {_maxTiersNeeded} to 0
+    loop {_tracks::*}:
+        set {_maxTier} to research_getTrackMaxTier({_category}, loop-value)
+        if {_maxTier} > {_maxTiersNeeded}:
+            set {_maxTiersNeeded} to {_maxTier}
+    set {_tiersPerPage} to 8
+    set {_maxPage} to ceil({_maxTiersNeeded} / {_tiersPerPage})
+
+    # Clamp page to valid range
+    if {_page} < 1:
+        set {_page} to 1
+    if {_page} > {_maxPage}:
+        set {_page} to {_maxPage}
 
     # Strip color for title
     set {_plainName} to {_catName}
@@ -326,33 +341,75 @@ function research_openCategoryMenu(p: player, category: text):
         # Track label
         research_setTrackLabel({_menu}, {_p}, {_category}, {_track}, {_rowStart})
 
-        # Track tiers (slots after label)
+        # Track tiers (slots after label) - with pagination
         set {_maxTier} to research_getTrackMaxTier({_category}, {_track})
-        loop integers from 1 to {_maxTier}:
+        set {_startTier} to ({_page} - 1) * {_tiersPerPage} + 1
+        set {_endTier} to {_page} * {_tiersPerPage}
+
+        loop integers from {_startTier} to {_endTier}:
             set {_tier} to loop-number
-            if {_tier} <= 8:  # Max 8 tiers per row (slots 10-17 / 19-26 / 28-35)
-                set {_tierSlot} to {_rowStart} + {_tier}
-                research_setTierItem({_menu}, {_p}, {_category}, {_track}, {_tier}, {_tierSlot})
+            if {_tier} <= {_maxTier}:
+                set {_slotOffset} to {_tier} - {_startTier} + 1
+                if {_slotOffset} <= 8:  # Max 8 tiers per row
+                    set {_tierSlot} to {_rowStart} + {_slotOffset}
+                    research_setTierItem({_menu}, {_p}, {_category}, {_track}, {_tier}, {_tierSlot})
 
     # ════════════════════════════════════════
     # ROW 6: CONTROLS (slots 45-53)
     # ════════════════════════════════════════
 
-    # Close - slot 53
-    set {_close} to barrier named "&c&lClose"
-    delete {_closeLore::*}
-    add "&8ᴀᴄᴛɪᴏɴ" to {_closeLore::*}
-    add "" to {_closeLore::*}
-    add "&7Close this menu." to {_closeLore::*}
-    add "" to {_closeLore::*}
-    add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴄʟᴏsᴇ" to {_closeLore::*}
-    set lore of {_close} to {_closeLore::*}
-    set string tag "research;action" of custom nbt of {_close} to "close"
-    set slot 53 of {_menu} to {_close}
+    # Previous Page - slot 45 (only if page > 1)
+    if {_page} > 1:
+        set {_prev} to arrow named "&a&lPrevious Page"
+        delete {_prevLore::*}
+        add "&8ɴᴀᴠɪɢᴀᴛɪᴏɴ" to {_prevLore::*}
+        add "" to {_prevLore::*}
+        add "&7Go to page %{_page} - 1%." to {_prevLore::*}
+        add "" to {_prevLore::*}
+        add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ɢᴏ ʙᴀᴄᴋ" to {_prevLore::*}
+        set lore of {_prev} to {_prevLore::*}
+        set string tag "research;action" of custom nbt of {_prev} to "prev_page"
+        set slot 45 of {_menu} to {_prev}
+
+    # Page indicator - slot 49
+    if {_maxPage} > 1:
+        set {_pageItem} to paper named "&e&lPage %{_page}%/%{_maxPage}%"
+        delete {_pageLore::*}
+        add "&8ɪɴғᴏ" to {_pageLore::*}
+        add "" to {_pageLore::*}
+        add "&7Viewing tiers %{_startTier}%-%{_endTier}%" to {_pageLore::*}
+        set lore of {_pageItem} to {_pageLore::*}
+        set slot 49 of {_menu} to {_pageItem}
+
+    # Next Page - slot 53 (only if page < maxPage)
+    if {_page} < {_maxPage}:
+        set {_next} to arrow named "&a&lNext Page"
+        delete {_nextLore::*}
+        add "&8ɴᴀᴠɪɢᴀᴛɪᴏɴ" to {_nextLore::*}
+        add "" to {_nextLore::*}
+        add "&7Go to page %{_page} + 1%." to {_nextLore::*}
+        add "" to {_nextLore::*}
+        add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴄᴏɴᴛɪɴᴜᴇ" to {_nextLore::*}
+        set lore of {_next} to {_nextLore::*}
+        set string tag "research;action" of custom nbt of {_next} to "next_page"
+        set slot 53 of {_menu} to {_next}
+    else:
+        # Close - slot 53 (if no next page)
+        set {_close} to barrier named "&c&lClose"
+        delete {_closeLore::*}
+        add "&8ᴀᴄᴛɪᴏɴ" to {_closeLore::*}
+        add "" to {_closeLore::*}
+        add "&7Close this menu." to {_closeLore::*}
+        add "" to {_closeLore::*}
+        add "<#C0CF91>ᴄʟɪᴄᴋ ᴛᴏ ᴄʟᴏsᴇ" to {_closeLore::*}
+        set lore of {_close} to {_closeLore::*}
+        set string tag "research;action" of custom nbt of {_close} to "close"
+        set slot 53 of {_menu} to {_close}
 
     open {_menu} to {_p}
     set {-research::menu::%{_uuid}%} to "CATEGORY"
     set {-research::menu::%{_uuid}%::category} to {_category}
+    set {-research::menu::%{_uuid}%::page} to {_page}
 
 
 # Helper: Track label item
@@ -651,6 +708,9 @@ function research_openCancelConfirm(p: player):
 
     open {_menu} to {_p}
     set {-research::menu::%{_uuid}%} to "CANCEL_CONFIRM"
+    # Store previous category/page for going back
+    set {-research::menu::%{_uuid}%::return_category} to {_category}
+    set {-research::menu::%{_uuid}%::return_page} to {-research::menu::%{_uuid}%::page} ? 1
 
 
 # ============================================================
@@ -722,9 +782,10 @@ on inventory click:
             set {_category} to string tag "research;category" of {_nbt}
             set {_track} to string tag "research;track" of {_nbt}
             set {_tier} to int tag "research;tier" of {_nbt}
+            set {_currentPage} to {-research::menu::%{_uuid}%::page} ? 1
 
             if research_start(player, {_category}, {_track}, {_tier}) is true:
-                research_openCategoryMenu(player, {_category})
+                research_openCategoryMenu(player, {_category}, {_currentPage})
             else:
                 send "&c&l! &7Cannot start this research." to player
                 play sound "entity.villager.no" with volume 0.5 and pitch 1 to player
@@ -736,25 +797,41 @@ on inventory click:
                 research_openCancelConfirm(player)
             stop
 
+        if {_action} = "prev_page":
+            set {_category} to {-research::menu::%{_uuid}%::category}
+            set {_currentPage} to {-research::menu::%{_uuid}%::page} ? 1
+            play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+            research_openCategoryMenu(player, {_category}, {_currentPage} - 1)
+            stop
+
+        if {_action} = "next_page":
+            set {_category} to {-research::menu::%{_uuid}%::category}
+            set {_currentPage} to {-research::menu::%{_uuid}%::page} ? 1
+            play sound "ui.button.click" with volume 0.5 and pitch 1 to player
+            research_openCategoryMenu(player, {_category}, {_currentPage} + 1)
+            stop
+
     # ════════════════════════════════════════
     # CANCEL CONFIRM ACTIONS
     # ════════════════════════════════════════
 
     if {_menuType} = "CANCEL_CONFIRM":
         if {_action} = "confirm_cancel":
-            set {_category} to research_getActiveCategory(player)
+            set {_category} to {-research::menu::%{_uuid}%::return_category}
+            set {_returnPage} to {-research::menu::%{_uuid}%::return_page} ? 1
             research_cancel(player)
             if {_category} is set:
-                research_openCategoryMenu(player, {_category})
+                research_openCategoryMenu(player, {_category}, {_returnPage})
             else:
                 research_openMainMenu(player)
             stop
 
         if {_action} = "cancel_cancel":
             play sound "ui.button.click" with volume 0.5 and pitch 1 to player
-            set {_category} to {-research::menu::%{_uuid}%::category}
+            set {_category} to {-research::menu::%{_uuid}%::return_category}
+            set {_returnPage} to {-research::menu::%{_uuid}%::return_page} ? 1
             if {_category} is set:
-                research_openCategoryMenu(player, {_category})
+                research_openCategoryMenu(player, {_category}, {_returnPage})
             else:
                 research_openMainMenu(player)
             stop
@@ -771,3 +848,6 @@ on inventory close:
     if {_menu} is set:
         delete {-research::menu::%{_uuid}%}
         delete {-research::menu::%{_uuid}%::category}
+        delete {-research::menu::%{_uuid}%::page}
+        delete {-research::menu::%{_uuid}%::return_category}
+        delete {-research::menu::%{_uuid}%::return_page}
