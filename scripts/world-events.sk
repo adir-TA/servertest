@@ -47,6 +47,67 @@ function worldevent_clearSavedLocation():
 
 
 # ============================================================
+# AUTOMATIC EVENT SCHEDULER
+# ============================================================
+
+function worldevent_getNextEventTime() :: number:
+    return {data::worldevent::nextEventTime} ? 0
+
+function worldevent_setNextEventTime(time: number):
+    set {data::worldevent::nextEventTime} to {_time}
+
+function worldevent_startScheduler():
+    # Schedule first event in 30 minutes
+    set {_currentTime} to unix timestamp of now
+    set {_nextTime} to {_currentTime} + (30 * 60)
+    worldevent_setNextEventTime({_nextTime})
+
+    # Start scheduler loop
+    worldevent_schedulerLoop()
+
+function worldevent_schedulerLoop():
+    set {_currentTime} to unix timestamp of now
+    set {_nextTime} to worldevent_getNextEventTime()
+
+    # If no next time set, set one for 30 minutes from now
+    if {_nextTime} = 0:
+        set {_nextTime} to {_currentTime} + (30 * 60)
+        worldevent_setNextEventTime({_nextTime})
+
+    # Check if it's time for an event
+    if {_currentTime} >= {_nextTime}:
+        # Check if location is set
+        if worldevent_hasSavedLocation() is true:
+            # Pick random event
+            set {_events::*} to "whirlwind", "meteor" and "earthquake"
+            set {_randomEvent} to random element of {_events::*}
+
+            set {_center} to worldevent_getSavedLocation()
+
+            # Start the event based on which was chosen
+            if {_randomEvent} is "whirlwind":
+                whirlwind_start({_center}, 10, 60)
+            else if {_randomEvent} is "meteor":
+                meteor_start({_center}, 10, 60)
+            else if {_randomEvent} is "earthquake":
+                earthquake_start({_center}, 10, 60)
+
+        # Schedule next event in 30 minutes
+        set {_nextTime} to {_currentTime} + (30 * 60)
+        worldevent_setNextEventTime({_nextTime})
+
+    # Check again in 10 seconds
+    wait 10 seconds
+    worldevent_schedulerLoop()
+
+
+# Start scheduler on load
+on load:
+    wait 2 seconds
+    worldevent_startScheduler()
+
+
+# ============================================================
 # WHIRLWIND EVENT - WORLD EVENT VERSION
 # ============================================================
 # Massive tornado with:
@@ -489,30 +550,73 @@ function whirlwind_damageBlocks(center: location):
             if {_checkType} is bedrock:
                 continue
 
-            # Check if mineable and damage for all nearby players
+            # Check if mineable and destroy for all nearby players
             if mining_isMineable({_checkType}) = true:
                 loop all players in radius 80 of {_checkLoc}:
                     if mining_isLocked(loop-player, {_checkLoc}) = false:
-                        whirlwind_crackBlock(loop-player, {_checkLoc})
+                        whirlwind_destroyBlock(loop-player, {_checkLoc})
 
 
-# Crack a block for a player - instantly to stage 8 (one more hit breaks it)
-function whirlwind_crackBlock(p: player, loc: location):
-    # Create session if needed
-    if mining_hasSession({_p}, {_loc}) = false:
-        mining_createSession({_p}, {_loc})
+# Destroy a block for a player - instantly break it (like AOE enchants)
+function whirlwind_destroyBlock(p: player, loc: location):
+    # Clear any existing mining session on this block
+    mining_clearSession({_p}, {_loc})
 
-    # Set directly to 0.8 (stage 8) - one more hit breaks it
-    mining_setProgress({_p}, {_loc}, 0.8)
+    set {_type} to type of block at {_loc}
+    set {_hardness} to mining_getHardness({_type})
 
-    # Show visual damage at stage 8
-    set {_key} to mining_getLocKey({_loc})
-    set {_id} to {-miningData::%{_p}'s uuid%::damageID::%{_key}%}
-    make {_p} see damage of block at {_loc} as 0.8 from {_id}
-    set {-miningData::%{_p}'s uuid%::lastStage::%{_key}%} to 8
+    # Check if block was amplified
+    set {_isAmplified} to amplify_isAmplified({_p}, {_loc})
+    if {_isAmplified} = true:
+        amplify_clearBlock({_p}, {_loc})
+        set {_finalMultiplier} to 2
+        play sound "block.respawn_anchor.deplete" with volume 0.6 and pitch 1.2 to {_p}
+        amplify_showText({_p}, {_loc})
+    else:
+        set {_finalMultiplier} to 1
 
-    # Play crack sound
-    play sound "block.stone.hit" with volume 0.15 and pitch 0.9 at {_loc} for {_p}
+    # Block break sound
+    play sound "block.stone.break" with volume 1 and pitch 0.8 at {_loc} for {_p}
+
+    # Block loot animation
+    packetBlockLoot({_p}, {_loc}, {_type})
+
+    # Give tokens via Excavator
+    set {_tokens} to enchant_procExcavator({_p}, {_hardness}, false)
+    set {_tokens} to {_tokens} * {_finalMultiplier}
+    mining_giveTokens({_p}, {_tokens})
+    excavator_addTokens({_p}, {_loc}, {_tokens}, false)
+
+    # Get Fortune level for bonus drops
+    set {_fortuneID} to enchant_getIdByString("Fortune")
+    if enchant_checkIfEquipped({_p}, {_fortuneID}) = true:
+        set {_fortuneLevel} to enchant_getPlayerLevelByString({_p}, "Fortune")
+    else:
+        set {_fortuneLevel} to 0
+
+    # Give drops with Fortune and multiplier
+    mining_giveDrops({_p}, {_type}, {_fortuneLevel}, {_finalMultiplier})
+
+    # Lock the block
+    set {_lockX} to floor(x-coord of {_loc})
+    set {_lockY} to floor(y-coord of {_loc})
+    set {_lockZ} to floor(z-coord of {_loc})
+    set {_lockKey} to "%{_lockX}%_%{_lockY}%_%{_lockZ}%"
+    set {-miningLocked::%{_p}'s uuid%::%{_lockKey}%} to true
+    make {_p} see block at {_loc} as bedrock
+
+    # Schedule unlock
+    whirlwind_unlockBlock({_p}, {_loc})
+
+
+function whirlwind_unlockBlock(p: player, loc: location):
+    wait 5 seconds
+    make {_p} see block at {_loc} as original
+    set {_lockX} to floor(x-coord of {_loc})
+    set {_lockY} to floor(y-coord of {_loc})
+    set {_lockZ} to floor(z-coord of {_loc})
+    set {_lockKey} to "%{_lockX}%_%{_lockY}%_%{_lockZ}%"
+    delete {-miningLocked::%{_p}'s uuid%::%{_lockKey}%}
 
 
 function whirlwind_stop():
@@ -1012,12 +1116,12 @@ function meteor_impact(p: player, loc: location, coreScale: number, numPieces: i
         draw 3 of flame at location({_landX}, {_y}, {_landZ}, {_world}) for {_p}
         draw 2 of dust using dustOption(rgb(255, 100, 0), 1.0) at location({_landX}, {_y}, {_landZ}, {_world}) for {_p}
 
-        # Damage block at landing spot
+        # Destroy block at landing spot
         set {_landBlockType} to type of block at {_landLoc}
         if {_landBlockType} is not bedrock:
             if mining_isMineable({_landBlockType}) = true:
                 if mining_isLocked({_p}, {_landLoc}) = false:
-                    meteor_crackBlock({_p}, {_landLoc})
+                    meteor_destroyBlock({_p}, {_landLoc})
 
     # Small impact sound for fragments
     play sound "block.basalt.break" with volume 0.4 and pitch 0.8 at {_loc} for {_p}
@@ -1071,19 +1175,68 @@ function meteor_damageBlocks(p: player, center: location):
 
             if mining_isMineable({_checkType}) = true:
                 if mining_isLocked({_p}, {_checkLoc}) = false:
-                    meteor_crackBlock({_p}, {_checkLoc})
+                    meteor_destroyBlock({_p}, {_checkLoc})
 
 
-function meteor_crackBlock(p: player, loc: location):
-    if mining_hasSession({_p}, {_loc}) = false:
-        mining_createSession({_p}, {_loc})
+function meteor_destroyBlock(p: player, loc: location):
+    # Clear any existing mining session on this block
+    mining_clearSession({_p}, {_loc})
 
-    mining_setProgress({_p}, {_loc}, 0.8)
+    set {_type} to type of block at {_loc}
+    set {_hardness} to mining_getHardness({_type})
 
-    set {_key} to mining_getLocKey({_loc})
-    set {_id} to {-miningData::%{_p}'s uuid%::damageID::%{_key}%}
-    make {_p} see damage of block at {_loc} as 0.8 from {_id}
-    set {-miningData::%{_p}'s uuid%::lastStage::%{_key}%} to 8
+    # Check if block was amplified
+    set {_isAmplified} to amplify_isAmplified({_p}, {_loc})
+    if {_isAmplified} = true:
+        amplify_clearBlock({_p}, {_loc})
+        set {_finalMultiplier} to 2
+        play sound "block.respawn_anchor.deplete" with volume 0.6 and pitch 1.2 to {_p}
+        amplify_showText({_p}, {_loc})
+    else:
+        set {_finalMultiplier} to 1
+
+    # Block break sound
+    play sound "block.stone.break" with volume 1 and pitch 0.8 at {_loc} for {_p}
+
+    # Block loot animation
+    packetBlockLoot({_p}, {_loc}, {_type})
+
+    # Give tokens via Excavator
+    set {_tokens} to enchant_procExcavator({_p}, {_hardness}, false)
+    set {_tokens} to {_tokens} * {_finalMultiplier}
+    mining_giveTokens({_p}, {_tokens})
+    excavator_addTokens({_p}, {_loc}, {_tokens}, false)
+
+    # Get Fortune level for bonus drops
+    set {_fortuneID} to enchant_getIdByString("Fortune")
+    if enchant_checkIfEquipped({_p}, {_fortuneID}) = true:
+        set {_fortuneLevel} to enchant_getPlayerLevelByString({_p}, "Fortune")
+    else:
+        set {_fortuneLevel} to 0
+
+    # Give drops with Fortune and multiplier
+    mining_giveDrops({_p}, {_type}, {_fortuneLevel}, {_finalMultiplier})
+
+    # Lock the block
+    set {_lockX} to floor(x-coord of {_loc})
+    set {_lockY} to floor(y-coord of {_loc})
+    set {_lockZ} to floor(z-coord of {_loc})
+    set {_lockKey} to "%{_lockX}%_%{_lockY}%_%{_lockZ}%"
+    set {-miningLocked::%{_p}'s uuid%::%{_lockKey}%} to true
+    make {_p} see block at {_loc} as bedrock
+
+    # Schedule unlock
+    meteor_unlockBlock({_p}, {_loc})
+
+
+function meteor_unlockBlock(p: player, loc: location):
+    wait 5 seconds
+    make {_p} see block at {_loc} as original
+    set {_lockX} to floor(x-coord of {_loc})
+    set {_lockY} to floor(y-coord of {_loc})
+    set {_lockZ} to floor(z-coord of {_loc})
+    set {_lockKey} to "%{_lockX}%_%{_lockY}%_%{_lockZ}%"
+    delete {-miningLocked::%{_p}'s uuid%::%{_lockKey}%}
 
 
 function meteor_stop():
@@ -1841,19 +1994,68 @@ function earthquake_damageRing(center: location, ringRadius: number):
         if mining_isMineable({_checkType}) = true:
             loop all players in radius 80 of {_checkLoc}:
                 if mining_isLocked(loop-player, {_checkLoc}) = false:
-                    quake_crackBlock(loop-player, {_checkLoc})
+                    quake_destroyBlock(loop-player, {_checkLoc})
 
 
-function quake_crackBlock(p: player, loc: location):
-    if mining_hasSession({_p}, {_loc}) = false:
-        mining_createSession({_p}, {_loc})
+function quake_destroyBlock(p: player, loc: location):
+    # Clear any existing mining session on this block
+    mining_clearSession({_p}, {_loc})
 
-    mining_setProgress({_p}, {_loc}, 0.8)
+    set {_type} to type of block at {_loc}
+    set {_hardness} to mining_getHardness({_type})
 
-    set {_key} to mining_getLocKey({_loc})
-    set {_id} to {-miningData::%{_p}'s uuid%::damageID::%{_key}%}
-    make {_p} see damage of block at {_loc} as 0.8 from {_id}
-    set {-miningData::%{_p}'s uuid%::lastStage::%{_key}%} to 8
+    # Check if block was amplified
+    set {_isAmplified} to amplify_isAmplified({_p}, {_loc})
+    if {_isAmplified} = true:
+        amplify_clearBlock({_p}, {_loc})
+        set {_finalMultiplier} to 2
+        play sound "block.respawn_anchor.deplete" with volume 0.6 and pitch 1.2 to {_p}
+        amplify_showText({_p}, {_loc})
+    else:
+        set {_finalMultiplier} to 1
+
+    # Block break sound
+    play sound "block.stone.break" with volume 1 and pitch 0.8 at {_loc} for {_p}
+
+    # Block loot animation
+    packetBlockLoot({_p}, {_loc}, {_type})
+
+    # Give tokens via Excavator
+    set {_tokens} to enchant_procExcavator({_p}, {_hardness}, false)
+    set {_tokens} to {_tokens} * {_finalMultiplier}
+    mining_giveTokens({_p}, {_tokens})
+    excavator_addTokens({_p}, {_loc}, {_tokens}, false)
+
+    # Get Fortune level for bonus drops
+    set {_fortuneID} to enchant_getIdByString("Fortune")
+    if enchant_checkIfEquipped({_p}, {_fortuneID}) = true:
+        set {_fortuneLevel} to enchant_getPlayerLevelByString({_p}, "Fortune")
+    else:
+        set {_fortuneLevel} to 0
+
+    # Give drops with Fortune and multiplier
+    mining_giveDrops({_p}, {_type}, {_fortuneLevel}, {_finalMultiplier})
+
+    # Lock the block
+    set {_lockX} to floor(x-coord of {_loc})
+    set {_lockY} to floor(y-coord of {_loc})
+    set {_lockZ} to floor(z-coord of {_loc})
+    set {_lockKey} to "%{_lockX}%_%{_lockY}%_%{_lockZ}%"
+    set {-miningLocked::%{_p}'s uuid%::%{_lockKey}%} to true
+    make {_p} see block at {_loc} as bedrock
+
+    # Schedule unlock
+    quake_unlockBlock({_p}, {_loc})
+
+
+function quake_unlockBlock(p: player, loc: location):
+    wait 5 seconds
+    make {_p} see block at {_loc} as original
+    set {_lockX} to floor(x-coord of {_loc})
+    set {_lockY} to floor(y-coord of {_loc})
+    set {_lockZ} to floor(z-coord of {_loc})
+    set {_lockKey} to "%{_lockX}%_%{_lockY}%_%{_lockZ}%"
+    delete {-miningLocked::%{_p}'s uuid%::%{_lockKey}%}
 
 
 function earthquake_stop():
@@ -2041,3 +2243,42 @@ command /worldevent <text> [<text>] [<number>] [<number>]:
             send ""
             send "&e/worldevent list &7- Show active events"
             send "&e/worldevent stopall &7- Stop all events"
+
+
+command /event:
+    trigger:
+        set {_currentTime} to unix timestamp of now
+        set {_nextTime} to worldevent_getNextEventTime()
+
+        if {_nextTime} = 0:
+            send "&cNo events scheduled yet!"
+            send "&7Events will start automatically every 30 minutes once the server loads."
+            stop
+
+        set {_timeUntil} to {_nextTime} - {_currentTime}
+
+        if {_timeUntil} <= 0:
+            send "&e⏰ &6Next Event: &eStarting soon..."
+        else:
+            set {_minutes} to floor({_timeUntil} / 60)
+            set {_seconds} to mod({_timeUntil}, 60)
+
+            if {_minutes} > 0:
+                send "&e⏰ &6Next Event in: &e%{_minutes}% minutes %{_seconds}% seconds"
+            else:
+                send "&e⏰ &6Next Event in: &e%{_seconds}% seconds"
+
+        # Show active events
+        set {_anyActive} to false
+        if worldevent_isActive("whirlwind") is true:
+            send "&7Currently active: &b⚡ Whirlwind"
+            set {_anyActive} to true
+        if worldevent_isActive("meteor") is true:
+            send "&7Currently active: &c☄ Meteor Rain"
+            set {_anyActive} to true
+        if worldevent_isActive("earthquake") is true:
+            send "&7Currently active: &6⚠ Earthquake"
+            set {_anyActive} to true
+
+        if {_anyActive} is false:
+            send "&7No events currently active"
