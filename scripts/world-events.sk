@@ -47,6 +47,29 @@ function worldevent_clearSavedLocation():
 
 
 # ============================================================
+# BEST BLOCK FUNCTION
+# ============================================================
+
+# Get the best (highest prestige) block a player can mine
+function worldevent_getBestBlock(p: player) :: item:
+    set {_totalPrestige} to economy_getTotalPrestiges({_p})
+    set {_bestBlock} to cobblestone
+    set {_bestPrestige} to -1
+
+    # Loop through all registered blocks
+    loop {mining.registry::blocks::*}:
+        set {_blockPrestige} to mining_getBlockPrestigeReq(loop-value)
+
+        # Check if player can mine this block and if it's better than current best
+        if {_blockPrestige} <= {_totalPrestige}:
+            if {_blockPrestige} > {_bestPrestige}:
+                set {_bestBlock} to loop-value
+                set {_bestPrestige} to {_blockPrestige}
+
+    return {_bestBlock}
+
+
+# ============================================================
 # AUTOMATIC EVENT SCHEDULER
 # ============================================================
 
@@ -57,9 +80,9 @@ function worldevent_setNextEventTime(time: number):
     set {data::worldevent::nextEventTime} to {_time}
 
 function worldevent_startScheduler():
-    # Schedule first event in 30 minutes
+    # Schedule first event in 10 minutes
     set {_currentTime} to unix timestamp of now
-    set {_nextTime} to {_currentTime} + (30 * 60)
+    set {_nextTime} to {_currentTime} + (10 * 60)
     worldevent_setNextEventTime({_nextTime})
 
     # Start scheduler loop
@@ -69,17 +92,17 @@ function worldevent_schedulerLoop():
     set {_currentTime} to unix timestamp of now
     set {_nextTime} to worldevent_getNextEventTime()
 
-    # If no next time set, set one for 30 minutes from now
+    # If no next time set, set one for 10 minutes from now
     if {_nextTime} = 0:
-        set {_nextTime} to {_currentTime} + (30 * 60)
+        set {_nextTime} to {_currentTime} + (10 * 60)
         worldevent_setNextEventTime({_nextTime})
 
     # Check if it's time for an event
     if {_currentTime} >= {_nextTime}:
         # Check if location is set
         if worldevent_hasSavedLocation() is true:
-            # Pick random event
-            set {_events::*} to "whirlwind", "meteor" and "earthquake"
+            # Pick random event (earthquake disabled)
+            set {_events::*} to "whirlwind" and "meteor"
             set {_randomEvent} to random element of {_events::*}
 
             set {_center} to worldevent_getSavedLocation()
@@ -89,11 +112,9 @@ function worldevent_schedulerLoop():
                 whirlwind_start({_center}, 10, 60)
             else if {_randomEvent} is "meteor":
                 meteor_start({_center}, 10, 60)
-            else if {_randomEvent} is "earthquake":
-                earthquake_start({_center}, 10, 60)
 
-        # Schedule next event in 30 minutes
-        set {_nextTime} to {_currentTime} + (30 * 60)
+        # Schedule next event in 10 minutes
+        set {_nextTime} to {_currentTime} + (10 * 60)
         worldevent_setNextEventTime({_nextTime})
 
     # Check again in 10 seconds
@@ -565,6 +586,10 @@ function whirlwind_destroyBlock(p: player, loc: location):
     set {_type} to type of block at {_loc}
     set {_hardness} to mining_getHardness({_type})
 
+    # Get best block player can mine
+    set {_bestBlock} to worldevent_getBestBlock({_p})
+    set {_bestHardness} to mining_getHardness({_bestBlock})
+
     # Check if block was amplified
     set {_isAmplified} to amplify_isAmplified({_p}, {_loc})
     if {_isAmplified} = true:
@@ -578,11 +603,11 @@ function whirlwind_destroyBlock(p: player, loc: location):
     # Block break sound
     play sound "block.stone.break" with volume 1 and pitch 0.8 at {_loc} for {_p}
 
-    # Block loot animation
-    packetBlockLoot({_p}, {_loc}, {_type})
+    # Block loot animation (show the best block, not actual block)
+    packetBlockLoot({_p}, {_loc}, {_bestBlock})
 
-    # Give tokens via Excavator
-    set {_tokens} to enchant_procExcavator({_p}, {_hardness}, false)
+    # Give tokens via Excavator (based on best block hardness)
+    set {_tokens} to enchant_procExcavator({_p}, {_bestHardness}, false)
     set {_tokens} to {_tokens} * {_finalMultiplier}
     mining_giveTokens({_p}, {_tokens})
     excavator_addTokens({_p}, {_loc}, {_tokens}, false)
@@ -594,8 +619,8 @@ function whirlwind_destroyBlock(p: player, loc: location):
     else:
         set {_fortuneLevel} to 0
 
-    # Give drops with Fortune and multiplier
-    mining_giveDrops({_p}, {_type}, {_fortuneLevel}, {_finalMultiplier})
+    # Give drops with Fortune and multiplier (give best block, not actual block)
+    mining_giveDrops({_p}, {_bestBlock}, {_fortuneLevel}, {_finalMultiplier})
 
     # Lock the block
     set {_lockX} to floor(x-coord of {_loc})
@@ -1185,6 +1210,10 @@ function meteor_destroyBlock(p: player, loc: location):
     set {_type} to type of block at {_loc}
     set {_hardness} to mining_getHardness({_type})
 
+    # Get best block player can mine
+    set {_bestBlock} to worldevent_getBestBlock({_p})
+    set {_bestHardness} to mining_getHardness({_bestBlock})
+
     # Check if block was amplified
     set {_isAmplified} to amplify_isAmplified({_p}, {_loc})
     if {_isAmplified} = true:
@@ -1198,11 +1227,11 @@ function meteor_destroyBlock(p: player, loc: location):
     # Block break sound
     play sound "block.stone.break" with volume 1 and pitch 0.8 at {_loc} for {_p}
 
-    # Block loot animation
-    packetBlockLoot({_p}, {_loc}, {_type})
+    # Block loot animation (show the best block, not actual block)
+    packetBlockLoot({_p}, {_loc}, {_bestBlock})
 
-    # Give tokens via Excavator
-    set {_tokens} to enchant_procExcavator({_p}, {_hardness}, false)
+    # Give tokens via Excavator (based on best block hardness)
+    set {_tokens} to enchant_procExcavator({_p}, {_bestHardness}, false)
     set {_tokens} to {_tokens} * {_finalMultiplier}
     mining_giveTokens({_p}, {_tokens})
     excavator_addTokens({_p}, {_loc}, {_tokens}, false)
@@ -1214,8 +1243,8 @@ function meteor_destroyBlock(p: player, loc: location):
     else:
         set {_fortuneLevel} to 0
 
-    # Give drops with Fortune and multiplier
-    mining_giveDrops({_p}, {_type}, {_fortuneLevel}, {_finalMultiplier})
+    # Give drops with Fortune and multiplier (give best block, not actual block)
+    mining_giveDrops({_p}, {_bestBlock}, {_fortuneLevel}, {_finalMultiplier})
 
     # Lock the block
     set {_lockX} to floor(x-coord of {_loc})
@@ -2004,6 +2033,10 @@ function quake_destroyBlock(p: player, loc: location):
     set {_type} to type of block at {_loc}
     set {_hardness} to mining_getHardness({_type})
 
+    # Get best block player can mine
+    set {_bestBlock} to worldevent_getBestBlock({_p})
+    set {_bestHardness} to mining_getHardness({_bestBlock})
+
     # Check if block was amplified
     set {_isAmplified} to amplify_isAmplified({_p}, {_loc})
     if {_isAmplified} = true:
@@ -2017,11 +2050,11 @@ function quake_destroyBlock(p: player, loc: location):
     # Block break sound
     play sound "block.stone.break" with volume 1 and pitch 0.8 at {_loc} for {_p}
 
-    # Block loot animation
-    packetBlockLoot({_p}, {_loc}, {_type})
+    # Block loot animation (show the best block, not actual block)
+    packetBlockLoot({_p}, {_loc}, {_bestBlock})
 
-    # Give tokens via Excavator
-    set {_tokens} to enchant_procExcavator({_p}, {_hardness}, false)
+    # Give tokens via Excavator (based on best block hardness)
+    set {_tokens} to enchant_procExcavator({_p}, {_bestHardness}, false)
     set {_tokens} to {_tokens} * {_finalMultiplier}
     mining_giveTokens({_p}, {_tokens})
     excavator_addTokens({_p}, {_loc}, {_tokens}, false)
@@ -2033,8 +2066,8 @@ function quake_destroyBlock(p: player, loc: location):
     else:
         set {_fortuneLevel} to 0
 
-    # Give drops with Fortune and multiplier
-    mining_giveDrops({_p}, {_type}, {_fortuneLevel}, {_finalMultiplier})
+    # Give drops with Fortune and multiplier (give best block, not actual block)
+    mining_giveDrops({_p}, {_bestBlock}, {_fortuneLevel}, {_finalMultiplier})
 
     # Lock the block
     set {_lockX} to floor(x-coord of {_loc})
