@@ -226,7 +226,7 @@ function prestige_getFormattedTotalPrestige(p: player) :: text:
 
 function prestige_getMaxLevel(p: player, archetype: text) :: number:
     set {_prestige} to {mining::%{_archetype}%::%{_p}'s uuid%::prestige} ? 0
-    return 50 + ({_prestige} * 25)
+    return 15 + ({_prestige} * 15)
 
 function prestige_getCost(p: player, archetype: text) :: number:
     set {_prestige} to {mining::%{_archetype}%::%{_p}'s uuid%::prestige} ? 0
