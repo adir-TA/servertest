@@ -190,10 +190,10 @@ function tornado_spawn(p: player, loc: location):
         # Skip bedrock (respawning blocks)
         if {_blockType} is bedrock:
             continue
-        
+
         if mining_isMineable({_blockType}) = true:
             if mining_isLocked({_p}, {_blockLoc}) = false:
-                tornado_crackBlock({_p}, {_blockLoc})
+                tornado_destroyBlock({_p}, {_blockLoc})
     
     loop 8 times:
         set {_frame} to loop-number
@@ -238,30 +238,65 @@ function tornado_spawn(p: player, loc: location):
         remove fake entity with id {_eid::%{_e}%} for {_p}
 
 
-function tornado_crackBlock(p: player, loc: location):
-    set {_currentProgress} to mining_getProgress({_p}, {_loc})
-    set {_currentStage} to mining_getVisualStageFromProgress({_currentProgress})
+function tornado_destroyBlock(p: player, loc: location):
+    # Clear any existing mining session on this block
+    mining_clearSession({_p}, {_loc})
 
-    set {_stagesToAdd} to random integer between 2 and 4
-    set {_progressToAdd} to {_stagesToAdd} / 10
+    set {_type} to type of block at {_loc}
+    set {_hardness} to mining_getHardness({_type})
 
-    set {_newProgress} to {_currentProgress} + {_progressToAdd}
+    # Check if block was amplified
+    set {_isAmplified} to amplify_isAmplified({_p}, {_loc})
+    if {_isAmplified} = true:
+        amplify_clearBlock({_p}, {_loc})
+        set {_finalMultiplier} to 2
+        play sound "block.respawn_anchor.deplete" with volume 0.6 and pitch 1.2 to {_p}
+        amplify_showText({_p}, {_loc})
+    else:
+        set {_finalMultiplier} to 1
 
-    if {_newProgress} > 0.8:
-        set {_newProgress} to 0.8
+    # Block break sound
+    play sound "block.stone.break" with volume 0.8 and pitch 1.0 at {_loc} for {_p}
 
-    if mining_hasSession({_p}, {_loc}) = false:
-        mining_createSession({_p}, {_loc})
+    # Block loot animation
+    packetBlockLoot({_p}, {_loc}, {_type})
 
-    mining_setProgress({_p}, {_loc}, {_newProgress})
+    # Give tokens via Excavator (no magnet from AOE)
+    set {_tokens} to enchant_procExcavator({_p}, {_hardness}, false)
+    set {_tokens} to {_tokens} * {_finalMultiplier}
+    mining_giveTokens({_p}, {_tokens})
+    excavator_addTokens({_p}, {_loc}, {_tokens}, false)
 
-    set {_key} to mining_getLocKey({_loc})
-    set {_newStage} to mining_getVisualStageFromProgress({_newProgress})
-    set {_id} to {-miningData::%{_p}'s uuid%::damageID::%{_key}%}
-    make {_p} see damage of block at {_loc} as {_newStage} / 10 from {_id}
-    set {-miningData::%{_p}'s uuid%::lastStage::%{_key}%} to {_newStage}
+    # Get Fortune level for bonus drops
+    set {_fortuneID} to enchant_getIdByString("Fortune")
+    if enchant_checkIfEquipped({_p}, {_fortuneID}) = true:
+        set {_fortuneLevel} to enchant_getPlayerLevelByString({_p}, "Fortune")
+    else:
+        set {_fortuneLevel} to 0
 
-    play sound "block.stone.hit" with volume 0.15 and pitch 0.9 at {_loc} for {_p}
+    # Give drops with Fortune and multiplier
+    mining_giveDrops({_p}, {_type}, {_fortuneLevel}, {_finalMultiplier})
+
+    # Lock the block with coordinate-based key
+    set {_lockX} to floor(x-coord of {_loc})
+    set {_lockY} to floor(y-coord of {_loc})
+    set {_lockZ} to floor(z-coord of {_loc})
+    set {_lockKey} to "%{_lockX}%_%{_lockY}%_%{_lockZ}%"
+    set {-miningLocked::%{_p}'s uuid%::%{_lockKey}%} to true
+    make {_p} see block at {_loc} as bedrock
+
+    # Schedule unlock
+    tornado_unlockBlock({_p}, {_loc})
+
+
+function tornado_unlockBlock(p: player, loc: location):
+    wait 5 seconds
+    make {_p} see block at {_loc} as original
+    set {_lockX} to floor(x-coord of {_loc})
+    set {_lockY} to floor(y-coord of {_loc})
+    set {_lockZ} to floor(z-coord of {_loc})
+    set {_lockKey} to "%{_lockX}%_%{_lockY}%_%{_lockZ}%"
+    delete {-miningLocked::%{_p}'s uuid%::%{_lockKey}%}
 
 
 # ============================================================

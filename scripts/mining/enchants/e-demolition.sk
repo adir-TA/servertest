@@ -92,41 +92,41 @@ function explosive_detonate(p: player, loc: location, radius: integer):
     set {_startY} to floor(y-coord of {_loc})
     set {_startZ} to floor(z-coord of {_loc})
     set {_world} to world of {_loc}
-    
+
     set {_centerLoc} to location({_startX} + 0.5, {_startY} + 0.5, {_startZ} + 0.5, {_world})
-    
+
     # Play explosion effect
     play sound "entity.generic.explode" with volume 0.7 and pitch 1.2 to {_p}
     play sound "entity.firework_rocket.blast" with volume 0.5 and pitch 0.8 to {_p}
-    
+
     # Explosion particles at center
     draw 5 of poof at {_centerLoc} for {_p}
     draw 15 of smoke at {_centerLoc} with offset vector(0.5, 0.5, 0.5) for {_p}
     draw 10 of flame at {_centerLoc} with offset vector(0.4, 0.4, 0.4) for {_p}
-    
-    # Crack nearby blocks - same Y level only
+
+    # Destroy nearby blocks - same Y level only
     loop integers from (-1 * {_radius}) to {_radius}:
         set {_dx} to loop-value
         loop integers from (-1 * {_radius}) to {_radius}:
             set {_dz} to loop-value-2
-            
+
             # Skip center
             if {_dx} = 0:
                 if {_dz} = 0:
                     continue
-            
+
             set {_checkLoc} to location({_startX} + {_dx}, {_startY}, {_startZ} + {_dz}, {_world})
             set {_checkType} to type of block at {_checkLoc}
-            
+
             # Skip bedrock (respawning blocks)
             if {_checkType} is bedrock:
                 continue
-            
+
             if mining_isMineable({_checkType}) = true:
                 if mining_isLocked({_p}, {_checkLoc}) = false:
-                    explosive_crackBlock({_p}, {_checkLoc})
-                    
-                    # Small particle at cracked block
+                    explosive_destroyBlock({_p}, {_checkLoc})
+
+                    # Small particle at destroyed block
                     set {_bx} to floor(x-coord of {_checkLoc}) + 0.5
                     set {_by} to floor(y-coord of {_checkLoc}) + 0.5
                     set {_bz} to floor(z-coord of {_checkLoc}) + 0.5
@@ -134,29 +134,65 @@ function explosive_detonate(p: player, loc: location, radius: integer):
                     draw 3 of smoke at {_blockCenter} for {_p}
 
 
-function explosive_crackBlock(p: player, loc: location):
-    set {_currentProgress} to mining_getProgress({_p}, {_loc})
-    set {_currentStage} to mining_getVisualStageFromProgress({_currentProgress})
+function explosive_destroyBlock(p: player, loc: location):
+    # Clear any existing mining session on this block
+    mining_clearSession({_p}, {_loc})
 
-    set {_stagesToAdd} to random integer between 2 and 4
-    set {_progressToAdd} to {_stagesToAdd} / 10
+    set {_type} to type of block at {_loc}
+    set {_hardness} to mining_getHardness({_type})
 
-    set {_newProgress} to {_currentProgress} + {_progressToAdd}
+    # Check if block was amplified
+    set {_isAmplified} to amplify_isAmplified({_p}, {_loc})
+    if {_isAmplified} = true:
+        amplify_clearBlock({_p}, {_loc})
+        set {_finalMultiplier} to 2
+        play sound "block.respawn_anchor.deplete" with volume 0.6 and pitch 1.2 to {_p}
+        amplify_showText({_p}, {_loc})
+    else:
+        set {_finalMultiplier} to 1
 
-    # Cap at 80% (stage 8)
-    if {_newProgress} > 0.8:
-        set {_newProgress} to 0.8
+    # Block break sound
+    play sound "block.stone.break" with volume 1 and pitch 0.8 at {_loc} for {_p}
 
-    if mining_hasSession({_p}, {_loc}) = false:
-        mining_createSession({_p}, {_loc})
+    # Block loot animation
+    packetBlockLoot({_p}, {_loc}, {_type})
 
-    mining_setProgress({_p}, {_loc}, {_newProgress})
+    # Give tokens via Excavator (no magnet from AOE)
+    set {_tokens} to enchant_procExcavator({_p}, {_hardness}, false)
+    set {_tokens} to {_tokens} * {_finalMultiplier}
+    mining_giveTokens({_p}, {_tokens})
+    excavator_addTokens({_p}, {_loc}, {_tokens}, false)
 
-    set {_key} to mining_getLocKey({_loc})
-    set {_newStage} to mining_getVisualStageFromProgress({_newProgress})
-    set {_id} to {-miningData::%{_p}'s uuid%::damageID::%{_key}%}
-    make {_p} see damage of block at {_loc} as {_newStage} / 10 from {_id}
-    set {-miningData::%{_p}'s uuid%::lastStage::%{_key}%} to {_newStage}
+    # Get Fortune level for bonus drops
+    set {_fortuneID} to enchant_getIdByString("Fortune")
+    if enchant_checkIfEquipped({_p}, {_fortuneID}) = true:
+        set {_fortuneLevel} to enchant_getPlayerLevelByString({_p}, "Fortune")
+    else:
+        set {_fortuneLevel} to 0
+
+    # Give drops with Fortune and multiplier
+    mining_giveDrops({_p}, {_type}, {_fortuneLevel}, {_finalMultiplier})
+
+    # Lock the block with coordinate-based key
+    set {_lockX} to floor(x-coord of {_loc})
+    set {_lockY} to floor(y-coord of {_loc})
+    set {_lockZ} to floor(z-coord of {_loc})
+    set {_lockKey} to "%{_lockX}%_%{_lockY}%_%{_lockZ}%"
+    set {-miningLocked::%{_p}'s uuid%::%{_lockKey}%} to true
+    make {_p} see block at {_loc} as bedrock
+
+    # Schedule unlock
+    explosive_unlockBlock({_p}, {_loc})
+
+
+function explosive_unlockBlock(p: player, loc: location):
+    wait 5 seconds
+    make {_p} see block at {_loc} as original
+    set {_lockX} to floor(x-coord of {_loc})
+    set {_lockY} to floor(y-coord of {_loc})
+    set {_lockZ} to floor(z-coord of {_loc})
+    set {_lockKey} to "%{_lockX}%_%{_lockY}%_%{_lockZ}%"
+    delete {-miningLocked::%{_p}'s uuid%::%{_lockKey}%}
 
 
 # ============================================================
@@ -307,58 +343,81 @@ function shockwave_crackAtRadius(p: player, center: location, radius: integer):
     set {_startY} to floor(y-coord of {_center})
     set {_startZ} to floor(z-coord of {_center})
     set {_world} to world of {_center}
-    
+
     # Only same Y level
     loop integers from ({_radius} * -1) to {_radius}:
         set {_dx} to loop-value
         loop integers from ({_radius} * -1) to {_radius}:
             set {_dz} to loop-value-2
-            
+
             # Skip center
             if {_dx} = 0:
                 if {_dz} = 0:
                     continue
-            
+
             # Check if at this radius (ring, not filled circle)
             set {_dist} to sqrt(({_dx} * {_dx}) + ({_dz} * {_dz}))
-            
+
             if {_dist} <= {_radius}:
                 if {_dist} > ({_radius} - 1):
                     set {_checkLoc} to location({_startX} + {_dx}, {_startY}, {_startZ} + {_dz}, {_world})
                     set {_checkType} to type of block at {_checkLoc}
-                    
+
                     # Skip bedrock (respawning blocks)
                     if {_checkType} is bedrock:
                         continue
-                    
+
                     if mining_isMineable({_checkType}) = true:
                         if mining_isLocked({_p}, {_checkLoc}) = false:
-                            shockwave_crackBlock({_p}, {_checkLoc})
+                            shockwave_destroyBlock({_p}, {_checkLoc})
 
 
-function shockwave_crackBlock(p: player, loc: location):
-    set {_currentProgress} to mining_getProgress({_p}, {_loc})
-    set {_currentStage} to mining_getVisualStageFromProgress({_currentProgress})
+function shockwave_destroyBlock(p: player, loc: location):
+    # Clear any existing mining session on this block
+    mining_clearSession({_p}, {_loc})
 
-    set {_stagesToAdd} to random integer between 2 and 3
-    set {_progressToAdd} to {_stagesToAdd} / 10
+    set {_type} to type of block at {_loc}
+    set {_hardness} to mining_getHardness({_type})
 
-    set {_newProgress} to {_currentProgress} + {_progressToAdd}
+    # Check if block was amplified
+    set {_isAmplified} to amplify_isAmplified({_p}, {_loc})
+    if {_isAmplified} = true:
+        amplify_clearBlock({_p}, {_loc})
+        set {_finalMultiplier} to 2
+        play sound "block.respawn_anchor.deplete" with volume 0.6 and pitch 1.2 to {_p}
+        amplify_showText({_p}, {_loc})
+    else:
+        set {_finalMultiplier} to 1
 
-    # Cap at 80% (stage 8)
-    if {_newProgress} > 0.8:
-        set {_newProgress} to 0.8
+    # Block break sound
+    play sound "block.stone.break" with volume 0.8 and pitch 0.9 at {_loc} for {_p}
 
-    if mining_hasSession({_p}, {_loc}) = false:
-        mining_createSession({_p}, {_loc})
+    # Block loot animation
+    packetBlockLoot({_p}, {_loc}, {_type})
 
-    mining_setProgress({_p}, {_loc}, {_newProgress})
+    # Give tokens via Excavator (no magnet from AOE)
+    set {_tokens} to enchant_procExcavator({_p}, {_hardness}, false)
+    set {_tokens} to {_tokens} * {_finalMultiplier}
+    mining_giveTokens({_p}, {_tokens})
+    excavator_addTokens({_p}, {_loc}, {_tokens}, false)
 
-    set {_key} to mining_getLocKey({_loc})
-    set {_newStage} to mining_getVisualStageFromProgress({_newProgress})
-    set {_id} to {-miningData::%{_p}'s uuid%::damageID::%{_key}%}
-    make {_p} see damage of block at {_loc} as {_newStage} / 10 from {_id}
-    set {-miningData::%{_p}'s uuid%::lastStage::%{_key}%} to {_newStage}
+    # Get Fortune level for bonus drops
+    set {_fortuneID} to enchant_getIdByString("Fortune")
+    if enchant_checkIfEquipped({_p}, {_fortuneID}) = true:
+        set {_fortuneLevel} to enchant_getPlayerLevelByString({_p}, "Fortune")
+    else:
+        set {_fortuneLevel} to 0
+
+    # Give drops with Fortune and multiplier
+    mining_giveDrops({_p}, {_type}, {_fortuneLevel}, {_finalMultiplier})
+
+    # Lock the block with coordinate-based key
+    set {_lockX} to floor(x-coord of {_loc})
+    set {_lockY} to floor(y-coord of {_loc})
+    set {_lockZ} to floor(z-coord of {_loc})
+    set {_lockKey} to "%{_lockX}%_%{_lockY}%_%{_lockZ}%"
+    set {-miningLocked::%{_p}'s uuid%::%{_lockKey}%} to true
+    make {_p} see block at {_loc} as bedrock
 
     # Small impact particle
     set {_bx} to floor(x-coord of {_loc}) + 0.5
@@ -366,6 +425,19 @@ function shockwave_crackBlock(p: player, loc: location):
     set {_bz} to floor(z-coord of {_loc}) + 0.5
     set {_blockCenter} to location({_bx}, {_by}, {_bz}, world of {_loc})
     draw 2 of dust using dustOption(rgb(0, 200, 200), 0.8) at {_blockCenter} for {_p}
+
+    # Schedule unlock
+    shockwave_unlockBlock({_p}, {_loc})
+
+
+function shockwave_unlockBlock(p: player, loc: location):
+    wait 5 seconds
+    make {_p} see block at {_loc} as original
+    set {_lockX} to floor(x-coord of {_loc})
+    set {_lockY} to floor(y-coord of {_loc})
+    set {_lockZ} to floor(z-coord of {_loc})
+    set {_lockKey} to "%{_lockX}%_%{_lockY}%_%{_lockZ}%"
+    delete {-miningLocked::%{_p}'s uuid%::%{_lockKey}%}
 
 
 # ============================================================
@@ -482,54 +554,91 @@ function lightning_strikeBlock(p: player, loc: location):
     set {_by} to floor(y-coord of {_loc}) + 0.5
     set {_bz} to floor(z-coord of {_loc}) + 0.5
     set {_center} to location({_bx}, {_by}, {_bz}, world of {_loc})
-    
+
     # Pre-strike charge sound
     play sound "block.respawn_anchor.charge" with volume 0.4 and pitch 2.0 to {_p}
-    
+
     wait 2 ticks
-    
+
     # Spawn fake lightning
     spawn fake lightning at {_loc} for {_p}
-    
+
     # Thunder and impact sounds - layered for satisfaction
     play sound "entity.lightning_bolt.thunder" with volume 0.6 and pitch 1.0 to {_p}
     play sound "entity.lightning_bolt.impact" with volume 0.5 and pitch 1.2 to {_p}
     play sound "entity.firework_rocket.blast" with volume 0.3 and pitch 0.5 to {_p}
     play sound "block.anvil.land" with volume 0.2 and pitch 1.5 to {_p}
-    
+
     # Electric particles - bright yellow/white burst
     draw 20 of dust using dustOption(rgb(255, 255, 100), 1.5) at {_center} with offset vector(0.4, 0.4, 0.4) for {_p}
     draw 15 of dust using dustOption(rgb(255, 255, 255), 1.0) at {_center} with offset vector(0.3, 0.3, 0.3) for {_p}
     draw 10 of dust using dustOption(rgb(200, 200, 255), 0.8) at {_center} with offset vector(0.25, 0.25, 0.25) for {_p}
     draw 8 of crit at {_center} with offset vector(0.3, 0.3, 0.3) for {_p}
     draw 5 of end rod at {_center} with offset vector(0.2, 0.2, 0.2) for {_p}
-    
-    # Crack the block
-    lightning_crackBlock({_p}, {_loc})
+
+    # Destroy the block
+    lightning_destroyBlock({_p}, {_loc})
 
 
-function lightning_crackBlock(p: player, loc: location):
-    set {_currentProgress} to mining_getProgress({_p}, {_loc})
+function lightning_destroyBlock(p: player, loc: location):
+    # Clear any existing mining session on this block
+    mining_clearSession({_p}, {_loc})
 
-    set {_stagesToAdd} to random integer between 2 and 4
-    set {_progressToAdd} to {_stagesToAdd} / 10
+    set {_type} to type of block at {_loc}
+    set {_hardness} to mining_getHardness({_type})
 
-    set {_newProgress} to {_currentProgress} + {_progressToAdd}
+    # Check if block was amplified
+    set {_isAmplified} to amplify_isAmplified({_p}, {_loc})
+    if {_isAmplified} = true:
+        amplify_clearBlock({_p}, {_loc})
+        set {_finalMultiplier} to 2
+        play sound "block.respawn_anchor.deplete" with volume 0.6 and pitch 1.2 to {_p}
+        amplify_showText({_p}, {_loc})
+    else:
+        set {_finalMultiplier} to 1
 
-    # Cap at 80% (stage 8)
-    if {_newProgress} > 0.8:
-        set {_newProgress} to 0.8
+    # Block break sound
+    play sound "block.stone.break" with volume 1 and pitch 0.8 at {_loc} for {_p}
 
-    if mining_hasSession({_p}, {_loc}) = false:
-        mining_createSession({_p}, {_loc})
+    # Block loot animation
+    packetBlockLoot({_p}, {_loc}, {_type})
 
-    mining_setProgress({_p}, {_loc}, {_newProgress})
+    # Give tokens via Excavator (no magnet from AOE)
+    set {_tokens} to enchant_procExcavator({_p}, {_hardness}, false)
+    set {_tokens} to {_tokens} * {_finalMultiplier}
+    mining_giveTokens({_p}, {_tokens})
+    excavator_addTokens({_p}, {_loc}, {_tokens}, false)
 
-    set {_key} to mining_getLocKey({_loc})
-    set {_newStage} to mining_getVisualStageFromProgress({_newProgress})
-    set {_id} to {-miningData::%{_p}'s uuid%::damageID::%{_key}%}
-    make {_p} see damage of block at {_loc} as {_newStage} / 10 from {_id}
-    set {-miningData::%{_p}'s uuid%::lastStage::%{_key}%} to {_newStage}
+    # Get Fortune level for bonus drops
+    set {_fortuneID} to enchant_getIdByString("Fortune")
+    if enchant_checkIfEquipped({_p}, {_fortuneID}) = true:
+        set {_fortuneLevel} to enchant_getPlayerLevelByString({_p}, "Fortune")
+    else:
+        set {_fortuneLevel} to 0
+
+    # Give drops with Fortune and multiplier
+    mining_giveDrops({_p}, {_type}, {_fortuneLevel}, {_finalMultiplier})
+
+    # Lock the block with coordinate-based key
+    set {_lockX} to floor(x-coord of {_loc})
+    set {_lockY} to floor(y-coord of {_loc})
+    set {_lockZ} to floor(z-coord of {_loc})
+    set {_lockKey} to "%{_lockX}%_%{_lockY}%_%{_lockZ}%"
+    set {-miningLocked::%{_p}'s uuid%::%{_lockKey}%} to true
+    make {_p} see block at {_loc} as bedrock
+
+    # Schedule unlock
+    lightning_unlockBlock({_p}, {_loc})
+
+
+function lightning_unlockBlock(p: player, loc: location):
+    wait 5 seconds
+    make {_p} see block at {_loc} as original
+    set {_lockX} to floor(x-coord of {_loc})
+    set {_lockY} to floor(y-coord of {_loc})
+    set {_lockZ} to floor(z-coord of {_loc})
+    set {_lockKey} to "%{_lockX}%_%{_lockY}%_%{_lockZ}%"
+    delete {-miningLocked::%{_p}'s uuid%::%{_lockKey}%}
 
 
 # ============================================================
@@ -698,24 +807,24 @@ function earthquake_trigger(p: player, loc: location, radius: integer):
         set {_bx} to x-coord of {_blockLoc} - {_startX}
         set {_bz} to z-coord of {_blockLoc} - {_startZ}
         set {_blockDist} to sqrt(({_bx} * {_bx}) + ({_bz} * {_bz}))
-        
+
         if {_blockDist} <= 1.5:
-            earthquake_crackBlock({_p}, {_blockLoc})
-    
+            earthquake_destroyBlock({_p}, {_blockLoc})
+
     wait 3 ticks
-    
+
     # Outer wave (radius 2+) - with sound
     play sound "block.basalt.break" with volume 0.4 and pitch 0.7 to {_p}
     play sound "block.deepslate.break" with volume 0.4 and pitch 0.5 to {_p}
-    
+
     loop {_crackCount} times:
         set {_blockLoc} to {_crackLoc::%loop-number%}
         set {_bx} to x-coord of {_blockLoc} - {_startX}
         set {_bz} to z-coord of {_blockLoc} - {_startZ}
         set {_blockDist} to sqrt(({_bx} * {_bx}) + ({_bz} * {_bz}))
-        
+
         if {_blockDist} > 1.5:
-            earthquake_crackBlock({_p}, {_blockLoc})
+            earthquake_destroyBlock({_p}, {_blockLoc})
     
     # ===== PHASE 4: Settle and cleanup =====
     wait 2 ticks
@@ -748,37 +857,71 @@ function earthquake_trigger(p: player, loc: location, radius: integer):
         remove fake entity with id {_displayId::%{_i}%} for {_p}
 
 
-function earthquake_crackBlock(p: player, loc: location):
-    set {_currentProgress} to mining_getProgress({_p}, {_loc})
+function earthquake_destroyBlock(p: player, loc: location):
+    # Clear any existing mining session on this block
+    mining_clearSession({_p}, {_loc})
 
-    # Fixed 3 stages
-    set {_progressToAdd} to 0.3
+    set {_type} to type of block at {_loc}
+    set {_hardness} to mining_getHardness({_type})
 
-    set {_newProgress} to {_currentProgress} + {_progressToAdd}
+    # Check if block was amplified
+    set {_isAmplified} to amplify_isAmplified({_p}, {_loc})
+    if {_isAmplified} = true:
+        amplify_clearBlock({_p}, {_loc})
+        set {_finalMultiplier} to 2
+        play sound "block.respawn_anchor.deplete" with volume 0.6 and pitch 1.2 to {_p}
+        amplify_showText({_p}, {_loc})
+    else:
+        set {_finalMultiplier} to 1
 
-    # Cap at 80% (stage 8)
-    if {_newProgress} > 0.8:
-        set {_newProgress} to 0.8
+    # Block break sound
+    play sound "block.stone.break" with volume 0.9 and pitch 0.7 at {_loc} for {_p}
 
-    if mining_hasSession({_p}, {_loc}) = false:
-        mining_createSession({_p}, {_loc})
+    # Block loot animation
+    packetBlockLoot({_p}, {_loc}, {_type})
 
-    mining_setProgress({_p}, {_loc}, {_newProgress})
+    # Give tokens via Excavator (no magnet from AOE)
+    set {_tokens} to enchant_procExcavator({_p}, {_hardness}, false)
+    set {_tokens} to {_tokens} * {_finalMultiplier}
+    mining_giveTokens({_p}, {_tokens})
+    excavator_addTokens({_p}, {_loc}, {_tokens}, false)
 
-    set {_key} to mining_getLocKey({_loc})
-    set {_newStage} to mining_getVisualStageFromProgress({_newProgress})
-    set {_id} to {-miningData::%{_p}'s uuid%::damageID::%{_key}%}
-    make {_p} see damage of block at {_loc} as {_newStage} / 10 from {_id}
-    set {-miningData::%{_p}'s uuid%::lastStage::%{_key}%} to {_newStage}
+    # Get Fortune level for bonus drops
+    set {_fortuneID} to enchant_getIdByString("Fortune")
+    if enchant_checkIfEquipped({_p}, {_fortuneID}) = true:
+        set {_fortuneLevel} to enchant_getPlayerLevelByString({_p}, "Fortune")
+    else:
+        set {_fortuneLevel} to 0
 
-    # Dust particle at cracked block
+    # Give drops with Fortune and multiplier
+    mining_giveDrops({_p}, {_type}, {_fortuneLevel}, {_finalMultiplier})
+
+    # Lock the block with coordinate-based key
+    set {_lockX} to floor(x-coord of {_loc})
+    set {_lockY} to floor(y-coord of {_loc})
+    set {_lockZ} to floor(z-coord of {_loc})
+    set {_lockKey} to "%{_lockX}%_%{_lockY}%_%{_lockZ}%"
+    set {-miningLocked::%{_p}'s uuid%::%{_lockKey}%} to true
+    make {_p} see block at {_loc} as bedrock
+
+    # Dust particle at destroyed block
     set {_bx} to floor(x-coord of {_loc}) + 0.5
     set {_by} to floor(y-coord of {_loc}) + 0.5
     set {_bz} to floor(z-coord of {_loc}) + 0.5
     set {_blockCenter} to location({_bx}, {_by}, {_bz}, world of {_loc})
     draw 3 of dust using dustOption(rgb(139, 90, 43), 1.0) at {_blockCenter} for {_p}
 
-    # Small crack sound
-    play sound "block.stone.hit" with volume 0.2 and pitch 0.8 at {_loc} for {_p}
+    # Schedule unlock
+    earthquake_unlockBlock({_p}, {_loc})
+
+
+function earthquake_unlockBlock(p: player, loc: location):
+    wait 5 seconds
+    make {_p} see block at {_loc} as original
+    set {_lockX} to floor(x-coord of {_loc})
+    set {_lockY} to floor(y-coord of {_loc})
+    set {_lockZ} to floor(z-coord of {_loc})
+    set {_lockKey} to "%{_lockX}%_%{_lockY}%_%{_lockZ}%"
+    delete {-miningLocked::%{_p}'s uuid%::%{_lockKey}%}
 
 
