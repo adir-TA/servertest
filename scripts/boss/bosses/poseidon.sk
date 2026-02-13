@@ -30,16 +30,7 @@ function poseidon_ability(bossId: text, ability: text):
         set {_bz} to floor(z-coord of {_bossLoc}) + 0.5
         set {_world} to world of {_bossLoc}
 
-        # Phase text
-        boss_anim_phaseText({_bossLoc}, "&b&lWATER GUARDIANS SUMMONED!", rgb(50, 180, 255))
-
-        # Global warning sound
-        loop all players in world of {_bossLoc}:
-            play sound "entity.elder_guardian.curse" with volume 0.8 and pitch 0.8 to loop-player
-
-        wait 5 ticks
-
-        # Spawn 3 guardians with portal animation each
+        # Guardian spawn positions
         set {_guardianOffset::1::x} to -2.5
         set {_guardianOffset::1::z} to 0
         set {_guardianOffset::2::x} to 1.5
@@ -47,20 +38,22 @@ function poseidon_ability(bossId: text, ability: text):
         set {_guardianOffset::3::x} to 1.5
         set {_guardianOffset::3::z} to -2.0
 
+        # === PRE-SPAWN: Place glowing portals at all 3 spots ===
+        set {_portalId1} to random integer between 100000 and 9999999
+        set {_portalId2} to {_portalId1} + 1
+        set {_portalId3} to {_portalId1} + 2
+
+        # Spawn all 3 portals at once
         loop 3 times:
             set {_gi} to loop-number
             set {_gx} to {_bx} + {_guardianOffset::%{_gi}%::x}
             set {_gz} to {_bz} + {_guardianOffset::%{_gi}%::z}
-            set {_portalLoc} to location({_gx}, {_by} + 1.0, {_gz}, {_world})
             set {_groundLoc} to location({_gx}, {_by} + 0.1, {_gz}, {_world})
+            set {_pid} to {_portalId1} + ({_gi} - 1)
 
-            # Portal animation: expanding cyan ring on ground
-            set {_portalId} to random integer between 100000 and 9999999
-
-            # Spawn portal block display
             loop all players in world of {_bossLoc}:
-                spawn fake block display at {_groundLoc} for loop-player with id {_portalId}
-                set {_m} to new metadata packet with id {_portalId}:
+                spawn fake block display at {_groundLoc} for loop-player with id {_pid}
+                set {_m} to new metadata packet with id {_pid}:
                     display block: cyan stained glass
                     display scale: vector(0.01, 0.01, 0.01)
                     display brightness block: 15
@@ -71,58 +64,172 @@ function poseidon_ability(bossId: text, ability: text):
                     display glow: rgb(50, 200, 255)
                 send packet {_m} to loop-player
 
-            wait 1 tick
+        # Warning sound
+        loop all players in world of {_bossLoc}:
+            play sound "entity.elder_guardian.curse" with volume 0.8 and pitch 0.8 to loop-player
 
-            # Expand portal
+        wait 2 ticks
+
+        # Expand all 3 portals
+        loop 3 times:
+            set {_gi} to loop-number
+            set {_pid} to {_portalId1} + ({_gi} - 1)
             loop all players in world of {_bossLoc}:
-                set {_m} to new metadata packet with id {_portalId}:
+                set {_m} to new metadata packet with id {_pid}:
                     display scale: vector(1.5, 0.1, 1.5)
                     display transformation: 4
                     display interpolation: 0
                 send packet {_m} to loop-player
 
-            wait 3 ticks
+        wait 3 ticks
 
-            # Bubble particles rising from portal
-            set {_bubbleStep} to 0
-            while {_bubbleStep} < 5:
-                add 1 to {_bubbleStep}
-                set {_bubbleX} to {_gx} + (random number between -0.5 and 0.5)
-                set {_bubbleZ} to {_gz} + (random number between -0.5 and 0.5)
-                set {_bubbleY} to {_by} + 0.2 + ({_bubbleStep} * 0.3)
-                set {_bubbleLoc} to location({_bubbleX}, {_bubbleY}, {_bubbleZ}, {_world})
+        # === COUNTDOWN TEXT: "Minions spawning in..." ===
+        set {_countdownId} to random integer between 100000 and 9999999
+        set {_countdownPos} to location({_bx}, {_by} + 3.5, {_bz}, {_world})
+        set {_countdownText} to "&b&lMINIONS SPAWNING IN &f&l3..."
 
+        loop all players in world of {_bossLoc}:
+            spawn fake text display at {_countdownPos} for loop-player with id {_countdownId}
+            set {_m} to new metadata packet with id {_countdownId}:
+                display text: {_countdownText}
+                display scale: vector(0.01, 0.01, 0.01)
+                display billboard: center
+                display brightness block: 15
+                display shadow: true
+                display defaultbackground: false
+                display teleportduration: 2
+                display transformation: 3
+                display interpolation: 0
+                display background alpha: 0
+                glowing: true
+                display glow: rgb(50, 200, 255)
+            send packet {_m} to loop-player
+
+        wait 1 tick
+
+        # Pop in countdown
+        loop all players in world of {_bossLoc}:
+            set {_m} to new metadata packet with id {_countdownId}:
+                display scale: vector(2, 2, 2)
+                display transformation: 3
+                display interpolation: 0
+            send packet {_m} to loop-player
+            play sound "block.note_block.pling" with volume 0.6 and pitch 1.0 to loop-player
+
+        # Pulse particles on portals during countdown
+        # 3...
+        set {_pulseStep} to 0
+        while {_pulseStep} < 4:
+            add 1 to {_pulseStep}
+            loop 3 times:
+                set {_gi} to loop-number
+                set {_gx} to {_bx} + {_guardianOffset::%{_gi}%::x}
+                set {_gz} to {_bz} + {_guardianOffset::%{_gi}%::z}
+                set {_pulseLoc} to location({_gx}, {_by} + 0.5, {_gz}, {_world})
                 loop all players in world of {_bossLoc}:
-                    draw 2 of dust using dustOption(rgb(100, 220, 255), 0.6) at {_bubbleLoc} for loop-player
+                    draw 3 of dust using dustOption(rgb(50, 200, 255), 1.0) at {_pulseLoc} with offset vector(0.4, 0.3, 0.4) for loop-player
+            wait 5 ticks
 
-                wait 1 tick
+        # 2...
+        set {_countdownText} to "&b&lMINIONS SPAWNING IN &e&l2..."
+        loop all players in world of {_bossLoc}:
+            set {_m} to new metadata packet with id {_countdownId}:
+                display text: {_countdownText}
+            send packet {_m} to loop-player
+            play sound "block.note_block.pling" with volume 0.6 and pitch 1.2 to loop-player
+
+        set {_pulseStep} to 0
+        while {_pulseStep} < 4:
+            add 1 to {_pulseStep}
+            loop 3 times:
+                set {_gi} to loop-number
+                set {_gx} to {_bx} + {_guardianOffset::%{_gi}%::x}
+                set {_gz} to {_bz} + {_guardianOffset::%{_gi}%::z}
+                set {_pulseLoc} to location({_gx}, {_by} + 0.5, {_gz}, {_world})
+                loop all players in world of {_bossLoc}:
+                    draw 4 of dust using dustOption(rgb(100, 220, 255), 1.2) at {_pulseLoc} with offset vector(0.5, 0.4, 0.5) for loop-player
+                    draw 1 of end rod at {_pulseLoc} for loop-player
+            wait 5 ticks
+
+        # 1...
+        set {_countdownText} to "&b&lMINIONS SPAWNING IN &c&l1..."
+        loop all players in world of {_bossLoc}:
+            set {_m} to new metadata packet with id {_countdownId}:
+                display text: {_countdownText}
+            send packet {_m} to loop-player
+            play sound "block.note_block.pling" with volume 0.6 and pitch 1.5 to loop-player
+
+        set {_pulseStep} to 0
+        while {_pulseStep} < 4:
+            add 1 to {_pulseStep}
+            loop 3 times:
+                set {_gi} to loop-number
+                set {_gx} to {_bx} + {_guardianOffset::%{_gi}%::x}
+                set {_gz} to {_bz} + {_guardianOffset::%{_gi}%::z}
+                set {_pulseLoc} to location({_gx}, {_by} + 0.5, {_gz}, {_world})
+                loop all players in world of {_bossLoc}:
+                    draw 5 of dust using dustOption(rgb(150, 240, 255), 1.5) at {_pulseLoc} with offset vector(0.6, 0.5, 0.6) for loop-player
+                    draw 2 of end rod at {_pulseLoc} for loop-player
+            wait 5 ticks
+
+        # Remove countdown text
+        loop all players in world of {_bossLoc}:
+            set {_m} to new metadata packet with id {_countdownId}:
+                display scale: vector(0.01, 0.01, 0.01)
+                display transformation: 4
+                display interpolation: 0
+            send packet {_m} to loop-player
+
+        wait 3 ticks
+
+        loop all players in world of {_bossLoc}:
+            remove fake entity with id {_countdownId} for loop-player
+
+        # === SPAWN ALL 3 GUARDIANS with burst effect ===
+        loop 3 times:
+            set {_gi} to loop-number
+            set {_gx} to {_bx} + {_guardianOffset::%{_gi}%::x}
+            set {_gz} to {_bz} + {_guardianOffset::%{_gi}%::z}
+            set {_portalLoc} to location({_gx}, {_by} + 1.0, {_gz}, {_world})
+            set {_pid} to {_portalId1} + ({_gi} - 1)
 
             # Water burst at spawn
             loop all players in world of {_bossLoc}:
-                draw 15 of dust using dustOption(rgb(50, 180, 255), 1.5) at {_portalLoc} with offset vector(0.5, 0.8, 0.5) for loop-player
-                draw 8 of end rod at {_portalLoc} with offset vector(0.3, 0.5, 0.3) for loop-player
+                draw 20 of dust using dustOption(rgb(50, 180, 255), 1.8) at {_portalLoc} with offset vector(0.6, 1.0, 0.6) for loop-player
+                draw 10 of end rod at {_portalLoc} with offset vector(0.4, 0.6, 0.4) for loop-player
                 play sound "entity.generic.splash" with volume 0.5 and pitch 0.8 to loop-player
-                play sound "entity.guardian.ambient" with volume 0.4 and pitch 1.0 to loop-player
 
             # Spawn the actual guardian
             boss_spawnMinion({_bossId}, "guardian", {_portalLoc}, "&3&lWater Guardian", 10)
 
-            wait 3 ticks
+        # Big sound on all spawn
+        loop all players in world of {_bossLoc}:
+            play sound "entity.guardian.ambient" with volume 0.6 and pitch 0.8 to loop-player
+            play sound "entity.elder_guardian.curse" with volume 0.5 and pitch 1.2 to loop-player
 
-            # Shrink + remove portal
+        # Phase text
+        boss_anim_phaseText({_bossLoc}, "&b&lWATER GUARDIANS SUMMONED!", rgb(50, 180, 255))
+
+        wait 5 ticks
+
+        # Shrink + remove all portals
+        loop 3 times:
+            set {_gi} to loop-number
+            set {_pid} to {_portalId1} + ({_gi} - 1)
             loop all players in world of {_bossLoc}:
-                set {_m} to new metadata packet with id {_portalId}:
+                set {_m} to new metadata packet with id {_pid}:
                     display scale: vector(0.01, 0.01, 0.01)
                     display transformation: 4
                     display interpolation: 0
                 send packet {_m} to loop-player
 
-            wait 3 ticks
+        wait 4 ticks
 
+        loop 3 times:
+            set {_gi} to loop-number
+            set {_pid} to {_portalId1} + ({_gi} - 1)
             loop all players in world of {_bossLoc}:
-                remove fake entity with id {_portalId} for loop-player
-
-            wait 5 ticks
+                remove fake entity with id {_pid} for loop-player
 
     # ════════════════════════════════════════════════════════════
     # 50% — RAIN BUFF (STRENGTH)

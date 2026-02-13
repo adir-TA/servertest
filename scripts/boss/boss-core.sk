@@ -40,7 +40,16 @@ function boss_spawn(id: text):
     set {_maxHp} to boss_getMaxHp({_id})
     set {_entityType} to boss_getEntityType({_id})
 
-    # Spawn the entity
+    # Broadcast warning first
+    broadcast ""
+    broadcast "&b&l⚔ BOSS INCOMING ⚔"
+    broadcast "&7%{_name}% &7is awakening..."
+    broadcast ""
+
+    # Play spawn animation BEFORE the entity appears
+    boss_anim_spawn({_loc}, {_name})
+
+    # NOW spawn the actual entity after the animation finishes
     spawn 1 of {_entityType} parsed as entity type at {_loc}
     set {_entity} to last spawned entity
 
@@ -60,17 +69,16 @@ function boss_spawn(id: text):
     delete {boss::active::%{_id}%::buffRain}
     delete {boss::active::%{_id}%::buffRampage}
 
-    # Spawn HUD
+    # Spawn HUD after entity exists
     boss_hud_create({_id}, {_entity})
 
-    # Spawn animation (trident spin + text pop)
-    boss_anim_spawn({_loc}, {_name})
+    # Broadcast arrival
+    broadcast ""
+    broadcast "&b&l⚔ %{_name}% &b&lHAS ARRIVED ⚔"
+    broadcast ""
 
-    # Broadcast spawn
-    broadcast ""
-    broadcast "&b&l⚔ BOSS SPAWNED ⚔"
-    broadcast "&7%{_name}% &7has appeared!"
-    broadcast ""
+    loop all players in world of {_loc}:
+        play sound "entity.ender_dragon.growl" with volume 0.5 and pitch 0.8 to loop-player
 
 # ============================================================
 # DESPAWN / FORCE KILL
