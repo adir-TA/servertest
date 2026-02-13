@@ -1,0 +1,306 @@
+# ============================================================
+# APOLLO — Boss Abilities
+# ============================================================
+
+function apollo_ability(bossId: text, ability: text):
+    # Get boss entity and location
+    set {_entity} to boss_getEntity({_bossId})
+    if {_entity} is not set:
+        stop
+    set {_bossLoc} to location of {_entity}
+
+    # Solar Flare (75%)
+    if {_ability} is "solar_flare":
+        # Phase text
+        boss_anim_phaseText({_bossLoc}, "&e&lSOLAR FLARE!", rgb(255, 220, 50))
+
+        # Massive light burst
+        draw 30 of end_rod at {_bossLoc} with offset vector(3, 3, 3)
+        loop all players in world of {_bossLoc}:
+            draw 20 of dust using dustOption(rgb(255, 255, 200), 2.0) at {_bossLoc} for loop-player with offset vector(2, 2, 2)
+
+        # Apply effects to all players
+        loop all players in world of {_bossLoc}:
+            apply blindness to loop-player for 4 seconds
+            apply slowness 1 to loop-player for 3 seconds
+
+        # Sounds
+        play sound "block.beacon.activate" with volume 2 and pitch 1.2 at {_bossLoc}
+        play sound "block.amethyst_block.chime" with volume 2 and pitch 1.5 at {_bossLoc}
+
+        # Expanding ring animation (8 steps)
+        set {_step} to 0
+        while {_step} < 8:
+            add 1 to {_step}
+            set {_radius} to {_step} * 0.8
+            loop 20 times:
+                set {_angle} to loop-number * 18
+                set {_x} to {_radius} * cos({_angle})
+                set {_z} to {_radius} * sin({_angle})
+                set {_particleLoc} to {_bossLoc} ~ vector({_x}, 0.2, {_z})
+                loop all players in world of {_bossLoc}:
+                    draw 1 of dust using dustOption(rgb(255, 200, 50), 1.5) at {_particleLoc} for loop-player
+            wait 2 ticks
+
+        # Gold block displays flying outward - spawn all 6 first
+        set {_displayCount} to 0
+        while {_displayCount} < 6:
+            add 1 to {_displayCount}
+            set {_angle} to {_displayCount} * 60
+            set {_id} to "%{_bossId}%_flare_%{_displayCount}%"
+            set {_glowColor} to rgb(255, 220, 0)
+            set {_blockLight} to createBlockLight(15)
+            loop all players in world of {_bossLoc}:
+                spawn fake block display at {_bossLoc} for loop-player with id {_id}
+            set metadata value "block_state" of display {_id} to minecraft:gold_block
+            set metadata value "brightness" of display {_id} to {_blockLight}
+            set metadata value "glow_color_override" of display {_id} to {_glowColor}
+            set metadata value "scale" of display {_id} to vector(0.5, 0.5, 0.5)
+
+        wait 1 tick
+
+        # Animate all displays outward
+        set {_animCount} to 0
+        while {_animCount} < 6:
+            add 1 to {_animCount}
+            set {_angle} to {_animCount} * 60
+            set {_id} to "%{_bossId}%_flare_%{_animCount}%"
+            set {_offsetX} to 2 * cos({_angle})
+            set {_offsetZ} to 2 * sin({_angle})
+            set {_newOffsetX} to 4 * cos({_angle})
+            set {_newOffsetZ} to 4 * sin({_angle})
+            set {_trans1} to vector({_offsetX}, 1, {_offsetZ})
+            set {_trans2} to vector({_newOffsetX}, 2, {_newOffsetZ})
+            set {_scale1} to vector(0.5, 0.5, 0.5)
+            set {_scale2} to vector(0.1, 0.1, 0.1)
+            set metadata value "start_interpolation" of display {_id} to 0
+            set metadata value "interpolation_duration" of display {_id} to 10
+            set metadata value "translation" of display {_id} to {_trans2}
+            set metadata value "scale" of display {_id} to {_scale2}
+
+        wait 10 ticks
+
+        # Remove displays
+        set {_removeCount} to 0
+        while {_removeCount} < 6:
+            add 1 to {_removeCount}
+            set {_id} to "%{_bossId}%_flare_%{_removeCount}%"
+            remove display {_id}
+
+        # White flash effect
+        draw 50 of end_rod at {_bossLoc} with offset vector(4, 4, 4)
+        loop all players in world of {_bossLoc}:
+            draw 30 of dust using dustOption(rgb(255, 255, 255), 2.5) at {_bossLoc} for loop-player with offset vector(3, 3, 3)
+
+    # Sun Sentinels (50%)
+    else if {_ability} is "sun_sentinels":
+        # Phase text
+        boss_anim_phaseText({_bossLoc}, "&e&lSUN SENTINELS!", rgb(255, 200, 0))
+
+        # Sound
+        play sound "entity.blaze.ambient" with volume 2 and pitch 0.8 at {_bossLoc}
+
+        # Spawn 3 portal displays
+        set {_portalCount} to 0
+        set {_glowColor} to rgb(255, 220, 0)
+        set {_blockLight} to createBlockLight(15)
+        while {_portalCount} < 3:
+            add 1 to {_portalCount}
+            set {_angle} to {_portalCount} * 120
+            set {_x} to 5 * cos({_angle})
+            set {_z} to 5 * sin({_angle})
+            set {_portalLoc} to {_bossLoc} ~ vector({_x}, 0, {_z})
+            set {_portalLocs::%{_portalCount}%} to {_portalLoc}
+
+            # Create portal
+            set {_id} to "%{_bossId}%_portal_%{_portalCount}%"
+            loop all players in world of {_bossLoc}:
+                spawn fake block display at {_portalLoc} for loop-player with id {_id}
+            set metadata value "block_state" of display {_id} to minecraft:yellow_stained_glass
+            set metadata value "brightness" of display {_id} to {_blockLight}
+            set metadata value "glow_color_override" of display {_id} to {_glowColor}
+            set metadata value "scale" of display {_id} to vector(0.1, 0.1, 0.1)
+
+        wait 1 tick
+
+        # Expand portals
+        set {_expandCount} to 0
+        set {_newScale} to vector(2, 2, 2)
+        while {_expandCount} < 3:
+            add 1 to {_expandCount}
+            set {_id} to "%{_bossId}%_portal_%{_expandCount}%"
+            set metadata value "start_interpolation" of display {_id} to 0
+            set metadata value "interpolation_duration" of display {_id} to 10
+            set metadata value "scale" of display {_id} to {_newScale}
+
+        wait 10 ticks
+
+        # Countdown
+        set {_countdown} to 3
+        while {_countdown} > 0:
+            # Show countdown text
+            set {_textId} to "%{_bossId}%_countdown"
+            set {_countText} to "&e&lSENTINELS ARRIVING IN %{_countdown}%..."
+            set {_textLoc} to {_bossLoc} ~ vector(0, 3, 0)
+            set {_textGlow} to rgb(255, 200, 0)
+            set {_textLight} to createBlockLight(15)
+            set {_textScale} to vector(2, 2, 2)
+            loop all players in world of {_bossLoc}:
+                spawn fake text display at {_textLoc} for loop-player with id {_textId}
+            set metadata value "text" of display {_textId} to {_countText}
+            set metadata value "brightness" of display {_textId} to {_textLight}
+            set metadata value "glow_color_override" of display {_textId} to {_textGlow}
+            set metadata value "scale" of display {_textId} to {_textScale}
+            set metadata value "billboard" of display {_textId} to "center"
+
+            # Particle pulse - escalating intensity
+            set {_particleAmount} to (4 - {_countdown}) * 15
+            set {_pitch} to 1 + (0.3 * (4 - {_countdown}))
+            loop all players in world of {_bossLoc}:
+                draw {_particleAmount} of dust using dustOption(rgb(255, 220, 50), 1.5) at {_bossLoc} for loop-player with offset vector(3, 2, 3)
+            draw {_particleAmount} / 2 of end_rod at {_bossLoc} with offset vector(2, 2, 2)
+
+            # Sound
+            play sound "block.note_block.bell" with volume 2 and pitch {_pitch} at {_bossLoc}
+
+            wait 1 second
+            remove display {_textId}
+            subtract 1 from {_countdown}
+
+        # Spawn minions
+        set {_minionCount} to 0
+        while {_minionCount} < 3:
+            add 1 to {_minionCount}
+            set {_minionLoc} to {_portalLocs::%{_minionCount}%}
+
+            # Particle burst
+            loop all players in world of {_bossLoc}:
+                draw 30 of dust using dustOption(rgb(255, 200, 50), 2.0) at {_minionLoc} for loop-player with offset vector(1, 2, 1)
+            draw 15 of flame at {_minionLoc} with offset vector(1, 2, 1)
+            play sound "entity.blaze.shoot" with volume 1.5 and pitch 1 at {_minionLoc}
+
+            # Spawn minion
+            boss_spawnMinion({_bossId}, "blaze", {_minionLoc}, "&e&lSun Sentinel", 7)
+
+            wait 5 ticks
+
+        # Remove portals
+        set {_removeCount} to 0
+        while {_removeCount} < 3:
+            add 1 to {_removeCount}
+            set {_id} to "%{_bossId}%_portal_%{_removeCount}%"
+            remove display {_id}
+
+        # Apply fire resistance to boss (blazes in water protection)
+        apply fire resistance to {_entity} for 999 days
+
+    # Divine Judgment (15%)
+    else if {_ability} is "divine_judgment":
+        # Set buff flag
+        set {boss::active::%{_bossId}%::buffJudgment} to true
+
+        # Phase text
+        boss_anim_phaseText({_bossLoc}, "&e&l⚡ DIVINE JUDGMENT ⚡%nl%&7Apollo unleashes the sun's wrath!", rgb(255, 200, 0))
+
+        # Gold shockwave
+        boss_anim_shockwave({_bossLoc}, rgb(255, 220, 50))
+
+        # Lightning and damage on all players
+        loop all players in world of {_bossLoc}:
+            spawn fake lightning at location of loop-player for loop-player
+            set {_maxHP} to max health of loop-player
+            set {_damage} to {_maxHP} * 0.2
+            damage loop-player by {_damage} hearts
+            apply glowing to loop-player for 10 seconds
+            set loop-player on fire for 5 seconds
+            play sound "entity.lightning_bolt.thunder" with volume 1.5 and pitch 1.2 at location of loop-player
+
+        # Spawn sun display above boss
+        set {_sunLoc} to {_bossLoc} ~ vector(0, 5, 0)
+        set {_sunId} to "%{_bossId}%_sun"
+        set {_sunGlow} to rgb(255, 255, 100)
+        set {_sunLight} to createBlockLight(15)
+        loop all players in world of {_bossLoc}:
+            spawn fake block display at {_sunLoc} for loop-player with id {_sunId}
+        set metadata value "block_state" of display {_sunId} to minecraft:yellow_stained_glass
+        set metadata value "brightness" of display {_sunId} to {_sunLight}
+        set metadata value "glow_color_override" of display {_sunId} to {_sunGlow}
+        set metadata value "scale" of display {_sunId} to vector(0.5, 0.5, 0.5)
+
+        wait 1 tick
+
+        # Expand sun
+        set {_bigScale} to vector(4, 4, 4)
+        set {_trans1} to vector(0, 3, 0)
+        set metadata value "start_interpolation" of display {_sunId} to 0
+        set metadata value "interpolation_duration" of display {_sunId} to 15
+        set metadata value "scale" of display {_sunId} to {_bigScale}
+        set metadata value "translation" of display {_sunId} to {_trans1}
+
+        wait 15 ticks
+
+        # Float and shrink
+        set {_trans2} to vector(0, 8, 0)
+        set {_smallScale} to vector(0.1, 0.1, 0.1)
+        set metadata value "start_interpolation" of display {_sunId} to 0
+        set metadata value "interpolation_duration" of display {_sunId} to 40
+        set metadata value "translation" of display {_sunId} to {_trans2}
+        set metadata value "scale" of display {_sunId} to {_smallScale}
+
+        wait 40 ticks
+        remove display {_sunId}
+
+        # Start judgment loop
+        apollo_judgmentLoop({_bossId})
+
+        # Apply strength to boss
+        apply strength 3 to {_entity} for 999 days
+
+function apollo_judgmentLoop(bossId: text):
+    while boss_isAlive({_bossId}) is true:
+        # Get entity location
+        set {_entity} to boss_getEntity({_bossId})
+        if {_entity} is not set:
+            stop
+        set {_bossLoc} to location of {_entity}
+
+        # Fire rain particles
+        loop 15 times:
+            set {_offsetX} to random number between -6 and 6
+            set {_offsetZ} to random number between -6 and 6
+            set {_rainLoc} to {_bossLoc} ~ vector({_offsetX}, 8, {_offsetZ})
+            loop all players in world of {_bossLoc}:
+                draw 1 of flame at {_rainLoc} for loop-player with offset vector(0.1, 0, 0.1) with extra 0 and force
+                draw 1 of dust using dustOption(rgb(255, 200, 50), 1.0) at {_rainLoc} for loop-player with offset vector(0.1, 0, 0.1) with extra 0 and force
+
+        # Damage nearby players
+        loop all players in world of {_bossLoc}:
+            if distance between {_bossLoc} and loop-player < 8:
+                set {_maxHP} to max health of loop-player
+                set {_damage} to {_maxHP} * 0.08
+                damage loop-player by {_damage} hearts
+                set loop-player on fire for 2 seconds
+                draw 10 of dust using dustOption(rgb(255, 200, 50), 1.2) at location of loop-player with offset vector(0.5, 1, 0.5)
+
+        wait 20 ticks
+
+on damage of player:
+    if attacker is set:
+        set {_bossId} to boss_getIdFromEntity(attacker)
+        if {_bossId} is "apollo":
+            cancel event
+
+            # Base damage
+            set {_damage} to max health of victim * (boss_getBaseDamage({_bossId}) / 100)
+
+            # Judgment buff
+            if {boss::active::%{_bossId}%::buffJudgment} is true:
+                set {_damage} to {_damage} * 1.8
+                set victim on fire for 3 seconds
+
+            # Apply damage
+            damage victim by {_damage} hearts
+
+            # Particles
+            draw 5 of dust using dustOption(rgb(255, 200, 50), 1.5) at location of victim with offset vector(0.5, 1, 0.5)
+            draw 3 of end_rod at location of victim with offset vector(0.3, 0.5, 0.3)

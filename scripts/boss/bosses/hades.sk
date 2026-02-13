@@ -1,0 +1,272 @@
+# ============================================================
+# HADES — Boss Abilities
+# ============================================================
+
+function hades_setup(entity: entity):
+    # Equip Hades with netherite armor and Soul Reaper axe
+    set helmet of {_entity} to netherite helmet named "&5&lHelm of the Dead"
+    set chestplate of {_entity} to netherite chestplate named "&5&lSoulbound Armor"
+    set leggings of {_entity} to netherite leggings named "&5&lGreaves of Torment"
+    set boots of {_entity} to netherite boots named "&5&lDeathwalkers"
+    set tool of {_entity} to iron axe named "&5&lSoul Reaper"
+    stop
+
+function hades_ability(bossId: text, ability: text):
+    set {_entity} to {boss::active::%{_bossId}%::entity}
+    if {_entity} is not set:
+        stop
+
+    set {_bossLoc} to location of {_entity}
+
+    # 75% HP - Raise Dead
+    if {_ability} is "raise_dead":
+        # Phase announcement
+        boss_anim_phaseText({_bossLoc}, "&5&lRISE, MY UNDEAD!", rgb(100, 0, 150))
+        boss_anim_shockwave({_bossLoc}, rgb(130, 0, 200))
+
+        # Apply darkness to all players
+        loop all players in world of {_bossLoc}:
+            apply darkness to loop-player for 3 seconds
+
+        # Spawn 4 portals using while loop to avoid nested loop N times
+        set {_portalCount} to 0
+        delete {_portals::*}
+        while {_portalCount} < 4:
+            # Calculate portal position around boss (circle pattern)
+            set {_angle} to {_portalCount} * 90
+            set {_x} to cos({_angle}) * 4
+            set {_z} to sin({_angle}) * 4
+            set {_portalLoc} to {_bossLoc} ~ {_x}, 0, {_z}
+            set y-coordinate of {_portalLoc} to floor(y-coordinate of {_portalLoc})
+
+            # Create portal display for all players
+            set {_id} to "%{_bossId}%_portal_%{_portalCount}%"
+            loop all players in world of {_bossLoc}:
+                spawn fake block display at {_portalLoc} for loop-player with id {_id}
+                set display block of fake entity with id {_id} for loop-player to purple stained glass
+                set display scale of fake entity with id {_id} for loop-player to vector(1.5, 0.1, 1.5)
+
+            # Purple particle pulse at portal
+            set {_pulseLoc} to {_portalLoc} ~ 0, 0.5, 0
+            loop all players in world of {_bossLoc}:
+                draw 15 of dust using dustOption(rgb(130, 0, 200), 1.2) at {_pulseLoc} for loop-player
+
+            add {_portalLoc} to {_portals::*}
+            add 1 to {_portalCount}
+
+        wait 1 second
+
+        # Spawn minions at each portal (using while to avoid nested loop N times)
+        set {_minionCount} to 0
+        while {_minionCount} < 4:
+            set {_spawnLoc} to {_portals::%{_minionCount} + 1%}
+
+            # Dark particle burst
+            set {_burstLoc} to {_spawnLoc} ~ 0, 1, 0
+            loop all players in world of {_spawnLoc}:
+                draw 20 of dust using dustOption(rgb(80, 0, 120), 1.5) at {_burstLoc} for loop-player
+
+            # Spawn minion
+            boss_spawnMinion({_bossId}, "zombie", {_spawnLoc}, "&5&lUndead Servant", 8)
+
+            add 1 to {_minionCount}
+
+        wait 0.5 seconds
+
+        # Remove portals (using while loop)
+        set {_removeCount} to 0
+        while {_removeCount} < 4:
+            set {_id} to "%{_bossId}%_portal_%{_removeCount}%"
+            loop all players in world of {_bossLoc}:
+                remove fake entity with id {_id} for loop-player
+            add 1 to {_removeCount}
+
+        play sound "entity.wither.spawn" with volume 1 and pitch 0.8 at {_bossLoc}
+
+    # 50% HP - Soul Harvest
+    else if {_ability} is "soul_harvest":
+        # Phase announcement
+        boss_anim_phaseText({_bossLoc}, "&8&lSOUL HARVEST", rgb(80, 0, 120))
+
+        # Dark vortex animation - spiral particles inward (using while loop)
+        set {_step} to 0
+        while {_step} < 12:
+            set {_radius} to 4 - ({_step} * 0.3)
+            if {_radius} < 0.5:
+                set {_radius} to 0.5
+
+            # Draw spiral at current radius
+            set {_angleStep} to 0
+            while {_angleStep} < 360:
+                set {_x} to cos({_angleStep}) * {_radius}
+                set {_z} to sin({_angleStep}) * {_radius}
+                set {_particleLoc} to {_bossLoc} ~ {_x}, 1, {_z}
+
+                loop all players in world of {_bossLoc}:
+                    draw 1 of dust using dustOption(rgb(100, 0, 150), 1.0) at {_particleLoc} for loop-player
+
+                add 30 to {_angleStep}
+
+            wait 2 ticks
+            add 1 to {_step}
+
+        # Apply debuffs to all players
+        loop all players in world of {_bossLoc}:
+            apply darkness 1 to loop-player for 5 seconds
+            apply wither 2 to loop-player for 4 seconds
+
+            # Purple dust burst at player location
+            set {_pLoc} to location of loop-player
+            set {_pLocCenter} to {_pLoc} ~ 0, 1, 0
+            draw 15 of dust using dustOption(rgb(130, 0, 200), 1.3) at {_pLocCenter} for loop-player
+
+        # Heal the boss
+        set {_maxHp} to boss_getMaxHp({_bossId})
+        add 500 to {boss::active::%{_bossId}%::hp}
+        if {boss::active::%{_bossId}%::hp} > {_maxHp}:
+            set {boss::active::%{_bossId}%::hp} to {_maxHp}
+
+        # Show healing text display above boss
+        set {_healLoc} to {_bossLoc} ~ 0, 3, 0
+        set {_healId} to "%{_bossId}%_heal_text"
+        loop all players in world of {_bossLoc}:
+            spawn fake text display at {_healLoc} for loop-player with id {_healId}
+            set display text of fake entity with id {_healId} for loop-player to "&a+500 HP"
+            set display scale of fake entity with id {_healId} for loop-player to vector(2, 2, 2)
+
+        wait 1 second
+        loop all players in world of {_bossLoc}:
+            remove fake entity with id {_healId} for loop-player
+
+        # Sound effects
+        play sound "entity.wither.ambient" with volume 1.5 and pitch 0.6 at {_bossLoc}
+        play sound "block.soul_sand.break" with volume 2 and pitch 0.5 at {_bossLoc}
+
+        # Purple/black explosion particles at boss center
+        set {_explosionLoc} to {_bossLoc} ~ 0, 1.5, 0
+        loop all players in world of {_bossLoc}:
+            draw 30 of dust using dustOption(rgb(130, 0, 200), 2.0) at {_explosionLoc} for loop-player
+            draw 20 of dust using dustOption(rgb(20, 0, 30), 1.8) at {_explosionLoc} for loop-player
+
+    # 15% HP - Underworld Gate
+    else if {_ability} is "underworld_gate":
+        # Set gate buff flag
+        set {boss::active::%{_bossId}%::buffGate} to true
+
+        # Phase announcement
+        boss_anim_phaseText({_bossLoc}, "&5&l⚠ UNDERWORLD GATE ⚠%nl%&7The dead world breaks through!", rgb(150, 0, 200))
+
+        # Spawn large gate display
+        set {_gateLoc} to {_bossLoc} ~ 0, 0, 5
+        set y-coordinate of {_gateLoc} to floor(y-coordinate of {_gateLoc})
+        set {_gateId} to "%{_bossId}%_underworld_gate"
+
+        loop all players in world of {_bossLoc}:
+            spawn fake block display at {_gateLoc} for loop-player with id {_gateId}
+            set display block of fake entity with id {_gateId} for loop-player to soul sand
+            set display scale of fake entity with id {_gateId} for loop-player to vector(5, 6, 0.5)
+
+        # Lightning strikes around boss (using while loop)
+        set {_strikeCount} to 0
+        while {_strikeCount} < 3:
+            set {_strikeAngle} to {_strikeCount} * 120
+            set {_sx} to cos({_strikeAngle}) * 3
+            set {_sz} to sin({_strikeAngle}) * 3
+            set {_strikeLoc} to {_bossLoc} ~ {_sx}, 0, {_sz}
+            strike lightning effect at {_strikeLoc}
+            wait 5 ticks
+            add 1 to {_strikeCount}
+
+        # Apply debuffs to all players
+        loop all players in world of {_bossLoc}:
+            apply wither 1 to loop-player for 10 seconds
+            apply blindness to loop-player for 2 seconds
+
+        # Fire/soul particle rain from above
+        loop all players in world of {_bossLoc}:
+            set {_rainCount} to 0
+            while {_rainCount} < 25:
+                set {_rx} to random number between -6 and 6
+                set {_rz} to random number between -6 and 6
+                set {_rainLoc} to {_bossLoc} ~ {_rx}, 8, {_rz}
+                draw 1 of dust using dustOption(rgb(150, 0, 200), 1.2) at {_rainLoc} for loop-player
+                draw 1 of soul_fire_flame at {_rainLoc} for loop-player
+                add 1 to {_rainCount}
+
+        # Buff the boss
+        apply strength 4 to {_entity} for 999 seconds
+        apply speed 2 to {_entity} for 999 seconds
+
+        # Purple/red shockwave
+        boss_anim_shockwave({_bossLoc}, rgb(150, 0, 200))
+
+        # Start gate loop
+        hades_gateLoop({_bossId})
+
+        play sound "entity.lightning_bolt.thunder" with volume 2 and pitch 0.7 at {_bossLoc}
+
+    stop
+
+function hades_gateLoop(bossId: text):
+    set {_entity} to {boss::active::%{_bossId}%::entity}
+    if {_entity} is not set:
+        stop
+
+    while {_entity} is alive:
+        if {boss::active::%{_bossId}%::buffGate} is not true:
+            stop
+
+        set {_bossLoc} to location of {_entity}
+
+        # Purple/dark particle rain around boss area
+        loop all players in world of {_bossLoc}:
+            set {_rainParticles} to 0
+            while {_rainParticles} < 8:
+                set {_rx} to random number between -8 and 8
+                set {_rz} to random number between -8 and 8
+                set {_ry} to random number between 3 and 6
+                set {_rainLoc} to {_bossLoc} ~ {_rx}, {_ry}, {_rz}
+                draw 1 of dust using dustOption(rgb(80, 0, 120), 1.0) at {_rainLoc} for loop-player
+                draw 1 of soul_fire_flame at {_rainLoc} for loop-player
+                add 1 to {_rainParticles}
+
+        # DoT zone - damage nearby players
+        loop all players in world of {_bossLoc}:
+            set {_distance} to distance between loop-player and {_bossLoc}
+            if {_distance} < 8:
+                # Deal 5% max HP damage
+                set {_damage} to max health of loop-player * 0.05
+                damage loop-player by {_damage} hearts
+
+                # Purple dust effect on player
+                set {_pLoc} to location of loop-player
+                set {_pLocCenter} to {_pLoc} ~ 0, 1, 0
+                draw 5 of dust using dustOption(rgb(130, 0, 200), 1.2) at {_pLocCenter} for loop-player
+
+        wait 15 ticks
+
+    stop
+
+# Custom damage modifier when Hades attacks
+on damage of player:
+    if attacker is set:
+        set {_bossId} to boss_getIdFromEntity(attacker)
+        if {_bossId} is "hades":
+            cancel event
+
+            # Calculate base damage (percentage of max HP)
+            set {_baseDmgPercent} to boss_getBaseDamage({_bossId})
+            set {_damage} to max health of victim * ({_baseDmgPercent} / 100)
+
+            # Check if gate buff is active (double damage + wither)
+            if {boss::active::%{_bossId}%::buffGate} is true:
+                set {_damage} to {_damage} * 2.0
+                apply wither 1 to victim for 3 seconds
+
+            # Deal custom damage
+            damage victim by {_damage} hearts
+
+            # Purple particle effect on victim
+            set {_vLoc} to location of victim
+            loop all players in world of {_vLoc}:
+                draw 10 of dust using dustOption(rgb(130, 0, 200), 1.3) at {_vLoc} ~ 0, 1, 0 for loop-player
