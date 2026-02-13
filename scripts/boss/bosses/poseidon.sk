@@ -85,7 +85,7 @@ function poseidon_ability(bossId: text, ability: text):
 
         # === COUNTDOWN TEXT: "Minions spawning in..." ===
         set {_countdownId} to random integer between 100000 and 9999999
-        set {_countdownPos} to location({_bx}, {_by} + 3.5, {_bz}, {_world})
+        set {_countdownPos} to location({_bx}, {_by} + 2.5, {_bz}, {_world})
         set {_countdownText} to "&b&lMINIONS SPAWNING IN &f&l3..."
 
         loop all players in world of {_bossLoc}:

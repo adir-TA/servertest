@@ -551,7 +551,7 @@ function boss_anim_death(loc: location, name: text):
 
 function boss_anim_phaseText(loc: location, text: text, glowColor: object):
     set {_bx} to floor(x-coord of {_loc}) + 0.5
-    set {_by} to floor(y-coord of {_loc}) + 3.5
+    set {_by} to floor(y-coord of {_loc}) + 2.5
     set {_bz} to floor(z-coord of {_loc}) + 0.5
     set {_world} to world of {_loc}
 

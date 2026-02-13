@@ -2,11 +2,12 @@
 # BOSS ADMIN COMMANDS
 # ============================================================
 #
-# /boss set <name>       — Save current location as spawn point
-# /boss spawn <name>     — Manually spawn the boss
-# /boss kill <name>      — Force kill + cleanup (no loot)
-# /boss list             — Show registered bosses + status
-# /boss info <name>      — Show detailed boss info
+# /boss set <name>         — Save current location as spawn point
+# /boss spawn <name>       — Manually spawn the boss
+# /boss kill <name>        — Force kill + cleanup (no loot)
+# /boss list               — Show registered bosses + status
+# /boss info <name>        — Show detailed boss info
+# /boss setdrops <name>    — Set boss drops to all items in inventory
 #
 # ============================================================
 
@@ -25,6 +26,7 @@ command /boss [<text>] [<text>]:
             send "&7/boss kill &e<name> &8— &7Force kill a boss"
             send "&7/boss list &8— &7List all bosses"
             send "&7/boss info &e<name> &8— &7Show boss details"
+            send "&7/boss setdrops &e<name> &8— &7Set drops from inventory"
             send ""
             stop
 
@@ -116,6 +118,47 @@ command /boss [<text>] [<text>]:
             stop
 
         # ════════════════════════════════════════════════════
+        # SET DROPS FROM INVENTORY
+        # ════════════════════════════════════════════════════
+        if {_action} is "setdrops":
+            if boss_isRegistered({_bossId}) is false:
+                send "&cBoss &7%{_bossId}% &cis not registered."
+                send "&7Available: &e%{-boss::registry::ids::*}%"
+                stop
+
+            # Clear existing loot
+            boss_clearLoot({_bossId})
+
+            # Loop through player inventory and register each item
+            set {_count} to 0
+            set {_bossName} to boss_getName({_bossId})
+
+            loop all items in player's inventory:
+                if type of loop-item is not air:
+                    add 1 to {_count}
+                    set {_itemId} to "drop_%{_count}%"
+                    # Default 50% chance — admin can adjust in registry later
+                    boss_registerLootItem({_bossId}, {_itemId}, loop-item, 50)
+
+                    # Also store persistently so it survives restarts
+                    set {boss::drops::%{_bossId}%::%{_itemId}%::item} to loop-item
+                    set {boss::drops::%{_bossId}%::%{_itemId}%::chance} to 50
+
+            # Store the count persistently
+            set {boss::drops::%{_bossId}%::count} to {_count}
+
+            if {_count} = 0:
+                send "&cYour inventory is empty! Add items to set as drops."
+                stop
+
+            send ""
+            send "&a&lDrops updated for %{_bossName}%&a!"
+            send "&7%{_count}% items registered as drops (50%% chance each)"
+            send "&7Use &e/boss info %{_bossId}% &7to see the loot table."
+            send ""
+            stop
+
+        # ════════════════════════════════════════════════════
         # INFO
         # ════════════════════════════════════════════════════
         if {_action} is "info":
@@ -149,11 +192,27 @@ command /boss [<text>] [<text>]:
 
             # Loot
             send "&6&lLoot Table:"
+            set {_hasLoot} to false
             loop boss_getLootIds({_bossId}):
+                set {_hasLoot} to true
                 set {_itemId} to loop-value
                 set {_lootName} to boss_getLootName({_bossId}, {_itemId})
                 set {_chance} to boss_getLootChance({_bossId}, {_itemId})
-                send " &7%{_chance}%%% → %{_lootName}%"
+                set {_lootIcon} to boss_getLootIcon({_bossId}, {_itemId})
+
+                if {_chance} <= 10:
+                    set {_rarity} to "&d&l✦ LEGENDARY"
+                else if {_chance} <= 25:
+                    set {_rarity} to "&6✦ Rare"
+                else if {_chance} <= 50:
+                    set {_rarity} to "&e✦ Uncommon"
+                else:
+                    set {_rarity} to "&a✦ Common"
+
+                send " %{_rarity}% &8| &f%{_chance}%%% &8→ %{_lootName}% &7(%{_lootIcon}%)"
+
+            if {_hasLoot} is false:
+                send " &7No drops configured. Use &e/boss setdrops %{_bossId}%"
             send ""
 
             # Status
@@ -173,4 +232,4 @@ command /boss [<text>] [<text>]:
             send ""
             stop
 
-        send "&cUnknown action. Use: &7set, spawn, kill, list, info"
+        send "&cUnknown action. Use: &7set, spawn, kill, list, info, setdrops"

@@ -44,6 +44,28 @@ function boss_registerLoot(id: text, itemId: text, name: text, icon: itemtype, c
     if {-boss::registry::%{_id}%::lootIds::*} doesn't contain {_itemId}:
         add {_itemId} to {-boss::registry::%{_id}%::lootIds::*}
 
+# Register a loot entry from an actual item stack (preserves name, lore, etc)
+function boss_registerLootItem(id: text, itemId: text, item: item, chance: number):
+    set {_itemName} to name of {_item}
+    if {_itemName} is not set:
+        set {_itemName} to "%type of {_item}%"
+    set {-boss::registry::%{_id}%::loot::%{_itemId}%::name} to {_itemName}
+    set {-boss::registry::%{_id}%::loot::%{_itemId}%::icon} to type of {_item}
+    set {-boss::registry::%{_id}%::loot::%{_itemId}%::chance} to {_chance}
+    set {-boss::registry::%{_id}%::loot::%{_itemId}%::item} to {_item}
+    if {-boss::registry::%{_id}%::lootIds::*} doesn't contain {_itemId}:
+        add {_itemId} to {-boss::registry::%{_id}%::lootIds::*}
+
+# Clear all loot for a boss
+function boss_clearLoot(id: text):
+    loop {-boss::registry::%{_id}%::lootIds::*}:
+        set {_itemId} to loop-value
+        delete {-boss::registry::%{_id}%::loot::%{_itemId}%::name}
+        delete {-boss::registry::%{_id}%::loot::%{_itemId}%::icon}
+        delete {-boss::registry::%{_id}%::loot::%{_itemId}%::chance}
+        delete {-boss::registry::%{_id}%::loot::%{_itemId}%::item}
+    delete {-boss::registry::%{_id}%::lootIds::*}
+
 # ============================================================
 # GETTERS
 # ============================================================
@@ -89,6 +111,34 @@ function boss_getLootName(id: text, itemId: text) :: text:
 function boss_getLootIcon(id: text, itemId: text) :: itemtype:
     return {-boss::registry::%{_id}%::loot::%{_itemId}%::icon} ? stone
 
+function boss_getLootItem(id: text, itemId: text) :: item:
+    return {-boss::registry::%{_id}%::loot::%{_itemId}%::item}
+
+
+# ============================================================
+# LOAD PERSISTENT DROPS (from /boss setdrops)
+# ============================================================
+
+function boss_loadPersistentDrops(id: text):
+    set {_count} to {boss::drops::%{_id}%::count}
+    if {_count} is not set:
+        stop
+    if {_count} <= 0:
+        stop
+
+    # Clear default loot and load saved drops
+    boss_clearLoot({_id})
+
+    set {_i} to 0
+    while {_i} < {_count}:
+        add 1 to {_i}
+        set {_itemId} to "drop_%{_i}%"
+        set {_savedItem} to {boss::drops::%{_id}%::%{_itemId}%::item}
+        set {_savedChance} to {boss::drops::%{_id}%::%{_itemId}%::chance}
+
+        if {_savedItem} is set:
+            boss_registerLootItem({_id}, {_itemId}, {_savedItem}, {_savedChance} ? 50)
+
 
 # ============================================================
 # UTILITY
@@ -120,7 +170,10 @@ on script load:
     boss_registerPhase("poseidon", 50, "rain_buff")
     boss_registerPhase("poseidon", 15, "rampage")
 
-    # Loot Table
+    # Default loot (overridden by /boss setdrops if used)
     boss_registerLoot("poseidon", "water_fragment", "&b&lWater Fragment", prismarine shard, 100)
     boss_registerLoot("poseidon", "poseidons_trail", "&3&lPoseidon's Trail", heart of the sea, 50)
     boss_registerLoot("poseidon", "poseidons_heart", "&d&lPoseidon's Heart", nether star, 10)
+
+    # Load persistent drops set via /boss setdrops (overrides defaults)
+    boss_loadPersistentDrops("poseidon")

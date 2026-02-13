@@ -24,7 +24,7 @@ function boss_hud_create(id: text, entity: entity):
         set {_loc} to location of {_entity}
 
     set {_bx} to floor(x-coord of {_loc}) + 0.5
-    set {_by} to floor(y-coord of {_loc}) + 3.5
+    set {_by} to floor(y-coord of {_loc}) + 5.5
     set {_bz} to floor(z-coord of {_loc}) + 0.5
     set {_world} to world of {_loc}
     set {_pos} to location({_bx}, {_by}, {_bz}, {_world})
@@ -41,7 +41,7 @@ function boss_hud_create(id: text, entity: entity):
     set {_nameText} to "%{_name}%"
     set {_barText} to "%{_bar}%%nl%&a❤ %{_maxHpFormatted}% &7/ &a%{_maxHpFormatted}% &7(100%%)"
 
-    set {_barPos} to location({_bx}, {_by} - 0.5, {_bz}, {_world})
+    set {_barPos} to location({_bx}, {_by} - 0.6, {_bz}, {_world})
 
     # Spawn name display
     loop all players in world of {_loc}:

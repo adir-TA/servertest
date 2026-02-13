@@ -30,10 +30,14 @@ function boss_rollLoot(p: player, bossId: text):
             # Won this drop
             set {_gotSomething} to true
 
-            # Create the item
-            set {_item} to {_icon}
-            set name of {_item} to {_name}
-            set lore of {_item} to "&7Boss Drop", "" and "&8From %{_bossName}%"
+            # Use stored item if available (from /boss setdrops), otherwise create from icon
+            set {_storedItem} to boss_getLootItem({_bossId}, {_itemId})
+            if {_storedItem} is set:
+                set {_item} to {_storedItem}
+            else:
+                set {_item} to {_icon}
+                set name of {_item} to {_name}
+                set lore of {_item} to "&7Boss Drop", "" and "&8From %{_bossName}%"
 
             # Give to player
             give {_item} to {_p}

@@ -198,7 +198,7 @@ function boss_leashLoop(id: text):
         set {_currentLoc} to location of {_entity}
         set {_dist} to distance between {_currentLoc} and {_spawnLoc}
 
-        if {_dist} > 10:
+        if {_dist} > 20:
             # Teleport boss back to spawn
             teleport {_entity} to {_spawnLoc}
 
