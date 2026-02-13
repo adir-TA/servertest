@@ -84,10 +84,12 @@ function poseidon_ability(bossId: text, ability: text):
             wait 3 ticks
 
             # Bubble particles rising from portal
-            loop 5 times:
+            set {_bubbleStep} to 0
+            while {_bubbleStep} < 5:
+                add 1 to {_bubbleStep}
                 set {_bubbleX} to {_gx} + (random number between -0.5 and 0.5)
                 set {_bubbleZ} to {_gz} + (random number between -0.5 and 0.5)
-                set {_bubbleY} to {_by} + 0.2 + (loop-number * 0.3)
+                set {_bubbleY} to {_by} + 0.2 + ({_bubbleStep} * 0.3)
                 set {_bubbleLoc} to location({_bubbleX}, {_bubbleY}, {_bubbleZ}, {_world})
 
                 loop all players in world of {_bossLoc}:
