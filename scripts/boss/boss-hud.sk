@@ -22,7 +22,7 @@ function boss_hud_create(id: text, entity: entity):
     set {_name} to boss_getName({_id})
     set {_maxHp} to boss_getMaxHp({_id})
     set {_bar} to boss_hud_generateBar(100)
-    set {_maxHpFormatted} to formatNum({_maxHp})
+    set {_maxHpFormatted} to boss_formatNum({_maxHp})
     set {_displayText} to "%{_name}%%nl%&c%{_bar}%%nl%&c❤ %{_maxHpFormatted}% &7/ &c%{_maxHpFormatted}% &7(100%%)"
 
     loop all players in world of {_loc}:
@@ -58,8 +58,8 @@ function boss_hud_update(id: text):
         set {_hpColor} to "&c"
 
     # Pre-compute display text (functions can't be inside packet sections)
-    set {_hpFormatted} to formatNum({_hp})
-    set {_maxHpFormatted} to formatNum({_maxHp})
+    set {_hpFormatted} to boss_formatNum({_hp})
+    set {_maxHpFormatted} to boss_formatNum({_maxHp})
     set {_percentRound} to round({_percent})
     set {_displayText} to "%{_name}%%nl%%{_bar}%%nl%%{_hpColor}%❤ %{_hpFormatted}% &7/ &c%{_maxHpFormatted}% &7(%{_percentRound}%%%)"
 

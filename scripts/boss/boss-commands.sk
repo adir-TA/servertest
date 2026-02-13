@@ -127,7 +127,7 @@ command /boss [<text>] [<text>]:
             set {_maxHp} to boss_getMaxHp({_bossId})
             set {_baseDmg} to boss_getBaseDamage({_bossId})
             set {_entityType} to boss_getEntityType({_bossId})
-            set {_maxHpFormatted} to formatNum({_maxHp})
+            set {_maxHpFormatted} to boss_formatNum({_maxHp})
 
             send ""
             send "&b&l═══════════════════════════════════════"

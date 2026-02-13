@@ -46,7 +46,6 @@ function boss_spawn(id: text):
 
     # Configure entity
     set custom name of {_entity} to {_name}
-    set custom name visibility of {_entity} to true
     set maximum health of {_entity} to 2048
     set health of {_entity} to 2048
     set {_entity}'s ai to true

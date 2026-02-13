@@ -91,6 +91,18 @@ function boss_getLootIcon(id: text, itemId: text) :: itemtype:
 
 
 # ============================================================
+# UTILITY
+# ============================================================
+
+function boss_formatNum(n: number) :: string:
+    set {_l::*} to split "k,M,B,T" at ","
+    set {_i} to min(floor(log({_n})/3), size of {_l::*})
+    return "%{_n}%" if {_i} <= 0
+    set {_i2} to 1000^{_i}
+    return "%{_n}/{_i2}%%{_l::%{_i}%}%"
+
+
+# ============================================================
 # REGISTRATION ON LOAD
 # ============================================================
 

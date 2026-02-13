@@ -20,7 +20,6 @@ function boss_spawnMinion(bossId: text, entityType: text, loc: location, name: t
     set {_minion} to last spawned entity
 
     set custom name of {_minion} to {_name}
-    set custom name visibility of {_minion} to true
     set maximum health of {_minion} to 100
     set health of {_minion} to 100
 
