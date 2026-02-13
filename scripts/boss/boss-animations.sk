@@ -311,8 +311,10 @@ function boss_anim_shockwave(loc: location, color: object):
     set {_bz} to floor(z-coord of {_loc}) + 0.5
     set {_world} to world of {_loc}
 
-    loop 8 times:
-        set {_radius} to loop-number * 0.5
+    set {_step} to 0
+    while {_step} < 8:
+        add 1 to {_step}
+        set {_radius} to {_step} * 0.5
         set {_y} to {_by}
 
         loop 12 times:
