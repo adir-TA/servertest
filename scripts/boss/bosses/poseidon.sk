@@ -3,13 +3,13 @@
 # ============================================================
 #
 # Abilities:
-#   75% HP → summon_guardians: Spawns 3 Water Guardians
+#   75% HP -> summon_guardians: Spawns 3 Water Guardians
 #            that deal 10% of player's max health on hit.
 #
-#   50% HP → rain_buff: Summons rain, boss gets strength buff
+#   50% HP -> rain_buff: Summons rain, boss gets strength buff
 #            (1.5x damage multiplier).
 #
-#   15% HP → rampage: Boss deals 75% of player's max health
+#   15% HP -> rampage: Boss deals 75% of player's max health
 #            on direct hit. Red warning effects.
 #
 # ============================================================
@@ -25,25 +25,100 @@ function poseidon_ability(bossId: text, ability: text):
             stop
 
         set {_bossLoc} to location of {_entity}
+        set {_bx} to floor(x-coord of {_bossLoc}) + 0.5
+        set {_by} to floor(y-coord of {_bossLoc})
+        set {_bz} to floor(z-coord of {_bossLoc}) + 0.5
+        set {_world} to world of {_bossLoc}
 
-        # Phase text animation
+        # Phase text
         boss_anim_phaseText({_bossLoc}, "&b&lWATER GUARDIANS SUMMONED!", rgb(50, 180, 255))
 
-        # Sound
+        # Global warning sound
         loop all players in world of {_bossLoc}:
             play sound "entity.elder_guardian.curse" with volume 0.8 and pitch 0.8 to loop-player
 
-        # Spawn 3 guardians with particle bursts at each spawn
-        loop 3 times:
-            set {_spawnLoc} to {_bossLoc}
-            add (random number between -3 and 3) to x-coord of {_spawnLoc}
-            add (random number between -3 and 3) to z-coord of {_spawnLoc}
-            boss_spawnMinion({_bossId}, "guardian", {_spawnLoc}, "&3&lWater Guardian", 10)
+        wait 5 ticks
 
-            # Splash particles at each guardian spawn
+        # Spawn 3 guardians with portal animation each
+        set {_guardianOffset::1::x} to -2.5
+        set {_guardianOffset::1::z} to 0
+        set {_guardianOffset::2::x} to 1.5
+        set {_guardianOffset::2::z} to 2.0
+        set {_guardianOffset::3::x} to 1.5
+        set {_guardianOffset::3::z} to -2.0
+
+        loop 3 times:
+            set {_gi} to loop-number
+            set {_gx} to {_bx} + {_guardianOffset::%{_gi}%::x}
+            set {_gz} to {_bz} + {_guardianOffset::%{_gi}%::z}
+            set {_portalLoc} to location({_gx}, {_by} + 1.0, {_gz}, {_world})
+            set {_groundLoc} to location({_gx}, {_by} + 0.1, {_gz}, {_world})
+
+            # Portal animation: expanding cyan ring on ground
+            set {_portalId} to random integer between 100000 and 9999999
+
+            # Spawn portal block display
             loop all players in world of {_bossLoc}:
-                draw 10 of dust using dustOption(rgb(50, 130, 220), 1.2) at {_spawnLoc} with offset vector(0.3, 0.5, 0.3) for loop-player
-                draw 5 of end rod at {_spawnLoc} with offset vector(0.2, 0.3, 0.2) for loop-player
+                spawn fake block display at {_groundLoc} for loop-player with id {_portalId}
+                set {_m} to new metadata packet with id {_portalId}:
+                    display block: cyan stained glass
+                    display scale: vector(0.01, 0.01, 0.01)
+                    display brightness block: 15
+                    display teleportduration: 2
+                    display transformation: 3
+                    display interpolation: 0
+                    glowing: true
+                    display glow: rgb(50, 200, 255)
+                send packet {_m} to loop-player
+
+            wait 1 tick
+
+            # Expand portal
+            loop all players in world of {_bossLoc}:
+                set {_m} to new metadata packet with id {_portalId}:
+                    display scale: vector(1.5, 0.1, 1.5)
+                    display transformation: 4
+                    display interpolation: 0
+                send packet {_m} to loop-player
+
+            wait 3 ticks
+
+            # Bubble particles rising from portal
+            loop 5 times:
+                set {_bubbleX} to {_gx} + (random number between -0.5 and 0.5)
+                set {_bubbleZ} to {_gz} + (random number between -0.5 and 0.5)
+                set {_bubbleY} to {_by} + 0.2 + (loop-number * 0.3)
+                set {_bubbleLoc} to location({_bubbleX}, {_bubbleY}, {_bubbleZ}, {_world})
+
+                loop all players in world of {_bossLoc}:
+                    draw 2 of dust using dustOption(rgb(100, 220, 255), 0.6) at {_bubbleLoc} for loop-player
+
+                wait 1 tick
+
+            # Water burst at spawn
+            loop all players in world of {_bossLoc}:
+                draw 15 of dust using dustOption(rgb(50, 180, 255), 1.5) at {_portalLoc} with offset vector(0.5, 0.8, 0.5) for loop-player
+                draw 8 of end rod at {_portalLoc} with offset vector(0.3, 0.5, 0.3) for loop-player
+                play sound "entity.generic.splash" with volume 0.5 and pitch 0.8 to loop-player
+                play sound "entity.guardian.ambient" with volume 0.4 and pitch 1.0 to loop-player
+
+            # Spawn the actual guardian
+            boss_spawnMinion({_bossId}, "guardian", {_portalLoc}, "&3&lWater Guardian", 10)
+
+            wait 3 ticks
+
+            # Shrink + remove portal
+            loop all players in world of {_bossLoc}:
+                set {_m} to new metadata packet with id {_portalId}:
+                    display scale: vector(0.01, 0.01, 0.01)
+                    display transformation: 4
+                    display interpolation: 0
+                send packet {_m} to loop-player
+
+            wait 3 ticks
+
+            loop all players in world of {_bossLoc}:
+                remove fake entity with id {_portalId} for loop-player
 
             wait 5 ticks
 
@@ -57,15 +132,59 @@ function poseidon_ability(bossId: text, ability: text):
 
         if {_entity} is set:
             set {_bossLoc} to location of {_entity}
+            set {_bx} to floor(x-coord of {_bossLoc}) + 0.5
+            set {_by} to floor(y-coord of {_bossLoc}) + 1.0
+            set {_bz} to floor(z-coord of {_bossLoc}) + 0.5
+            set {_world} to world of {_bossLoc}
 
-            # Phase text animation
+            # Warning sounds
+            loop all players in world of {_bossLoc}:
+                play sound "weather.rain.above" with volume 1 and pitch 0.5 to loop-player
+                play sound "entity.elder_guardian.ambient" with volume 0.8 and pitch 0.6 to loop-player
+
+            # Water tornado — ascending spiral
+            set {_tornadoStep} to 0
+            while {_tornadoStep} < 20:
+                add 1 to {_tornadoStep}
+                set {_tAngle} to {_tornadoStep} * 36
+                set {_tHeight} to {_by} + ({_tornadoStep} * 0.2)
+                set {_tRadius} to 1.5 - ({_tornadoStep} * 0.05)
+                if {_tRadius} < 0.3:
+                    set {_tRadius} to 0.3
+                set {_tx} to {_bx} + ({_tRadius} * cos({_tAngle}))
+                set {_tz} to {_bz} + ({_tRadius} * sin({_tAngle}))
+                set {_tLoc} to location({_tx}, {_tHeight}, {_tz}, {_world})
+
+                loop all players in world of {_bossLoc}:
+                    draw 4 of dust using dustOption(rgb(30, 100, 200), 1.5) at {_tLoc} for loop-player
+                    draw 2 of dust using dustOption(rgb(100, 200, 255), 1.0) at {_tLoc} for loop-player
+
+                wait 1 tick
+
+            # Water wave expanding outward from boss
+            set {_waveStep} to 0
+            while {_waveStep} < 8:
+                add 1 to {_waveStep}
+                set {_waveRadius} to {_waveStep} * 0.6
+
+                loop 16 times:
+                    set {_wAngle} to loop-number * 22.5
+                    set {_wx} to {_bx} + ({_waveRadius} * cos({_wAngle}))
+                    set {_wz} to {_bz} + ({_waveRadius} * sin({_wAngle}))
+                    set {_wLoc} to location({_wx}, {_by}, {_wz}, {_world})
+
+                    loop all players in world of {_bossLoc}:
+                        draw 1 of dust using dustOption(rgb(50, 150, 230), 1.2) at {_wLoc} for loop-player
+
+                wait 1 tick
+
+            # Phase text
             boss_anim_phaseText({_bossLoc}, "&3&lTHE SEAS RISE!", rgb(30, 100, 200))
 
             apply strength 2 to {_entity} for 999 days
 
             loop all players in world of {_bossLoc}:
-                play sound "weather.rain.above" with volume 1 and pitch 0.5 to loop-player
-                play sound "entity.elder_guardian.ambient" with volume 0.8 and pitch 0.6 to loop-player
+                play sound "entity.generic.splash" with volume 0.8 and pitch 0.4 to loop-player
 
         # Start rain particle loop
         poseidon_rainLoop({_bossId})
@@ -80,11 +199,116 @@ function poseidon_ability(bossId: text, ability: text):
 
         if {_entity} is set:
             set {_bossLoc} to location of {_entity}
+            set {_bx} to floor(x-coord of {_bossLoc}) + 0.5
+            set {_by} to floor(y-coord of {_bossLoc}) + 1.0
+            set {_bz} to floor(z-coord of {_bossLoc}) + 0.5
+            set {_world} to world of {_bossLoc}
+            set {_center} to location({_bx}, {_by}, {_bz}, {_world})
 
-            # Shockwave expanding ring
+            # Dramatic pause — boss charges up
+            loop all players in world of {_bossLoc}:
+                play sound "block.beacon.deactivate" with volume 0.6 and pitch 0.3 to loop-player
+
+            # Red inward pull particles — sucking energy in
+            set {_chargeStep} to 0
+            while {_chargeStep} < 8:
+                add 1 to {_chargeStep}
+                set {_chargeRadius} to 3.0 - ({_chargeStep} * 0.3)
+                if {_chargeRadius} < 0.5:
+                    set {_chargeRadius} to 0.5
+
+                loop 12 times:
+                    set {_cAngle} to loop-number * 30
+                    set {_cx} to {_bx} + ({_chargeRadius} * cos({_cAngle}))
+                    set {_cz} to {_bz} + ({_chargeRadius} * sin({_cAngle}))
+                    set {_chargeLoc} to location({_cx}, {_by}, {_cz}, {_world})
+
+                    loop all players in world of {_bossLoc}:
+                        draw 1 of dust using dustOption(rgb(255, 30, 30), 1.5) at {_chargeLoc} for loop-player
+
+                wait 1 tick
+
+            # Lightning strikes around boss
+            loop all players in world of {_bossLoc}:
+                spawn fake lightning at {_bossLoc} for loop-player
+                play sound "entity.lightning_bolt.thunder" with volume 0.8 and pitch 0.6 to loop-player
+
+            wait 2 ticks
+
+            # Second lightning
+            set {_strike2Loc} to location({_bx} + 2, {_by}, {_bz} + 1, {_world})
+            loop all players in world of {_bossLoc}:
+                spawn fake lightning at {_strike2Loc} for loop-player
+
+            wait 2 ticks
+
+            # Third lightning
+            set {_strike3Loc} to location({_bx} - 1, {_by}, {_bz} - 2, {_world})
+            loop all players in world of {_bossLoc}:
+                spawn fake lightning at {_strike3Loc} for loop-player
+
+            wait 2 ticks
+
+            # Massive red explosion burst
+            loop all players in world of {_bossLoc}:
+                draw 30 of dust using dustOption(rgb(255, 30, 30), 2.5) at {_center} with offset vector(1.5, 1.0, 1.5) for loop-player
+                draw 20 of dust using dustOption(rgb(255, 100, 50), 2.0) at {_center} with offset vector(1.0, 0.8, 1.0) for loop-player
+                draw 10 of flame at {_center} with offset vector(0.8, 0.8, 0.8) for loop-player
+                draw 10 of end rod at {_center} with offset vector(1.0, 1.0, 1.0) for loop-player
+                play sound "entity.warden.sonic_boom" with volume 0.4 and pitch 0.4 to loop-player
+
+            wait 2 ticks
+
+            # Red ground crack blocks scatter from center
+            set {_crackBaseId} to random integer between 100000 and 9999999
+            set {_crackCount} to 8
+            loop {_crackCount} times:
+                set {_ci} to loop-number
+                set {_crackId} to {_crackBaseId} + {_ci}
+                set {_crackAngle} to ({_ci} - 1) * 45
+                set {_groundLoc} to location({_bx}, {_by} - 0.5, {_bz}, {_world})
+
+                loop all players in world of {_bossLoc}:
+                    spawn fake block display at {_groundLoc} for loop-player with id {_crackId}
+                    set {_m} to new metadata packet with id {_crackId}:
+                        display block: red stained glass
+                        display scale: vector(0.01, 0.01, 0.01)
+                        display brightness block: 15
+                        display teleportduration: 2
+                        display transformation: 3
+                        display interpolation: 0
+                        glowing: true
+                        display glow: rgb(255, 30, 30)
+                    send packet {_m} to loop-player
+
+            wait 1 tick
+
+            # Launch crack blocks outward
+            loop {_crackCount} times:
+                set {_ci} to loop-number
+                set {_crackId} to {_crackBaseId} + {_ci}
+                set {_crackAngle} to ({_ci} - 1) * 45
+                set {_crackDist} to random number between 1.5 and 3.0
+                set {_crackX} to {_bx} + ({_crackDist} * cos({_crackAngle}))
+                set {_crackZ} to {_bz} + ({_crackDist} * sin({_crackAngle}))
+                set {_crackPos} to location({_crackX}, {_by} - 0.4, {_crackZ}, {_world})
+                set {_crackScale} to random number between 0.3 and 0.6
+
+                loop all players in world of {_bossLoc}:
+                    send teleport packet with id {_crackId} with location {_crackPos} to loop-player
+                    set {_m} to new metadata packet with id {_crackId}:
+                        display scale: vector({_crackScale}, 0.15, {_crackScale})
+                        display transformation: 4
+                        display interpolation: 0
+                    send packet {_m} to loop-player
+
+            loop all players in world of {_bossLoc}:
+                play sound "entity.generic.explode" with volume 0.5 and pitch 1.0 to loop-player
+
+            # Shockwave ring expands
             boss_anim_shockwave({_bossLoc}, rgb(255, 30, 30))
 
-            # Phase text animation
+            # Phase text
             boss_anim_phaseText({_bossLoc}, "&c&l⚠ RAMPAGE ⚠%nl%&7Direct hits deal &c75%% &7max HP!", rgb(255, 30, 30))
 
             apply speed 2 to {_entity} for 999 days
@@ -93,8 +317,25 @@ function poseidon_ability(bossId: text, ability: text):
             loop all players in world of {_bossLoc}:
                 play sound "entity.wither.spawn" with volume 0.6 and pitch 1.8 to loop-player
                 play sound "entity.ender_dragon.growl" with volume 0.6 and pitch 0.5 to loop-player
-                draw 15 of dust using dustOption(rgb(255, 30, 30), 1.8) at {_bossLoc} with offset vector(1, 1, 1) for loop-player
-                draw 8 of flame at {_bossLoc} with offset vector(0.5, 0.5, 0.5) for loop-player
+
+            # Fade crack blocks away
+            wait 30 ticks
+            loop {_crackCount} times:
+                set {_ci} to loop-number
+                set {_crackId} to {_crackBaseId} + {_ci}
+                loop all players in world of {_bossLoc}:
+                    set {_m} to new metadata packet with id {_crackId}:
+                        display scale: vector(0.01, 0.01, 0.01)
+                        display transformation: 4
+                        display interpolation: 0
+                    send packet {_m} to loop-player
+
+            wait 4 ticks
+            loop {_crackCount} times:
+                set {_ci} to loop-number
+                set {_crackId} to {_crackBaseId} + {_ci}
+                loop all players in world of {_bossLoc}:
+                    remove fake entity with id {_crackId} for loop-player
 
 
 # ============================================================
@@ -108,17 +349,28 @@ function poseidon_rainLoop(bossId: text):
             stop
 
         set {_loc} to location of {_entity}
+        set {_bx} to x-coord of {_loc}
+        set {_by} to y-coord of {_loc}
+        set {_bz} to z-coord of {_loc}
+        set {_world} to world of {_loc}
 
-        # Rain particles around boss
+        # Rain drops falling around boss
         loop all players in world of {_loc}:
-            loop 8 times:
-                set {_particleLoc} to {_loc}
-                add (random number between -4 and 4) to x-coord of {_particleLoc}
-                add (random number between 1 and 5) to y-coord of {_particleLoc}
-                add (random number between -4 and 4) to z-coord of {_particleLoc}
-                draw 2 of dust using dustOption(rgb(50, 130, 220), 0.8) at {_particleLoc} for loop-player
+            loop 10 times:
+                set {_rx} to {_bx} + (random number between -5 and 5)
+                set {_ry} to {_by} + (random number between 2 and 6)
+                set {_rz} to {_bz} + (random number between -5 and 5)
+                set {_rainLoc} to location({_rx}, {_ry}, {_rz}, {_world})
+                draw 2 of dust using dustOption(rgb(50, 130, 220), 0.8) at {_rainLoc} for loop-player
 
-        wait 5 ticks
+            # Water drip effect at ground level
+            loop 3 times:
+                set {_dx} to {_bx} + (random number between -3 and 3)
+                set {_dz} to {_bz} + (random number between -3 and 3)
+                set {_dripLoc} to location({_dx}, {_by} + 0.2, {_dz}, {_world})
+                draw 1 of dust using dustOption(rgb(80, 160, 240), 0.5) at {_dripLoc} for loop-player
+
+        wait 4 ticks
 
 
 # ============================================================
@@ -138,9 +390,13 @@ on damage of player:
             set {_damage} to {_maxHp} * 0.75
             damage victim by {_damage} hearts
             send action bar "&c&l⚠ RAMPAGE HIT! ⚠" to victim
+
+            # Red flash burst on victim
+            set {_victimLoc} to location of victim
+            draw 10 of dust using dustOption(rgb(255, 0, 0), 2.0) at {_victimLoc} with offset vector(0.3, 0.5, 0.3) for victim
+            draw 5 of flame at {_victimLoc} with offset vector(0.2, 0.3, 0.2) for victim
             play sound "entity.generic.explode" with volume 0.5 and pitch 1.5 to victim
-            # Red flash on hit
-            draw 5 of dust using dustOption(rgb(255, 0, 0), 1.5) at location of victim for victim
+            play sound "entity.player.hurt" with volume 0.3 and pitch 0.5 to victim
             stop
 
         # Rain buff: 1.5x base damage

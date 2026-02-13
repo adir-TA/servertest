@@ -80,7 +80,41 @@ function boss_anim_spawn(loc: location, name: text):
     loop all players in world of {_loc}:
         play sound "item.bucket.empty" with volume 0.6 and pitch 0.6 to loop-player
 
-    wait 2 ticks
+    # Swirling water vortex around the column
+    set {_vortexStep} to 0
+    while {_vortexStep} < 12:
+        add 1 to {_vortexStep}
+        set {_vAngle} to {_vortexStep} * 30
+        set {_vRadius} to 1.2 - ({_vortexStep} * 0.05)
+        set {_vHeight} to {_by} + ({_vortexStep} * 0.25)
+        set {_vx} to {_bx} + ({_vRadius} * cos({_vAngle}))
+        set {_vz} to {_bz} + ({_vRadius} * sin({_vAngle}))
+        set {_vLoc} to location({_vx}, {_vHeight}, {_vz}, {_world})
+
+        loop all players in world of {_loc}:
+            draw 3 of dust using dustOption(rgb(50, 180, 255), 1.5) at {_vLoc} for loop-player
+            draw 2 of dust using dustOption(rgb(150, 230, 255), 0.8) at {_vLoc} for loop-player
+
+        wait 1 tick
+
+    # Second vortex pass — opposite spiral tightening
+    set {_vortexStep} to 0
+    while {_vortexStep} < 8:
+        add 1 to {_vortexStep}
+        set {_vAngle} to 180 + ({_vortexStep} * 45)
+        set {_vRadius} to 0.8 - ({_vortexStep} * 0.08)
+        if {_vRadius} < 0.2:
+            set {_vRadius} to 0.2
+        set {_vHeight} to {_by} + 1.0 + ({_vortexStep} * 0.3)
+        set {_vx} to {_bx} + ({_vRadius} * cos({_vAngle}))
+        set {_vz} to {_bz} + ({_vRadius} * sin({_vAngle}))
+        set {_vLoc} to location({_vx}, {_vHeight}, {_vz}, {_world})
+
+        loop all players in world of {_loc}:
+            draw 4 of dust using dustOption(rgb(100, 220, 255), 1.2) at {_vLoc} for loop-player
+            draw 1 of end rod at {_vLoc} for loop-player
+
+        wait 1 tick
 
     # === PHASE 2: Trident appears and spins inside column ===
     set {_tridentId} to {_baseId} + 10
@@ -199,6 +233,34 @@ function boss_anim_spawn(loc: location, name: text):
         set {_cid} to {_baseId} + {_i}
         loop all players in world of {_loc}:
             remove fake entity with id {_cid} for loop-player
+
+    # Lightning bolt on boss arrival
+    loop all players in world of {_loc}:
+        spawn fake lightning at {_loc} for loop-player
+
+    loop all players in world of {_loc}:
+        play sound "entity.lightning_bolt.thunder" with volume 0.6 and pitch 1.0 to loop-player
+        play sound "entity.lightning_bolt.impact" with volume 0.4 and pitch 1.2 to loop-player
+
+    wait 2 ticks
+
+    # Ground water ring — expanding pool
+    set {_ringStep} to 0
+    while {_ringStep} < 6:
+        add 1 to {_ringStep}
+        set {_ringRadius} to {_ringStep} * 0.5
+        set {_groundY} to {_by} - 0.5
+
+        loop 16 times:
+            set {_rAngle} to loop-number * 22.5
+            set {_rx} to {_bx} + ({_ringRadius} * cos({_rAngle}))
+            set {_rz} to {_bz} + ({_ringRadius} * sin({_rAngle}))
+            set {_ringLoc} to location({_rx}, {_groundY}, {_rz}, {_world})
+
+            loop all players in world of {_loc}:
+                draw 1 of dust using dustOption(rgb(30, 100, 200), 1.0) at {_ringLoc} for loop-player
+
+        wait 1 tick
 
     # === PHASE 4: Boss name text pops ===
     set {_textId} to {_baseId} + 20
