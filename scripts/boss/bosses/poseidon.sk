@@ -490,7 +490,7 @@ on damage of player:
     attacker is set
     set {_bossId} to boss_getIdFromEntity(attacker)
     if {_bossId} is "poseidon":
-        cancel event
+        set damage to 0
         set {_maxHp} to max health of victim
         set {_baseDmg} to boss_getBaseDamage({_bossId})
 

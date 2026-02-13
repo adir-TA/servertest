@@ -30,6 +30,262 @@ function dragon_setup(entity: entity):
     set name of {_sword} to "&c&lDragon Fang"
     set tool of {_entity} to {_sword}
 
+# ============================================================
+# DRAGON SPAWN ANIMATION — Fire eruption
+# ============================================================
+
+function dragon_anim_spawn(loc: location, name: text, id: text):
+    set {_bx} to floor(x-coord of {_loc}) + 0.5
+    set {_by} to floor(y-coord of {_loc}) + 1.0
+    set {_bz} to floor(z-coord of {_loc}) + 0.5
+    set {_world} to world of {_loc}
+
+    set {_baseId} to random integer between 100000 and 9999999
+
+    # === PHASE 1: Lava blocks rise from ground ===
+    set {_columnCount} to 5
+    loop {_columnCount} times:
+        set {_i} to loop-number
+        set {_cid} to {_baseId} + {_i}
+        set {_spawnY} to {_by} - 0.5
+        set {_columnLoc} to location({_bx}, {_spawnY}, {_bz}, {_world})
+
+        loop all players in world of {_loc}:
+            spawn fake block display at {_columnLoc} for loop-player with id {_cid}
+            set {_m} to new metadata packet with id {_cid}:
+                display block: magma block
+                display scale: vector(0.6, 0.01, 0.6)
+                display billboard: center
+                display brightness block: 15
+                display teleportduration: 2
+                display transformation: 3
+                display interpolation: 0
+                glowing: true
+                display glow: rgb(255, 80, 0)
+            send packet {_m} to loop-player
+
+    loop all players in world of {_loc}:
+        play sound "entity.blaze.ambient" with volume 0.8 and pitch 0.4 to loop-player
+        play sound "block.lava.pop" with volume 0.6 and pitch 0.5 to loop-player
+
+    wait 2 ticks
+
+    # Grow column upward
+    loop {_columnCount} times:
+        set {_i} to loop-number
+        set {_cid} to {_baseId} + {_i}
+        set {_targetY} to {_by} + (({_i} - 1) * 0.7)
+        set {_riseLoc} to location({_bx}, {_targetY}, {_bz}, {_world})
+
+        loop all players in world of {_loc}:
+            send teleport packet with id {_cid} with location {_riseLoc} to loop-player
+            set {_m} to new metadata packet with id {_cid}:
+                display scale: vector(0.6, 0.8, 0.6)
+                display transformation: 4
+                display interpolation: 0
+            send packet {_m} to loop-player
+            draw 5 of flame at {_riseLoc} with offset vector(0.4, 0.2, 0.4) for loop-player
+        wait 3 ticks
+
+    # === PHASE 2: Fire vortex spiraling around column ===
+    set {_vortexStep} to 0
+    while {_vortexStep} < 16:
+        add 1 to {_vortexStep}
+        set {_vAngle} to {_vortexStep} * 22.5
+        set {_vRadius} to 1.5 - ({_vortexStep} * 0.06)
+        if {_vRadius} < 0.3:
+            set {_vRadius} to 0.3
+        set {_vHeight} to {_by} + ({_vortexStep} * 0.2)
+        set {_vx} to {_bx} + ({_vRadius} * cos({_vAngle}))
+        set {_vz} to {_bz} + ({_vRadius} * sin({_vAngle}))
+        set {_vLoc} to location({_vx}, {_vHeight}, {_vz}, {_world})
+
+        loop all players in world of {_loc}:
+            draw 3 of flame at {_vLoc} for loop-player
+            draw 2 of dust using dustOption(rgb(255, 80, 0), 1.5) at {_vLoc} for loop-player
+            draw 1 of dust using dustOption(rgb(255, 200, 50), 0.8) at {_vLoc} for loop-player
+        wait 1 tick
+
+    # === PHASE 3: Netherite sword appears ===
+    set {_swordId} to {_baseId} + 10
+    set {_swordPos} to location({_bx}, {_by} + 1.5, {_bz}, {_world})
+
+    loop all players in world of {_loc}:
+        spawn fake item display at {_swordPos} for loop-player with id {_swordId}
+        set {_m} to new metadata packet with id {_swordId}:
+            display item: netherite sword
+            display scale: vector(0.01, 0.01, 0.01)
+            display billboard: center
+            display brightness block: 15
+            display teleportduration: 2
+            display transformation: 3
+            display interpolation: 0
+            glowing: true
+            display glow: rgb(255, 80, 0)
+        send packet {_m} to loop-player
+
+    wait 1 tick
+
+    loop all players in world of {_loc}:
+        set {_m} to new metadata packet with id {_swordId}:
+            display scale: vector(2, 2, 2)
+            display transformation: 4
+            display interpolation: 0
+        send packet {_m} to loop-player
+
+    wait 2 ticks
+
+    # Spin sword
+    loop 12 times:
+        set {_frame} to loop-number - 1
+        set {_floatY} to {_by} + 1.5 + ({_frame} * 0.1)
+        set {_pos} to location({_bx}, {_floatY}, {_bz}, {_world})
+        set {_angle} to {_frame} * 30
+        set {_qy} to sin({_angle} / 2)
+        set {_qw} to cos({_angle} / 2)
+
+        loop all players in world of {_loc}:
+            send teleport packet with id {_swordId} with location {_pos} to loop-player
+            set {_m} to new metadata packet with id {_swordId}:
+                display rotation left: 0, {_qy}, 0, {_qw}
+                display transformation: 2
+                display interpolation: 0
+            send packet {_m} to loop-player
+        wait 2 ticks
+
+    # === PHASE 4: Fire explosion ===
+    set {_peakPos} to location({_bx}, {_by} + 3.0, {_bz}, {_world})
+
+    loop all players in world of {_loc}:
+        draw 40 of flame at {_peakPos} with offset vector(2.0, 1.5, 2.0) for loop-player
+        draw 30 of dust using dustOption(rgb(255, 80, 0), 2.0) at {_peakPos} with offset vector(1.5, 1.0, 1.5) for loop-player
+        draw 20 of dust using dustOption(rgb(255, 200, 50), 1.5) at {_peakPos} with offset vector(1.0, 0.8, 1.0) for loop-player
+        draw 15 of end rod at {_peakPos} with offset vector(1.0, 1.0, 1.0) for loop-player
+        play sound "entity.generic.explode" with volume 0.8 and pitch 0.6 to loop-player
+        play sound "entity.ender_dragon.growl" with volume 0.6 and pitch 0.5 to loop-player
+
+    # Scatter column blocks outward
+    loop {_columnCount} times:
+        set {_i} to loop-number
+        set {_cid} to {_baseId} + {_i}
+        set {_scatterAngle} to ({_i} - 1) * 72
+        set {_scatterX} to {_bx} + (2.0 * cos({_scatterAngle}))
+        set {_scatterZ} to {_bz} + (2.0 * sin({_scatterAngle}))
+        set {_scatterY} to {_by} + 2.5 + (random number between -0.5 and 1.0)
+        set {_scatterLoc} to location({_scatterX}, {_scatterY}, {_scatterZ}, {_world})
+
+        loop all players in world of {_loc}:
+            send teleport packet with id {_cid} with location {_scatterLoc} to loop-player
+            set {_m} to new metadata packet with id {_cid}:
+                display scale: vector(0.3, 0.3, 0.3)
+                display transformation: 3
+                display interpolation: 0
+            send packet {_m} to loop-player
+
+    wait 3 ticks
+
+    # Shrink + remove sword and blocks
+    loop all players in world of {_loc}:
+        set {_m} to new metadata packet with id {_swordId}:
+            display scale: vector(0.01, 0.01, 0.01)
+            display transformation: 4
+            display interpolation: 0
+        send packet {_m} to loop-player
+
+    loop {_columnCount} times:
+        set {_i} to loop-number
+        set {_cid} to {_baseId} + {_i}
+        loop all players in world of {_loc}:
+            set {_m} to new metadata packet with id {_cid}:
+                display scale: vector(0.01, 0.01, 0.01)
+                display transformation: 4
+                display interpolation: 0
+            send packet {_m} to loop-player
+
+    wait 4 ticks
+
+    loop all players in world of {_loc}:
+        remove fake entity with id {_swordId} for loop-player
+    loop {_columnCount} times:
+        set {_i} to loop-number
+        set {_cid} to {_baseId} + {_i}
+        loop all players in world of {_loc}:
+            remove fake entity with id {_cid} for loop-player
+
+    # Lightning + fire ring
+    loop all players in world of {_loc}:
+        spawn fake lightning at {_loc} for loop-player
+        play sound "entity.lightning_bolt.thunder" with volume 0.6 and pitch 0.8 to loop-player
+
+    wait 2 ticks
+
+    # Fire ground ring
+    set {_ringStep} to 0
+    while {_ringStep} < 6:
+        add 1 to {_ringStep}
+        set {_ringRadius} to {_ringStep} * 0.5
+        set {_groundY} to {_by} - 0.5
+
+        loop 16 times:
+            set {_rAngle} to loop-number * 22.5
+            set {_rx} to {_bx} + ({_ringRadius} * cos({_rAngle}))
+            set {_rz} to {_bz} + ({_ringRadius} * sin({_rAngle}))
+            set {_ringLoc} to location({_rx}, {_groundY}, {_rz}, {_world})
+            loop all players in world of {_loc}:
+                draw 1 of flame at {_ringLoc} for loop-player
+                draw 1 of dust using dustOption(rgb(255, 80, 0), 1.0) at {_ringLoc} for loop-player
+        wait 1 tick
+
+    # Spawn entity
+    boss_spawnFinish({_id})
+
+    # Name popup
+    set {_textId} to {_baseId} + 20
+    set {_textPos} to location({_bx}, {_by} + 3.5, {_bz}, {_world})
+    set {_displayText} to "%{_name}%%nl%&7has appeared!"
+
+    loop all players in world of {_loc}:
+        spawn fake text display at {_textPos} for loop-player with id {_textId}
+        set {_m} to new metadata packet with id {_textId}:
+            display text: {_displayText}
+            display scale: vector(0.01, 0.01, 0.01)
+            display billboard: center
+            display brightness block: 15
+            display shadow: true
+            display defaultbackground: false
+            display teleportduration: 2
+            display transformation: 3
+            display interpolation: 0
+            display background alpha: 0
+            glowing: true
+            display glow: rgb(255, 80, 0)
+        send packet {_m} to loop-player
+
+    wait 1 tick
+
+    loop all players in world of {_loc}:
+        set {_m} to new metadata packet with id {_textId}:
+            display scale: vector(2.5, 2.5, 2.5)
+            display transformation: 3
+            display interpolation: 0
+        send packet {_m} to loop-player
+        play sound "block.amethyst_block.chime" with volume 0.6 and pitch 0.8 to loop-player
+
+    wait 40 ticks
+
+    loop all players in world of {_loc}:
+        set {_m} to new metadata packet with id {_textId}:
+            display scale: vector(0.01, 0.01, 0.01)
+            display transformation: 4
+            display interpolation: 0
+        send packet {_m} to loop-player
+
+    wait 4 ticks
+
+    loop all players in world of {_loc}:
+        remove fake entity with id {_textId} for loop-player
+
+
 function dragon_ability(bossId: text, ability: text):
     set {_entity} to boss_getEntity({_bossId})
     if {_entity} is not set:
@@ -253,7 +509,7 @@ on damage of player:
     attacker is set
     set {_bossId} to boss_getIdFromEntity(attacker)
     if {_bossId} is "dragon":
-        cancel event
+        set damage to 0
 
         if {boss::active::%{_bossId}%::buffRage} is true:
             set {_dmg} to max health of victim * 0.3

@@ -30,6 +30,211 @@ function ares_setup(entity: entity):
     set name of {_axe} to "&6&lAres' Battleaxe"
     set tool of {_entity} to {_axe}
 
+# ============================================================
+# ARES SPAWN ANIMATION — War drums & golden pillars
+# ============================================================
+
+function ares_anim_spawn(loc: location, name: text, id: text):
+    set {_bx} to floor(x-coord of {_loc}) + 0.5
+    set {_by} to floor(y-coord of {_loc}) + 1.0
+    set {_bz} to floor(z-coord of {_loc}) + 0.5
+    set {_world} to world of {_loc}
+
+    set {_baseId} to random integer between 100000 and 9999999
+
+    # === PHASE 1: Gold pillars slam down from sky ===
+    set {_pillarCount} to 4
+    set {_pillarOff::1::x} to 2
+    set {_pillarOff::1::z} to 0
+    set {_pillarOff::2::x} to -2
+    set {_pillarOff::2::z} to 0
+    set {_pillarOff::3::x} to 0
+    set {_pillarOff::3::z} to 2
+    set {_pillarOff::4::x} to 0
+    set {_pillarOff::4::z} to -2
+
+    # Spawn pillars high in the air
+    loop {_pillarCount} times:
+        set {_i} to loop-number
+        set {_cid} to {_baseId} + {_i}
+        set {_px} to {_bx} + {_pillarOff::%{_i}%::x}
+        set {_pz} to {_bz} + {_pillarOff::%{_i}%::z}
+        set {_skyLoc} to location({_px}, {_by} + 10, {_pz}, {_world})
+
+        loop all players in world of {_loc}:
+            spawn fake block display at {_skyLoc} for loop-player with id {_cid}
+            set {_m} to new metadata packet with id {_cid}:
+                display block: gold block
+                display scale: vector(0.5, 2, 0.5)
+                display brightness block: 15
+                display teleportduration: 2
+                display transformation: 3
+                display interpolation: 0
+                glowing: true
+                display glow: rgb(255, 200, 0)
+            send packet {_m} to loop-player
+
+    loop all players in world of {_loc}:
+        play sound "event.raid.horn" with volume 0.8 and pitch 0.6 to loop-player
+
+    wait 5 ticks
+
+    # Slam pillars down to ground one by one
+    set {_pillarIdx} to 0
+    while {_pillarIdx} < {_pillarCount}:
+        add 1 to {_pillarIdx}
+        set {_cid} to {_baseId} + {_pillarIdx}
+        set {_px} to {_bx} + {_pillarOff::%{_pillarIdx}%::x}
+        set {_pz} to {_bz} + {_pillarOff::%{_pillarIdx}%::z}
+        set {_groundLoc} to location({_px}, {_by} - 0.5, {_pz}, {_world})
+
+        loop all players in world of {_loc}:
+            send teleport packet with id {_cid} with location {_groundLoc} to loop-player
+            draw 15 of dust using dustOption(rgb(255, 200, 50), 1.5) at {_groundLoc} with offset vector(0.5, 0.5, 0.5) for loop-player
+            play sound "block.anvil.land" with volume 0.6 and pitch 0.8 to loop-player
+
+        wait 4 ticks
+
+    # === PHASE 2: Battle axe spins in center ===
+    set {_axeId} to {_baseId} + 10
+    set {_axePos} to location({_bx}, {_by} + 1.5, {_bz}, {_world})
+
+    loop all players in world of {_loc}:
+        spawn fake item display at {_axePos} for loop-player with id {_axeId}
+        set {_m} to new metadata packet with id {_axeId}:
+            display item: golden axe
+            display scale: vector(0.01, 0.01, 0.01)
+            display billboard: center
+            display brightness block: 15
+            display teleportduration: 2
+            display transformation: 3
+            display interpolation: 0
+            glowing: true
+            display glow: rgb(255, 200, 0)
+        send packet {_m} to loop-player
+
+    wait 1 tick
+
+    loop all players in world of {_loc}:
+        set {_m} to new metadata packet with id {_axeId}:
+            display scale: vector(2, 2, 2)
+            display transformation: 4
+            display interpolation: 0
+        send packet {_m} to loop-player
+        play sound "entity.player.attack.sweep" with volume 0.6 and pitch 0.6 to loop-player
+
+    wait 2 ticks
+
+    # Spin axe
+    loop 12 times:
+        set {_frame} to loop-number - 1
+        set {_angle} to {_frame} * 30
+        set {_qy} to sin({_angle} / 2)
+        set {_qw} to cos({_angle} / 2)
+
+        loop all players in world of {_loc}:
+            set {_m} to new metadata packet with id {_axeId}:
+                display rotation left: 0, {_qy}, 0, {_qw}
+                display transformation: 2
+                display interpolation: 0
+            send packet {_m} to loop-player
+        wait 2 ticks
+
+    # === PHASE 3: Golden explosion ===
+    set {_peakPos} to location({_bx}, {_by} + 2.5, {_bz}, {_world})
+
+    loop all players in world of {_loc}:
+        draw 30 of dust using dustOption(rgb(255, 200, 0), 2.5) at {_peakPos} with offset vector(2.0, 1.5, 2.0) for loop-player
+        draw 20 of dust using dustOption(rgb(255, 255, 150), 1.5) at {_peakPos} with offset vector(1.0, 0.8, 1.0) for loop-player
+        draw 15 of end rod at {_peakPos} with offset vector(1.0, 1.0, 1.0) for loop-player
+        play sound "entity.generic.explode" with volume 0.8 and pitch 0.8 to loop-player
+        play sound "entity.wither.spawn" with volume 0.4 and pitch 1.2 to loop-player
+
+    # Shrink + remove axe and pillars
+    loop all players in world of {_loc}:
+        set {_m} to new metadata packet with id {_axeId}:
+            display scale: vector(0.01, 0.01, 0.01)
+            display transformation: 4
+            display interpolation: 0
+        send packet {_m} to loop-player
+
+    loop {_pillarCount} times:
+        set {_i} to loop-number
+        set {_cid} to {_baseId} + {_i}
+        loop all players in world of {_loc}:
+            set {_m} to new metadata packet with id {_cid}:
+                display scale: vector(0.01, 0.01, 0.01)
+                display transformation: 4
+                display interpolation: 0
+            send packet {_m} to loop-player
+
+    wait 4 ticks
+
+    loop all players in world of {_loc}:
+        remove fake entity with id {_axeId} for loop-player
+    loop {_pillarCount} times:
+        set {_i} to loop-number
+        set {_cid} to {_baseId} + {_i}
+        loop all players in world of {_loc}:
+            remove fake entity with id {_cid} for loop-player
+
+    # Lightning + shockwave
+    loop all players in world of {_loc}:
+        spawn fake lightning at {_loc} for loop-player
+        play sound "entity.lightning_bolt.thunder" with volume 0.6 and pitch 1.0 to loop-player
+
+    boss_anim_shockwave({_loc}, rgb(255, 200, 0))
+
+    # Spawn entity
+    boss_spawnFinish({_id})
+
+    # Name popup
+    set {_textId} to {_baseId} + 20
+    set {_textPos} to location({_bx}, {_by} + 3.5, {_bz}, {_world})
+    set {_displayText} to "%{_name}%%nl%&7has appeared!"
+
+    loop all players in world of {_loc}:
+        spawn fake text display at {_textPos} for loop-player with id {_textId}
+        set {_m} to new metadata packet with id {_textId}:
+            display text: {_displayText}
+            display scale: vector(0.01, 0.01, 0.01)
+            display billboard: center
+            display brightness block: 15
+            display shadow: true
+            display defaultbackground: false
+            display teleportduration: 2
+            display transformation: 3
+            display interpolation: 0
+            display background alpha: 0
+            glowing: true
+            display glow: rgb(255, 200, 0)
+        send packet {_m} to loop-player
+
+    wait 1 tick
+
+    loop all players in world of {_loc}:
+        set {_m} to new metadata packet with id {_textId}:
+            display scale: vector(2.5, 2.5, 2.5)
+            display transformation: 3
+            display interpolation: 0
+        send packet {_m} to loop-player
+        play sound "block.amethyst_block.chime" with volume 0.6 and pitch 0.8 to loop-player
+
+    wait 40 ticks
+
+    loop all players in world of {_loc}:
+        set {_m} to new metadata packet with id {_textId}:
+            display scale: vector(0.01, 0.01, 0.01)
+            display transformation: 4
+            display interpolation: 0
+        send packet {_m} to loop-player
+
+    wait 4 ticks
+
+    loop all players in world of {_loc}:
+        remove fake entity with id {_textId} for loop-player
+
+
 function ares_ability(bossId: text, ability: text):
     set {_entity} to boss_getEntity({_bossId})
     if {_entity} is not set:
@@ -381,7 +586,7 @@ on damage of player:
     attacker is set
     set {_bossId} to boss_getIdFromEntity(attacker)
     if {_bossId} is "ares":
-        cancel event
+        set damage to 0
 
         set {_damage} to max health of victim * (boss_getBaseDamage({_bossId}) / 100)
 
