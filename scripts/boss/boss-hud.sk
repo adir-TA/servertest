@@ -2,54 +2,143 @@
 # BOSS HUD SYSTEM
 # ============================================================
 #
-# Displays a floating health bar above the boss entity
-# using packet-based text displays (same pattern as npc-holograms).
-# Updates on every damage tick.
+# Persistent floating health hologram above the boss spawn location.
+# Always visible while the boss is alive — updates via a while loop
+# every 5 ticks, not per-hit.
+#
+# Also shows floating damage numbers on each hit.
 #
 # Variables:
-#   {-boss::hud::%id%::entityId}    → fake text display entity ID
+#   {-boss::hud::%id%::entityId}    -> main health text display
+#   {-boss::hud::%id%::barId}       -> health bar text display
 #
 # ============================================================
 
-# Create HUD above boss entity
-function boss_hud_create(id: text, entity: entity):
-    set {_displayId} to random integer between 100000 and 9999999
-    set {-boss::hud::%{_id}%::entityId} to {_displayId}
+# ============================================================
+# CREATE HUD (called once on spawn)
+# ============================================================
 
-    set {_loc} to location of {_entity}
-    add 2.5 to y-coord of {_loc}
+function boss_hud_create(id: text, entity: entity):
+    set {_loc} to boss_getSpawnLoc({_id})
+    if {_loc} is not set:
+        set {_loc} to location of {_entity}
+
+    set {_bx} to floor(x-coord of {_loc}) + 0.5
+    set {_by} to floor(y-coord of {_loc}) + 3.5
+    set {_bz} to floor(z-coord of {_loc}) + 0.5
+    set {_world} to world of {_loc}
+    set {_pos} to location({_bx}, {_by}, {_bz}, {_world})
+
+    set {_nameId} to random integer between 100000 and 9999999
+    set {_barId} to {_nameId} + 1
+    set {-boss::hud::%{_id}%::entityId} to {_nameId}
+    set {-boss::hud::%{_id}%::barId} to {_barId}
 
     set {_name} to boss_getName({_id})
     set {_maxHp} to boss_getMaxHp({_id})
-    set {_bar} to boss_hud_generateBar(100)
     set {_maxHpFormatted} to boss_formatNum({_maxHp})
-    set {_displayText} to "%{_name}%%nl%&c%{_bar}%%nl%&c❤ %{_maxHpFormatted}% &7/ &c%{_maxHpFormatted}% &7(100%%)"
+    set {_bar} to boss_hud_generateBar(100)
+    set {_nameText} to "%{_name}%"
+    set {_barText} to "%{_bar}%%nl%&a❤ %{_maxHpFormatted}% &7/ &a%{_maxHpFormatted}% &7(100%%)"
 
+    set {_barPos} to location({_bx}, {_by} - 0.5, {_bz}, {_world})
+
+    # Spawn name display
     loop all players in world of {_loc}:
-        spawn fake text display at {_loc} for loop-player with id {_displayId}
-        set {_m} to new metadata packet with id {_displayId}:
-            display text: {_displayText}
-            display scale: vector(1.5, 1.5, 1.5)
+        spawn fake text display at {_pos} for loop-player with id {_nameId}
+        set {_m} to new metadata packet with id {_nameId}:
+            display text: {_nameText}
+            display scale: vector(2.5, 2.5, 2.5)
             display billboard: center
             display brightness block: 15
             display shadow: true
             display defaultbackground: false
-            display background alpha: 100
+            display background alpha: 0
         send packet {_m} to loop-player
 
-# Update HUD with current HP
+    # Spawn bar display
+    loop all players in world of {_loc}:
+        spawn fake text display at {_barPos} for loop-player with id {_barId}
+        set {_m} to new metadata packet with id {_barId}:
+            display text: {_barText}
+            display scale: vector(2, 2, 2)
+            display billboard: center
+            display brightness block: 15
+            display shadow: true
+            display defaultbackground: false
+            display background alpha: 80
+        send packet {_m} to loop-player
+
+    # Start persistent update loop
+    boss_hud_loop({_id})
+
+
+# ============================================================
+# PERSISTENT UPDATE LOOP
+# ============================================================
+
+function boss_hud_loop(id: text):
+    while {boss::active::%{_id}%::alive} is true:
+        set {_nameId} to {-boss::hud::%{_id}%::entityId}
+        set {_barId} to {-boss::hud::%{_id}%::barId}
+        if {_nameId} is not set:
+            stop
+        if {_barId} is not set:
+            stop
+
+        set {_name} to boss_getName({_id})
+        set {_hp} to boss_getHp({_id})
+        set {_maxHp} to boss_getMaxHp({_id})
+        set {_percent} to boss_getHpPercent({_id})
+        set {_bar} to boss_hud_generateBar({_percent})
+
+        # Color based on HP %
+        if {_percent} > 50:
+            set {_hpColor} to "&a"
+        else if {_percent} > 25:
+            set {_hpColor} to "&e"
+        else:
+            set {_hpColor} to "&c"
+
+        set {_hpFormatted} to boss_formatNum({_hp})
+        set {_maxHpFormatted} to boss_formatNum({_maxHp})
+        set {_percentRound} to round({_percent})
+        set {_barText} to "%{_bar}%%nl%%{_hpColor}%❤ %{_hpFormatted}% &7/ &c%{_maxHpFormatted}% &7(%{_percentRound}%%%)"
+
+        set {_loc} to boss_getSpawnLoc({_id})
+        if {_loc} is not set:
+            stop
+
+        loop all players in world of {_loc}:
+            set {_m} to new metadata packet with id {_barId}:
+                display text: {_barText}
+                display scale: vector(2, 2, 2)
+                display billboard: center
+                display brightness block: 15
+                display shadow: true
+                display defaultbackground: false
+                display background alpha: 80
+            send packet {_m} to loop-player
+
+        wait 5 ticks
+
+
+# ============================================================
+# UPDATE (still called on damage for immediate response)
+# ============================================================
+
 function boss_hud_update(id: text):
-    set {_displayId} to {-boss::hud::%{_id}%::entityId}
-    if {_displayId} is not set:
+    # The loop handles continuous updates, but we also do an
+    # immediate refresh here so damage feels responsive.
+    set {_barId} to {-boss::hud::%{_id}%::barId}
+    if {_barId} is not set:
         stop
 
-    set {_name} to boss_getName({_id})
     set {_hp} to boss_getHp({_id})
     set {_maxHp} to boss_getMaxHp({_id})
     set {_percent} to boss_getHpPercent({_id})
     set {_bar} to boss_hud_generateBar({_percent})
 
-    # Color based on HP %
     if {_percent} > 50:
         set {_hpColor} to "&a"
     else if {_percent} > 25:
@@ -57,53 +146,126 @@ function boss_hud_update(id: text):
     else:
         set {_hpColor} to "&c"
 
-    # Pre-compute display text (functions can't be inside packet sections)
     set {_hpFormatted} to boss_formatNum({_hp})
     set {_maxHpFormatted} to boss_formatNum({_maxHp})
     set {_percentRound} to round({_percent})
-    set {_displayText} to "%{_name}%%nl%%{_bar}%%nl%%{_hpColor}%❤ %{_hpFormatted}% &7/ &c%{_maxHpFormatted}% &7(%{_percentRound}%%%)"
+    set {_barText} to "%{_bar}%%nl%%{_hpColor}%❤ %{_hpFormatted}% &7/ &c%{_maxHpFormatted}% &7(%{_percentRound}%%%)"
 
-    # Move to follow boss
+    set {_loc} to boss_getSpawnLoc({_id})
+    if {_loc} is not set:
+        stop
+
+    loop all players in world of {_loc}:
+        set {_m} to new metadata packet with id {_barId}:
+            display text: {_barText}
+            display scale: vector(2, 2, 2)
+            display billboard: center
+            display brightness block: 15
+            display shadow: true
+            display defaultbackground: false
+            display background alpha: 80
+        send packet {_m} to loop-player
+
+
+# ============================================================
+# FLOATING DAMAGE NUMBER (called per hit)
+# ============================================================
+
+function boss_hud_damagePopup(p: player, id: text, amount: number):
     set {_entity} to boss_getEntity({_id})
     if {_entity} is not set:
         stop
 
     set {_loc} to location of {_entity}
-    add 2.5 to y-coord of {_loc}
+    set {_bx} to x-coord of {_loc} + (random number between -0.5 and 0.5)
+    set {_by} to y-coord of {_loc} + 2.0
+    set {_bz} to z-coord of {_loc} + (random number between -0.5 and 0.5)
+    set {_world} to world of {_loc}
+    set {_pos} to location({_bx}, {_by}, {_bz}, {_world})
 
-    loop all players in world of {_loc}:
-        # Teleport display to follow boss
-        send teleport packet with id {_displayId} with location {_loc} to loop-player
-        # Update text
-        set {_m} to new metadata packet with id {_displayId}:
-            display text: {_displayText}
-            display scale: vector(1.5, 1.5, 1.5)
-            display billboard: center
-            display brightness block: 15
-            display shadow: true
-            display defaultbackground: false
-            display background alpha: 100
-        send packet {_m} to loop-player
+    set {_textId} to random integer between 100000 and 9999999
+    set {_formatted} to boss_formatNum({_amount})
+    set {_displayText} to "&c&l-%{_formatted}%"
 
-# Remove HUD
+    spawn fake text display at {_pos} for {_p} with id {_textId}
+    set {_m} to new metadata packet with id {_textId}:
+        display text: {_displayText}
+        display scale: vector(0.01, 0.01, 0.01)
+        display billboard: center
+        display brightness block: 15
+        display shadow: true
+        display defaultbackground: false
+        display background alpha: 0
+        display teleportduration: 2
+        display transformation: 3
+        display interpolation: 0
+    send packet {_m} to {_p}
+
+    wait 1 tick
+
+    # Pop in
+    set {_m} to new metadata packet with id {_textId}:
+        display scale: vector(1.2, 1.2, 1.2)
+        display transformation: 3
+        display interpolation: 0
+    send packet {_m} to {_p}
+
+    wait 2 ticks
+
+    # Settle
+    set {_m} to new metadata packet with id {_textId}:
+        display scale: vector(0.8, 0.8, 0.8)
+        display transformation: 3
+        display interpolation: 0
+    send packet {_m} to {_p}
+
+    # Float up
+    set {_endPos} to location({_bx}, {_by} + 1.0, {_bz}, {_world})
+    send teleport packet with id {_textId} with location {_endPos} to {_p}
+
+    wait 12 ticks
+
+    # Shrink out
+    set {_m} to new metadata packet with id {_textId}:
+        display scale: vector(0.01, 0.01, 0.01)
+        display transformation: 4
+        display interpolation: 0
+    send packet {_m} to {_p}
+
+    wait 4 ticks
+
+    remove fake entity with id {_textId} for {_p}
+
+
+# ============================================================
+# REMOVE HUD
+# ============================================================
+
 function boss_hud_remove(id: text):
-    set {_displayId} to {-boss::hud::%{_id}%::entityId}
-    if {_displayId} is not set:
-        stop
+    set {_nameId} to {-boss::hud::%{_id}%::entityId}
+    set {_barId} to {-boss::hud::%{_id}%::barId}
 
     set {_loc} to boss_getSpawnLoc({_id})
     if {_loc} is set:
-        loop all players in world of {_loc}:
-            remove fake entity with id {_displayId} for loop-player
+        if {_nameId} is set:
+            loop all players in world of {_loc}:
+                remove fake entity with id {_nameId} for loop-player
+        if {_barId} is set:
+            loop all players in world of {_loc}:
+                remove fake entity with id {_barId} for loop-player
 
     delete {-boss::hud::%{_id}%::entityId}
+    delete {-boss::hud::%{_id}%::barId}
 
-# Generate a health bar string
+
+# ============================================================
+# GENERATE HEALTH BAR
+# ============================================================
+
 function boss_hud_generateBar(percent: number) :: text:
     set {_filled} to round({_percent} / 5)
     set {_empty} to 20 - {_filled}
 
-    # Color based on percent
     if {_percent} > 50:
         set {_filledColor} to "&a"
     else if {_percent} > 25:

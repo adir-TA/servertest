@@ -110,8 +110,9 @@ function boss_dealDamage(p: player, id: text, amount: number):
     if {boss::active::%{_id}%::hp} <= 0:
         set {boss::active::%{_id}%::hp} to 0
 
-    # Update HUD
+    # Update HUD + floating damage number
     boss_hud_update({_id})
+    boss_hud_damagePopup({_p}, {_id}, {_amount})
 
     # Check phases
     boss_checkPhases({_id})
