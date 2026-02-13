@@ -37,8 +37,6 @@ function boss_spawn(id: text):
         stop
 
     set {_name} to boss_getName({_id})
-    set {_maxHp} to boss_getMaxHp({_id})
-    set {_entityType} to boss_getEntityType({_id})
 
     # Broadcast warning first
     broadcast ""
@@ -46,10 +44,23 @@ function boss_spawn(id: text):
     broadcast "&7%{_name}% &7is awakening..."
     broadcast ""
 
-    # Play spawn animation BEFORE the entity appears
-    boss_anim_spawn({_loc}, {_name})
+    # Play spawn animation — at the end it calls boss_spawnFinish()
+    # which actually spawns the entity. This way the mob only appears
+    # after the full animation is done.
+    boss_anim_spawn({_loc}, {_name}, {_id})
 
-    # NOW spawn the actual entity after the animation finishes
+
+# Called by boss_anim_spawn at the end of the animation
+function boss_spawnFinish(id: text):
+    set {_loc} to boss_getSpawnLoc({_id})
+    if {_loc} is not set:
+        stop
+
+    set {_name} to boss_getName({_id})
+    set {_maxHp} to boss_getMaxHp({_id})
+    set {_entityType} to boss_getEntityType({_id})
+
+    # NOW spawn the actual entity
     spawn 1 of {_entityType} parsed as entity type at {_loc}
     set {_entity} to last spawned entity
 
@@ -79,6 +90,9 @@ function boss_spawn(id: text):
 
     loop all players in world of {_loc}:
         play sound "entity.ender_dragon.growl" with volume 0.5 and pitch 0.8 to loop-player
+
+    # Start leash loop — keeps boss near spawn
+    boss_leashLoop({_id})
 
 # ============================================================
 # DESPAWN / FORCE KILL
@@ -166,6 +180,39 @@ function boss_die(id: text):
 
     # Clean up
     boss_cleanup({_id})
+
+# ============================================================
+# LEASH LOOP — keep boss near spawn
+# ============================================================
+
+function boss_leashLoop(id: text):
+    while {boss::active::%{_id}%::alive} is true:
+        set {_entity} to {boss::active::%{_id}%::entity}
+        if {_entity} is not set:
+            stop
+
+        set {_spawnLoc} to boss_getSpawnLoc({_id})
+        if {_spawnLoc} is not set:
+            stop
+
+        set {_currentLoc} to location of {_entity}
+        set {_dist} to distance between {_currentLoc} and {_spawnLoc}
+
+        if {_dist} > 10:
+            # Teleport boss back to spawn
+            teleport {_entity} to {_spawnLoc}
+
+            # Teleport all minions back too
+            loop {boss::active::%{_id}%::minions::*}:
+                set {_minionUuid} to loop-value
+                set {_minion} to {-boss::minion::%{_minionUuid}%::entity}
+                if {_minion} is set:
+                    set {_minionOffset} to {_spawnLoc}
+                    add (random number between -2 and 2) to x-coord of {_minionOffset}
+                    add (random number between -2 and 2) to z-coord of {_minionOffset}
+                    teleport {_minion} to {_minionOffset}
+
+        wait 30 ticks
 
 # ============================================================
 # CLEANUP

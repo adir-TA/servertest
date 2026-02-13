@@ -17,7 +17,7 @@
 # Water column rises from ground (block displays), trident spins
 # inside column, column explodes outward, boss name text pops.
 
-function boss_anim_spawn(loc: location, name: text):
+function boss_anim_spawn(loc: location, name: text, id: text):
     set {_bx} to floor(x-coord of {_loc}) + 0.5
     set {_by} to floor(y-coord of {_loc}) + 1.0
     set {_bz} to floor(z-coord of {_loc}) + 0.5
@@ -261,6 +261,9 @@ function boss_anim_spawn(loc: location, name: text):
                 draw 1 of dust using dustOption(rgb(30, 100, 200), 1.0) at {_ringLoc} for loop-player
 
         wait 1 tick
+
+    # === SPAWN THE ENTITY NOW — animation is done ===
+    boss_spawnFinish({_id})
 
     # === PHASE 4: Boss name text pops ===
     set {_textId} to {_baseId} + 20
