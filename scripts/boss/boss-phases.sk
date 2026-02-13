@@ -50,6 +50,11 @@ function boss_triggerAbility(id: text, ability: text, threshold: number):
     # Dispatch to boss-specific handler
     if {_id} is "poseidon":
         poseidon_ability({_id}, {_ability})
-    # Future bosses:
-    # else if {_id} is "hades":
-    #     hades_ability({_id}, {_ability})
+    else if {_id} is "dragon":
+        dragon_ability({_id}, {_ability})
+    else if {_id} is "ares":
+        ares_ability({_id}, {_ability})
+    else if {_id} is "hades":
+        hades_ability({_id}, {_ability})
+    else if {_id} is "apollo":
+        apollo_ability({_id}, {_ability})

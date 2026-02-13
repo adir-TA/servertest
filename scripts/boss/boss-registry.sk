@@ -177,3 +177,59 @@ on script load:
 
     # Load persistent drops set via /boss setdrops (overrides defaults)
     boss_loadPersistentDrops("poseidon")
+
+    # ════════════════════════════════════════════════════════════
+    # DRAGON
+    # ════════════════════════════════════════════════════════════
+    boss_register("dragon", "&6&lDragon", "wither skeleton", 3000, 12)
+
+    boss_registerPhase("dragon", 75, "teleport_strike")
+    boss_registerPhase("dragon", 50, "dragon_breath")
+    boss_registerPhase("dragon", 15, "dragon_rage")
+
+    boss_registerLoot("dragon", "dragon_scale", "&6&lDragon Scale", blaze powder, 100)
+    boss_registerLoot("dragon", "dragon_fang", "&c&lDragon Fang", flint, 50)
+    boss_registerLoot("dragon", "dragon_heart", "&d&lDragon Heart", nether star, 10)
+    boss_loadPersistentDrops("dragon")
+
+    # ════════════════════════════════════════════════════════════
+    # ARES
+    # ════════════════════════════════════════════════════════════
+    boss_register("ares", "&e&lAres", "piglin brute", 2500, 10)
+
+    boss_registerPhase("ares", 75, "war_minions")
+    boss_registerPhase("ares", 50, "mace_slam")
+    boss_registerPhase("ares", 15, "fireball_barrage")
+
+    boss_registerLoot("ares", "war_medal", "&e&lWar Medal", gold ingot, 100)
+    boss_registerLoot("ares", "ares_blade", "&6&lAres' Blade", golden sword, 50)
+    boss_registerLoot("ares", "ares_helm", "&d&lAres' Helm", golden helmet, 10)
+    boss_loadPersistentDrops("ares")
+
+    # ════════════════════════════════════════════════════════════
+    # HADES
+    # ════════════════════════════════════════════════════════════
+    boss_register("hades", "&5&lHades", "vindicator", 4000, 15)
+
+    boss_registerPhase("hades", 75, "raise_dead")
+    boss_registerPhase("hades", 50, "soul_harvest")
+    boss_registerPhase("hades", 15, "underworld_gate")
+
+    boss_registerLoot("hades", "soul_fragment", "&5&lSoul Fragment", echo shard, 100)
+    boss_registerLoot("hades", "hades_cloak", "&8&lHades' Cloak", netherite scrap, 50)
+    boss_registerLoot("hades", "hades_crown", "&d&lHades' Crown", nether star, 10)
+    boss_loadPersistentDrops("hades")
+
+    # ════════════════════════════════════════════════════════════
+    # APOLLO
+    # ════════════════════════════════════════════════════════════
+    boss_register("apollo", "&e&lApollo", "blaze", 2500, 10)
+
+    boss_registerPhase("apollo", 75, "solar_flare")
+    boss_registerPhase("apollo", 50, "sun_sentinels")
+    boss_registerPhase("apollo", 15, "divine_judgment")
+
+    boss_registerLoot("apollo", "sun_shard", "&e&lSun Shard", glowstone dust, 100)
+    boss_registerLoot("apollo", "apollo_bow", "&6&lApollo's Bow", bow, 50)
+    boss_registerLoot("apollo", "apollo_halo", "&d&lApollo's Halo", nether star, 10)
+    boss_loadPersistentDrops("apollo")

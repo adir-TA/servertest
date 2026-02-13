@@ -1,0 +1,205 @@
+# ============================================================
+# ARES — Boss Abilities
+# ============================================================
+
+function ares_setup(entity: entity):
+    # Equipment
+    set helmet of {_entity} to golden helmet named "&e&lAres' Helm"
+    set chestplate of {_entity} to iron chestplate named "&e&lAres' Chestplate"
+    set leggings of {_entity} to iron leggings named "&e&lAres' Greaves"
+    set boots of {_entity} to iron boots named "&e&lAres' Boots"
+    set tool of {_entity} to golden axe named "&6&lAres' Battleaxe"
+    stop
+
+function ares_ability(bossId: text, ability: text):
+    set {_entity} to boss_getEntity({_bossId})
+    if {_entity} is not set:
+        stop
+    set {_bossLoc} to location of {_entity}
+
+    # ============================================================
+    # 75% — WAR MINIONS
+    # ============================================================
+    if {_ability} is "war_minions":
+        boss_anim_phaseText({_bossLoc}, "&e&lWAR MINIONS!", rgb(255, 200, 50))
+        play sound "event.raid.horn" with volume 2 with pitch 0.8 at {_bossLoc}
+
+        # Spawn 3 portal displays
+        set {_portalLocs::*} to boss_getCirclePositions({_bossLoc}, 3, 3)
+        set {_portalIds::*} to a new list
+        loop {_portalLocs::*}:
+            set {_loc} to loop-value
+            add 0 to y-coord of {_loc}
+            set {_id} to "%{_bossId}%_portal_%loop-index%"
+            add {_id} to {_portalIds::*}
+            loop all players in world of {_loc}:
+                spawn fake glowing block display of gold block at {_loc} for loop-player with id {_id}
+                draw 20 of dust using dustOption(rgb(255, 200, 50), 2) at {_loc} for loop-player
+
+        # Countdown
+        set {_countdown} to 3
+        while {_countdown} > 0:
+            set {_countdownLoc} to {_bossLoc}
+            add 3 to y-coord of {_countdownLoc}
+            set {_text} to "&e&lMINIONS SPAWNING IN %{_countdown}%..."
+            loop all players in world of {_bossLoc}:
+                spawn fake glowing text display "%{_text}%" at {_countdownLoc} for loop-player with id "%{_bossId}%_countdown"
+            wait 1 second
+            loop all players in world of {_bossLoc}:
+                destroy fake entity with id "%{_bossId}%_countdown" for loop-player
+            remove 1 from {_countdown}
+
+        # Spawn minions
+        loop {_portalLocs::*}:
+            set {_loc} to loop-value
+            boss_spawnMinion({_bossId}, "piglin", {_loc}, "&e&lWar Piglin", 5)
+            loop all players in world of {_loc}:
+                draw 30 of dust using dustOption(rgb(255, 200, 50), 2) at {_loc} for loop-player
+            play sound "entity.zombie.break_wooden_door" with volume 2 at {_loc}
+
+        # Remove portals
+        loop {_portalIds::*}:
+            loop all players in world of {_bossLoc}:
+                destroy fake entity with id loop-value for loop-player
+
+        # Demoralizing debuff
+        loop all players in world of {_bossLoc}:
+            apply weakness 1 to loop-player for 3 seconds
+        stop
+
+    # ============================================================
+    # 50% — MACE SLAM
+    # ============================================================
+    if {_ability} is "mace_slam":
+        boss_anim_phaseText({_bossLoc}, "&e&l⚡ MACE SLAM ⚡", rgb(255, 200, 0))
+
+        # Create gold block display for animation
+        set {_displayId} to "%{_bossId}%_mace_block"
+        set {_animLoc} to {_bossLoc}
+        loop all players in world of {_bossLoc}:
+            spawn fake glowing block display of gold block at {_animLoc} for loop-player with id {_displayId}
+
+        # Animate flying up
+        set {_step} to 0
+        while {_step} < 10:
+            add 1 to {_step}
+            add 0.8 to y-coord of {_animLoc}
+            loop all players in world of {_bossLoc}:
+                teleport fake entity with id {_displayId} to {_animLoc} for loop-player
+                draw 5 of dust using dustOption(rgb(255, 255, 200), 1) at {_animLoc} for loop-player
+            wait 2 ticks
+
+        play sound "entity.wither.shoot" with volume 2 with pitch 0.5 at {_animLoc}
+        wait 10 ticks
+
+        # Slam down
+        set {_step} to 0
+        while {_step} < 10:
+            add 1 to {_step}
+            remove 0.8 from y-coord of {_animLoc}
+            loop all players in world of {_bossLoc}:
+                teleport fake entity with id {_displayId} to {_animLoc} for loop-player
+            wait 1 tick
+
+        # Impact effects
+        play sound "block.anvil.land" with volume 3 with pitch 0.5 at {_bossLoc}
+        play sound "entity.lightning_bolt.thunder" with volume 2 at {_bossLoc}
+        loop all players in world of {_bossLoc}:
+            draw 100 of dust using dustOption(rgb(255, 200, 50), 3) at {_bossLoc} for loop-player
+            destroy fake entity with id {_displayId} for loop-player
+
+        boss_anim_shockwave({_bossLoc}, rgb(255, 200, 50))
+
+        # Debuffs and damage
+        loop all players in world of {_bossLoc}:
+            apply blindness 1 to loop-player for 2 seconds
+            apply slowness 2 to loop-player for 3 seconds
+            damage loop-player by (max health of loop-player * 0.3) hearts
+        stop
+
+    # ============================================================
+    # 15% — FIREBALL BARRAGE
+    # ============================================================
+    if {_ability} is "fireball_barrage":
+        set {boss::active::%{_bossId}%::buffFireball} to true
+        boss_anim_phaseText({_bossLoc}, "&c&l🔥 FIREBALL BARRAGE 🔥", rgb(255, 80, 0))
+
+        # Buff the boss
+        apply strength 3 to {_entity} for 999 seconds
+        apply speed 2 to {_entity} for 999 seconds
+
+        boss_anim_shockwave({_bossLoc}, rgb(255, 100, 0))
+
+        # Start fireball loop
+        ares_fireballLoop({_bossId})
+        stop
+
+function ares_fireballLoop(bossId: text):
+    while boss_isAlive({_bossId}) is true:
+        wait 30 ticks
+
+        set {_entity} to boss_getEntity({_bossId})
+        if {_entity} is not set:
+            stop
+
+        set {_bossLoc} to location of {_entity}
+        set {_target} to {boss::active::%{_bossId}%::lastHitter}
+
+        if {_target} is a player:
+            if {_target} is alive:
+                set {_targetLoc} to location of {_target}
+
+                # Create fake fire charge item display
+                set {_fireballId} to "%{_bossId}%_fireball_%now%"
+                set {_fireballLoc} to {_bossLoc}
+                add 1 to y-coord of {_fireballLoc}
+
+                loop all players in world of {_bossLoc}:
+                    spawn fake item display of fire charge at {_fireballLoc} for loop-player with id {_fireballId}
+
+                play sound "entity.blaze.shoot" with volume 2 at {_bossLoc}
+
+                # Animate fireball movement
+                set {_step} to 0
+                while {_step} < 5:
+                    add 1 to {_step}
+                    set {_fireballLoc} to boss_lerpLocation({_fireballLoc}, {_targetLoc}, 0.2)
+                    loop all players in world of {_bossLoc}:
+                        teleport fake entity with id {_fireballId} to {_fireballLoc} for loop-player
+                        draw 3 of dust using dustOption(rgb(255, 100, 0), 1) at {_fireballLoc} for loop-player
+                    wait 1 tick
+
+                # Impact
+                loop all players in world of {_bossLoc}:
+                    draw 30 of dust using dustOption(rgb(255, 80, 0), 2) at {_targetLoc} for loop-player
+                    destroy fake entity with id {_fireballId} for loop-player
+
+                play sound "entity.generic.explode" with volume 1.5 at {_targetLoc}
+                set {_target} on fire for 3 seconds
+                damage {_target} by (max health of {_target} * 0.15) hearts
+    stop
+
+# ============================================================
+# DAMAGE MODIFIER EVENT
+# ============================================================
+
+on damage of player:
+    if attacker is set:
+        set {_bossId} to boss_getIdFromEntity(attacker)
+        if {_bossId} is "ares":
+            cancel event
+
+            # Calculate base damage
+            set {_damage} to max health of victim * (boss_getBaseDamage({_bossId}) / 100)
+
+            # Fireball buff multiplier
+            if {boss::active::%{_bossId}%::buffFireball} is true:
+                set {_damage} to {_damage} * 1.5
+
+            # Apply damage
+            damage victim by {_damage} hearts
+
+            # Gold particle effect
+            set {_victimLoc} to location of victim
+            loop all players in world of {_victimLoc}:
+                draw 15 of dust using dustOption(rgb(255, 200, 50), 1.5) at {_victimLoc} for loop-player

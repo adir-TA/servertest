@@ -80,6 +80,9 @@ function boss_spawnFinish(id: text):
     delete {boss::active::%{_id}%::buffRain}
     delete {boss::active::%{_id}%::buffRampage}
 
+    # Boss-specific entity setup (armor, equipment, etc)
+    boss_setupEntity({_id}, {_entity})
+
     # Spawn HUD after entity exists
     boss_hud_create({_id}, {_entity})
 
@@ -265,12 +268,63 @@ function boss_getIdFromEntity(e: entity) :: text:
 # DAMAGE EVENT
 # ============================================================
 
+# ============================================================
+# ENTITY SETUP (armor, equipment per boss)
+# ============================================================
+
+function boss_setupEntity(id: text, entity: entity):
+    if {_id} is "dragon":
+        dragon_setup({_entity})
+    else if {_id} is "ares":
+        ares_setup({_entity})
+    else if {_id} is "hades":
+        hades_setup({_entity})
+
+# ============================================================
+# DAMAGE EVENTS (one per entity type)
+# ============================================================
+
 on damage of elder guardian:
     set {_bossId} to boss_getIdFromEntity(victim)
     if {_bossId} != "":
         set {_damage} to damage
         cancel event
-        # Heal entity back to full (we track HP ourselves)
+        set health of victim to maximum health of victim
+        if attacker is a player:
+            boss_dealDamage(attacker, {_bossId}, {_damage})
+
+on damage of wither skeleton:
+    set {_bossId} to boss_getIdFromEntity(victim)
+    if {_bossId} != "":
+        set {_damage} to damage
+        cancel event
+        set health of victim to maximum health of victim
+        if attacker is a player:
+            boss_dealDamage(attacker, {_bossId}, {_damage})
+
+on damage of piglin brute:
+    set {_bossId} to boss_getIdFromEntity(victim)
+    if {_bossId} != "":
+        set {_damage} to damage
+        cancel event
+        set health of victim to maximum health of victim
+        if attacker is a player:
+            boss_dealDamage(attacker, {_bossId}, {_damage})
+
+on damage of vindicator:
+    set {_bossId} to boss_getIdFromEntity(victim)
+    if {_bossId} != "":
+        set {_damage} to damage
+        cancel event
+        set health of victim to maximum health of victim
+        if attacker is a player:
+            boss_dealDamage(attacker, {_bossId}, {_damage})
+
+on damage of blaze:
+    set {_bossId} to boss_getIdFromEntity(victim)
+    if {_bossId} != "":
+        set {_damage} to damage
+        cancel event
         set health of victim to maximum health of victim
         if attacker is a player:
             boss_dealDamage(attacker, {_bossId}, {_damage})
