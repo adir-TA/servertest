@@ -38,6 +38,7 @@ function boss_anim_spawn(loc: location, name: text, id: text):
             spawn fake block display at {_columnLoc} for loop-player with id {_cid}
             set {_m} to new metadata packet with id {_cid}:
                 display block: blue stained glass
+                display translation: vector(-0.5, 0, -0.5)
                 display scale: vector(0.6, 0.01, 0.6)
                 display billboard: center
                 display brightness block: 15

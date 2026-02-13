@@ -65,6 +65,7 @@ function ares_anim_spawn(loc: location, name: text, id: text):
             spawn fake block display at {_skyLoc} for loop-player with id {_cid}
             set {_m} to new metadata packet with id {_cid}:
                 display block: gold block
+                display translation: vector(-0.5, 0, -0.5)
                 display scale: vector(0.5, 2, 0.5)
                 display brightness block: 15
                 display teleportduration: 2
@@ -249,8 +250,6 @@ function ares_ability(bossId: text, ability: text):
     # 75% — WAR MINIONS
     # ════════════════════════════════════════════════════════════
     if {_ability} is "war_minions":
-        boss_anim_phaseText({_bossLoc}, "&e&lWAR MINIONS!", rgb(255, 200, 50))
-
         loop all players in world of {_bossLoc}:
             play sound "event.raid.horn" with volume 1.0 and pitch 0.8 to loop-player
 
@@ -276,6 +275,7 @@ function ares_ability(bossId: text, ability: text):
                 spawn fake block display at {_portalLoc} for loop-player with id {_pid}
                 set {_m} to new metadata packet with id {_pid}:
                     display block: gold block
+                    display translation: vector(-0.5, 0, -0.5)
                     display scale: vector(0.01, 0.01, 0.01)
                     display brightness block: 15
                     display teleportduration: 2
@@ -426,8 +426,6 @@ function ares_ability(bossId: text, ability: text):
     # 50% — MACE SLAM
     # ════════════════════════════════════════════════════════════
     else if {_ability} is "mace_slam":
-        boss_anim_phaseText({_bossLoc}, "&e&l⚡ MACE SLAM ⚡", rgb(255, 200, 0))
-
         # Create gold block display for mace animation
         set {_maceId} to random integer between 100000 and 9999999
         set {_maceLoc} to location({_bx}, {_by} + 1.0, {_bz}, {_world})
@@ -436,6 +434,7 @@ function ares_ability(bossId: text, ability: text):
             spawn fake block display at {_maceLoc} for loop-player with id {_maceId}
             set {_m} to new metadata packet with id {_maceId}:
                 display block: gold block
+                display translation: vector(-0.5, 0, -0.5)
                 display scale: vector(0.8, 0.8, 0.8)
                 display brightness block: 15
                 display teleportduration: 2
@@ -494,8 +493,6 @@ function ares_ability(bossId: text, ability: text):
     # ════════════════════════════════════════════════════════════
     else if {_ability} is "fireball_barrage":
         set {boss::active::%{_bossId}%::buffFireball} to true
-
-        boss_anim_phaseText({_bossLoc}, "&c&l🔥 FIREBALL BARRAGE 🔥", rgb(255, 80, 0))
 
         apply strength 3 to {_entity} for 999 seconds
         apply speed 2 to {_entity} for 999 seconds

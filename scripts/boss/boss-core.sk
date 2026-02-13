@@ -106,6 +106,9 @@ function boss_spawnFinish(id: text):
     # Start leash loop — keeps boss near spawn
     boss_leashLoop({_id})
 
+    # Start 5-minute timeout — force kill if not dead
+    boss_timeoutTimer({_id})
+
 # ============================================================
 # DESPAWN / FORCE KILL
 # ============================================================
@@ -193,6 +196,9 @@ function boss_die(id: text):
     # Clean up
     boss_cleanup({_id})
 
+    # Start respawn timer
+    boss_respawnTimer({_id})
+
 # ============================================================
 # LEASH LOOP — keep boss near spawn
 # ============================================================
@@ -225,6 +231,47 @@ function boss_leashLoop(id: text):
                     teleport {_minion} to {_minionOffset}
 
         wait 30 ticks
+
+# ============================================================
+# TIMEOUT — force kill after 5 minutes
+# ============================================================
+
+function boss_timeoutTimer(id: text):
+    wait 6000 ticks
+    if {boss::active::%{_id}%::alive} is true:
+        set {_name} to boss_getName({_id})
+        broadcast ""
+        broadcast "&7%{_name}% &7has retreated..."
+        broadcast ""
+        boss_forceKill({_id})
+        boss_respawnTimer({_id})
+
+# ============================================================
+# RESPAWN TIMER
+# ============================================================
+
+function boss_respawnTimer(id: text):
+    set {_respawnTicks} to boss_getRespawnTime({_id})
+    if {_respawnTicks} <= 0:
+        stop
+
+    # Check if spawn location exists
+    set {_loc} to boss_getSpawnLoc({_id})
+    if {_loc} is not set:
+        stop
+
+    set {_name} to boss_getName({_id})
+    set {_minutes} to {_respawnTicks} / 1200
+
+    broadcast "&7%{_name}% &7will respawn in &e%{_minutes}% &7minutes."
+
+    wait {_respawnTicks} ticks
+
+    # Only respawn if not already alive and spawn loc still set
+    if {boss::active::%{_id}%::alive} is not true:
+        set {_loc2} to boss_getSpawnLoc({_id})
+        if {_loc2} is set:
+            boss_spawn({_id})
 
 # ============================================================
 # CLEANUP
@@ -334,3 +381,13 @@ on damage of skeleton:
         set damage to 0
         if attacker is a player:
             boss_dealDamage(attacker, {_bossId}, {_damage})
+
+# ============================================================
+# ENTITY TRANSFORM — prevent piglin brute zombification
+# ============================================================
+
+on entity transform:
+    set {_bossId} to boss_getIdFromEntity(event-entity)
+    if {_bossId} != "":
+        cancel event
+        boss_setupEntity({_bossId}, event-entity)

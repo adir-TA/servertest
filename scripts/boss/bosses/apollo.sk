@@ -54,6 +54,7 @@ function apollo_anim_spawn(loc: location, name: text, id: text):
             spawn fake block display at {_beamLoc} for loop-player with id {_cid}
             set {_m} to new metadata packet with id {_cid}:
                 display block: yellow stained glass
+                display translation: vector(-0.5, 0, -0.5)
                 display scale: vector(0.4, 0.01, 0.4)
                 display billboard: center
                 display brightness block: 15
@@ -275,8 +276,6 @@ function apollo_ability(bossId: text, ability: text):
     # 75% — SOLAR FLARE
     # ════════════════════════════════════════════════════════════
     if {_ability} is "solar_flare":
-        boss_anim_phaseText({_bossLoc}, "&e&lSOLAR FLARE!", rgb(255, 220, 50))
-
         # Massive light burst
         set {_burstCenter} to location({_bx}, {_by} + 1.5, {_bz}, {_world})
         loop all players in world of {_bossLoc}:
@@ -318,6 +317,7 @@ function apollo_ability(bossId: text, ability: text):
                 spawn fake block display at {_startLoc} for loop-player with id {_fid}
                 set {_m} to new metadata packet with id {_fid}:
                     display block: gold block
+                    display translation: vector(-0.5, 0, -0.5)
                     display scale: vector(0.5, 0.5, 0.5)
                     display brightness block: 15
                     display teleportduration: 2
@@ -366,8 +366,6 @@ function apollo_ability(bossId: text, ability: text):
     # 50% — SUN SENTINELS
     # ════════════════════════════════════════════════════════════
     else if {_ability} is "sun_sentinels":
-        boss_anim_phaseText({_bossLoc}, "&e&lSUN SENTINELS!", rgb(255, 200, 0))
-
         loop all players in world of {_bossLoc}:
             play sound "entity.blaze.ambient" with volume 1.0 and pitch 0.8 to loop-player
 
@@ -393,6 +391,7 @@ function apollo_ability(bossId: text, ability: text):
                 spawn fake block display at {_portalLoc} for loop-player with id {_pid}
                 set {_m} to new metadata packet with id {_pid}:
                     display block: yellow stained glass
+                    display translation: vector(-0.5, 0, -0.5)
                     display scale: vector(0.01, 0.01, 0.01)
                     display brightness block: 15
                     display teleportduration: 2
@@ -544,7 +543,6 @@ function apollo_ability(bossId: text, ability: text):
     else if {_ability} is "divine_judgment":
         set {boss::active::%{_bossId}%::buffJudgment} to true
 
-        boss_anim_phaseText({_bossLoc}, "&e&l⚡ DIVINE JUDGMENT ⚡%nl%&7Apollo unleashes the sun's wrath!", rgb(255, 200, 0))
         boss_anim_shockwave({_bossLoc}, rgb(255, 220, 50))
 
         # Lightning + damage on all players
@@ -565,6 +563,7 @@ function apollo_ability(bossId: text, ability: text):
             spawn fake block display at {_sunLoc} for loop-player with id {_sunId}
             set {_m} to new metadata packet with id {_sunId}:
                 display block: yellow stained glass
+                display translation: vector(-0.5, 0, -0.5)
                 display scale: vector(0.5, 0.5, 0.5)
                 display brightness block: 15
                 display teleportduration: 2

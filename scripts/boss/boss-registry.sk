@@ -85,6 +85,9 @@ function boss_getBaseDamage(id: text) :: number:
 function boss_getSpawnLoc(id: text) :: location:
     return {boss::spawnLoc::%{_id}%}
 
+function boss_getRespawnTime(id: text) :: number:
+    return {-boss::registry::%{_id}%::respawnTime} ? 0
+
 function boss_isRegistered(id: text) :: boolean:
     if {-boss::registry::%{_id}%::name} is set:
         return true
@@ -177,6 +180,7 @@ on script load:
 
     # Load persistent drops set via /boss setdrops (overrides defaults)
     boss_loadPersistentDrops("poseidon")
+    set {-boss::registry::poseidon::respawnTime} to 36000
 
     # ════════════════════════════════════════════════════════════
     # DRAGON
@@ -191,6 +195,7 @@ on script load:
     boss_registerLoot("dragon", "dragon_fang", "&c&lDragon Fang", flint, 50)
     boss_registerLoot("dragon", "dragon_heart", "&d&lDragon Heart", nether star, 10)
     boss_loadPersistentDrops("dragon")
+    set {-boss::registry::dragon::respawnTime} to 24000
 
     # ════════════════════════════════════════════════════════════
     # ARES
@@ -205,6 +210,7 @@ on script load:
     boss_registerLoot("ares", "ares_blade", "&6&lAres' Blade", golden sword, 50)
     boss_registerLoot("ares", "ares_helm", "&d&lAres' Helm", golden helmet, 10)
     boss_loadPersistentDrops("ares")
+    set {-boss::registry::ares::respawnTime} to 21000
 
     # ════════════════════════════════════════════════════════════
     # HADES
@@ -219,6 +225,7 @@ on script load:
     boss_registerLoot("hades", "hades_cloak", "&8&lHades' Cloak", netherite scrap, 50)
     boss_registerLoot("hades", "hades_crown", "&d&lHades' Crown", nether star, 10)
     boss_loadPersistentDrops("hades")
+    set {-boss::registry::hades::respawnTime} to 18000
 
     # ════════════════════════════════════════════════════════════
     # APOLLO
@@ -233,3 +240,4 @@ on script load:
     boss_registerLoot("apollo", "apollo_bow", "&6&lApollo's Bow", bow, 50)
     boss_registerLoot("apollo", "apollo_halo", "&d&lApollo's Halo", nether star, 10)
     boss_loadPersistentDrops("apollo")
+    set {-boss::registry::apollo::respawnTime} to 12000

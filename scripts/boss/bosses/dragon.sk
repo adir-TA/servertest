@@ -54,6 +54,7 @@ function dragon_anim_spawn(loc: location, name: text, id: text):
             spawn fake block display at {_columnLoc} for loop-player with id {_cid}
             set {_m} to new metadata packet with id {_cid}:
                 display block: magma block
+                display translation: vector(-0.5, 0, -0.5)
                 display scale: vector(0.6, 0.01, 0.6)
                 display billboard: center
                 display brightness block: 15
@@ -310,9 +311,6 @@ function dragon_ability(bossId: text, ability: text):
         set {_tz} to floor(z-coord of {_targetLoc}) + 0.5
         set {_tWorld} to world of {_targetLoc}
 
-        # Phase text
-        boss_anim_phaseText({_bossLoc}, "&6&lTELEPORT STRIKE!", rgb(255, 100, 0))
-
         # Spawn red warning ring block displays at target
         set {_ringBaseId} to random integer between 100000 and 9999999
         set {_ringCount} to 8
@@ -328,6 +326,7 @@ function dragon_ability(bossId: text, ability: text):
                 spawn fake block display at {_rLoc} for loop-player with id {_rid}
                 set {_m} to new metadata packet with id {_rid}:
                     display block: red stained glass
+                    display translation: vector(-0.5, 0, -0.5)
                     display scale: vector(0.01, 0.01, 0.01)
                     display brightness block: 15
                     display teleportduration: 2
@@ -400,6 +399,7 @@ function dragon_ability(bossId: text, ability: text):
             spawn fake block display at {_impactLoc} for loop-player with id {_impactId}
             set {_m} to new metadata packet with id {_impactId}:
                 display block: magma block
+                display translation: vector(-0.5, 0, -0.5)
                 display scale: vector(0.5, 0.5, 0.5)
                 display brightness block: 15
                 display teleportduration: 2
@@ -466,8 +466,6 @@ function dragon_ability(bossId: text, ability: text):
     else if {_ability} is "dragon_breath":
         set {boss::active::%{_bossId}%::buffBreath} to true
 
-        boss_anim_phaseText({_bossLoc}, "&c&lDRAGON BREATH!", rgb(200, 50, 0))
-
         # Spawn toxic cloud block displays around boss
         set {_cloudBaseId} to random integer between 100000 and 9999999
         set {_cloudCount} to 6
@@ -484,6 +482,7 @@ function dragon_ability(bossId: text, ability: text):
                 spawn fake block display at {_cloudLoc} for loop-player with id {_cid}
                 set {_m} to new metadata packet with id {_cid}:
                     display block: green stained glass
+                    display translation: vector(-0.5, 0, -0.5)
                     display scale: vector(0.01, 0.01, 0.01)
                     display brightness block: 15
                     display teleportduration: 2
@@ -580,8 +579,6 @@ function dragon_ability(bossId: text, ability: text):
 
         boss_anim_shockwave({_bossLoc}, rgb(255, 50, 0))
 
-        boss_anim_phaseText({_bossLoc}, "&c&l⚠ DRAGON RAGE ⚠%nl%&7The dragon burns with fury!", rgb(255, 30, 0))
-
         # Spawn fire pillar displays rising from ground around boss
         set {_pillarBaseId} to random integer between 100000 and 9999999
         set {_pillarCount} to 4
@@ -597,6 +594,7 @@ function dragon_ability(bossId: text, ability: text):
                 spawn fake block display at {_pillarLoc} for loop-player with id {_pillarId}
                 set {_m} to new metadata packet with id {_pillarId}:
                     display block: magma block
+                    display translation: vector(-0.5, 0, -0.5)
                     display scale: vector(0.6, 0.01, 0.6)
                     display brightness block: 15
                     display teleportduration: 2
@@ -630,6 +628,7 @@ function dragon_ability(bossId: text, ability: text):
             spawn fake block display at {_crownLoc} for loop-player with id {_crownId}
             set {_m} to new metadata packet with id {_crownId}:
                 display block: orange stained glass
+                display translation: vector(-0.5, 0, -0.5)
                 display scale: vector(0.01, 0.01, 0.01)
                 display brightness block: 15
                 display billboard: center

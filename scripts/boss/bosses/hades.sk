@@ -50,6 +50,7 @@ function hades_anim_spawn(loc: location, name: text, id: text):
         spawn fake block display at {_portalLoc} for loop-player with id {_portalId}
         set {_m} to new metadata packet with id {_portalId}:
             display block: purple stained glass
+            display translation: vector(-0.5, 0, -0.5)
             display scale: vector(0.01, 0.01, 0.01)
             display brightness block: 15
             display teleportduration: 2
@@ -228,7 +229,6 @@ function hades_ability(bossId: text, ability: text):
     # 75% — RAISE DEAD
     # ════════════════════════════════════════════════════════════
     if {_ability} is "raise_dead":
-        boss_anim_phaseText({_bossLoc}, "&5&lRISE, MY UNDEAD!", rgb(100, 0, 150))
         boss_anim_shockwave({_bossLoc}, rgb(130, 0, 200))
 
         # Darkness to all players
@@ -259,6 +259,7 @@ function hades_ability(bossId: text, ability: text):
                 spawn fake block display at {_portalLoc} for loop-player with id {_pid}
                 set {_m} to new metadata packet with id {_pid}:
                     display block: purple stained glass
+                    display translation: vector(-0.5, 0, -0.5)
                     display scale: vector(0.01, 0.01, 0.01)
                     display brightness block: 15
                     display teleportduration: 2
@@ -412,8 +413,6 @@ function hades_ability(bossId: text, ability: text):
     # 50% — SOUL HARVEST
     # ════════════════════════════════════════════════════════════
     else if {_ability} is "soul_harvest":
-        boss_anim_phaseText({_bossLoc}, "&8&lSOUL HARVEST", rgb(80, 0, 120))
-
         # Spawn soul orb displays in a ring around boss
         set {_orbBaseId} to random integer between 100000 and 9999999
         set {_orbCount} to 8
@@ -430,6 +429,7 @@ function hades_ability(bossId: text, ability: text):
                 spawn fake block display at {_orbLoc} for loop-player with id {_oid}
                 set {_m} to new metadata packet with id {_oid}:
                     display block: soul sand
+                    display translation: vector(-0.5, 0, -0.5)
                     display scale: vector(0.01, 0.01, 0.01)
                     display brightness block: 15
                     display billboard: center
@@ -580,8 +580,6 @@ function hades_ability(bossId: text, ability: text):
     else if {_ability} is "underworld_gate":
         set {boss::active::%{_bossId}%::buffGate} to true
 
-        boss_anim_phaseText({_bossLoc}, "&5&l⚠ UNDERWORLD GATE ⚠%nl%&7The dead world breaks through!", rgb(150, 0, 200))
-
         # Spawn ground portal display
         set {_gateBaseId} to random integer between 100000 and 9999999
         set {_portalId} to {_gateBaseId} + 1
@@ -591,6 +589,7 @@ function hades_ability(bossId: text, ability: text):
             spawn fake block display at {_portalLoc} for loop-player with id {_portalId}
             set {_m} to new metadata packet with id {_portalId}:
                 display block: purple stained glass
+                display translation: vector(-0.5, 0, -0.5)
                 display scale: vector(0.01, 0.01, 0.01)
                 display brightness block: 15
                 display teleportduration: 2
@@ -625,6 +624,7 @@ function hades_ability(bossId: text, ability: text):
                 spawn fake block display at {_pillarLoc} for loop-player with id {_pillarId}
                 set {_m} to new metadata packet with id {_pillarId}:
                     display block: soul sand
+                    display translation: vector(-0.5, 0, -0.5)
                     display scale: vector(0.5, 0.01, 0.5)
                     display brightness block: 15
                     display teleportduration: 2
