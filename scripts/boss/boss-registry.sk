@@ -163,7 +163,7 @@ on script load:
     # POSEIDON
     # ════════════════════════════════════════════════════════════
     # Entity: Elder Guardian | HP: 50,000 | Base Damage: 10% of player max health
-    boss_register("poseidon", "&b&lPoseidon", "elder guardian", 50000, 10)
+    boss_register("poseidon", "&b&lPoseidon", "elder guardian", 2000, 10)
 
     # Phases (trigger when HP drops to or below this %)
     boss_registerPhase("poseidon", 75, "summon_guardians")

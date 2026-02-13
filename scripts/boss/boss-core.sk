@@ -268,10 +268,9 @@ function boss_getIdFromEntity(e: entity) :: text:
 on damage of elder guardian:
     set {_bossId} to boss_getIdFromEntity(victim)
     if {_bossId} != "":
+        set {_damage} to damage
         cancel event
         # Heal entity back to full (we track HP ourselves)
         set health of victim to maximum health of victim
         if attacker is a player:
-            # Calculate damage (player deals flat damage for now)
-            set {_damage} to 100
             boss_dealDamage(attacker, {_bossId}, {_damage})
