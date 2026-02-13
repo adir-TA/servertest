@@ -414,31 +414,109 @@ function hades_ability(bossId: text, ability: text):
     else if {_ability} is "soul_harvest":
         boss_anim_phaseText({_bossLoc}, "&8&lSOUL HARVEST", rgb(80, 0, 120))
 
-        # Dark vortex — spiral particles inward
-        set {_step} to 0
-        while {_step} < 12:
-            set {_radius} to 4 - ({_step} * 0.3)
-            if {_radius} < 0.5:
-                set {_radius} to 0.5
+        # Spawn soul orb displays in a ring around boss
+        set {_orbBaseId} to random integer between 100000 and 9999999
+        set {_orbCount} to 8
+        loop {_orbCount} times:
+            set {_oi} to loop-number
+            set {_oAngle} to ({_oi} - 1) * 45
+            set {_oRadius} to 4
+            set {_ox} to {_bx} + ({_oRadius} * cos({_oAngle}))
+            set {_oz} to {_bz} + ({_oRadius} * sin({_oAngle}))
+            set {_oid} to {_orbBaseId} + {_oi}
+            set {_orbLoc} to location({_ox}, {_by} + 1.5, {_oz}, {_world})
 
+            loop all players in world of {_bossLoc}:
+                spawn fake block display at {_orbLoc} for loop-player with id {_oid}
+                set {_m} to new metadata packet with id {_oid}:
+                    display block: soul sand
+                    display scale: vector(0.01, 0.01, 0.01)
+                    display brightness block: 15
+                    display billboard: center
+                    display teleportduration: 2
+                    display transformation: 3
+                    display interpolation: 0
+                    glowing: true
+                    display glow: rgb(100, 200, 200)
+                send packet {_m} to loop-player
+
+        wait 1 tick
+
+        # Expand soul orbs
+        loop {_orbCount} times:
+            set {_oi} to loop-number
+            set {_oid} to {_orbBaseId} + {_oi}
+            loop all players in world of {_bossLoc}:
+                set {_m} to new metadata packet with id {_oid}:
+                    display scale: vector(0.5, 0.5, 0.5)
+                    display transformation: 4
+                    display interpolation: 0
+                send packet {_m} to loop-player
+
+        loop all players in world of {_bossLoc}:
+            play sound "entity.warden.heartbeat" with volume 0.5 and pitch 0.5 to loop-player
+
+        # Spiral orbs inward toward boss with particle vortex
+        set {_step} to 0
+        while {_step} < 8:
+            set {_pullRadius} to 4 - ({_step} * 0.45)
+            if {_pullRadius} < 0.5:
+                set {_pullRadius} to 0.5
+            set {_spinOffset} to {_step} * 20
+
+            loop {_orbCount} times:
+                set {_oi} to loop-number
+                set {_oid} to {_orbBaseId} + {_oi}
+                set {_oAngle} to (({_oi} - 1) * 45) + {_spinOffset}
+                set {_ox} to {_bx} + ({_pullRadius} * cos({_oAngle}))
+                set {_oz} to {_bz} + ({_pullRadius} * sin({_oAngle}))
+                set {_orbMoveLoc} to location({_ox}, {_by} + 1.5, {_oz}, {_world})
+
+                loop all players in world of {_bossLoc}:
+                    send teleport packet with id {_oid} with location {_orbMoveLoc} to loop-player
+                    draw 2 of dust using dustOption(rgb(100, 0, 150), 1.0) at {_orbMoveLoc} for loop-player
+                    draw 1 of soul_fire_flame at {_orbMoveLoc} for loop-player
+
+            # Particle vortex ring
             set {_angleStep} to 0
             while {_angleStep} < 360:
-                set {_px} to {_bx} + (cos({_angleStep}) * {_radius})
-                set {_pz} to {_bz} + (sin({_angleStep}) * {_radius})
+                set {_px} to {_bx} + (cos({_angleStep}) * {_pullRadius})
+                set {_pz} to {_bz} + (sin({_angleStep}) * {_pullRadius})
                 set {_particleLoc} to location({_px}, {_by} + 1, {_pz}, {_world})
                 loop all players in world of {_bossLoc}:
                     draw 1 of dust using dustOption(rgb(100, 0, 150), 1.0) at {_particleLoc} for loop-player
                 add 30 to {_angleStep}
 
-            wait 2 ticks
+            wait 3 ticks
             add 1 to {_step}
+
+        # All orbs converge — shrink at center
+        loop {_orbCount} times:
+            set {_oi} to loop-number
+            set {_oid} to {_orbBaseId} + {_oi}
+            set {_centerLoc} to location({_bx}, {_by} + 1.5, {_bz}, {_world})
+            loop all players in world of {_bossLoc}:
+                send teleport packet with id {_oid} with location {_centerLoc} to loop-player
+                set {_m} to new metadata packet with id {_oid}:
+                    display scale: vector(0.01, 0.01, 0.01)
+                    display transformation: 4
+                    display interpolation: 0
+                send packet {_m} to loop-player
+
+        # Purple explosion at center when orbs arrive
+        set {_explosionLoc} to location({_bx}, {_by} + 1.5, {_bz}, {_world})
+        loop all players in world of {_bossLoc}:
+            draw 30 of dust using dustOption(rgb(130, 0, 200), 2.0) at {_explosionLoc} with offset vector(1.5, 1.0, 1.5) for loop-player
+            draw 20 of dust using dustOption(rgb(20, 0, 30), 1.8) at {_explosionLoc} with offset vector(1.0, 0.8, 1.0) for loop-player
+            draw 10 of soul_fire_flame at {_explosionLoc} with offset vector(0.8, 0.6, 0.8) for loop-player
+            play sound "entity.wither.ambient" with volume 0.8 and pitch 0.6 to loop-player
+            play sound "block.soul_sand.break" with volume 1.0 and pitch 0.5 to loop-player
 
         # Debuffs
         loop all players in world of {_bossLoc}:
             apply darkness 1 to loop-player for 5 seconds
             apply wither 2 to loop-player for 4 seconds
 
-            # Purple burst on each player
             set {_pLoc} to location of loop-player
             set {_pLocX} to x-coord of {_pLoc}
             set {_pLocY} to y-coord of {_pLoc}
@@ -476,19 +554,9 @@ function hades_ability(bossId: text, ability: text):
         loop all players in world of {_bossLoc}:
             send teleport packet with id {_healId} with location {_healEndLoc} to loop-player
 
-        loop all players in world of {_bossLoc}:
-            play sound "entity.wither.ambient" with volume 0.8 and pitch 0.6 to loop-player
-            play sound "block.soul_sand.break" with volume 1.0 and pitch 0.5 to loop-player
-
-        # Purple explosion at boss
-        set {_explosionLoc} to location({_bx}, {_by} + 1.5, {_bz}, {_world})
-        loop all players in world of {_bossLoc}:
-            draw 30 of dust using dustOption(rgb(130, 0, 200), 2.0) at {_explosionLoc} with offset vector(1.5, 1.0, 1.5) for loop-player
-            draw 20 of dust using dustOption(rgb(20, 0, 30), 1.8) at {_explosionLoc} with offset vector(1.0, 0.8, 1.0) for loop-player
-
         wait 20 ticks
 
-        # Remove heal text
+        # Remove heal text + orbs
         loop all players in world of {_bossLoc}:
             set {_m} to new metadata packet with id {_healId}:
                 display scale: vector(0.01, 0.01, 0.01)
@@ -500,6 +568,11 @@ function hades_ability(bossId: text, ability: text):
 
         loop all players in world of {_bossLoc}:
             remove fake entity with id {_healId} for loop-player
+        loop {_orbCount} times:
+            set {_oi} to loop-number
+            set {_oid} to {_orbBaseId} + {_oi}
+            loop all players in world of {_bossLoc}:
+                remove fake entity with id {_oid} for loop-player
 
     # ════════════════════════════════════════════════════════════
     # 15% — UNDERWORLD GATE
@@ -509,10 +582,106 @@ function hades_ability(bossId: text, ability: text):
 
         boss_anim_phaseText({_bossLoc}, "&5&l⚠ UNDERWORLD GATE ⚠%nl%&7The dead world breaks through!", rgb(150, 0, 200))
 
-        # Lightning strikes around boss
+        # Spawn ground portal display
+        set {_gateBaseId} to random integer between 100000 and 9999999
+        set {_portalId} to {_gateBaseId} + 1
+        set {_portalLoc} to location({_bx}, {_by} + 0.05, {_bz}, {_world})
+
+        loop all players in world of {_bossLoc}:
+            spawn fake block display at {_portalLoc} for loop-player with id {_portalId}
+            set {_m} to new metadata packet with id {_portalId}:
+                display block: purple stained glass
+                display scale: vector(0.01, 0.01, 0.01)
+                display brightness block: 15
+                display teleportduration: 2
+                display transformation: 3
+                display interpolation: 0
+                glowing: true
+                display glow: rgb(150, 0, 200)
+            send packet {_m} to loop-player
+            play sound "block.portal.trigger" with volume 0.6 and pitch 0.3 to loop-player
+
+        wait 1 tick
+
+        # Expand portal
+        loop all players in world of {_bossLoc}:
+            set {_m} to new metadata packet with id {_portalId}:
+                display scale: vector(6, 0.1, 6)
+                display transformation: 4
+                display interpolation: 0
+            send packet {_m} to loop-player
+
+        # Spawn soul sand pillars rising from portal edges
+        set {_pillarCount} to 4
+        loop {_pillarCount} times:
+            set {_pi} to loop-number
+            set {_pAngle} to ({_pi} - 1) * 90 + 45
+            set {_ppx} to {_bx} + (3 * cos({_pAngle}))
+            set {_ppz} to {_bz} + (3 * sin({_pAngle}))
+            set {_pillarId} to {_gateBaseId} + 10 + {_pi}
+            set {_pillarLoc} to location({_ppx}, {_by} - 0.5, {_ppz}, {_world})
+
+            loop all players in world of {_bossLoc}:
+                spawn fake block display at {_pillarLoc} for loop-player with id {_pillarId}
+                set {_m} to new metadata packet with id {_pillarId}:
+                    display block: soul sand
+                    display scale: vector(0.5, 0.01, 0.5)
+                    display brightness block: 15
+                    display teleportduration: 2
+                    display transformation: 3
+                    display interpolation: 0
+                    glowing: true
+                    display glow: rgb(80, 200, 200)
+                send packet {_m} to loop-player
+
+        wait 1 tick
+
+        # Pillars shoot up
+        loop {_pillarCount} times:
+            set {_pi} to loop-number
+            set {_pillarId} to {_gateBaseId} + 10 + {_pi}
+            loop all players in world of {_bossLoc}:
+                set {_m} to new metadata packet with id {_pillarId}:
+                    display scale: vector(0.5, 4, 0.5)
+                    display transformation: 4
+                    display interpolation: 0
+                send packet {_m} to loop-player
+
+        loop all players in world of {_bossLoc}:
+            play sound "entity.warden.sonic_boom" with volume 0.3 and pitch 0.3 to loop-player
+
+        # Spawn soul fire skull display above boss
+        set {_skullId} to {_gateBaseId} + 20
+        set {_skullLoc} to location({_bx}, {_by} + 4, {_bz}, {_world})
+
+        loop all players in world of {_bossLoc}:
+            spawn fake item display at {_skullLoc} for loop-player with id {_skullId}
+            set {_m} to new metadata packet with id {_skullId}:
+                display item: wither skeleton skull
+                display scale: vector(0.01, 0.01, 0.01)
+                display billboard: center
+                display brightness block: 15
+                display teleportduration: 2
+                display transformation: 3
+                display interpolation: 0
+                glowing: true
+                display glow: rgb(130, 0, 200)
+            send packet {_m} to loop-player
+
+        wait 1 tick
+
+        # Expand skull
+        loop all players in world of {_bossLoc}:
+            set {_m} to new metadata packet with id {_skullId}:
+                display scale: vector(3, 3, 3)
+                display transformation: 4
+                display interpolation: 0
+            send packet {_m} to loop-player
+
+        # Lightning strikes at each pillar
         set {_strikeIdx} to 0
-        while {_strikeIdx} < 3:
-            set {_sAngle} to {_strikeIdx} * 120
+        while {_strikeIdx} < 4:
+            set {_sAngle} to {_strikeIdx} * 90 + 45
             set {_sx} to {_bx} + (3 * cos({_sAngle}))
             set {_sz} to {_bz} + (3 * sin({_sAngle}))
             set {_strikeLoc} to location({_sx}, {_by}, {_sz}, {_world})
@@ -520,7 +689,7 @@ function hades_ability(bossId: text, ability: text):
             loop all players in world of {_bossLoc}:
                 spawn fake lightning at {_strikeLoc} for loop-player
                 play sound "entity.lightning_bolt.thunder" with volume 0.8 and pitch 0.7 to loop-player
-            wait 5 ticks
+            wait 3 ticks
             add 1 to {_strikeIdx}
 
         # Debuffs
@@ -528,7 +697,7 @@ function hades_ability(bossId: text, ability: text):
             apply wither 1 to loop-player for 10 seconds
             apply blindness to loop-player for 2 seconds
 
-        # Soul fire rain
+        # Soul fire rain burst
         loop all players in world of {_bossLoc}:
             set {_rainIdx} to 0
             while {_rainIdx} < 25:
@@ -544,6 +713,48 @@ function hades_ability(bossId: text, ability: text):
         apply speed 2 to {_entity} for 999 seconds
 
         boss_anim_shockwave({_bossLoc}, rgb(150, 0, 200))
+
+        # Cleanup displays after dramatic moment
+        wait 30 ticks
+
+        # Shrink skull
+        loop all players in world of {_bossLoc}:
+            set {_m} to new metadata packet with id {_skullId}:
+                display scale: vector(0.01, 0.01, 0.01)
+                display transformation: 4
+                display interpolation: 0
+            send packet {_m} to loop-player
+
+        # Shrink pillars
+        loop {_pillarCount} times:
+            set {_pi} to loop-number
+            set {_pillarId} to {_gateBaseId} + 10 + {_pi}
+            loop all players in world of {_bossLoc}:
+                set {_m} to new metadata packet with id {_pillarId}:
+                    display scale: vector(0.01, 0.01, 0.01)
+                    display transformation: 4
+                    display interpolation: 0
+                send packet {_m} to loop-player
+
+        # Shrink portal
+        loop all players in world of {_bossLoc}:
+            set {_m} to new metadata packet with id {_portalId}:
+                display scale: vector(0.01, 0.01, 0.01)
+                display transformation: 4
+                display interpolation: 0
+            send packet {_m} to loop-player
+
+        wait 4 ticks
+
+        # Remove all displays
+        loop all players in world of {_bossLoc}:
+            remove fake entity with id {_skullId} for loop-player
+            remove fake entity with id {_portalId} for loop-player
+        loop {_pillarCount} times:
+            set {_pi} to loop-number
+            set {_pillarId} to {_gateBaseId} + 10 + {_pi}
+            loop all players in world of {_bossLoc}:
+                remove fake entity with id {_pillarId} for loop-player
 
         # Start gate DoT loop
         hades_gateLoop({_bossId})

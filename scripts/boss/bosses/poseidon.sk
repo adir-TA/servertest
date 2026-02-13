@@ -251,24 +251,91 @@ function poseidon_ability(bossId: text, ability: text):
                 play sound "weather.rain.above" with volume 1 and pitch 0.5 to loop-player
                 play sound "entity.elder_guardian.ambient" with volume 0.8 and pitch 0.6 to loop-player
 
-            # Water tornado — ascending spiral
-            set {_tornadoStep} to 0
-            while {_tornadoStep} < 20:
-                add 1 to {_tornadoStep}
-                set {_tAngle} to {_tornadoStep} * 36
-                set {_tHeight} to {_by} + ({_tornadoStep} * 0.2)
-                set {_tRadius} to 1.5 - ({_tornadoStep} * 0.05)
-                if {_tRadius} < 0.3:
-                    set {_tRadius} to 0.3
-                set {_tx} to {_bx} + ({_tRadius} * cos({_tAngle}))
-                set {_tz} to {_bz} + ({_tRadius} * sin({_tAngle}))
-                set {_tLoc} to location({_tx}, {_tHeight}, {_tz}, {_world})
+            # Spawn water pillar displays rising from ground
+            set {_pillarBaseId} to random integer between 100000 and 9999999
+            set {_pillarCount} to 6
+            loop {_pillarCount} times:
+                set {_pi} to loop-number
+                set {_pAngle} to ({_pi} - 1) * 60
+                set {_ppx} to {_bx} + (2.5 * cos({_pAngle}))
+                set {_ppz} to {_bz} + (2.5 * sin({_pAngle}))
+                set {_pillarId} to {_pillarBaseId} + {_pi}
+                set {_pillarLoc} to location({_ppx}, {_by} - 0.5, {_ppz}, {_world})
 
                 loop all players in world of {_bossLoc}:
-                    draw 4 of dust using dustOption(rgb(30, 100, 200), 1.5) at {_tLoc} for loop-player
-                    draw 2 of dust using dustOption(rgb(100, 200, 255), 1.0) at {_tLoc} for loop-player
+                    spawn fake block display at {_pillarLoc} for loop-player with id {_pillarId}
+                    set {_m} to new metadata packet with id {_pillarId}:
+                        display block: light blue stained glass
+                        display scale: vector(0.4, 0.01, 0.4)
+                        display brightness block: 15
+                        display teleportduration: 2
+                        display transformation: 3
+                        display interpolation: 0
+                        glowing: true
+                        display glow: rgb(30, 130, 230)
+                    send packet {_m} to loop-player
 
-                wait 1 tick
+            wait 1 tick
+
+            # Water pillars shoot up
+            loop {_pillarCount} times:
+                set {_pi} to loop-number
+                set {_pillarId} to {_pillarBaseId} + {_pi}
+                loop all players in world of {_bossLoc}:
+                    set {_m} to new metadata packet with id {_pillarId}:
+                        display scale: vector(0.4, 4, 0.4)
+                        display transformation: 4
+                        display interpolation: 0
+                    send packet {_m} to loop-player
+
+            loop all players in world of {_bossLoc}:
+                play sound "entity.generic.splash" with volume 0.6 and pitch 0.6 to loop-player
+
+            # Trident display spinning above boss
+            set {_tridentId} to {_pillarBaseId} + 20
+            set {_tridentPos} to location({_bx}, {_by} + 2, {_bz}, {_world})
+
+            loop all players in world of {_bossLoc}:
+                spawn fake item display at {_tridentPos} for loop-player with id {_tridentId}
+                set {_m} to new metadata packet with id {_tridentId}:
+                    display item: trident
+                    display scale: vector(0.01, 0.01, 0.01)
+                    display billboard: center
+                    display brightness block: 15
+                    display teleportduration: 2
+                    display transformation: 3
+                    display interpolation: 0
+                    glowing: true
+                    display glow: rgb(50, 200, 255)
+                send packet {_m} to loop-player
+
+            wait 1 tick
+
+            # Expand trident
+            loop all players in world of {_bossLoc}:
+                set {_m} to new metadata packet with id {_tridentId}:
+                    display scale: vector(2, 2, 2)
+                    display transformation: 4
+                    display interpolation: 0
+                send packet {_m} to loop-player
+
+            # Spin trident
+            loop 10 times:
+                set {_frame} to loop-number - 1
+                set {_floatY} to {_by} + 2.0 + ({_frame} * 0.05)
+                set {_spinPos} to location({_bx}, {_floatY}, {_bz}, {_world})
+                set {_sAngle} to {_frame} * 36
+                set {_qy} to sin({_sAngle} / 2)
+                set {_qw} to cos({_sAngle} / 2)
+
+                loop all players in world of {_bossLoc}:
+                    send teleport packet with id {_tridentId} with location {_spinPos} to loop-player
+                    set {_m} to new metadata packet with id {_tridentId}:
+                        display rotation left: 0, {_qy}, 0, {_qw}
+                        display transformation: 2
+                        display interpolation: 0
+                    send packet {_m} to loop-player
+                wait 2 ticks
 
             # Water wave expanding outward from boss
             set {_waveStep} to 0
@@ -287,6 +354,13 @@ function poseidon_ability(bossId: text, ability: text):
 
                 wait 1 tick
 
+            # Water splash burst
+            set {_splashCenter} to location({_bx}, {_by} + 1.5, {_bz}, {_world})
+            loop all players in world of {_bossLoc}:
+                draw 30 of dust using dustOption(rgb(30, 130, 230), 2.0) at {_splashCenter} with offset vector(2, 1.5, 2) for loop-player
+                draw 20 of dust using dustOption(rgb(100, 200, 255), 1.5) at {_splashCenter} with offset vector(1.5, 1.0, 1.5) for loop-player
+                draw 15 of end rod at {_splashCenter} with offset vector(1.0, 1.0, 1.0) for loop-player
+
             # Phase text
             boss_anim_phaseText({_bossLoc}, "&3&lTHE SEAS RISE!", rgb(30, 100, 200))
 
@@ -294,6 +368,39 @@ function poseidon_ability(bossId: text, ability: text):
 
             loop all players in world of {_bossLoc}:
                 play sound "entity.generic.splash" with volume 0.8 and pitch 0.4 to loop-player
+
+            # Cleanup displays
+            wait 20 ticks
+
+            # Shrink trident
+            loop all players in world of {_bossLoc}:
+                set {_m} to new metadata packet with id {_tridentId}:
+                    display scale: vector(0.01, 0.01, 0.01)
+                    display transformation: 4
+                    display interpolation: 0
+                send packet {_m} to loop-player
+
+            # Shrink pillars
+            loop {_pillarCount} times:
+                set {_pi} to loop-number
+                set {_pillarId} to {_pillarBaseId} + {_pi}
+                loop all players in world of {_bossLoc}:
+                    set {_m} to new metadata packet with id {_pillarId}:
+                        display scale: vector(0.01, 0.01, 0.01)
+                        display transformation: 4
+                        display interpolation: 0
+                    send packet {_m} to loop-player
+
+            wait 4 ticks
+
+            # Remove displays
+            loop all players in world of {_bossLoc}:
+                remove fake entity with id {_tridentId} for loop-player
+            loop {_pillarCount} times:
+                set {_pi} to loop-number
+                set {_pillarId} to {_pillarBaseId} + {_pi}
+                loop all players in world of {_bossLoc}:
+                    remove fake entity with id {_pillarId} for loop-player
 
         # Start rain particle loop
         poseidon_rainLoop({_bossId})

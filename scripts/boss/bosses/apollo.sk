@@ -9,6 +9,27 @@
 #
 # ============================================================
 
+function apollo_setup(entity: entity):
+    set {_helm} to golden helmet
+    set name of {_helm} to "&e&lSun Crown"
+    set helmet of {_entity} to {_helm}
+
+    set {_chest} to golden chestplate
+    set name of {_chest} to "&e&lSolar Armor"
+    set chestplate of {_entity} to {_chest}
+
+    set {_legs} to golden leggings
+    set name of {_legs} to "&e&lSun Greaves"
+    set leggings of {_entity} to {_legs}
+
+    set {_boots} to golden boots
+    set name of {_boots} to "&e&lSunwalkers"
+    set boots of {_entity} to {_boots}
+
+    set {_bow} to bow
+    set name of {_bow} to "&e&lSunfire Bow"
+    set tool of {_entity} to {_bow}
+
 # ============================================================
 # APOLLO SPAWN ANIMATION — Sunbeam from sky
 # ============================================================

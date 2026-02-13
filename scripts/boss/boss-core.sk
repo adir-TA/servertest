@@ -288,6 +288,8 @@ function boss_setupEntity(id: text, entity: entity):
         ares_setup({_entity})
     else if {_id} is "hades":
         hades_setup({_entity})
+    else if {_id} is "apollo":
+        apollo_setup({_entity})
 
 # ============================================================
 # DAMAGE EVENTS (one per entity type)
@@ -325,7 +327,7 @@ on damage of vindicator:
         if attacker is a player:
             boss_dealDamage(attacker, {_bossId}, {_damage})
 
-on damage of blaze:
+on damage of skeleton:
     set {_bossId} to boss_getIdFromEntity(victim)
     if {_bossId} != "":
         set {_damage} to damage
