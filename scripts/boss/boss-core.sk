@@ -25,16 +25,16 @@
 function boss_spawn(id: text):
     # Check if already alive
     if {boss::active::%{_id}%::alive} is true:
-        return
+        stop
 
     # Check if registered
     if boss_isRegistered({_id}) is false:
-        return
+        stop
 
     # Check if spawn location is set
     set {_loc} to boss_getSpawnLoc({_id})
     if {_loc} is not set:
-        return
+        stop
 
     set {_name} to boss_getName({_id})
     set {_maxHp} to boss_getMaxHp({_id})
@@ -46,7 +46,7 @@ function boss_spawn(id: text):
 
     # Configure entity
     set custom name of {_entity} to {_name}
-    set {_entity} to be visible
+    set custom name visibility of {_entity} to true
     set maximum health of {_entity} to 2048
     set health of {_entity} to 2048
     set {_entity}'s ai to true
@@ -80,7 +80,7 @@ function boss_spawn(id: text):
 
 function boss_forceKill(id: text):
     if {boss::active::%{_id}%::alive} is not true:
-        return
+        stop
 
     # Kill entity
     set {_entity} to {boss::active::%{_id}%::entity}
@@ -102,7 +102,7 @@ function boss_forceKill(id: text):
 
 function boss_dealDamage(p: player, id: text, amount: number):
     if {boss::active::%{_id}%::alive} is not true:
-        return
+        stop
 
     # Subtract HP
     subtract {_amount} from {boss::active::%{_id}%::hp}

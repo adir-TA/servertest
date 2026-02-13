@@ -22,7 +22,7 @@ function poseidon_ability(bossId: text, ability: text):
     if {_ability} is "summon_guardians":
         set {_entity} to boss_getEntity({_bossId})
         if {_entity} is not set:
-            return
+            stop
 
         set {_bossLoc} to location of {_entity}
 
@@ -96,13 +96,15 @@ function poseidon_rainLoop(bossId: text):
 
         set {_loc} to location of {_entity}
 
-        # Spawn rain particles at boss location (visible to nearby players automatically)
-        loop 10 times:
-            set {_particleLoc} to {_loc}
-            add (random number between -5 and 5) to x-coord of {_particleLoc}
-            add (random number between 1 and 6) to y-coord of {_particleLoc}
-            add (random number between -5 and 5) to z-coord of {_particleLoc}
-            show 3 of rain at {_particleLoc}
+        # Draw rain particles for each player in the world
+        loop all players in world of {_loc}:
+            set {_viewer} to loop-player
+            loop 10 times:
+                set {_particleLoc} to {_loc}
+                add (random number between -5 and 5) to x-coord of {_particleLoc}
+                add (random number between 1 and 6) to y-coord of {_particleLoc}
+                add (random number between -5 and 5) to z-coord of {_particleLoc}
+                draw 3 of dust using dustOption(rgb(50, 130, 220), 1) at {_particleLoc} for {_viewer}
 
         wait 5 ticks
 

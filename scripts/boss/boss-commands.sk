@@ -39,14 +39,14 @@ command /boss [<text>] [<text>]:
                 set {_id} to loop-value
                 set {_name} to boss_getName({_id})
                 set {_alive} to boss_isAlive({_id})
-                set {_locSet} to boss_getSpawnLoc({_id}) is set
 
                 if {_alive} is true:
                     set {_status} to "&a● ALIVE"
                 else:
                     set {_status} to "&7○ Dead"
 
-                if {_locSet} is true:
+                set {_spawnLoc} to boss_getSpawnLoc({_id})
+                if {_spawnLoc} is set:
                     set {_locStatus} to "&a✓"
                 else:
                     set {_locStatus} to "&c✗"
@@ -84,7 +84,8 @@ command /boss [<text>] [<text>]:
                 stop
 
             if boss_isAlive({_bossId}) is true:
-                send "&c%boss_getName({_bossId})% &cis already alive!"
+                set {_bossName} to boss_getName({_bossId})
+                send "&c%{_bossName}% &cis already alive!"
                 stop
 
             if boss_getSpawnLoc({_bossId}) is not set:
@@ -92,7 +93,8 @@ command /boss [<text>] [<text>]:
                 stop
 
             boss_spawn({_bossId})
-            send "&aSpawning %boss_getName({_bossId})%&a..."
+            set {_bossName} to boss_getName({_bossId})
+            send "&aSpawning %{_bossName}%&a..."
             stop
 
         # ════════════════════════════════════════════════════
@@ -104,11 +106,13 @@ command /boss [<text>] [<text>]:
                 stop
 
             if boss_isAlive({_bossId}) is false:
-                send "&c%boss_getName({_bossId})% &cis not alive."
+                set {_bossName} to boss_getName({_bossId})
+                send "&c%{_bossName}% &cis not alive."
                 stop
 
             boss_forceKill({_bossId})
-            send "&cForce killed %boss_getName({_bossId})%&c. No loot dropped."
+            set {_bossName} to boss_getName({_bossId})
+            send "&cForce killed %{_bossName}%&c. No loot dropped."
             stop
 
         # ════════════════════════════════════════════════════
@@ -123,6 +127,7 @@ command /boss [<text>] [<text>]:
             set {_maxHp} to boss_getMaxHp({_bossId})
             set {_baseDmg} to boss_getBaseDamage({_bossId})
             set {_entityType} to boss_getEntityType({_bossId})
+            set {_maxHpFormatted} to formatNum({_maxHp})
 
             send ""
             send "&b&l═══════════════════════════════════════"
@@ -130,7 +135,7 @@ command /boss [<text>] [<text>]:
             send "&b&l═══════════════════════════════════════"
             send ""
             send "&7Entity: &f%{_entityType}%"
-            send "&7Max HP: &c%formatNum({_maxHp})%"
+            send "&7Max HP: &c%{_maxHpFormatted}%"
             send "&7Base Damage: &e%{_baseDmg}%%% &7of player max HP"
             send ""
 
@@ -155,7 +160,8 @@ command /boss [<text>] [<text>]:
             if boss_isAlive({_bossId}) is true:
                 set {_hp} to boss_getHp({_bossId})
                 set {_percent} to boss_getHpPercent({_bossId})
-                send "&7Status: &a● ALIVE &7(%round({_percent})%%% HP)"
+                set {_percentRound} to round({_percent})
+                send "&7Status: &a● ALIVE &7(%{_percentRound}%%% HP)"
             else:
                 send "&7Status: &7○ Dead"
 

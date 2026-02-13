@@ -22,11 +22,13 @@ function boss_hud_create(id: text, entity: entity):
     set {_name} to boss_getName({_id})
     set {_maxHp} to boss_getMaxHp({_id})
     set {_bar} to boss_hud_generateBar(100)
+    set {_maxHpFormatted} to formatNum({_maxHp})
+    set {_displayText} to "%{_name}%%nl%&c%{_bar}%%nl%&c❤ %{_maxHpFormatted}% &7/ &c%{_maxHpFormatted}% &7(100%%)"
 
     loop all players in world of {_loc}:
         spawn fake text display at {_loc} for loop-player with id {_displayId}
         set {_m} to new metadata packet with id {_displayId}:
-            display text: "%{_name}%%nl%&c%{_bar}%%nl%&c❤ %formatNum({_maxHp})% &7/ &c%formatNum({_maxHp})% &7(100%%)"
+            display text: {_displayText}
             display scale: vector(1.5, 1.5, 1.5)
             display billboard: center
             display brightness block: 15
@@ -39,7 +41,7 @@ function boss_hud_create(id: text, entity: entity):
 function boss_hud_update(id: text):
     set {_displayId} to {-boss::hud::%{_id}%::entityId}
     if {_displayId} is not set:
-        return
+        stop
 
     set {_name} to boss_getName({_id})
     set {_hp} to boss_getHp({_id})
@@ -55,10 +57,16 @@ function boss_hud_update(id: text):
     else:
         set {_hpColor} to "&c"
 
+    # Pre-compute display text (functions can't be inside packet sections)
+    set {_hpFormatted} to formatNum({_hp})
+    set {_maxHpFormatted} to formatNum({_maxHp})
+    set {_percentRound} to round({_percent})
+    set {_displayText} to "%{_name}%%nl%%{_bar}%%nl%%{_hpColor}%❤ %{_hpFormatted}% &7/ &c%{_maxHpFormatted}% &7(%{_percentRound}%%%)"
+
     # Move to follow boss
     set {_entity} to boss_getEntity({_id})
     if {_entity} is not set:
-        return
+        stop
 
     set {_loc} to location of {_entity}
     add 2.5 to y-coord of {_loc}
@@ -68,7 +76,7 @@ function boss_hud_update(id: text):
         send teleport packet with id {_displayId} with location {_loc} to loop-player
         # Update text
         set {_m} to new metadata packet with id {_displayId}:
-            display text: "%{_name}%%nl%%{_bar}%%nl%%{_hpColor}%❤ %formatNum({_hp})% &7/ &c%formatNum({_maxHp})% &7(%round({_percent})%%%)"
+            display text: {_displayText}
             display scale: vector(1.5, 1.5, 1.5)
             display billboard: center
             display brightness block: 15
@@ -81,7 +89,7 @@ function boss_hud_update(id: text):
 function boss_hud_remove(id: text):
     set {_displayId} to {-boss::hud::%{_id}%::entityId}
     if {_displayId} is not set:
-        return
+        stop
 
     set {_loc} to boss_getSpawnLoc({_id})
     if {_loc} is set:

@@ -20,7 +20,7 @@ function boss_spawnMinion(bossId: text, entityType: text, loc: location, name: t
     set {_minion} to last spawned entity
 
     set custom name of {_minion} to {_name}
-    set {_minion} to be visible
+    set custom name visibility of {_minion} to true
     set maximum health of {_minion} to 100
     set health of {_minion} to 100
 
@@ -76,7 +76,7 @@ on damage of player:
 # PREVENT MINION DROPS
 # ============================================================
 
-on death of entity:
+on death:
     if boss_isMinion(victim) is true:
         clear drops
         set {_uuid} to uuid of victim
