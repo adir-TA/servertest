@@ -26,18 +26,26 @@ function poseidon_ability(bossId: text, ability: text):
 
         set {_bossLoc} to location of {_entity}
 
-        broadcast "&b&lPoseidon &7summons &bWater Guardians&7!"
+        # Phase text animation
+        boss_anim_phaseText({_bossLoc}, "&b&lWATER GUARDIANS SUMMONED!", rgb(50, 180, 255))
 
-        # Spawn 3 guardians around the boss
+        # Sound
+        loop all players in world of {_bossLoc}:
+            play sound "entity.elder_guardian.curse" with volume 0.8 and pitch 0.8 to loop-player
+
+        # Spawn 3 guardians with particle bursts at each spawn
         loop 3 times:
             set {_spawnLoc} to {_bossLoc}
             add (random number between -3 and 3) to x-coord of {_spawnLoc}
             add (random number between -3 and 3) to z-coord of {_spawnLoc}
             boss_spawnMinion({_bossId}, "guardian", {_spawnLoc}, "&3&lWater Guardian", 10)
 
-        # Sound to players in same world
-        loop all players in world of {_bossLoc}:
-            play sound "entity.elder_guardian.curse" with volume 0.8 and pitch 0.8 to loop-player
+            # Splash particles at each guardian spawn
+            loop all players in world of {_bossLoc}:
+                draw 10 of dust using dustOption(rgb(50, 130, 220), 1.2) at {_spawnLoc} with offset vector(0.3, 0.5, 0.3) for loop-player
+                draw 5 of end rod at {_spawnLoc} with offset vector(0.2, 0.3, 0.2) for loop-player
+
+            wait 5 ticks
 
     # ════════════════════════════════════════════════════════════
     # 50% — RAIN BUFF (STRENGTH)
@@ -47,14 +55,14 @@ function poseidon_ability(bossId: text, ability: text):
 
         set {_entity} to boss_getEntity({_bossId})
 
-        broadcast "&b&lPoseidon &7calls upon the &3&lseas&7!"
-        broadcast "&7His attacks grow &c&lstronger&7..."
-
-        # Visual: apply strength to boss
         if {_entity} is set:
+            set {_bossLoc} to location of {_entity}
+
+            # Phase text animation
+            boss_anim_phaseText({_bossLoc}, "&3&lTHE SEAS RISE!", rgb(30, 100, 200))
+
             apply strength 2 to {_entity} for 999 days
 
-            set {_bossLoc} to location of {_entity}
             loop all players in world of {_bossLoc}:
                 play sound "weather.rain.above" with volume 1 and pitch 0.5 to loop-player
                 play sound "entity.elder_guardian.ambient" with volume 0.8 and pitch 0.6 to loop-player
@@ -70,22 +78,27 @@ function poseidon_ability(bossId: text, ability: text):
 
         set {_entity} to boss_getEntity({_bossId})
 
-        broadcast "&c&l⚠ Poseidon enters RAMPAGE! ⚠"
-        broadcast "&7Direct hits now deal &c&l75%% &7of your max health!"
-
-        # Visual effects
         if {_entity} is set:
+            set {_bossLoc} to location of {_entity}
+
+            # Shockwave expanding ring
+            boss_anim_shockwave({_bossLoc}, rgb(255, 30, 30))
+
+            # Phase text animation
+            boss_anim_phaseText({_bossLoc}, "&c&l⚠ RAMPAGE ⚠%nl%&7Direct hits deal &c75%% &7max HP!", rgb(255, 30, 30))
+
             apply speed 2 to {_entity} for 999 days
             apply strength 4 to {_entity} for 999 days
 
-            set {_bossLoc} to location of {_entity}
             loop all players in world of {_bossLoc}:
                 play sound "entity.wither.spawn" with volume 0.6 and pitch 1.8 to loop-player
                 play sound "entity.ender_dragon.growl" with volume 0.6 and pitch 0.5 to loop-player
+                draw 15 of dust using dustOption(rgb(255, 30, 30), 1.8) at {_bossLoc} with offset vector(1, 1, 1) for loop-player
+                draw 8 of flame at {_bossLoc} with offset vector(0.5, 0.5, 0.5) for loop-player
 
 
 # ============================================================
-# RAIN PARTICLE LOOP
+# RAIN PARTICLE LOOP (display entity based)
 # ============================================================
 
 function poseidon_rainLoop(bossId: text):
@@ -96,15 +109,14 @@ function poseidon_rainLoop(bossId: text):
 
         set {_loc} to location of {_entity}
 
-        # Draw rain particles for each player in the world
+        # Rain particles around boss
         loop all players in world of {_loc}:
-            set {_viewer} to loop-player
-            loop 10 times:
+            loop 8 times:
                 set {_particleLoc} to {_loc}
-                add (random number between -5 and 5) to x-coord of {_particleLoc}
-                add (random number between 1 and 6) to y-coord of {_particleLoc}
-                add (random number between -5 and 5) to z-coord of {_particleLoc}
-                draw 3 of dust using dustOption(rgb(50, 130, 220), 1) at {_particleLoc} for {_viewer}
+                add (random number between -4 and 4) to x-coord of {_particleLoc}
+                add (random number between 1 and 5) to y-coord of {_particleLoc}
+                add (random number between -4 and 4) to z-coord of {_particleLoc}
+                draw 2 of dust using dustOption(rgb(50, 130, 220), 0.8) at {_particleLoc} for loop-player
 
         wait 5 ticks
 
@@ -112,13 +124,9 @@ function poseidon_rainLoop(bossId: text):
 # ============================================================
 # POSEIDON DAMAGE MODIFIER
 # ============================================================
-# Overrides damage when rain buff or rampage is active.
-# Called from the main damage event for boss attacks.
-# ============================================================
 
 on damage of player:
     attacker is set
-    # Check if attacker is a boss entity
     set {_bossId} to boss_getIdFromEntity(attacker)
     if {_bossId} is "poseidon":
         cancel event
@@ -129,8 +137,10 @@ on damage of player:
         if {boss::active::%{_bossId}%::buffRampage} is true:
             set {_damage} to {_maxHp} * 0.75
             damage victim by {_damage} hearts
-            send action bar "&c&l⚠ RAMPAGE HIT! -%round({_damage})% HP ⚠" to victim
+            send action bar "&c&l⚠ RAMPAGE HIT! ⚠" to victim
             play sound "entity.generic.explode" with volume 0.5 and pitch 1.5 to victim
+            # Red flash on hit
+            draw 5 of dust using dustOption(rgb(255, 0, 0), 1.5) at location of victim for victim
             stop
 
         # Rain buff: 1.5x base damage

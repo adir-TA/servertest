@@ -1,0 +1,327 @@
+# ============================================================
+# BOSS ANIMATIONS
+# ============================================================
+#
+# Client-sided display entity animations for boss events.
+# All visuals use fake display entities (packets) so every
+# player in the world sees them, but they are fully client-sided.
+#
+# ============================================================
+
+# ============================================================
+# SPAWN ANIMATION
+# ============================================================
+# Trident item spins up from ground, expands, then pops into boss name text
+
+function boss_anim_spawn(loc: location, name: text):
+    set {_bx} to floor(x-coord of {_loc}) + 0.5
+    set {_by} to floor(y-coord of {_loc}) + 1.0
+    set {_bz} to floor(z-coord of {_loc}) + 0.5
+    set {_world} to world of {_loc}
+
+    set {_itemId} to random integer between 100000 and 9999999
+    set {_textId} to {_itemId} + 1
+    set {_startPos} to location({_bx}, {_by}, {_bz}, {_world})
+
+    # --- Spawn trident display (tiny) ---
+    loop all players in world of {_loc}:
+        spawn fake item display at {_startPos} for loop-player with id {_itemId}
+        set {_m} to new metadata packet with id {_itemId}:
+            display item: trident
+            display scale: vector(0.01, 0.01, 0.01)
+            display billboard: center
+            display brightness block: 15
+            display teleportduration: 2
+            display transformation: 3
+            display interpolation: 0
+            glowing: true
+            display glow: rgb(50, 180, 255)
+        send packet {_m} to loop-player
+
+    wait 1 tick
+
+    # --- Scale up ---
+    loop all players in world of {_loc}:
+        set {_m} to new metadata packet with id {_itemId}:
+            display scale: vector(1.5, 1.5, 1.5)
+            display transformation: 4
+            display interpolation: 0
+        send packet {_m} to loop-player
+
+    wait 3 ticks
+
+    # --- Spin + float up ---
+    loop 12 times:
+        set {_frame} to loop-number - 1
+        set {_floatY} to {_by} + ({_frame} * 0.15)
+        set {_pos} to location({_bx}, {_floatY}, {_bz}, {_world})
+
+        set {_angle} to {_frame} * 30
+        set {_qy} to sin({_angle} / 2)
+        set {_qw} to cos({_angle} / 2)
+
+        loop all players in world of {_loc}:
+            send teleport packet with id {_itemId} with location {_pos} to loop-player
+            set {_m} to new metadata packet with id {_itemId}:
+                display rotation left: 0, {_qy}, 0, {_qw}
+                display transformation: 2
+                display interpolation: 0
+            send packet {_m} to loop-player
+
+        wait 2 ticks
+
+    # --- Flash particles ---
+    set {_peakPos} to location({_bx}, {_by} + 1.8, {_bz}, {_world})
+    loop all players in world of {_loc}:
+        draw 20 of dust using dustOption(rgb(50, 180, 255), 1.5) at {_peakPos} with offset vector(0.5, 0.5, 0.5) for loop-player
+        draw 10 of end rod at {_peakPos} with offset vector(0.4, 0.4, 0.4) for loop-player
+        play sound "entity.player.attack.crit" with volume 0.6 and pitch 0.8 to loop-player
+
+    wait 2 ticks
+
+    # --- Shrink trident away ---
+    loop all players in world of {_loc}:
+        set {_m} to new metadata packet with id {_itemId}:
+            display scale: vector(0.01, 0.01, 0.01)
+            display transformation: 3
+            display interpolation: 0
+        send packet {_m} to loop-player
+
+    wait 3 ticks
+
+    loop all players in world of {_loc}:
+        remove fake entity with id {_itemId} for loop-player
+
+    # --- Spawn boss name text ---
+    set {_textPos} to location({_bx}, {_by} + 2.5, {_bz}, {_world})
+    set {_displayText} to "%{_name}%%nl%&7has appeared!"
+
+    loop all players in world of {_loc}:
+        spawn fake text display at {_textPos} for loop-player with id {_textId}
+        set {_m} to new metadata packet with id {_textId}:
+            display text: {_displayText}
+            display scale: vector(0.01, 0.01, 0.01)
+            display billboard: center
+            display brightness block: 15
+            display teleportduration: 2
+            display transformation: 3
+            display interpolation: 0
+            display background alpha: 0
+        send packet {_m} to loop-player
+
+    wait 1 tick
+
+    # Pop in
+    loop all players in world of {_loc}:
+        set {_m} to new metadata packet with id {_textId}:
+            display scale: vector(1.5, 1.5, 1.5)
+            display transformation: 3
+            display interpolation: 0
+        send packet {_m} to loop-player
+
+    wait 3 ticks
+
+    # Settle
+    loop all players in world of {_loc}:
+        set {_m} to new metadata packet with id {_textId}:
+            display scale: vector(1.2, 1.2, 1.2)
+            display transformation: 3
+            display interpolation: 0
+        send packet {_m} to loop-player
+
+    # Float up
+    set {_endPos} to location({_bx}, {_by} + 3.5, {_bz}, {_world})
+    loop all players in world of {_loc}:
+        send teleport packet with id {_textId} with location {_endPos} to loop-player
+
+    wait 30 ticks
+
+    # Fade out
+    loop all players in world of {_loc}:
+        set {_m} to new metadata packet with id {_textId}:
+            display scale: vector(0.01, 0.01, 0.01)
+            display transformation: 4
+            display interpolation: 0
+        send packet {_m} to loop-player
+
+    wait 4 ticks
+
+    loop all players in world of {_loc}:
+        remove fake entity with id {_textId} for loop-player
+
+
+# ============================================================
+# DEATH ANIMATION
+# ============================================================
+# Boss explodes into particles, item drops scatter, text pops
+
+function boss_anim_death(loc: location, name: text):
+    set {_bx} to floor(x-coord of {_loc}) + 0.5
+    set {_by} to floor(y-coord of {_loc}) + 1.5
+    set {_bz} to floor(z-coord of {_loc}) + 0.5
+    set {_world} to world of {_loc}
+    set {_center} to location({_bx}, {_by}, {_bz}, {_world})
+
+    # --- Explosion particles ---
+    loop all players in world of {_loc}:
+        draw 30 of dust using dustOption(rgb(50, 180, 255), 2.0) at {_center} with offset vector(1, 1, 1) for loop-player
+        draw 20 of dust using dustOption(rgb(255, 255, 255), 1.5) at {_center} with offset vector(0.8, 0.8, 0.8) for loop-player
+        draw 15 of poof at {_center} with offset vector(0.6, 0.6, 0.6) for loop-player
+        draw 10 of end rod at {_center} with offset vector(1.2, 1.2, 1.2) for loop-player
+        play sound "entity.generic.explode" with volume 0.8 and pitch 0.5 to loop-player
+        play sound "entity.firework_rocket.blast" with volume 0.6 and pitch 0.8 to loop-player
+
+    # --- Spawn skull text ---
+    set {_textId} to random integer between 100000 and 9999999
+    set {_textPos} to location({_bx}, {_by} + 1.0, {_bz}, {_world})
+    set {_displayText} to "&c&l☠ %{_name}% &c&lDEFEATED ☠"
+
+    loop all players in world of {_loc}:
+        spawn fake text display at {_textPos} for loop-player with id {_textId}
+        set {_m} to new metadata packet with id {_textId}:
+            display text: {_displayText}
+            display scale: vector(0.01, 0.01, 0.01)
+            display billboard: center
+            display brightness block: 15
+            display teleportduration: 2
+            display transformation: 3
+            display interpolation: 0
+            display background alpha: 0
+        send packet {_m} to loop-player
+
+    wait 1 tick
+
+    # Pop in big
+    loop all players in world of {_loc}:
+        set {_m} to new metadata packet with id {_textId}:
+            display scale: vector(2, 2, 2)
+            display transformation: 3
+            display interpolation: 0
+        send packet {_m} to loop-player
+
+    wait 3 ticks
+
+    # Settle to normal
+    loop all players in world of {_loc}:
+        set {_m} to new metadata packet with id {_textId}:
+            display scale: vector(1.5, 1.5, 1.5)
+            display transformation: 3
+            display interpolation: 0
+        send packet {_m} to loop-player
+
+    # Float up slowly
+    set {_endPos} to location({_bx}, {_by} + 2.5, {_bz}, {_world})
+    loop all players in world of {_loc}:
+        send teleport packet with id {_textId} with location {_endPos} to loop-player
+
+    wait 40 ticks
+
+    # Fade out
+    loop all players in world of {_loc}:
+        set {_m} to new metadata packet with id {_textId}:
+            display scale: vector(0.01, 0.01, 0.01)
+            display transformation: 4
+            display interpolation: 0
+        send packet {_m} to loop-player
+
+    wait 4 ticks
+
+    loop all players in world of {_loc}:
+        remove fake entity with id {_textId} for loop-player
+
+
+# ============================================================
+# PHASE TEXT ANIMATION
+# ============================================================
+# Pops a warning text above the boss with glow
+
+function boss_anim_phaseText(loc: location, text: text, glowColor: object):
+    set {_bx} to floor(x-coord of {_loc}) + 0.5
+    set {_by} to floor(y-coord of {_loc}) + 3.0
+    set {_bz} to floor(z-coord of {_loc}) + 0.5
+    set {_world} to world of {_loc}
+
+    set {_textId} to random integer between 100000 and 9999999
+    set {_pos} to location({_bx}, {_by}, {_bz}, {_world})
+
+    loop all players in world of {_loc}:
+        spawn fake text display at {_pos} for loop-player with id {_textId}
+        set {_m} to new metadata packet with id {_textId}:
+            display text: {_text}
+            display scale: vector(0.01, 0.01, 0.01)
+            display billboard: center
+            display brightness block: 15
+            display teleportduration: 2
+            display transformation: 3
+            display interpolation: 0
+            display background alpha: 0
+            glowing: true
+            display glow: {_glowColor}
+        send packet {_m} to loop-player
+
+    wait 1 tick
+
+    # Pop in
+    loop all players in world of {_loc}:
+        set {_m} to new metadata packet with id {_textId}:
+            display scale: vector(1.8, 1.8, 1.8)
+            display transformation: 3
+            display interpolation: 0
+        send packet {_m} to loop-player
+
+    wait 2 ticks
+
+    # Settle
+    loop all players in world of {_loc}:
+        set {_m} to new metadata packet with id {_textId}:
+            display scale: vector(1.3, 1.3, 1.3)
+            display transformation: 3
+            display interpolation: 0
+        send packet {_m} to loop-player
+
+    # Float up
+    set {_endPos} to location({_bx}, {_by} + 1.5, {_bz}, {_world})
+    loop all players in world of {_loc}:
+        send teleport packet with id {_textId} with location {_endPos} to loop-player
+
+    wait 25 ticks
+
+    # Shrink out
+    loop all players in world of {_loc}:
+        set {_m} to new metadata packet with id {_textId}:
+            display scale: vector(0.01, 0.01, 0.01)
+            display transformation: 4
+            display interpolation: 0
+        send packet {_m} to loop-player
+
+    wait 4 ticks
+
+    loop all players in world of {_loc}:
+        remove fake entity with id {_textId} for loop-player
+
+
+# ============================================================
+# RAMPAGE SHOCKWAVE
+# ============================================================
+# Ring of red particles expands outward from boss
+
+function boss_anim_shockwave(loc: location, color: object):
+    set {_bx} to floor(x-coord of {_loc}) + 0.5
+    set {_by} to floor(y-coord of {_loc}) + 1.0
+    set {_bz} to floor(z-coord of {_loc}) + 0.5
+    set {_world} to world of {_loc}
+
+    loop 8 times:
+        set {_radius} to loop-number * 0.5
+        set {_y} to {_by}
+
+        loop 12 times:
+            set {_angle} to loop-number * 30
+            set {_px} to {_bx} + ({_radius} * cos({_angle}))
+            set {_pz} to {_bz} + ({_radius} * sin({_angle}))
+            set {_particleLoc} to location({_px}, {_y}, {_pz}, {_world})
+
+            loop all players in world of {_loc}:
+                draw 2 of dust using dustOption({_color}, 1.2) at {_particleLoc} for loop-player
+
+        wait 1 tick

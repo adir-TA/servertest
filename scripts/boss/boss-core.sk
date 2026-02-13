@@ -63,15 +63,14 @@ function boss_spawn(id: text):
     # Spawn HUD
     boss_hud_create({_id}, {_entity})
 
+    # Spawn animation (trident spin + text pop)
+    boss_anim_spawn({_loc}, {_name})
+
     # Broadcast spawn
     broadcast ""
     broadcast "&b&l⚔ BOSS SPAWNED ⚔"
     broadcast "&7%{_name}% &7has appeared!"
     broadcast ""
-
-    # Play sound to online players in same world
-    loop all players in world of {_loc}:
-        play sound "entity.wither.spawn" with volume 0.8 and pitch 0.6 to loop-player
 
 # ============================================================
 # DESPAWN / FORCE KILL
@@ -129,9 +128,10 @@ function boss_die(id: text):
     set {_name} to boss_getName({_id})
     set {_lastHitter} to {boss::active::%{_id}%::lastHitter}
 
-    # Kill entity
+    # Get entity location before killing
     set {_entity} to {boss::active::%{_id}%::entity}
     if {_entity} is set:
+        set {_deathLoc} to location of {_entity}
         kill {_entity}
 
     # Clear minions
@@ -139,6 +139,10 @@ function boss_die(id: text):
 
     # Remove HUD
     boss_hud_remove({_id})
+
+    # Death animation (explosion particles + skull text)
+    if {_deathLoc} is set:
+        boss_anim_death({_deathLoc}, {_name})
 
     # Broadcast death
     broadcast ""
@@ -150,12 +154,6 @@ function boss_die(id: text):
     else:
         broadcast "&7%{_name}% &7has been defeated!"
     broadcast ""
-
-    # Death effects
-    set {_loc} to boss_getSpawnLoc({_id})
-    if {_loc} is set:
-        loop all players in world of {_loc}:
-            play sound "entity.ender_dragon.death" with volume 0.8 and pitch 1.2 to loop-player
 
     # Clean up
     boss_cleanup({_id})
