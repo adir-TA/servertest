@@ -1,282 +1,275 @@
 # ============================================================
 # DRAGON — Boss Abilities
 # ============================================================
+#
+# Abilities:
+#   75% HP -> teleport_strike: Teleports to last hitter, deals 25% max HP
+#   50% HP -> dragon_breath: Poison aura, DoT to nearby players
+#   15% HP -> dragon_rage: Fire aura, 30% max HP hits, speed+strength
+#
+# ============================================================
 
-# Dragon setup - equips the wither skeleton with netherite gear
 function dragon_setup(entity: entity):
-    # Helmet
     set {_helm} to netherite helmet
     set name of {_helm} to "&6&lDragon Helm"
     set helmet of {_entity} to {_helm}
 
-    # Chestplate
     set {_chest} to netherite chestplate
     set name of {_chest} to "&6&lDragon Armor"
     set chestplate of {_entity} to {_chest}
 
-    # Leggings
     set {_legs} to netherite leggings
     set name of {_legs} to "&6&lDragon Greaves"
     set leggings of {_entity} to {_legs}
 
-    # Boots
     set {_boots} to netherite boots
     set name of {_boots} to "&6&lDragon Boots"
     set boots of {_entity} to {_boots}
 
-    # Weapon
     set {_sword} to netherite sword
     set name of {_sword} to "&c&lDragon Fang"
     set tool of {_entity} to {_sword}
 
-    stop
-
-# Dragon ability handler
 function dragon_ability(bossId: text, ability: text):
-    set {_entity} to {boss::active::%{_bossId}%::entity}
+    set {_entity} to boss_getEntity({_bossId})
+    if {_entity} is not set:
+        stop
     set {_bossLoc} to location of {_entity}
+    set {_bx} to floor(x-coord of {_bossLoc}) + 0.5
+    set {_by} to floor(y-coord of {_bossLoc})
+    set {_bz} to floor(z-coord of {_bossLoc}) + 0.5
+    set {_world} to world of {_bossLoc}
 
+    # ════════════════════════════════════════════════════════════
+    # 75% — TELEPORT STRIKE
+    # ════════════════════════════════════════════════════════════
     if {_ability} is "teleport_strike":
-        # Get last hitter
         set {_target} to {boss::active::%{_bossId}%::lastHitter}
+        if {_target} is not a player:
+            stop
 
-        if {_target} is a player:
-            set {_targetLoc} to location of {_target}
+        set {_targetLoc} to location of {_target}
+        set {_tx} to floor(x-coord of {_targetLoc}) + 0.5
+        set {_ty} to floor(y-coord of {_targetLoc})
+        set {_tz} to floor(z-coord of {_targetLoc}) + 0.5
+        set {_tWorld} to world of {_targetLoc}
 
-            # Warning animation - red particles swirl inward (6 steps)
-            set {_radius} to 3
-            set {_step} to 0
-            while {_step} < 6:
-                set {_currentRadius} to {_radius} * (1 - ({_step} / 6))
-                set {_angle} to 0
-                while {_angle} < 360:
-                    set {_radians} to {_angle} * 0.0174533
-                    set {_x} to {_currentRadius} * cos({_radians})
-                    set {_z} to {_currentRadius} * sin({_radians})
-                    set {_particleLoc} to {_targetLoc} ~ vector({_x}, 0.5, {_z})
-
-                    loop all players in world of {_targetLoc}:
-                        draw 1 of dust using dustOption(rgb(255, 0, 0), 1.2) at {_particleLoc} for loop-player
-
-                    add 30 to {_angle}
-
-                play sound "entity.enderman.teleport" with volume 0.5 at {_targetLoc}
-                wait 3 ticks
-                add 1 to {_step}
-
-            # Show phase text
-            boss_anim_phaseText({_bossLoc}, "&6&lTELEPORT STRIKE!", rgb(255, 100, 0))
-
-            wait 5 ticks
-
-            # Teleport boss to player
-            teleport {_entity} to {_targetLoc}
-
-            # Big burst of flame + dust particles
-            loop 30 times:
-                set {_offsetX} to random number between -1.5 and 1.5
-                set {_offsetY} to random number between 0 and 2
-                set {_offsetZ} to random number between -1.5 and 1.5
-                set {_burstLoc} to {_targetLoc} ~ vector({_offsetX}, {_offsetY}, {_offsetZ})
-
+        # Warning — red particles spiral inward on target
+        set {_step} to 0
+        while {_step} < 6:
+            set {_currentRadius} to 3.0 * (1 - ({_step} / 6))
+            if {_currentRadius} < 0.3:
+                set {_currentRadius} to 0.3
+            loop 12 times:
+                set {_angle} to loop-number * 30
+                set {_px} to {_tx} + ({_currentRadius} * cos({_angle}))
+                set {_pz} to {_tz} + ({_currentRadius} * sin({_angle}))
+                set {_particleLoc} to location({_px}, {_ty} + 0.5, {_pz}, {_tWorld})
                 loop all players in world of {_targetLoc}:
-                    draw 1 of flame at {_burstLoc} for loop-player
-                    draw 1 of dust using dustOption(rgb(255, 100, 0), 1.5) at {_burstLoc} for loop-player
+                    draw 1 of dust using dustOption(rgb(255, 0, 0), 1.2) at {_particleLoc} for loop-player
 
-            play sound "entity.generic.explode" with volume 1.2 at {_targetLoc}
+            loop all players in world of {_targetLoc}:
+                play sound "entity.enderman.teleport" with volume 0.5 and pitch 1.0 to loop-player
+            wait 3 ticks
+            add 1 to {_step}
 
-            # Apply slowness
-            apply slowness 2 to {_target} for 3 seconds
+        # Phase text
+        boss_anim_phaseText({_bossLoc}, "&6&lTELEPORT STRIKE!", rgb(255, 100, 0))
 
-            # Deal 25% max health damage
-            set {_dmg} to max health of {_target} * 0.25
-            damage {_target} by {_dmg} hearts
+        wait 5 ticks
 
+        # Teleport boss to target
+        teleport {_entity} to {_targetLoc}
+
+        # Flame burst at landing
+        set {_burstCenter} to location({_tx}, {_ty} + 1.0, {_tz}, {_tWorld})
+        loop all players in world of {_targetLoc}:
+            draw 30 of flame at {_burstCenter} with offset vector(1.5, 1.0, 1.5) for loop-player
+            draw 20 of dust using dustOption(rgb(255, 100, 0), 1.5) at {_burstCenter} with offset vector(1.0, 0.8, 1.0) for loop-player
+            play sound "entity.generic.explode" with volume 0.8 and pitch 0.8 to loop-player
+
+        # Apply slowness + deal damage
+        apply slowness 2 to {_target} for 3 seconds
+        set {_dmg} to max health of {_target} * 0.25
+        damage {_target} by {_dmg} hearts
+
+    # ════════════════════════════════════════════════════════════
+    # 50% — DRAGON BREATH
+    # ════════════════════════════════════════════════════════════
     else if {_ability} is "dragon_breath":
-        # Set buff flag
         set {boss::active::%{_bossId}%::buffBreath} to true
 
-        # Show phase text
         boss_anim_phaseText({_bossLoc}, "&c&lDRAGON BREATH!", rgb(200, 50, 0))
 
-        # Animate cone of particles forward (8 steps expanding outward)
-        set {_direction} to direction of {_entity}
+        # Toxic cloud expanding from boss
         set {_step} to 0
         while {_step} < 8:
-            set {_distance} to {_step} * 0.6
-            set {_spread} to {_step} * 0.4
-
-            set {_particle} to 0
-            while {_particle} < 12:
-                set {_offsetX} to random number between (-{_spread}) and {_spread}
-                set {_offsetZ} to random number between (-{_spread}) and {_spread}
-                set {_coneLoc} to {_bossLoc} ~ ({_direction} * {_distance}) ~ vector({_offsetX}, 0.5, {_offsetZ})
-
+            set {_radius} to {_step} * 0.6
+            loop 12 times:
+                set {_angle} to loop-number * 30
+                set {_cx} to {_bx} + ({_radius} * cos({_angle}))
+                set {_cz} to {_bz} + ({_radius} * sin({_angle}))
+                set {_coneLoc} to location({_cx}, {_by} + 0.5, {_cz}, {_world})
                 loop all players in world of {_bossLoc}:
                     draw 1 of dust using dustOption(rgb(0, 120, 0), 1.3) at {_coneLoc} for loop-player
                     draw 1 of dust using dustOption(rgb(50, 50, 50), 0.9) at {_coneLoc} for loop-player
 
-                add 1 to {_particle}
-
             wait 2 ticks
             add 1 to {_step}
 
-        # Apply poison to all players
+        # Poison all players in world
         loop all players in world of {_bossLoc}:
             apply poison 2 to loop-player for 5 seconds
+            play sound "entity.ender_dragon.growl" with volume 0.8 and pitch 0.8 to loop-player
 
-        play sound "entity.ender_dragon.growl" with volume 1.5 at {_bossLoc}
-
-        # Start breath loop
+        # Start breath DoT loop
         dragon_breathLoop({_bossId})
 
+    # ════════════════════════════════════════════════════════════
+    # 15% — DRAGON RAGE
+    # ════════════════════════════════════════════════════════════
     else if {_ability} is "dragon_rage":
-        # Set buff flag
         set {boss::active::%{_bossId}%::buffRage} to true
 
-        # Red shockwave
         boss_anim_shockwave({_bossLoc}, rgb(255, 50, 0))
 
-        # Phase text with warning
         boss_anim_phaseText({_bossLoc}, "&c&l⚠ DRAGON RAGE ⚠%nl%&7The dragon burns with fury!", rgb(255, 30, 0))
 
-        # Spawn 3 fake lightning strikes around boss
-        loop 3 times:
-            set {_angle} to loop-number * 120
-            set {_radians} to {_angle} * 0.0174533
-            set {_x} to 3 * cos({_radians})
-            set {_z} to 3 * sin({_radians})
-            set {_lightningLoc} to {_bossLoc} ~ vector({_x}, 0, {_z})
+        # Lightning strikes around boss
+        set {_strikeIdx} to 0
+        while {_strikeIdx} < 3:
+            set {_sAngle} to {_strikeIdx} * 120
+            set {_sx} to {_bx} + (3 * cos({_sAngle}))
+            set {_sz} to {_bz} + (3 * sin({_sAngle}))
+            set {_strikeLoc} to location({_sx}, {_by}, {_sz}, {_world})
 
-            play sound "entity.lightning_bolt.thunder" with volume 0.8 at {_lightningLoc}
+            loop all players in world of {_bossLoc}:
+                spawn fake lightning at {_strikeLoc} for loop-player
+                play sound "entity.lightning_bolt.thunder" with volume 0.8 and pitch 0.8 to loop-player
 
-            # Lightning bolt effect (vertical white/yellow particles)
+            # Lightning bolt particles (vertical column)
             set {_y} to 0
             while {_y} < 10:
-                set {_boltLoc} to {_lightningLoc} ~ vector(0, {_y}, 0)
+                set {_boltLoc} to location({_sx}, {_by} + {_y}, {_sz}, {_world})
                 loop all players in world of {_bossLoc}:
                     draw 1 of dust using dustOption(rgb(255, 255, 200), 0.6) at {_boltLoc} for loop-player
                 add 0.5 to {_y}
 
-        # Apply buffs to entity
+            add 1 to {_strikeIdx}
+
+        # Buff boss
         apply speed 3 to {_entity} for 999 seconds
         apply strength 3 to {_entity} for 999 seconds
 
-        # Red fire particle burst
-        loop 50 times:
-            set {_offsetX} to random number between -2 and 2
-            set {_offsetY} to random number between 0 and 3
-            set {_offsetZ} to random number between -2 and 2
-            set {_burstLoc} to {_bossLoc} ~ vector({_offsetX}, {_offsetY}, {_offsetZ})
-
-            loop all players in world of {_bossLoc}:
-                draw 1 of flame at {_burstLoc} for loop-player
-                draw 1 of dust using dustOption(rgb(255, 30, 0), 1.5) at {_burstLoc} for loop-player
+        # Red fire burst
+        set {_burstCenter} to location({_bx}, {_by} + 1.0, {_bz}, {_world})
+        loop all players in world of {_bossLoc}:
+            draw 50 of flame at {_burstCenter} with offset vector(2, 1.5, 2) for loop-player
+            draw 30 of dust using dustOption(rgb(255, 30, 0), 1.5) at {_burstCenter} with offset vector(1.5, 1.0, 1.5) for loop-player
 
         # Start rage loop
         dragon_rageLoop({_bossId})
 
-    stop
 
-# Dragon breath DoT loop - runs while alive, deals damage to nearby players
+# ============================================================
+# BREATH DOT LOOP
+# ============================================================
+
 function dragon_breathLoop(bossId: text):
     while {boss::active::%{_bossId}%::alive} is true:
-        set {_entity} to {boss::active::%{_bossId}%::entity}
-        if {_entity} is set:
-            set {_entityLoc} to location of {_entity}
+        set {_entity} to boss_getEntity({_bossId})
+        if {_entity} is not set:
+            stop
 
-            # Draw green/orange particles around boss (toxic breath aura)
-            loop 20 times:
-                set {_angle} to loop-number * 18
-                set {_radians} to {_angle} * 0.0174533
-                set {_x} to 1.5 * cos({_radians})
-                set {_z} to 1.5 * sin({_radians})
-                set {_particleLoc} to {_entityLoc} ~ vector({_x}, 1, {_z})
+        set {_entityLoc} to location of {_entity}
+        set {_ex} to x-coord of {_entityLoc}
+        set {_ey} to y-coord of {_entityLoc}
+        set {_ez} to z-coord of {_entityLoc}
+        set {_world} to world of {_entityLoc}
 
-                loop all players in world of {_entityLoc}:
-                    draw 1 of dust using dustOption(rgb(0, 150, 0), 1.1) at {_particleLoc} for loop-player
-                    draw 1 of dust using dustOption(rgb(255, 150, 0), 0.8) at {_particleLoc} for loop-player
-
-            # Check players in range and deal damage
+        # Green/orange toxic aura around boss
+        loop 20 times:
+            set {_angle} to loop-number * 18
+            set {_px} to {_ex} + (1.5 * cos({_angle}))
+            set {_pz} to {_ez} + (1.5 * sin({_angle}))
+            set {_particleLoc} to location({_px}, {_ey} + 1, {_pz}, {_world})
             loop all players in world of {_entityLoc}:
-                set {_distance} to distance between loop-player and {_entity}
-                if {_distance} < 5:
-                    # Deal 40% max HP damage
-                    set {_dmg} to max health of loop-player * 0.4
-                    damage loop-player by {_dmg} hearts
+                draw 1 of dust using dustOption(rgb(0, 150, 0), 1.1) at {_particleLoc} for loop-player
+                draw 1 of dust using dustOption(rgb(255, 150, 0), 0.8) at {_particleLoc} for loop-player
 
-                    # Show toxic particles on player
-                    set {_playerLoc} to location of loop-player
-                    loop 10 times:
-                        set {_offsetX} to random number between -0.5 and 0.5
-                        set {_offsetY} to random number between 0 and 2
-                        set {_offsetZ} to random number between -0.5 and 0.5
-                        set {_hitLoc} to {_playerLoc} ~ vector({_offsetX}, {_offsetY}, {_offsetZ})
+        # Damage nearby players
+        loop all players in world of {_entityLoc}:
+            set {_distance} to distance between loop-player and {_entity}
+            if {_distance} < 5:
+                set {_dmg} to max health of loop-player * 0.4
+                damage loop-player by {_dmg} hearts
+                apply wither 1 to loop-player for 2 seconds
 
-                        loop all players in world of {_entityLoc}:
-                            draw 1 of dust using dustOption(rgb(0, 100, 0), 1.2) at {_hitLoc} for loop-player
-
-                    # Apply wither effect
-                    apply wither 1 to loop-player for 2 seconds
+                set {_pLoc} to location of loop-player
+                set {_pLocX} to x-coord of {_pLoc}
+                set {_pLocY} to y-coord of {_pLoc}
+                set {_pLocZ} to z-coord of {_pLoc}
+                set {_pWorld} to world of {_pLoc}
+                set {_hitLoc} to location({_pLocX}, {_pLocY} + 1, {_pLocZ}, {_pWorld})
+                draw 10 of dust using dustOption(rgb(0, 100, 0), 1.2) at {_hitLoc} with offset vector(0.5, 0.5, 0.5) for loop-player
 
         wait 40 ticks
 
-    stop
 
-# Dragon rage particle loop - runs while alive, draws fire aura
+# ============================================================
+# RAGE PARTICLE LOOP
+# ============================================================
+
 function dragon_rageLoop(bossId: text):
     while {boss::active::%{_bossId}%::alive} is true:
-        set {_entity} to {boss::active::%{_bossId}%::entity}
-        if {_entity} is set:
-            set {_entityLoc} to location of {_entity}
+        set {_entity} to boss_getEntity({_bossId})
+        if {_entity} is not set:
+            stop
 
-            # Draw flame particles + red dust aura (rage buff visual)
-            loop 15 times:
-                set {_angle} to loop-number * 24
-                set {_radians} to {_angle} * 0.0174533
-                set {_x} to 1.2 * cos({_radians})
-                set {_z} to 1.2 * sin({_radians})
-                set {_particleLoc} to {_entityLoc} ~ vector({_x}, 1, {_z})
+        set {_entityLoc} to location of {_entity}
+        set {_ex} to x-coord of {_entityLoc}
+        set {_ey} to y-coord of {_entityLoc}
+        set {_ez} to z-coord of {_entityLoc}
+        set {_world} to world of {_entityLoc}
 
-                loop all players in world of {_entityLoc}:
-                    draw 1 of flame at {_particleLoc} for loop-player
-                    draw 1 of dust using dustOption(rgb(255, 30, 0), 1.2) at {_particleLoc} for loop-player
-                    draw 1 of dust using dustOption(rgb(150, 0, 0), 0.8) at {_particleLoc} for loop-player
+        # Flame + red dust aura
+        loop 15 times:
+            set {_angle} to loop-number * 24
+            set {_px} to {_ex} + (1.2 * cos({_angle}))
+            set {_pz} to {_ez} + (1.2 * sin({_angle}))
+            set {_particleLoc} to location({_px}, {_ey} + 1, {_pz}, {_world})
+            loop all players in world of {_entityLoc}:
+                draw 1 of flame at {_particleLoc} for loop-player
+                draw 1 of dust using dustOption(rgb(255, 30, 0), 1.2) at {_particleLoc} for loop-player
 
         wait 10 ticks
 
-    stop
 
-# Dragon damage modifier event - handles custom damage during rage
+# ============================================================
+# DRAGON DAMAGE MODIFIER
+# ============================================================
+
 on damage of player:
     attacker is set
     set {_bossId} to boss_getIdFromEntity(attacker)
-
     if {_bossId} is "dragon":
         cancel event
 
-        # Check if rage buff is active
         if {boss::active::%{_bossId}%::buffRage} is true:
-            # Deal 30% max HP damage during rage
             set {_dmg} to max health of victim * 0.3
             damage victim by {_dmg} hearts
-
-            # Flame burst on victim
-            set {_victimLoc} to location of victim
-            loop 15 times:
-                set {_offsetX} to random number between -1 and 1
-                set {_offsetY} to random number between 0 and 2
-                set {_offsetZ} to random number between -1 and 1
-                set {_burstLoc} to {_victimLoc} ~ vector({_offsetX}, {_offsetY}, {_offsetZ})
-
-                loop all players in world of {_victimLoc}:
-                    draw 1 of flame at {_burstLoc} for loop-player
-                    draw 1 of dust using dustOption(rgb(255, 100, 0), 1.2) at {_burstLoc} for loop-player
-
-            # Set victim on fire (visual fire effect)
             set victim on fire for 3 seconds
 
+            set {_victimLoc} to location of victim
+            set {_vx} to x-coord of {_victimLoc}
+            set {_vy} to y-coord of {_victimLoc}
+            set {_vz} to z-coord of {_victimLoc}
+            set {_vWorld} to world of {_victimLoc}
+            set {_burstLoc} to location({_vx}, {_vy} + 1, {_vz}, {_vWorld})
+            loop all players in world of {_victimLoc}:
+                draw 15 of flame at {_burstLoc} with offset vector(0.5, 0.5, 0.5) for loop-player
+                draw 10 of dust using dustOption(rgb(255, 100, 0), 1.2) at {_burstLoc} with offset vector(0.3, 0.5, 0.3) for loop-player
+
         else:
-            # Deal base damage normally
             set {_damage} to max health of victim * (boss_getBaseDamage({_bossId}) / 100)
             damage victim by {_damage} hearts
