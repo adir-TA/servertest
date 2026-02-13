@@ -228,7 +228,7 @@ function research_setActiveResearchItem(menu: inventory, p: player, slot: number
 # CATEGORY VIEW (Shows Tracks)
 # ============================================================
 
-function research_openCategoryMenu(p: player, category: text, page: number = -1):
+function research_openCategoryMenu(p: player, category: text, page: number = 1):
     set {_uuid} to {_p}'s uuid
     set {_catName} to research_getCategoryName({_category})
     set {_color} to research_getCategoryColor({_category})
@@ -242,25 +242,6 @@ function research_openCategoryMenu(p: player, category: text, page: number = -1)
             set {_maxTiersNeeded} to {_maxTier}
     set {_tiersPerPage} to 8
     set {_maxPage} to ceil({_maxTiersNeeded} / {_tiersPerPage})
-
-    # Auto-detect page if not specified (page = -1)
-    if {_page} = -1:
-        # Find the lowest next available tier across all tracks
-        set {_nextTier} to 999
-        loop {_tracks::*}:
-            set {_completed} to research_getCompletedTier({_p}, {_category}, loop-value)
-            set {_trackMaxTier} to research_getTrackMaxTier({_category}, loop-value)
-            if {_completed} < {_trackMaxTier}:
-                set {_tierToShow} to {_completed} + 1
-                if {_tierToShow} < {_nextTier}:
-                    set {_nextTier} to {_tierToShow}
-
-        # Calculate which page contains this tier
-        if {_nextTier} < 999:
-            set {_page} to ceil({_nextTier} / {_tiersPerPage})
-        else:
-            # All complete, show page 1
-            set {_page} to 1
 
     # Clamp page to valid range
     if {_page} < 1:
